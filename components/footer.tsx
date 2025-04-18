@@ -1,110 +1,106 @@
 import Link from "next/link"
-import { Facebook, Instagram, Twitter, Github } from "lucide-react"
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from "lucide-react"
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t bg-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+    <footer className="bg-gray-900 text-gray-300">
+      <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div>
-            <h3 className="text-lg font-semibold">Smiley Brooms</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Professional cleaning services tailored to your needs.</p>
-            <div className="mt-4 flex space-x-3">
-              <Link
+            <h3 className="text-xl font-bold text-white">Smiley Brooms</h3>
+            <p className="mt-4">Professional cleaning services for homes and businesses.</p>
+            <div className="mt-6 flex space-x-4">
+              <a
                 href="#"
-                className="rounded-full bg-muted p-2 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
                 aria-label="Facebook"
               >
-                <Facebook className="h-4 w-4" />
-              </Link>
-              <Link
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a
                 href="#"
-                className="rounded-full bg-muted p-2 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
                 aria-label="Instagram"
               >
-                <Instagram className="h-4 w-4" />
-              </Link>
-              <Link
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a
                 href="#"
-                className="rounded-full bg-muted p-2 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
                 aria-label="Twitter"
               >
-                <Twitter className="h-4 w-4" />
-              </Link>
-              <Link
-                href="https://github.com"
-                className="rounded-full bg-muted p-2 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
-                aria-label="GitHub"
-              >
-                <Github className="h-4 w-4" />
-              </Link>
+                <Twitter className="h-5 w-5" />
+              </a>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold">Quick Links</h3>
-            <ul className="mt-2 space-y-2 text-sm">
-              <li>
-                <Link href="/" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link href="/calculator" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Price Calculator
-                </Link>
-              </li>
-              <li>
-                <Link href="/products" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Products
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="text-muted-foreground hover:text-foreground hover:underline">
-                  About
-                </Link>
-              </li>
+            <h3 className="text-lg font-semibold text-white">Quick Links</h3>
+            <ul className="mt-4 space-y-2">
+              {[
+                { name: "Home", href: "/" },
+                { name: "Services", href: "/services" },
+                { name: "Calculator", href: "/calculator" },
+                { name: "Pricing", href: "/pricing" },
+                { name: "About", href: "/about" },
+                { name: "Contact", href: "/contact" },
+              ].map((link) => (
+                <li key={link.name}>
+                  <Link href={link.href} className="hover:text-primary hover:underline">
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold">Legal</h3>
-            <ul className="mt-2 space-y-2 text-sm">
-              <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Privacy Policy
-                </Link>
+            <h3 className="text-lg font-semibold text-white">Services</h3>
+            <ul className="mt-4 space-y-2">
+              {[
+                { name: "Regular Cleaning", href: "/services/regular-cleaning" },
+                { name: "Deep Cleaning", href: "/services/deep-cleaning" },
+                { name: "Move In/Out Cleaning", href: "/services/move-in-out" },
+                { name: "Office Cleaning", href: "/services/office-cleaning" },
+                { name: "Carpet Cleaning", href: "/services/carpet-cleaning" },
+                { name: "Window Cleaning", href: "/services/window-cleaning" },
+              ].map((service) => (
+                <li key={service.name}>
+                  <Link href={service.href} className="hover:text-primary hover:underline">
+                    {service.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-white">Contact Us</h3>
+            <ul className="mt-4 space-y-4">
+              <li className="flex items-start">
+                <MapPin className="mr-3 h-5 w-5 text-primary" />
+                <span>
+                  123 Cleaning Street, Suite 100
+                  <br />
+                  Sparkle City, SC 12345
+                </span>
               </li>
-              <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Terms of Service
-                </Link>
+              <li className="flex items-center">
+                <Phone className="mr-3 h-5 w-5 text-primary" />
+                <span>(555) 123-4567</span>
               </li>
-              <li>
-                <Link href="/refund" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Refund Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-foreground hover:underline">
-                  Contact Us
-                </Link>
+              <li className="flex items-center">
+                <Mail className="mr-3 h-5 w-5 text-primary" />
+                <span>info@smileybrooms.com</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
-          <p className="text-center text-sm text-muted-foreground">
-            &copy; {currentYear} Smiley Brooms. All rights reserved.
-          </p>
+        <div className="mt-12 border-t border-gray-800 pt-8 text-center">
+          <p>&copy; {currentYear} Smiley Brooms. All rights reserved.</p>
         </div>
       </div>
     </footer>

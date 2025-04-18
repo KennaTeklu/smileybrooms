@@ -1,301 +1,188 @@
 "use server"
-
 import Stripe from "stripe"
 import { headers } from "next/headers"
-import { revalidatePath } from "next/cache"
 
 // Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
-  typescript: true,
 })
 
-export type LineItem = {
+type LineItem = {
   price: string
   quantity: number
 }
 
-export type CustomLineItem = {
-  name: string
-  description?: string
-  amount: number
-  quantity: number
-  tax_rates?: string[]
-  images?: string[]
-}
-
-export type CheckoutOptions = {
-  lineItems?: LineItem[]
-  customLineItems?: CustomLineItem[]
+// Update the CheckoutOptions type to include customer data
+type CheckoutOptions = {
+  lineItems: LineItem[]
   successUrl: string
   cancelUrl: string
-  metadata?: Record<string, string>
+  priceId?: string // For backward compatibility
+  customLineItems?: Array<{
+    name: string
+    amount: number
+    quantity: number
+    metadata?: Record<string, any>
+  }>
   customerEmail?: string
-  clientReferenceId?: string
-  promotionCode?: string
-  allowPromotionCodes?: boolean
-  shippingAddressCollection?: boolean
-  taxIdCollection?: boolean
+  customerData?: {
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+    }
+  }
 }
 
-/**
- * Creates a Stripe checkout session for payment processing
- *
- * @param options - Configuration options for the checkout session
- * @returns URL to the Stripe checkout page
- */
-export async function createCheckoutSession(options: CheckoutOptions): Promise<string | null> {
-  const {
-    lineItems = [],
-    customLineItems = [],
-    successUrl,
-    cancelUrl,
-    metadata = {},
-    customerEmail,
-    clientReferenceId,
-    promotionCode,
-    allowPromotionCodes = true,
-    shippingAddressCollection = false,
-    taxIdCollection = false,
-  } = options
+export async function createCheckoutSession(options: CheckoutOptions) {
+  const { lineItems, successUrl, cancelUrl, priceId, customLineItems, customerEmail, customerData } = options
 
   try {
-    // Validate inputs
-    if (lineItems.length === 0 && customLineItems.length === 0) {
-      throw new Error("No items provided for checkout")
-    }
-
-    if (!successUrl || !cancelUrl) {
-      throw new Error("Success and cancel URLs are required")
-    }
-
-    // Create session parameters
+    // Create a checkout session with Stripe
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
       payment_method_types: ["card"],
       billing_address_collection: "auto",
-      metadata,
-      line_items: [],
-      allow_promotion_codes: allowPromotionCodes,
     }
 
-    // Add client reference ID if provided
-    if (clientReferenceId) {
-      sessionParams.client_reference_id = clientReferenceId
-    }
-
-    // Add customer email if provided
+    // Add customer data if provided
     if (customerEmail) {
       sessionParams.customer_email = customerEmail
     }
 
-    // Add promotion code if provided
-    if (promotionCode) {
-      sessionParams.discounts = [
-        {
-          promotion_code: promotionCode,
-        },
-      ]
-    }
-
-    // Add shipping address collection if requested
-    if (shippingAddressCollection) {
+    // Add shipping address if provided
+    if (customerData?.address) {
       sessionParams.shipping_address_collection = {
-        allowed_countries: ["US", "CA", "GB", "AU"],
+        allowed_countries: ["US"],
       }
-    }
 
-    // Add tax ID collection if requested
-    if (taxIdCollection) {
-      sessionParams.tax_id_collection = {
-        enabled: true,
+      // Pre-fill shipping details if we have them
+      if (customerData.name || customerData.phone) {
+        sessionParams.shipping_options = [
+          {
+            shipping_rate_data: {
+              type: "fixed_amount",
+              fixed_amount: {
+                amount: 0,
+                currency: "usd",
+              },
+              display_name: "Standard Service",
+              delivery_estimate: {
+                minimum: {
+                  unit: "business_day",
+                  value: 1,
+                },
+                maximum: {
+                  unit: "business_day",
+                  value: 3,
+                },
+              },
+            },
+          },
+        ]
       }
     }
 
     // Add regular line items if they exist
-    if (lineItems.length > 0) {
-      sessionParams.line_items = lineItems
+    if (lineItems.length > 0 || priceId) {
+      sessionParams.line_items = lineItems.length > 0 ? lineItems : priceId ? [{ price: priceId, quantity: 1 }] : []
     }
 
     // Add custom line items if they exist
-    if (customLineItems.length > 0) {
+    if (customLineItems && customLineItems.length > 0) {
+      // If we have custom line items, we need to use the price_data approach
       sessionParams.line_items = sessionParams.line_items || []
 
       customLineItems.forEach((item) => {
-        sessionParams.line_items!.push({
+        const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
           price_data: {
             currency: "usd",
             product_data: {
               name: item.name,
-              description: item.description,
-              images: item.images,
             },
             unit_amount: Math.round(item.amount * 100), // Convert to cents
           },
           quantity: item.quantity,
-          tax_rates: item.tax_rates,
-        })
+        }
+
+        // Add metadata to the line item if provided
+        if (item.metadata) {
+          lineItem.price_data!.product_data!.metadata = {}
+
+          // Convert complex objects to strings
+          Object.entries(item.metadata).forEach(([key, value]) => {
+            if (typeof value === "object") {
+              lineItem.price_data!.product_data!.metadata![key] = JSON.stringify(value)
+            } else {
+              lineItem.price_data!.product_data!.metadata![key] = String(value)
+            }
+          })
+        }
+
+        sessionParams.line_items!.push(lineItem)
       })
     }
 
-    // Create the checkout session
     const session = await stripe.checkout.sessions.create(sessionParams)
 
     // Return the URL to redirect to
     return session.url
   } catch (error) {
     console.error("Stripe checkout error:", error)
-    throw new Error(`Failed to create checkout session: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error("Failed to create checkout session")
   }
 }
 
-/**
- * Handles Stripe webhook events
- *
- * @param request - The incoming webhook request
- * @returns Result of webhook processing
- */
+// This function will be used by the webhook route handler
 export async function handleStripeWebhook(request: Request) {
   const body = await request.text()
-  const signature = headers().get("stripe-signature")
-
-  if (!signature) {
-    return { error: "Missing stripe-signature header" }
-  }
+  const signature = headers().get("stripe-signature") as string
 
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET || "")
   } catch (error) {
     console.error("Webhook signature verification failed:", error)
     return { error: "Webhook signature verification failed" }
   }
 
-  try {
-    // Handle the event based on its type
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session
+  // Handle the event
+  switch (event.type) {
+    case "checkout.session.completed":
+      const session = event.data.object as Stripe.Checkout.Session
 
-        // Process the successful payment
-        await processSuccessfulPayment(session)
+      // Here you would typically:
+      // 1. Match the session to a customer in your database
+      // 2. Fulfill the order (grant access to product, etc.)
+      console.log("Payment successful for session:", session.id)
 
-        // Revalidate the success page to show the latest data
-        revalidatePath("/success")
-        break
+      // Store customer data from metadata if available
+      if (session.metadata && session.metadata.customerData) {
+        try {
+          const customerData = JSON.parse(session.metadata.customerData)
+          // Save customer data to your database
+          // await db.customer.upsert({
+          //   where: { email: customerData.email },
+          //   update: { ...customerData },
+          //   create: { ...customerData }
+          // })
+        } catch (error) {
+          console.error("Error parsing customer data:", error)
+        }
       }
 
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log(`Payment succeeded for intent: ${paymentIntent.id}`)
-        break
-      }
-
-      case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.error(`Payment failed for intent: ${paymentIntent.id}`, paymentIntent.last_payment_error)
-        break
-      }
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
-    }
-
-    return { received: true, type: event.type }
-  } catch (error) {
-    console.error(`Error processing webhook event ${event.type}:`, error)
-    return { error: `Error processing webhook: ${error instanceof Error ? error.message : String(error)}` }
-  }
-}
-
-/**
- * Process a successful payment from a completed checkout session
- *
- * @param session - The completed Stripe checkout session
- */
-async function processSuccessfulPayment(session: Stripe.Checkout.Session) {
-  // Get customer information
-  let customerDetails = null
-
-  if (session.customer) {
-    try {
-      customerDetails = await stripe.customers.retrieve(session.customer as string)
-    } catch (error) {
-      console.error("Error retrieving customer details:", error)
-    }
+      break
+    default:
+      console.log(`Unhandled event type: ${event.type}`)
   }
 
-  // Get line items from the session
-  let lineItems = null
-
-  try {
-    const lineItemsResponse = await stripe.checkout.sessions.listLineItems(session.id)
-    lineItems = lineItemsResponse.data
-  } catch (error) {
-    console.error("Error retrieving line items:", error)
-  }
-
-  // Here you would typically:
-  // 1. Update your database with order information
-  // 2. Send confirmation emails
-  // 3. Update inventory
-  // 4. Create user accounts if needed
-
-  console.log("Payment successful for session:", {
-    sessionId: session.id,
-    customerId: session.customer,
-    customerEmail: session.customer_email,
-    amountTotal: session.amount_total,
-    currency: session.currency,
-    paymentStatus: session.payment_status,
-    metadata: session.metadata,
-    lineItems,
-    customerDetails,
-  })
-
-  // Example: Send confirmation email
-  // await sendConfirmationEmail(session.customer_email, session.id, lineItems)
-}
-
-/**
- * Creates a customer portal session for managing subscriptions
- *
- * @param customerId - The Stripe customer ID
- * @param returnUrl - URL to return to after the portal session
- * @returns URL to the customer portal
- */
-export async function createCustomerPortalSession(customerId: string, returnUrl: string) {
-  try {
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: returnUrl,
-    })
-
-    return portalSession.url
-  } catch (error) {
-    console.error("Error creating customer portal session:", error)
-    throw new Error("Failed to create customer portal session")
-  }
-}
-
-/**
- * Retrieves payment information for a specific session
- *
- * @param sessionId - The Stripe checkout session ID
- * @returns Payment details
- */
-export async function getPaymentDetails(sessionId: string) {
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["payment_intent", "line_items", "customer"],
-    })
-
-    return session
-  } catch (error) {
-    console.error("Error retrieving payment details:", error)
-    throw new Error("Failed to retrieve payment details")
-  }
+  return { received: true }
 }

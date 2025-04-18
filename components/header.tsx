@@ -27,10 +27,11 @@ export function Header() {
 
   const navigation = [
     { name: "Home", href: "/" },
+    { name: "Services", href: "/services" },
     { name: "Calculator", href: "/calculator" },
-    { name: "Products", href: "/products" },
     { name: "Pricing", href: "/pricing" },
     { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
   ]
 
   return (

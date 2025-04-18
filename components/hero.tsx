@@ -1,16 +1,21 @@
 "use client"
+
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import { Header } from "@/components/header"
+import WaitlistModal from "@/components/waitlist-modal"
 
 export default function Hero() {
+  const [showWaitlist, setShowWaitlist] = useState(false)
+
   return (
     <div className="relative">
       <div
         className="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-20"
         style={{
-          backgroundImage: "url(/placeholder.svg?height=800&width=1200)",
+          backgroundImage: "url(https://cs11.pikabu.ru/images/big_size_comm_an/2019-11_3/1573828410128078961.gif)",
         }}
       />
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-white/80 to-white dark:from-gray-950 dark:via-gray-950/80 dark:to-gray-950" />
@@ -37,8 +42,8 @@ export default function Hero() {
                   Calculate Your Price <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="text-base" asChild>
-                <Link href="/products">View Products</Link>
+              <Button variant="outline" size="lg" className="text-base" onClick={() => setShowWaitlist(true)}>
+                Join Waitlist
               </Button>
             </div>
             <div className="mt-8 flex flex-col space-y-3 sm:flex-row sm:space-x-6 sm:space-y-0">
@@ -64,13 +69,15 @@ export default function Hero() {
                   A thorough cleaning of your entire home, from ceiling to floor.
                 </p>
                 <Button size="sm" variant="secondary" asChild>
-                  <Link href="/calculator">Calculate Price</Link>
+                  <Link href="/services/deep-cleaning">Learn More</Link>
                 </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <WaitlistModal isOpen={showWaitlist} onClose={() => setShowWaitlist(false)} />
     </div>
   )
 }

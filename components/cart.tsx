@@ -1,215 +1,180 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Trash2, Plus, Minus, ShoppingBag, AlertCircle } from "lucide-react"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetDescription,
-} from "@/components/ui/sheet"
+import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
+import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { motion, AnimatePresence } from "framer-motion"
-import CheckoutButton from "./checkout-button"
-import Image from "next/image"
 
 export function Cart() {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isOpen, setIsOpen] = useState(false)
-  const [animateShake, setAnimateShake] = useState(false)
-  const [lastCount, setLastCount] = useState(cart.totalItems)
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
 
-  // Animate cart icon when items are added
-  useEffect(() => {
-    if (cart.totalItems > lastCount) {
-      setAnimateShake(true)
-      const timer = setTimeout(() => setAnimateShake(false), 500)
-      return () => clearTimeout(timer)
+  const handleCheckout = async () => {
+    if (cart.items.length === 0) return
+
+    setIsCheckingOut(true)
+    try {
+      // Separate regular items from custom cleaning items
+      const regularItems = cart.items.filter((item) => item.priceId !== "price_custom_cleaning")
+      const customItems = cart.items.filter((item) => item.priceId === "price_custom_cleaning")
+
+      // Create line items for regular products
+      const lineItems = regularItems.map((item) => ({
+        price: item.priceId,
+        quantity: item.quantity,
+      }))
+
+      // Create custom line items for custom cleaning services
+      const customLineItems = customItems.map((item) => ({
+        name: item.name,
+        amount: item.price,
+        quantity: item.quantity,
+        metadata: item.metadata,
+      }))
+
+      // Get customer data from the first custom item with customer metadata
+      const customerItem = customItems.find((item) => item.metadata?.customer)
+      const customerData = customerItem?.metadata?.customer
+
+      const checkoutUrl = await createCheckoutSession({
+        lineItems,
+        customLineItems,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
+        customerEmail: customerData?.email,
+        customerData: customerData
+          ? {
+              name: customerData.name,
+              email: customerData.email,
+              phone: customerData.phone,
+              address: {
+                line1: customerData.address,
+                city: customerData.city,
+                state: customerData.state,
+                postal_code: customerData.zipCode,
+                country: "US",
+              },
+            }
+          : undefined,
+      })
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+      }
+    } catch (error) {
+      console.error("Error during checkout:", error)
+    } finally {
+      setIsCheckingOut(false)
     }
-    setLastCount(cart.totalItems)
-  }, [cart.totalItems, lastCount])
-
-  const handleQuantityChange = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) return
-    updateQuantity(id, newQuantity)
-  }
-
-  const handleRemoveItem = (id: string) => {
-    removeItem(id)
   }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className={`relative ${animateShake ? "animate-shake" : ""}`}
-          aria-label={`Shopping cart with ${cart.totalItems} items`}
-        >
+        <Button variant="outline" size="icon" className="relative">
           <ShoppingCart className="h-5 w-5" />
           {cart.totalItems > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full p-0"
-            >
+            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
               {cart.totalItems}
-            </Badge>
+            </span>
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex flex-col w-full sm:max-w-md">
-        <SheetHeader className="space-y-1">
-          <SheetTitle className="flex items-center">
-            <ShoppingBag className="mr-2 h-5 w-5" />
-            Your Cart
-            {cart.totalItems > 0 && (
-              <Badge variant="outline" className="ml-2">
-                {cart.totalItems} {cart.totalItems === 1 ? "item" : "items"}
-              </Badge>
-            )}
-          </SheetTitle>
-          {cart.totalItems > 0 && <SheetDescription>Review your items before proceeding to checkout</SheetDescription>}
+      <SheetContent className="flex flex-col">
+        <SheetHeader>
+          <SheetTitle>Your Cart</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-6">
+        <div className="flex-1 overflow-y-auto py-4">
           {cart.items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center p-4">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <ShoppingCart className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-1">Your cart is empty</h3>
-              <p className="text-sm text-muted-foreground mb-6">Add items to your cart to see them here</p>
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
-                Continue Shopping
-              </Button>
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium">Your cart is empty</p>
+              <p className="text-sm text-muted-foreground mt-1">Add items to your cart to see them here</p>
             </div>
           ) : (
-            <AnimatePresence initial={false}>
-              <div className="space-y-6">
-                {cart.items.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="group relative"
-                  >
-                    <div className="flex items-start space-x-4 pb-4">
-                      {item.image && (
-                        <div className="relative h-16 w-16 overflow-hidden rounded-md border bg-muted">
-                          <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                          />
-                        </div>
+            <div className="space-y-4">
+              {cart.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between border-b pb-4">
+                  <div className="flex items-center space-x-4">
+                    {item.image && (
+                      <div className="h-16 w-16 overflow-hidden rounded-md">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
+                      {item.metadata?.customer?.allowVideoRecording && (
+                        <span className="text-xs text-green-600 font-medium">Includes video recording discount</span>
                       )}
-                      <div className="flex-1 space-y-1">
-                        <h4 className="font-medium leading-tight">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(item.price)} × {item.quantity}
-                        </p>
-                        {item.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        <p className="font-medium tabular-nums">{formatCurrency(item.price * item.quantity)}</p>
-                        <div className="flex items-center border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-none"
-                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                            aria-label="Decrease quantity"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center tabular-nums">{item.quantity}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-none"
-                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                            aria-label="Increase quantity"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center border rounded-md">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-none"
+                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-none"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-muted/80 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => handleRemoveItem(item.id)}
-                      aria-label={`Remove ${item.name} from cart`}
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => removeItem(item.id)}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Separator />
-                  </motion.div>
-                ))}
-              </div>
-            </AnimatePresence>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
         {cart.items.length > 0 && (
-          <>
-            <div className="space-y-4 pt-4">
-              <Separator />
-              <div className="space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-sm">Subtotal</span>
-                  <span className="font-medium tabular-nums">{formatCurrency(cart.totalPrice)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Shipping & taxes</span>
-                  <span className="text-sm text-muted-foreground">Calculated at checkout</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between">
-                  <span className="text-base font-semibold">Total</span>
-                  <span className="text-base font-semibold tabular-nums">{formatCurrency(cart.totalPrice)}</span>
-                </div>
-              </div>
-
-              <Alert variant="default" className="bg-muted/50">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Shipping, taxes, and discounts calculated at checkout
-                </AlertDescription>
-              </Alert>
+          <div className="border-t pt-4">
+            <div className="flex justify-between py-2">
+              <span>Subtotal</span>
+              <span>{formatCurrency(cart.totalPrice)}</span>
+            </div>
+            <div className="flex justify-between py-2 font-medium">
+              <span>Total</span>
+              <span>{formatCurrency(cart.totalPrice)}</span>
             </div>
 
             <SheetFooter className="flex-col gap-2 pt-4">
-              <CheckoutButton size="lg" className="w-full">
-                Proceed to Checkout
-              </CheckoutButton>
-              <div className="flex justify-between w-full">
-                <Button variant="outline" size="sm" onClick={() => setIsOpen(false)}>
-                  Continue Shopping
-                </Button>
-                <Button variant="ghost" size="sm" onClick={clearCart} className="text-muted-foreground">
-                  Clear Cart
-                </Button>
-              </div>
+              <Button className="w-full" onClick={handleCheckout} disabled={isCheckingOut}>
+                {isCheckingOut ? "Processing..." : "Checkout"}
+              </Button>
+              <Button variant="outline" className="w-full" onClick={clearCart}>
+                Clear Cart
+              </Button>
             </SheetFooter>
-          </>
+          </div>
         )}
       </SheetContent>
     </Sheet>

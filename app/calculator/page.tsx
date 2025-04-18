@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
+import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 
 export default function CalculatorPage() {
   const [calculatedService, setCalculatedService] = useState<{
@@ -15,6 +16,9 @@ export default function CalculatorPage() {
     frequency: string
     totalPrice: number
   } | null>(null)
+
+  const [showAddressModal, setShowAddressModal] = useState(false)
+  const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -27,8 +31,14 @@ export default function CalculatorPage() {
     setCalculatedService(data)
   }
 
-  // Update the addToCart function to properly handle custom cleaning services
-  const addToCart = () => {
+  // Show address modal when Add to Cart is clicked
+  const handleAddToCart = () => {
+    if (!calculatedService) return
+    setShowAddressModal(true)
+  }
+
+  // Process the address data and add to cart
+  const handleAddressSubmit = (addressData: AddressData) => {
     if (!calculatedService) return
 
     const frequencyLabel = {
@@ -53,19 +63,46 @@ export default function CalculatorPage() {
       .map(([type, count]) => `${type.replace(/_/g, " ")} x${count}`)
       .join(", ")
 
+    // Apply discount if video recording is allowed
+    const finalPrice = addressData.allowVideoRecording
+      ? calculatedService.totalPrice - addressData.videoRecordingDiscount
+      : calculatedService.totalPrice
+
+    // Add to cart with customer data
     addItem({
       id: `custom-cleaning-${Date.now()}`,
       name: serviceName,
-      price: calculatedService.totalPrice,
-      priceId: "price_custom_cleaning", // This is a marker for custom services
+      price: finalPrice,
+      priceId: "price_custom_cleaning",
       image: "/placeholder.svg?height=100&width=100",
-      description: `Includes: ${selectedRooms}`,
+      metadata: {
+        rooms: selectedRooms,
+        frequency: calculatedService.frequency,
+        customer: {
+          name: addressData.fullName,
+          email: addressData.email,
+          phone: addressData.phone,
+          address: `${addressData.address}, ${addressData.city}, ${addressData.state} ${addressData.zipCode}`,
+          specialInstructions: addressData.specialInstructions,
+          allowVideoRecording: addressData.allowVideoRecording,
+        },
+      },
     })
 
+    // Show success message
     toast({
       title: "Added to cart!",
       description: `${serviceName} has been added to your cart.`,
     })
+
+    // Reset calculator
+    resetCalculator()
+  }
+
+  // Reset calculator to initial state
+  const resetCalculator = () => {
+    setCalculatorKey((prevKey) => prevKey + 1) // Change key to force re-render
+    setCalculatedService(null)
   }
 
   return (
@@ -76,11 +113,11 @@ export default function CalculatorPage() {
         <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
         <div className="max-w-6xl mx-auto">
-          <PriceCalculator onCalculationComplete={handleCalculationComplete} />
+          <PriceCalculator key={calculatorKey} onCalculationComplete={handleCalculationComplete} />
 
           {calculatedService && calculatedService.totalPrice > 0 && (
             <div className="mt-8 flex justify-center">
-              <Button size="lg" onClick={addToCart} className="gap-2">
+              <Button size="lg" onClick={handleAddToCart} className="gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Add to Cart
               </Button>
@@ -88,6 +125,16 @@ export default function CalculatorPage() {
           )}
         </div>
       </div>
+
+      {/* Address Collection Modal */}
+      {calculatedService && (
+        <AddressCollectionModal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          onSubmit={handleAddressSubmit}
+          calculatedPrice={calculatedService.totalPrice}
+        />
+      )}
 
       <Footer />
     </div>
