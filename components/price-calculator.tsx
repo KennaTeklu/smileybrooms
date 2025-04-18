@@ -5,12 +5,22 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ChevronDown } from "lucide-react"
 import { ROOM_CONFIG } from "@/lib/constants"
+import CleanlinessSlider from "./cleanliness-slider"
+import ServiceTypeSelector from "./service-type-selector"
+import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertTriangle } from "lucide-react"
 
 interface PriceCalculatorProps {
   onCalculationComplete?: (data: {
     rooms: Record<string, number>
     frequency: string
     totalPrice: number
+    serviceType: "standard" | "detailing"
+    cleanlinessLevel: number
+    priceMultiplier: number
+    isServiceAvailable: boolean
+    addressId: string
   }) => void
 }
 
@@ -32,14 +42,17 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
   })
 
   const [frequency, setFrequency] = useState("one_time")
+  const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
+  const [cleanlinessLevel, setCleanlinessLevel] = useState(7)
   const [totalPrice, setTotalPrice] = useState(0)
   const [showItemized, setShowItemized] = useState(false)
   const [itemizedDetails, setItemizedDetails] = useState<Array<{ label: string; amount: number | null }>>([])
+  const [addressId, setAddressId] = useState(`address-${Date.now()}`)
 
-  // Calculate price whenever rooms or frequency changes
+  // Calculate price whenever rooms, frequency, serviceType, or cleanlinessLevel changes
   useEffect(() => {
     calculatePrice()
-  }, [rooms, frequency])
+  }, [rooms, frequency, serviceType, cleanlinessLevel])
 
   const handleRoomChange = (roomType: string, value: string) => {
     setRooms((prev) => ({
@@ -64,6 +77,26 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
     return (((originalPrice - newPrice) / originalPrice) * 100).toFixed(2)
   }
 
+  const getPriceMultiplier = () => {
+    let multiplier = 1
+
+    // Apply service type multiplier
+    if (serviceType === "detailing") {
+      multiplier *= 3.5
+    }
+
+    // Apply cleanliness level multiplier
+    if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
+      multiplier *= 3.5
+    }
+
+    return multiplier
+  }
+
+  const isServiceAvailable = () => {
+    return cleanlinessLevel >= 4
+  }
+
   const calculatePrice = () => {
     // Calculate base price from room selections
     const basePrice = Object.entries(ROOM_CONFIG.roomPrices).reduce((total, [roomType, price]) => {
@@ -78,8 +111,13 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
     // Check if there are any room selections
     const hasRoomSelections = Object.values(rooms).some((value) => value > 0)
 
+    // Apply price multiplier based on service type and cleanliness level
+    const priceMultiplier = getPriceMultiplier()
+
     // Calculate total price with service fee if there are room selections
-    const calculatedTotalPrice = hasRoomSelections ? basePrice * frequencyMultiplier + ROOM_CONFIG.serviceFee : 0
+    const calculatedTotalPrice = hasRoomSelections
+      ? basePrice * frequencyMultiplier * priceMultiplier + ROOM_CONFIG.serviceFee
+      : 0
 
     setTotalPrice(calculatedTotalPrice)
 
@@ -122,6 +160,22 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
       }
     }
 
+    // Add service type adjustment
+    if (hasRoomSelections && serviceType === "detailing") {
+      details.push({
+        label: "Premium Detailing (3.5x)",
+        amount: null,
+      })
+    }
+
+    // Add cleanliness level adjustment
+    if (hasRoomSelections && cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
+      details.push({
+        label: "Extra Cleaning Required (3.5x)",
+        amount: null,
+      })
+    }
+
     // Add service fee
     if (hasRoomSelections) {
       details.push({
@@ -138,6 +192,11 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
         rooms,
         frequency,
         totalPrice: calculatedTotalPrice,
+        serviceType,
+        cleanlinessLevel,
+        priceMultiplier,
+        isServiceAvailable: isServiceAvailable(),
+        addressId,
       })
     }
   }
@@ -145,37 +204,59 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
   return (
     <div className="calculator-container flex flex-col md:flex-row gap-6">
       <div className="calculator-display flex-1 md:mr-8">
-        <form id="price-calculator" className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => (
-              <Card
-                key={roomType}
-                className="p-6 hover:shadow-md transition-all hover:-translate-y-1 hover:border-primary"
-              >
-                <label
-                  htmlFor={roomType}
-                  className="block mb-3 font-semibold text-gray-700 dark:text-gray-300 pl-6 relative"
+        <form id="price-calculator" className="space-y-8">
+          {/* Service Type Selector */}
+          <ServiceTypeSelector value={serviceType} onChange={setServiceType} />
+
+          {/* Cleanliness Level Slider */}
+          <CleanlinessSlider onChange={setCleanlinessLevel} />
+
+          {!isServiceAvailable() && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Service currently unavailable for extremely dirty conditions. Please contact us for a custom quote and
+                assessment.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Separator />
+
+          {/* Room Selection */}
+          <div>
+            <h3 className="text-lg font-medium mb-4">Select Rooms to Clean</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => (
+                <Card
+                  key={roomType}
+                  className="p-6 hover:shadow-md transition-all hover:-translate-y-1 hover:border-primary"
                 >
-                  <span className="absolute left-0 top-1/2 transform -translate-y-1/2">🧹</span>
-                  {formatRoomName(roomType)}:
-                </label>
-                <Select
-                  value={rooms[roomType as keyof typeof rooms].toString()}
-                  onValueChange={(value) => handleRoomChange(roomType, value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="0" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[0, 1, 2, 3, 4, 5].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
-                        {num}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Card>
-            ))}
+                  <label
+                    htmlFor={roomType}
+                    className="block mb-3 font-semibold text-gray-700 dark:text-gray-300 pl-6 relative"
+                  >
+                    <span className="absolute left-0 top-1/2 transform -translate-y-1/2">🧹</span>
+                    {formatRoomName(roomType)}:
+                  </label>
+                  <Select
+                    value={rooms[roomType as keyof typeof rooms].toString()}
+                    onValueChange={(value) => handleRoomChange(roomType, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="0" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 1, 2, 3, 4, 5].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Card>
+              ))}
+            </div>
           </div>
         </form>
       </div>

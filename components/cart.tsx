@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react"
+import { ShoppingCart, Trash2, Plus, Minus, MapPin } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export function Cart() {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
@@ -99,56 +100,84 @@ export function Cart() {
           ) : (
             <div className="space-y-4">
               {cart.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between border-b pb-4">
-                  <div className="flex items-center space-x-4">
-                    {item.image && (
-                      <div className="h-16 w-16 overflow-hidden rounded-md">
-                        <img
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
-                      {item.metadata?.customer?.allowVideoRecording && (
-                        <span className="text-xs text-green-600 font-medium">Includes video recording discount</span>
+                <div key={item.id} className="border-b pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      {item.image && (
+                        <div className="h-16 w-16 overflow-hidden rounded-md">
+                          <img
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
                       )}
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
+                        {item.metadata?.customer?.allowVideoRecording && (
+                          <span className="text-xs text-green-600 font-medium">Includes video recording discount</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center border rounded-md">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none"
+                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center border rounded-md">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-none"
-                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-none"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {/* Location details accordion */}
+                  {item.metadata?.customer && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="location-details">
+                        <AccordionTrigger className="py-2 text-sm">
+                          <span className="flex items-center">
+                            <MapPin className="h-3 w-3 mr-1" /> Location Details
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm space-y-1 pb-2">
+                          <p>
+                            <strong>Address:</strong> {item.metadata.customer.address}
+                          </p>
+                          <p>
+                            <strong>Contact:</strong> {item.metadata.customer.name} | {item.metadata.customer.phone}
+                          </p>
+                          {item.metadata.customer.specialInstructions && (
+                            <p>
+                              <strong>Notes:</strong> {item.metadata.customer.specialInstructions}
+                            </p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
                 </div>
               ))}
             </div>

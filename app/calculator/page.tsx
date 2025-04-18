@@ -1,45 +1,92 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import PriceCalculator from "@/components/price-calculator"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart } from "lucide-react"
+import { ShoppingCart, Plus } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
+import TermsAgreementPopup from "@/components/terms-agreement-popup"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/utils"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import StickyCartButton from "@/components/sticky-cart-button"
+
+type CalculatedService = {
+  rooms: Record<string, number>
+  frequency: string
+  totalPrice: number
+  serviceType: "standard" | "detailing"
+  cleanlinessLevel: number
+  priceMultiplier: number
+  isServiceAvailable: boolean
+  addressId: string
+}
 
 export default function CalculatorPage() {
-  const [calculatedService, setCalculatedService] = useState<{
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-  } | null>(null)
-
+  const [calculatedServices, setCalculatedServices] = useState<Record<string, CalculatedService>>({})
+  const [activeAddressId, setActiveAddressId] = useState<string>(`address-${Date.now()}`)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showAddLocation, setShowAddLocation] = useState(false)
+  const [hasSelections, setHasSelections] = useState(false)
 
   const { addItem } = useCart()
   const { toast } = useToast()
 
-  const handleCalculationComplete = (data: {
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-  }) => {
-    setCalculatedService(data)
+  // Check if terms have been accepted
+  useEffect(() => {
+    const accepted = localStorage.getItem("termsAccepted")
+    if (accepted) {
+      setTermsAccepted(true)
+    }
+  }, [])
+
+  // Check if we have any selections to show the sticky cart button
+  useEffect(() => {
+    const activeService = calculatedServices[activeAddressId]
+    if (activeService && activeService.totalPrice > 0) {
+      setHasSelections(true)
+    } else {
+      setHasSelections(false)
+    }
+  }, [calculatedServices, activeAddressId])
+
+  const handleCalculationComplete = (data: CalculatedService) => {
+    setCalculatedServices((prev) => ({
+      ...prev,
+      [data.addressId]: data,
+    }))
+
+    // Show add location button after first calculation
+    if (data.totalPrice > 0 && !showAddLocation) {
+      setShowAddLocation(true)
+    }
   }
 
   // Show address modal when Add to Cart is clicked
   const handleAddToCart = () => {
-    if (!calculatedService) return
+    const service = calculatedServices[activeAddressId]
+    if (!service) return
+    if (!service.isServiceAvailable) {
+      toast({
+        title: "Service Unavailable",
+        description: "Please contact us for a custom quote for extremely dirty conditions.",
+        variant: "destructive",
+      })
+      return
+    }
     setShowAddressModal(true)
   }
 
   // Process the address data and add to cart
   const handleAddressSubmit = (addressData: AddressData) => {
-    if (!calculatedService) return
+    const service = calculatedServices[activeAddressId]
+    if (!service) return
 
     const frequencyLabel = {
       one_time: "One-Time Cleaning",
@@ -49,24 +96,25 @@ export default function CalculatorPage() {
       semi_annual: "Semi-Annual Cleaning",
       annually: "Annual Cleaning",
       vip_daily: "VIP Daily Cleaning",
-    }[calculatedService.frequency]
+    }[service.frequency]
 
     // Count total rooms
-    const totalRooms = Object.values(calculatedService.rooms).reduce((sum, count) => sum + count, 0)
+    const totalRooms = Object.values(service.rooms).reduce((sum, count) => sum + count, 0)
 
     // Create a descriptive name for the service
-    const serviceName = `${frequencyLabel} (${totalRooms} rooms)`
+    const serviceTypeLabel = service.serviceType === "standard" ? "Standard" : "Premium Detailing"
+    const serviceName = `${serviceTypeLabel} ${frequencyLabel} (${totalRooms} rooms)`
 
     // Get the room types that were selected
-    const selectedRooms = Object.entries(calculatedService.rooms)
+    const selectedRooms = Object.entries(service.rooms)
       .filter(([_, count]) => count > 0)
       .map(([type, count]) => `${type.replace(/_/g, " ")} x${count}`)
       .join(", ")
 
     // Apply discount if video recording is allowed
     const finalPrice = addressData.allowVideoRecording
-      ? calculatedService.totalPrice - addressData.videoRecordingDiscount
-      : calculatedService.totalPrice
+      ? service.totalPrice - addressData.videoRecordingDiscount
+      : service.totalPrice
 
     // Add to cart with customer data
     addItem({
@@ -77,7 +125,8 @@ export default function CalculatorPage() {
       image: "/placeholder.svg?height=100&width=100",
       metadata: {
         rooms: selectedRooms,
-        frequency: calculatedService.frequency,
+        frequency: service.frequency,
+        serviceType: service.serviceType,
         customer: {
           name: addressData.fullName,
           email: addressData.email,
@@ -102,39 +151,149 @@ export default function CalculatorPage() {
   // Reset calculator to initial state
   const resetCalculator = () => {
     setCalculatorKey((prevKey) => prevKey + 1) // Change key to force re-render
-    setCalculatedService(null)
+    setActiveAddressId(`address-${Date.now()}`)
+    setShowAddLocation(false)
   }
+
+  // Add a new address
+  const addNewAddress = () => {
+    const newAddressId = `address-${Date.now()}`
+    setActiveAddressId(newAddressId)
+  }
+
+  // Remove an address tab
+  const removeAddress = (addressId: string) => {
+    setCalculatedServices((prev) => {
+      const newServices = { ...prev }
+      delete newServices[addressId]
+      return newServices
+    })
+
+    // If we're removing the active address, switch to another one
+    if (addressId === activeAddressId) {
+      const remainingAddresses = Object.keys(calculatedServices).filter((id) => id !== addressId)
+      if (remainingAddresses.length > 0) {
+        setActiveAddressId(remainingAddresses[0])
+      } else {
+        // If no addresses left, create a new one
+        const newAddressId = `address-${Date.now()}`
+        setActiveAddressId(newAddressId)
+      }
+    }
+  }
+
+  // Get all address IDs
+  const addressIds = Object.keys(calculatedServices).length > 0 ? Object.keys(calculatedServices) : [activeAddressId]
+
+  const activeService = calculatedServices[activeAddressId]
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
+      {/* Sticky Add to Cart Button */}
+      <StickyCartButton
+        totalPrice={activeService?.totalPrice || 0}
+        isServiceAvailable={activeService?.isServiceAvailable || false}
+        onAddToCart={handleAddToCart}
+        visible={hasSelections}
+      />
+
       <div className="container mx-auto px-4 py-8 flex-1">
         <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
         <div className="max-w-6xl mx-auto">
-          <PriceCalculator key={calculatorKey} onCalculationComplete={handleCalculationComplete} />
+          {/* Main Calculator */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Calculate Your Cleaning Price</CardTitle>
+              <CardDescription>Configure the cleaning details for your location</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="calculator-container">
+                <PriceCalculator
+                  key={`${calculatorKey}-${activeAddressId}`}
+                  onCalculationComplete={handleCalculationComplete}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              {activeService && activeService.totalPrice > 0 && (
+                <Button
+                  size="lg"
+                  onClick={handleAddToCart}
+                  className="gap-2"
+                  disabled={!activeService.isServiceAvailable}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Add to Cart
+                </Button>
+              )}
 
-          {calculatedService && calculatedService.totalPrice > 0 && (
-            <div className="mt-8 flex justify-center">
-              <Button size="lg" onClick={handleAddToCart} className="gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Add to Cart
-              </Button>
-            </div>
+              {/* Only show Add Location after first selection */}
+              {showAddLocation && (
+                <Button variant="outline" onClick={addNewAddress}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Another Location
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+
+          {/* Summary of all locations - only show if we have more than one location */}
+          {Object.keys(calculatedServices).length > 1 && (
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Summary of All Locations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(calculatedServices).map(([id, service], index) => (
+                    <div key={id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-medium">Location {index + 1}</h3>
+                        <p className="text-sm text-gray-500">
+                          {service.serviceType === "standard" ? "Standard" : "Premium Detailing"} -
+                          {Object.values(service.rooms).reduce((sum, count) => sum + count, 0)} rooms
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">{formatCurrency(service.totalPrice)}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mt-4">
+                    <h3 className="font-bold">Total for all locations:</h3>
+                    <p className="font-bold text-xl">
+                      {formatCurrency(
+                        Object.values(calculatedServices)
+                          .filter((service) => service.isServiceAvailable)
+                          .reduce((sum, service) => sum + service.totalPrice, 0),
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
 
       {/* Address Collection Modal */}
-      {calculatedService && (
+      {activeService && (
         <AddressCollectionModal
           isOpen={showAddressModal}
           onClose={() => setShowAddressModal(false)}
           onSubmit={handleAddressSubmit}
-          calculatedPrice={calculatedService.totalPrice}
+          calculatedPrice={activeService.totalPrice}
         />
       )}
+
+      {/* Terms Agreement Popup */}
+      <TermsAgreementPopup onAccept={() => setTermsAccepted(true)} />
+
+      {/* Accessibility Toolbar */}
+      <AccessibilityToolbar />
 
       <Footer />
     </div>
