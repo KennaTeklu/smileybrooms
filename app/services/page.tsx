@@ -4,8 +4,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import { ROOM_CONFIG } from "@/lib/constants"
 
 export default function ServicesPage() {
+  // Calculate base prices using the same constants as the calculator
+  const calculateBasePrice = (rooms: Record<string, number>) => {
+    return Object.entries(rooms).reduce((total, [roomType, count]) => {
+      const price = ROOM_CONFIG.roomPrices[roomType as keyof typeof ROOM_CONFIG.roomPrices] || 0
+      return total + price * count
+    }, 0)
+  }
+
   const services = [
     {
       title: "Regular Cleaning",

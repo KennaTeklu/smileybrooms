@@ -10,6 +10,7 @@ import { useTheme } from "next-themes"
 import { Cart } from "@/components/cart"
 import { cn } from "@/lib/utils"
 import { useCart } from "@/lib/cart-context"
+import Logo from "@/components/logo"
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -28,7 +29,6 @@ export function Header() {
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Services", href: "/services" },
-    { name: "Calculator", href: "/calculator" },
     { name: "Pricing", href: "/pricing" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
@@ -45,9 +45,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                Smiley Brooms
-              </span>
+              <Logo size="sm" />
             </Link>
           </div>
 
@@ -94,7 +92,7 @@ export function Header() {
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between py-4">
-                    <span className="text-xl font-bold">Menu</span>
+                    <Logo size="sm" />
                     <SheetTrigger asChild>
                       <Button variant="ghost" size="icon">
                         <X className="h-5 w-5" />

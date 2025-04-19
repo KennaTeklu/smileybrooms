@@ -1,9 +1,12 @@
 "use client"
 
+import { cn } from "@/lib/utils"
+
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ShoppingCart, ChevronDown } from "lucide-react"
 import { ROOM_CONFIG } from "@/lib/constants"
 import CleanlinessSlider from "./cleanliness-slider"
 import ServiceTypeSelector from "./service-type-selector"
@@ -22,9 +25,10 @@ interface PriceCalculatorProps {
     isServiceAvailable: boolean
     addressId: string
   }) => void
+  onAddToCart?: () => void
 }
 
-export default function PriceCalculator({ onCalculationComplete }: PriceCalculatorProps) {
+export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
   const [rooms, setRooms] = useState<Record<string, number>>({
     master_bedroom: 0,
     bedroom: 0,
@@ -48,6 +52,7 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
   const [showItemized, setShowItemized] = useState(false)
   const [itemizedDetails, setItemizedDetails] = useState<Array<{ label: string; amount: number | null }>>([])
   const [addressId, setAddressId] = useState(`address-${Date.now()}`)
+  const [hasSelections, setHasSelections] = useState(false)
 
   // Calculate price whenever rooms, frequency, serviceType, or cleanlinessLevel changes
   useEffect(() => {
@@ -110,6 +115,7 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
 
     // Check if there are any room selections
     const hasRoomSelections = Object.values(rooms).some((value) => value > 0)
+    setHasSelections(hasRoomSelections)
 
     // Apply price multiplier based on service type and cleanliness level
     const priceMultiplier = getPriceMultiplier()
@@ -265,9 +271,13 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
         <div className="total-price-container bg-gradient-to-r from-indigo-500 to-indigo-700 p-8 rounded-xl text-white flex justify-between items-center mb-6 shadow-lg relative overflow-hidden">
           <div>
             <p className="text-lg">Total Estimated Price:</p>
-            <span id="total_price" className="text-4xl font-bold block mt-2">
+            <span
+              id="total_price"
+              className={cn("text-4xl font-bold block mt-2", cleanlinessLevel < 4 ? "line-through" : "")}
+            >
               {formatCurrency(totalPrice)}
             </span>
+            {cleanlinessLevel < 4 && <span className="text-sm font-medium">Contact us for a custom quote</span>}
           </div>
           <ChevronDown
             className={`h-8 w-8 cursor-pointer transition-transform ${showItemized ? "rotate-180" : ""}`}
@@ -321,6 +331,19 @@ export default function PriceCalculator({ onCalculationComplete }: PriceCalculat
             2. Discount applied at checkout
           </p>
         </div>
+
+        {hasSelections && (
+          <div className="mt-6">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={onAddToCart}
+              disabled={!isServiceAvailable() || totalPrice <= 0}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

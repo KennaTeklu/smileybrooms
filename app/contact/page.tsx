@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
 
 export default function ContactPage() {
@@ -18,6 +19,7 @@ export default function ContactPage() {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [message, setMessage] = useState("")
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
@@ -25,9 +27,86 @@ export default function ContactPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Email validation
+    const enteredEmail = email.trim().toLowerCase()
+    const allowedDomains = [
+      "gmail.com",
+      "outlook.com",
+      "hotmail.com",
+      "live.com",
+      "yahoo.com",
+      "aol.com",
+      "protonmail.com",
+      "proton.me",
+      "icloud.com",
+      "me.com",
+      "yandex.com",
+      "yandex.ru",
+      "comcast.net",
+      "verizon.net",
+      "cox.net",
+      "spectrum.net",
+    ]
+
+    const isValidEmail = allowedDomains.some((domain) => enteredEmail.endsWith(`@${domain}`))
+    if (!isValidEmail) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address ending with one of the accepted domain names.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Phone validation
+    const enteredPhone = phone.trim()
+    const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im
+    const isValidPhone = phoneRegex.test(enteredPhone)
+    if (!isValidPhone && phone.length > 0) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Terms validation
+    if (!termsAccepted) {
+      toast({
+        title: "Terms not accepted",
+        description: "Please accept the terms and conditions to proceed.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     try {
-      // Simulate form submission
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Google Sheets integration
+      const scriptURL =
+        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+      const formData = {
+        name,
+        email: enteredEmail,
+        phone: enteredPhone,
+        message,
+        timestamp: new Date().toISOString(),
+        source: "Contact Form",
+      }
+
+      // Submit form data to Google Sheets
+      await fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
 
       toast({
         title: "Message sent!",
@@ -39,7 +118,9 @@ export default function ContactPage() {
       setEmail("")
       setPhone("")
       setMessage("")
+      setTermsAccepted(false)
     } catch (error) {
+      console.error("Error:", error)
       toast({
         title: "Something went wrong",
         description: "There was an error sending your message. Please try again.",
@@ -116,6 +197,17 @@ export default function ContactPage() {
                     rows={6}
                     required
                   />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I agree to the terms and conditions and privacy policy
+                  </Label>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isSubmitting}>

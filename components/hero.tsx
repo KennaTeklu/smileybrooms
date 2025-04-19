@@ -38,7 +38,7 @@ export default function Hero() {
             </p>
             <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
               <Button asChild size="lg" className="text-base">
-                <Link href="/calculator">
+                <Link href="/pricing">
                   Calculate Your Price <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 interface CleanlinessSliderProps {
   onChange: (value: number) => void
@@ -44,6 +45,7 @@ export default function CleanlinessSlider({ onChange }: CleanlinessSliderProps) 
   }
 
   const cleanlinessInfo = getCleanlinessDescription(value)
+  const isCriticallyLow = value < 4
 
   return (
     <div className="space-y-6">
@@ -80,9 +82,16 @@ export default function CleanlinessSlider({ onChange }: CleanlinessSliderProps) 
               ) : value >= 4 ? (
                 <p className="text-yellow-600 font-medium">3.5x price adjustment applies due to extra work required</p>
               ) : (
-                <p className="text-red-600 font-medium">
-                  Service requires custom assessment. Please contact us for a custom quote.
-                </p>
+                <div>
+                  <p className={cn("text-red-600 font-medium", isCriticallyLow ? "cleanliness-critical" : "")}>
+                    Service requires custom assessment. Please contact us for a custom quote.
+                  </p>
+                  {isCriticallyLow && (
+                    <p className="text-red-600 text-sm mt-2">
+                      Booking is disabled for critically low cleanliness levels. Please contact us directly.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>

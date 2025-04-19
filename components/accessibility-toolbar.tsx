@@ -1,10 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2 } from "lucide-react"
+import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { useTheme } from "next-themes"
 
 interface AccessibilityToolbarProps {
   className?: string
@@ -17,13 +31,20 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
   const [showSubtitles, setShowSubtitles] = useState(false)
   const [subtitle, setSubtitle] = useState("")
   const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [readingSpeed, setReadingSpeed] = useState(0.9)
+  const [readingPitch, setReadingPitch] = useState(1)
+  const [highContrast, setHighContrast] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Initialize speech synthesis
   useEffect(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       const u = new SpeechSynthesisUtterance()
-      u.rate = 0.9
-      u.pitch = 1
+      u.rate = readingSpeed
+      u.pitch = readingPitch
       u.volume = 1
       setUtterance(u)
 
@@ -46,7 +67,7 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
         window.speechSynthesis.cancel()
       }
     }
-  }, [showSubtitles])
+  }, [showSubtitles, readingSpeed, readingPitch])
 
   // Apply font size to body
   useEffect(() => {
@@ -54,6 +75,17 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
       document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
     }
   }, [fontSize])
+
+  // Apply high contrast mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (highContrast) {
+        document.body.classList.add("high-contrast")
+      } else {
+        document.body.classList.remove("high-contrast")
+      }
+    }
+  }, [highContrast])
 
   const readPage = () => {
     if (!utterance || !window.speechSynthesis) return
@@ -69,6 +101,8 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     // Get all visible text from the page
     const textContent = document.body.innerText
     utterance.text = textContent
+    utterance.rate = readingSpeed
+    utterance.pitch = readingPitch
 
     // Start reading
     window.speechSynthesis.speak(utterance)
@@ -102,76 +136,192 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     setShowSubtitles(!showSubtitles)
   }
 
+  const handleReadingSpeedChange = (value: number[]) => {
+    const newSpeed = value[0]
+    setReadingSpeed(newSpeed)
+    if (utterance) {
+      utterance.rate = newSpeed
+    }
+  }
+
+  const handlePitchChange = (value: number[]) => {
+    const newPitch = value[0]
+    setReadingPitch(newPitch)
+    if (utterance) {
+      utterance.pitch = newPitch
+    }
+  }
+
   return (
-    <div className={cn("fixed bottom-4 right-4 z-50", className)}>
-      <TooltipProvider>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={readPage}
-                className={isReading ? "bg-primary text-primary-foreground" : ""}
-              >
-                {isReading ? <Volume2 className="h-4 w-4" /> : <VolumeUp className="h-4 w-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>{isReading ? "Stop Reading" : "Read Page Aloud"}</p>
-            </TooltipContent>
-          </Tooltip>
+    <>
+      <div className={cn("fixed bottom-4 right-4 z-50", className)}>
+        <TooltipProvider>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
+            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="mx-auto w-full max-w-sm">
+                  <DrawerHeader>
+                    <DrawerTitle>Accessibility Settings</DrawerTitle>
+                    <DrawerDescription>
+                      Customize your experience to make this site more accessible for your needs.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="p-4 space-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Text Size</h3>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="icon" onClick={decreaseFontSize}>
+                          <Minimize2 className="h-4 w-4" />
+                        </Button>
+                        <Slider
+                          value={[fontSize * 100]}
+                          min={80}
+                          max={150}
+                          step={5}
+                          onValueChange={(value) => setFontSize(value[0] / 100)}
+                          className="flex-1"
+                        />
+                        <Button variant="outline" size="icon" onClick={increaseFontSize}>
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Current: {Math.round(fontSize * 100)}%</p>
+                    </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={toggleMute} disabled={!isReading}>
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>{isMuted ? "Unmute" : "Mute"}</p>
-            </TooltipContent>
-          </Tooltip>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Reading Speed</h3>
+                      <Slider
+                        value={[readingSpeed]}
+                        min={0.5}
+                        max={2}
+                        step={0.1}
+                        onValueChange={handleReadingSpeedChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {readingSpeed < 1 ? "Slower" : readingSpeed > 1 ? "Faster" : "Normal"} (
+                        {readingSpeed.toFixed(1)}x)
+                      </p>
+                    </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleSubtitles}
-                className={showSubtitles ? "bg-primary text-primary-foreground" : ""}
-              >
-                <Type className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</p>
-            </TooltipContent>
-          </Tooltip>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Voice Pitch</h3>
+                      <Slider value={[readingPitch]} min={0.5} max={2} step={0.1} onValueChange={handlePitchChange} />
+                      <p className="text-xs text-muted-foreground">
+                        {readingPitch < 1 ? "Lower" : readingPitch > 1 ? "Higher" : "Normal"} ({readingPitch.toFixed(1)}
+                        )
+                      </p>
+                    </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={increaseFontSize}>
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>Increase Font Size</p>
-            </TooltipContent>
-          </Tooltip>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="show-subtitles">Show Subtitles</Label>
+                        <p className="text-xs text-muted-foreground">Display text being read aloud</p>
+                      </div>
+                      <Switch id="show-subtitles" checked={showSubtitles} onCheckedChange={setShowSubtitles} />
+                    </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" onClick={decreaseFontSize}>
-                <Minimize2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>Decrease Font Size</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </TooltipProvider>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="high-contrast">High Contrast</Label>
+                        <p className="text-xs text-muted-foreground">Increase text and background contrast</p>
+                      </div>
+                      <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="dark-mode">Dark Mode</Label>
+                        <p className="text-xs text-muted-foreground">Switch between light and dark theme</p>
+                      </div>
+                      <Switch
+                        id="dark-mode"
+                        checked={theme === "dark"}
+                        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                      />
+                    </div>
+                  </div>
+                  <DrawerFooter>
+                    <Button onClick={() => setIsDrawerOpen(false)}>Save Changes</Button>
+                    <DrawerClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DrawerClose>
+                  </DrawerFooter>
+                </div>
+              </DrawerContent>
+            </Drawer>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={readPage}
+                  className={isReading ? "bg-primary text-primary-foreground" : ""}
+                >
+                  {isReading ? <Volume2 className="h-4 w-4" /> : <VolumeUp className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>{isReading ? "Stop Reading" : "Read Page Aloud"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={toggleMute} disabled={!isReading}>
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>{isMuted ? "Unmute" : "Mute"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleSubtitles}
+                  className={showSubtitles ? "bg-primary text-primary-foreground" : ""}
+                >
+                  <Type className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={increaseFontSize}>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Increase Font Size</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={decreaseFontSize}>
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Decrease Font Size</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+      </div>
 
       {/* Subtitle display */}
       {showSubtitles && isReading && (
@@ -179,6 +329,6 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
           {subtitle || "..."}
         </div>
       )}
-    </div>
+    </>
   )
 }
