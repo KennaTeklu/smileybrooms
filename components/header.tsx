@@ -12,7 +12,6 @@ import Logo from "@/components/logo"
 import { Cart } from "@/components/cart"
 import { ServiceCounter } from "@/components/service-counter"
 
-// Replace the header component with this updated version that only has one cart button
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const { setTheme, theme } = useTheme()

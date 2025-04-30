@@ -3,17 +3,17 @@ import { DownloadButton } from "@/components/download-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const metadata: Metadata = {
-  title: "Download Smiley Brooms App",
-  description: "Download the Smiley Brooms app for iOS, Android, macOS, Windows, and Linux",
+  title: "Download smileybrooms App",
+  description: "Download the smileybrooms app for iOS, Android, macOS, Windows, and Linux",
 }
 
 export default function DownloadsPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-12 text-center">
-        <h1 className="mb-4 text-4xl font-bold">Download Smiley Brooms</h1>
+        <h1 className="mb-4 text-4xl font-bold">Download smileybrooms</h1>
         <p className="mx-auto max-w-2xl text-lg text-gray-600">
-          Get the Smiley Brooms app on your preferred device for the best cleaning service experience.
+          Get the smileybrooms app on your preferred device for the best cleaning service experience.
         </p>
       </div>
 
@@ -22,7 +22,7 @@ export default function DownloadsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Mobile Apps</CardTitle>
-            <CardDescription>Take Smiley Brooms with you on the go</CardDescription>
+            <CardDescription>Take smileybrooms with you on the go</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-gray-50 p-4">

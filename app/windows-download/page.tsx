@@ -31,7 +31,7 @@ export default function WindowsDownloadPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold text-center mb-8">Download Smiley Brooms for Windows</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">Download smileybrooms for Windows</h1>
 
       <div className="max-w-3xl mx-auto">
         <Card className="mb-8">
@@ -44,7 +44,7 @@ export default function WindowsDownloadPage() {
           </CardHeader>
           <CardContent>
             <p className="mb-4">
-              For optimal performance and to ensure all features work correctly, we recommend installing Smiley Brooms
+              For optimal performance and to ensure all features work correctly, we recommend installing smileybrooms
               directly to your C:\ drive.
             </p>
 

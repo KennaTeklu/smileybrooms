@@ -12,7 +12,7 @@ import { Suspense } from "react"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Smiley Brooms - Professional Cleaning Services",
+  title: "smileybrooms - Professional Cleaning Services",
   description: "Book professional cleaning services for your home or office",
   icons: {
     icon: "/favicon.ico",
