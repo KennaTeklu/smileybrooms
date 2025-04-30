@@ -13,6 +13,7 @@ interface DownloadButtonProps {
   className?: string
   showIcon?: boolean
   children?: React.ReactNode
+  directDownload?: boolean
 }
 
 export function DownloadButton({
@@ -21,6 +22,7 @@ export function DownloadButton({
   size = "default",
   className = "",
   showIcon = true,
+  directDownload = false,
   children,
 }: DownloadButtonProps) {
   const router = useRouter()
@@ -30,11 +32,18 @@ export function DownloadButton({
     setIsLoading(true)
 
     try {
-      // Navigate to download page with platform parameter
-      router.push(`/download?platform=${platform}`)
+      if (platform === "windows" && directDownload) {
+        // Direct download for Windows to C:\ drive
+        window.location.href = "/api/windows-download"
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 3000)
+      } else {
+        // Navigate to download page with platform parameter
+        router.push(`/download?platform=${platform}`)
+      }
     } catch (error) {
       console.error("Download error:", error)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -139,7 +148,7 @@ export function DownloadButton({
       case "macos":
         return "macOS"
       case "windows":
-        return "Windows"
+        return directDownload ? "Windows (C:\\ Drive)" : "Windows"
       case "linux-deb":
         return "Linux (DEB)"
       case "linux-rpm":

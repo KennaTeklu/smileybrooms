@@ -1,13 +1,13 @@
 <Application x:Class="SmileyBroomsWindows.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Default font sizes for responsive design -->
-            <System:Double x:Key="SmallScreenFontSize">16.0</System:Double>
-            <System:Double x:Key="MediumScreenFontSize">20.0</System:Double>
-            <System:Double x:Key="LargeScreenFontSize">28.0</System:Double>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Cyan" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

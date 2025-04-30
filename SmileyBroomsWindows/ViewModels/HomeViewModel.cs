@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
-using SmileyBroomsWindows.Core.Models;
-using SmileyBroomsWindows.Data.Repositories;
+using SmileyBroomsWindows.Models;
 using SmileyBroomsWindows.Services;
-using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -12,96 +10,77 @@ namespace SmileyBroomsWindows.ViewModels
     public class HomeViewModel : ViewModelBase
     {
         private readonly ILogger<HomeViewModel> _logger;
-        private readonly ServiceRepository _serviceRepository;
+        private readonly CleaningService _cleaningService;
         private readonly NavigationService _navigationService;
+        private readonly MainViewModel _mainViewModel;
 
-        public ObservableCollection<Service> PopularServices { get; } = new ObservableCollection<Service>();
-        public ObservableCollection<Testimonial> Testimonials { get; } = new ObservableCollection<Testimonial>();
+        private ObservableCollection<Service> _services;
+
+        public ObservableCollection<Service> Services
+        {
+            get => _services;
+            set => SetProperty(ref _services, value);
+        }
 
         public ICommand BookNowCommand { get; }
-        public ICommand ViewServiceCommand { get; }
+        public ICommand ViewServicesCommand { get; }
+        public ICommand BookServiceCommand { get; }
 
         public HomeViewModel(
             ILogger<HomeViewModel> logger,
-            ServiceRepository serviceRepository,
-            NavigationService navigationService)
+            CleaningService cleaningService,
+            NavigationService navigationService,
+            MainViewModel mainViewModel)
         {
             _logger = logger;
-            _serviceRepository = serviceRepository;
+            _cleaningService = cleaningService;
             _navigationService = navigationService;
+            _mainViewModel = mainViewModel;
 
-            BookNowCommand = new RelayCommand(ExecuteBookNow);
-            ViewServiceCommand = new RelayCommand<Service>(ExecuteViewService);
+            Services = new ObservableCollection<Service>();
 
-            LoadDataAsync();
+            BookNowCommand = new RelayCommand(_ => BookNow());
+            ViewServicesCommand = new RelayCommand(_ => ViewServices());
+            BookServiceCommand = new RelayCommand(param => BookService(param as Service));
+
+            LoadServicesAsync().ConfigureAwait(false);
         }
 
-        private async void LoadDataAsync()
+        private async Task LoadServicesAsync()
         {
             try
             {
-                // Load popular services
-                var services = await _serviceRepository.GetAllServicesAsync();
+                var services = await _cleaningService.GetServicesAsync();
+                
+                Services.Clear();
                 foreach (var service in services)
                 {
-                    if (service.IsPopular)
-                    {
-                        PopularServices.Add(service);
-                    }
+                    Services.Add(service);
                 }
-
-                // Add sample testimonials
-                Testimonials.Add(new Testimonial
-                {
-                    Name = "John Smith",
-                    Location = "New York",
-                    Comment = "The cleaning service was exceptional! My home has never looked better.",
-                    AvatarPath = "/Assets/Images/avatar1.jpg"
-                });
-
-                Testimonials.Add(new Testimonial
-                {
-                    Name = "Sarah Johnson",
-                    Location = "Chicago",
-                    Comment = "Professional, thorough, and friendly. I highly recommend Smiley Brooms!",
-                    AvatarPath = "/Assets/Images/avatar2.jpg"
-                });
-
-                Testimonials.Add(new Testimonial
-                {
-                    Name = "Michael Brown",
-                    Location = "Los Angeles",
-                    Comment = "Consistent quality service every time. They truly live up to their tagline!",
-                    AvatarPath = "/Assets/Images/avatar3.jpg"
-                });
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error loading home data");
+                _logger.LogError(ex, "Error loading services");
             }
         }
 
-        private void ExecuteBookNow()
+        private void BookNow()
         {
-            // Navigate to booking page
-            _logger.LogInformation("Book Now button clicked");
+            _mainViewModel.SelectedNavigationIndex = 1; // Navigate to Services
         }
 
-        private void ExecuteViewService(Service service)
+        private void ViewServices()
+        {
+            _mainViewModel.SelectedNavigationIndex = 1; // Navigate to Services
+        }
+
+        private void BookService(Service service)
         {
             if (service != null)
             {
-                _logger.LogInformation("View service clicked for service: {ServiceName}", service.Name);
-                // Navigate to service details
+                _mainViewModel.SelectedNavigationIndex = 1; // Navigate to Services
+                // TODO: Select the specific service
             }
         }
-    }
-
-    public class Testimonial
-    {
-        public string Name { get; set; }
-        public string Location { get; set; }
-        public string Comment { get; set; }
-        public string AvatarPath { get; set; }
     }
 }

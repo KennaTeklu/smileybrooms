@@ -1,26 +1,29 @@
+using Microsoft.Extensions.Logging;
 using System.Windows.Controls;
 
 namespace SmileyBroomsWindows.Services
 {
     public class NavigationService
     {
-        private Frame _frame;
+        private readonly ILogger<NavigationService> _logger;
+        private Frame _navigationFrame;
 
-        public void Initialize(Frame frame)
+        public NavigationService(ILogger<NavigationService> logger)
         {
-            _frame = frame;
+            _logger = logger;
+        }
+
+        public void Initialize(Frame navigationFrame)
+        {
+            _navigationFrame = navigationFrame;
         }
 
         public void Navigate(UserControl view)
         {
-            _frame.Content = view;
-        }
-
-        public void GoBack()
-        {
-            if (_frame.CanGoBack)
+            if (_navigationFrame != null)
             {
-                _frame.GoBack();
+                _logger.LogInformation($"Navigating to {view.GetType().Name}");
+                _navigationFrame.Content = view;
             }
         }
     }

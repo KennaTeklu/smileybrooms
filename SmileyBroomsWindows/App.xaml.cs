@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using SmileyBroomsWindows.Data.Database;
-using SmileyBroomsWindows.Data.Repositories;
 using SmileyBroomsWindows.Services;
 using SmileyBroomsWindows.ViewModels;
 using SmileyBroomsWindows.Views;
@@ -10,6 +8,7 @@ using Serilog;
 using System;
 using System.IO;
 using System.Windows;
+using Hardcodet.Wpf.TaskbarNotification;
 
 namespace SmileyBroomsWindows
 {
@@ -17,6 +16,7 @@ namespace SmileyBroomsWindows
     {
         public IServiceProvider ServiceProvider { get; private set; }
         public IConfiguration Configuration { get; private set; }
+        private TaskbarIcon _notifyIcon;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -29,12 +29,23 @@ namespace SmileyBroomsWindows
             ServiceProvider = serviceCollection.BuildServiceProvider();
 
             // Initialize database
-            var dbInitializer = ServiceProvider.GetRequiredService<DatabaseInitializer>();
-            dbInitializer.Initialize();
+            var databaseService = ServiceProvider.GetRequiredService<DatabaseService>();
+            databaseService.Initialize();
+
+            // Initialize notification icon
+            _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.DataContext = ServiceProvider.GetRequiredService<NotifyIconViewModel>();
+            }
 
             // Show main window
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // Check for updates
+            var updateService = ServiceProvider.GetRequiredService<UpdateService>();
+            updateService.CheckForUpdatesAsync().ConfigureAwait(false);
         }
 
         private void ConfigureServices(IServiceCollection services)
@@ -68,24 +79,15 @@ namespace SmileyBroomsWindows
             // Add configuration
             services.AddSingleton(Configuration);
 
-            // Add database
-            var connectionString = Configuration.GetConnectionString("DefaultConnection");
-            services.AddSingleton(new DatabaseInitializer(connectionString, 
-                new LoggerFactory().CreateLogger<DatabaseInitializer>()));
-
-            // Add repositories
-            services.AddSingleton(provider => 
-                new ServiceRepository(connectionString, provider.GetRequiredService<ILogger<ServiceRepository>>()));
-            services.AddSingleton(provider => 
-                new BookingRepository(connectionString, provider.GetRequiredService<ILogger<BookingRepository>>()));
-            services.AddSingleton(provider => 
-                new SettingsRepository(connectionString, provider.GetRequiredService<ILogger<SettingsRepository>>()));
-
             // Add services
+            services.AddSingleton<DatabaseService>();
             services.AddSingleton<UpdateService>();
             services.AddSingleton<NotificationService>();
             services.AddSingleton<ApiService>();
             services.AddSingleton<NavigationService>();
+            services.AddSingleton<BookingService>();
+            services.AddSingleton<SettingsService>();
+            services.AddSingleton<CleaningService>();
 
             // Add view models
             services.AddSingleton<MainViewModel>();
@@ -93,6 +95,7 @@ namespace SmileyBroomsWindows
             services.AddSingleton<ServicesViewModel>();
             services.AddSingleton<BookingsViewModel>();
             services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<NotifyIconViewModel>();
 
             // Add views
             services.AddSingleton<MainWindow>();
@@ -100,10 +103,18 @@ namespace SmileyBroomsWindows
             services.AddTransient<ServicesView>();
             services.AddTransient<BookingsView>();
             services.AddTransient<SettingsView>();
+
+            // Add HttpClient
+            services.AddHttpClient<ApiService>(client =>
+            {
+                client.BaseAddress = new Uri(Configuration["ApiSettings:BaseUrl"]);
+                client.DefaultRequestHeaders.Add("x-api-key", Configuration["ApiSettings:ApiKey"]);
+            });
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
+            _notifyIcon?.Dispose();
             Log.CloseAndFlush();
             base.OnExit(e);
         }
