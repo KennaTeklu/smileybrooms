@@ -89,6 +89,11 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
               constitutes your acceptance of the new terms.
             </p>
           </div>
+
+          <p className="text-xs text-gray-500 mt-8">
+            Last updated: April 30, 2025
+            <br />© 2025 smileybrooms LLC. All rights reserved.
+          </p>
         </div>
       </DialogContent>
     </Dialog>

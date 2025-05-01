@@ -30,7 +30,6 @@ import {
 import { ROOM_CONFIG } from "@/lib/room-config"
 import CleanlinessSlider from "./cleanliness-slider"
 import ServiceTypeSelector from "./service-type-selector"
-import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle } from "lucide-react"
 import { Label } from "@/components/ui/label"
@@ -41,6 +40,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { getFormEmoji, getCommonMetadata } from "@/lib/form-utils"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }) {
   const [rooms, setRooms] = useState({
@@ -105,18 +105,22 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
     const servicesPerPayment = servicesPerYear / paymentsPerYear
     const paymentMultiplier = getPaymentMultiplier()
 
-    // Calculate final price
-    let pricePerService = hasRoomSelections
-      ? basePrice * frequencyMultiplier * priceMultiplier + ROOM_CONFIG.serviceFee
-      : 0
+    // Calculate final price - always calculate even with zero quantities
+    let pricePerService = basePrice * frequencyMultiplier * priceMultiplier
+
+    // Only add service fee if there are actual rooms selected
+    if (hasRoomSelections) {
+      pricePerService += ROOM_CONFIG.serviceFee
+    }
+
     pricePerService = pricePerService * paymentMultiplier
     const totalUpfrontPayment = pricePerService * servicesPerPayment
 
     setTotalPrice(totalUpfrontPayment)
-    generateItemizedDetails(basePrice, frequencyMultiplier, hasRoomSelections)
+    generateItemizedDetails(basePrice, frequencyMultiplier, true) // Always generate itemized details
 
     // Call the callback if provided
-    if (onCalculationComplete && hasRoomSelections) {
+    if (onCalculationComplete) {
       onCalculationComplete({
         rooms,
         frequency,
@@ -161,52 +165,52 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
   }
 
   // Generate itemized details for display
-  const generateItemizedDetails = (basePrice, frequencyMultiplier, hasRoomSelections) => {
+  const generateItemizedDetails = (basePrice, frequencyMultiplier, includeZeros = false) => {
     const details = []
 
     // Add room details
     Object.entries(ROOM_CONFIG.roomPrices).forEach(([roomType, price]) => {
       const numRooms = rooms[roomType] || 0
-      if (numRooms > 0) {
+      if (numRooms > 0 || includeZeros) {
         details.push({ label: `${formatRoomName(roomType)} (${numRooms})`, amount: price * numRooms })
       }
     })
 
     // Add other details based on selections
-    if (hasRoomSelections) {
-      // Add frequency adjustment
-      if (frequency !== "weekly") {
+    // Add frequency adjustment
+    if (frequency !== "weekly") {
+      details.push({
+        label: `${frequency.charAt(0).toUpperCase() + frequency.slice(1).replace("_", " ")} Adjustment`,
+        amount: null,
+      })
+    }
+
+    // Add payment frequency discount
+    if (paymentFrequency !== "per_service" && frequency !== "one_time") {
+      const servicesPerYear = getServicesPerYear()
+      if (
+        (paymentFrequency === "monthly" && servicesPerYear > 12) ||
+        (paymentFrequency === "yearly" && servicesPerYear > 1)
+      ) {
+        const discountLabel = paymentFrequency === "yearly" ? "15%" : "5%"
         details.push({
-          label: `${frequency.charAt(0).toUpperCase() + frequency.slice(1).replace("_", " ")} Adjustment`,
+          label: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment discount (${discountLabel})`,
           amount: null,
         })
       }
+    }
 
-      // Add payment frequency discount
-      if (paymentFrequency !== "per_service" && frequency !== "one_time") {
-        const servicesPerYear = getServicesPerYear()
-        if (
-          (paymentFrequency === "monthly" && servicesPerYear > 12) ||
-          (paymentFrequency === "yearly" && servicesPerYear > 1)
-        ) {
-          const discountLabel = paymentFrequency === "yearly" ? "15%" : "5%"
-          details.push({
-            label: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment discount (${discountLabel})`,
-            amount: null,
-          })
-        }
-      }
+    // Add service type and cleanliness adjustments
+    if (serviceType === "detailing") {
+      details.push({ label: "Premium Detailing (3.5x)", amount: null })
+    }
 
-      // Add service type and cleanliness adjustments
-      if (serviceType === "detailing") {
-        details.push({ label: "Premium Detailing (3.5x)", amount: null })
-      }
+    if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
+      details.push({ label: "Extra Cleaning Required (3.5x)", amount: null })
+    }
 
-      if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
-        details.push({ label: "Extra Cleaning Required (3.5x)", amount: null })
-      }
-
-      // Add service fee
+    // Add service fee if there are any room selections
+    if (Object.values(rooms).some((value) => value > 0)) {
       details.push({ label: "Service Fee", amount: ROOM_CONFIG.serviceFee })
     }
 
@@ -382,98 +386,186 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
   return (
     <div className="calculator-container flex flex-col lg:flex-row gap-8">
       <div className="calculator-display flex-1">
-        <form id="price-calculator" className="space-y-8">
-          {/* Service Type Selector */}
-          <ServiceTypeSelector value={serviceType} onChange={setServiceType} />
-
-          {/* Cleanliness Level Slider */}
-          <CleanlinessSlider onChange={setCleanlinessLevel} />
-
-          {cleanlinessLevel < 4 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Service currently unavailable for extremely dirty conditions. Please contact us for a custom quote.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <Separator className="my-8" />
-
-          {/* Room Selection */}
-          <div>
-            <h3 className="text-xl font-medium mb-6 flex items-center">
-              <span className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-blue-600 dark:text-blue-300"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </span>
-              Select Rooms to Clean
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => (
-                <motion.div
-                  key={roomType}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <Card
-                    className={`overflow-hidden transition-all ${rooms[roomType] > 0 ? "border-blue-400 dark:border-blue-500 shadow-md" : "border-gray-200 dark:border-gray-700"}`}
-                  >
-                    <div className="p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="mr-3 bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
-                          {getRoomIcon(roomType)}
-                        </div>
-                        <div>
-                          <p className="font-medium capitalize">{formatRoomName(roomType)}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(price)}/room</p>
-                        </div>
-                      </div>
-
-                      <Select
-                        value={rooms[roomType].toString()}
-                        onValueChange={(value) => handleRoomChange(roomType, value)}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue placeholder="0" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[0, 1, 2, 3, 4, 5].map((num) => (
-                            <SelectItem key={num} value={num.toString()}>
-                              {num}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {rooms[roomType] > 0 && (
-                      <div className="bg-blue-50 dark:bg-blue-900/30 py-1 px-4 text-center">
-                        <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center justify-center">
-                          <Check className="h-3 w-3 mr-1" /> Selected
-                        </p>
-                      </div>
-                    )}
-                  </Card>
-                </motion.div>
-              ))}
+        <form id="price-calculator" className="space-y-6">
+          {/* Service Configuration Card - Combined service type and cleanliness level */}
+          <Card className="overflow-hidden border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-medium">Service Configuration</h3>
             </div>
-          </div>
+
+            <div className="p-5">
+              {/* Service Type and Cleanliness Level in a single Accordion */}
+              <Accordion type="single" collapsible defaultValue="" className="border-none">
+                <motion.div layout>
+                  <AccordionItem value="service-type" className="border-none">
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    >
+                      <AccordionTrigger className="text-lg font-medium py-2 px-0">
+                        <div className="flex items-center">
+                          Service Type
+                          <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                            {serviceType === "standard" ? "Standard" : "Premium"}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                    </motion.div>
+                    <AccordionContent>
+                      <motion.div
+                        initial={{ opacity: 0, y: -20, rotateX: -30 }}
+                        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                        exit={{ opacity: 0, y: -20, rotateX: -30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                          bounce: 0.4,
+                        }}
+                      >
+                        <ServiceTypeSelector value={serviceType} onChange={setServiceType} />
+                      </motion.div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </motion.div>
+
+                {/* Cleanliness Level Slider - in same card */}
+                <motion.div layout>
+                  <AccordionItem value="cleanliness-level" className="border-none">
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    >
+                      <AccordionTrigger className="text-lg font-medium py-2 px-0">
+                        <div className="flex items-center">
+                          Current Cleanliness Level
+                          <Badge
+                            className={cn(
+                              "ml-2",
+                              cleanlinessLevel < 4
+                                ? "bg-red-100 text-red-800 border-red-200"
+                                : cleanlinessLevel < 7
+                                  ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                                  : "bg-green-100 text-green-800 border-green-200",
+                            )}
+                          >
+                            {cleanlinessLevel}/10
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                    </motion.div>
+                    <AccordionContent>
+                      <motion.div
+                        initial={{ opacity: 0, y: -20, rotateX: -30 }}
+                        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                        exit={{ opacity: 0, y: -20, rotateX: -30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                          bounce: 0.4,
+                          delay: 0.1,
+                        }}
+                      >
+                        <CleanlinessSlider onChange={setCleanlinessLevel} />
+                      </motion.div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </motion.div>
+              </Accordion>
+
+              {cleanlinessLevel < 4 && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Service currently unavailable for extremely dirty conditions. Please contact us for a custom quote.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </Card>
+
+          {/* Room Selection Card */}
+          <Card className="overflow-hidden border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-xl font-medium flex items-center">
+                <span className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-blue-600 dark:text-blue-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
+                  </svg>
+                </span>
+                Select Rooms to Clean
+                <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                  {Object.values(rooms).reduce((sum, count) => sum + count, 0)} rooms
+                </Badge>
+              </h3>
+            </div>
+
+            <div className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => (
+                  <motion.div
+                    key={roomType}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <Card
+                      className={`overflow-hidden transition-all ${rooms[roomType] > 0 ? "border-blue-400 dark:border-blue-500 shadow-md" : "border-gray-200 dark:border-gray-700"}`}
+                    >
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="mr-3 bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
+                            {getRoomIcon(roomType)}
+                          </div>
+                          <div>
+                            <p className="font-medium capitalize">{formatRoomName(roomType)}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(price)}/room</p>
+                          </div>
+                        </div>
+
+                        <Select
+                          value={rooms[roomType].toString()}
+                          onValueChange={(value) => handleRoomChange(roomType, value)}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue placeholder="0" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[0, 1, 2, 3, 4, 5].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {rooms[roomType] > 0 && (
+                        <div className="bg-blue-50 dark:bg-blue-900/30 py-1 px-4 text-center">
+                          <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center justify-center">
+                            <Check className="h-3 w-3 mr-1" /> Selected
+                          </p>
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </Card>
         </form>
       </div>
 
@@ -508,7 +600,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
         </motion.div>
 
         {/* Add to Cart Button - Moved to be directly below pricing info */}
-        {hasSelections && onAddToCart && (
+        {onAddToCart && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -519,7 +611,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
               className="w-full py-6 text-lg shadow-lg bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0"
               size="lg"
               onClick={handleAddToCart}
-              disabled={cleanlinessLevel < 4 || totalPrice <= 0}
+              disabled={cleanlinessLevel < 4 || (!hasSelections && totalPrice <= 0)}
             >
               <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
             </Button>

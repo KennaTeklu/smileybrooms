@@ -50,7 +50,8 @@ export default function Features() {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose smileybrooms?</h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-            We deliver exceptional cleaning services with attention to detail and customer satisfaction.
+            As a new startup, we're committed to delivering exceptional cleaning services with attention to detail and
+            customer satisfaction.
           </p>
         </div>
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">

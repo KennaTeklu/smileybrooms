@@ -195,7 +195,11 @@ export default function PricingPage() {
         >
           <div className="p-6 md:p-10">
             <div className="calculator-container">
-              <PriceCalculator key={calculatorKey} onCalculationComplete={handleCalculationComplete} />
+              <PriceCalculator
+                key={calculatorKey}
+                onCalculationComplete={handleCalculationComplete}
+                onAddToCart={handleAddToCart}
+              />
             </div>
           </div>
         </motion.div>

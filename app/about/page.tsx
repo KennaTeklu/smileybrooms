@@ -39,10 +39,10 @@ export default function AboutPage() {
     {
       id: "hero",
       content: (
-        <div className="flex items-center justify-center h-full bg-gradient-to-b from-primary/10 to-transparent">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">About smileybrooms LLC</h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full bg-gradient-to-b from-primary/10 to-transparent px-4 py-12">
+          <div className="container mx-auto text-center">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">About smileybrooms</h1>
+            <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               We're on a mission to make cleaning a happy experience for everyone.
             </p>
           </div>
@@ -52,20 +52,20 @@ export default function AboutPage() {
     {
       id: "our-story",
       content: (
-        <div className="flex items-center justify-center h-full">
-          <div className="container mx-auto px-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full px-4 py-12">
+          <div className="container mx-auto">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold mb-6">Our Story</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-6">Our Story</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <p>
-                  smileybrooms LLC was founded in 2015 with a simple but powerful idea: cleaning services should leave
+                  smileybrooms was registered in 2025 with a simple but powerful idea: cleaning services should leave
                   everyone smiling—both the clients who enjoy a spotless space and the cleaning professionals who take
                   pride in their work.
                 </p>
                 <p>
-                  What started as a small team of three dedicated cleaners has grown into a trusted cleaning service
-                  with dozens of professionals serving hundreds of happy clients. Throughout our growth, we've remained
-                  committed to our core values of quality, trust, and sustainability.
+                  Founded by a couple of university students in Arizona, smileybrooms is aiming to provide exceptional
+                  cleaning services to the local community. While our team is currently small, we're looking to scale
+                  our operations as we grow.
                 </p>
                 <p>
                   We named our company "smileybrooms" because we believe cleaning should be a positive experience that
@@ -73,8 +73,8 @@ export default function AboutPage() {
                   environment where you can thrive.
                 </p>
                 <p>
-                  Today, we continue to innovate and improve our services, always with the goal of exceeding
-                  expectations and leaving both homes and faces sparkling clean.
+                  As a new startup, we're committed to building our reputation through quality service, reliability, and
+                  customer satisfaction from day one.
                 </p>
               </div>
             </div>
@@ -85,21 +85,21 @@ export default function AboutPage() {
     {
       id: "mission-vision",
       content: (
-        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
-          <div className="container mx-auto px-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full bg-gray-50 dark:bg-gray-900/50 px-4 py-12">
+          <div className="container mx-auto">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-6">Our Mission & Vision</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-6">Our Mission & Vision</h2>
               <div className="space-y-8">
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Mission</h3>
-                  <p className="text-lg">
+                  <p className="text-base md:text-lg">
                     To provide exceptional cleaning services that create healthier, happier spaces while treating our
                     team members with respect and offering sustainable career opportunities.
                   </p>
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-3">Vision</h3>
-                  <p className="text-lg">
+                  <p className="text-base md:text-lg">
                     To transform the cleaning industry by setting new standards for quality, sustainability, and
                     customer satisfaction, one spotless space at a time.
                   </p>
@@ -113,9 +113,9 @@ export default function AboutPage() {
     {
       id: "core-values",
       content: (
-        <div className="flex flex-col h-full">
-          <div className="container mx-auto px-4 py-8">
-            <h2 className="text-3xl font-bold mb-6 text-center">Our Core Values</h2>
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full px-4 py-12">
+          <div className="container mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">Our Core Values</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
               {values.map((value, index) => (
                 <Card key={index} className="hover:shadow-lg transition-shadow">
@@ -138,10 +138,10 @@ export default function AboutPage() {
     {
       id: "our-commitment",
       content: (
-        <div className="flex items-center justify-center h-full">
-          <div className="container mx-auto px-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full px-4 py-12">
+          <div className="container mx-auto">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold mb-6 text-center">Our Commitment</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">Our Commitment</h2>
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xl font-semibold mb-2">To Our Customers</h3>
@@ -180,19 +180,19 @@ export default function AboutPage() {
     {
       id: "why-smileybrooms",
       content: (
-        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
-          <div className="container mx-auto px-4">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] w-full bg-gray-50 dark:bg-gray-900/50 px-4 py-12">
+          <div className="container mx-auto">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-6">Why "smileybrooms"?</h2>
-              <div className="text-lg">
+              <h2 className="text-2xl md:text-3xl font-bold mb-6">Why "smileybrooms"?</h2>
+              <div className="text-base md:text-lg">
                 <p>
                   Our name reflects our philosophy: cleaning should bring happiness. The "smiley" represents the
                   satisfaction and joy that comes from a clean, healthy space. The "brooms" symbolize our commitment to
                   traditional cleaning values combined with modern techniques.
                 </p>
                 <p className="mt-4">
-                  We believe that when we leave your space spotless, it creates a ripple effect of positivity in your
-                  life. That's why we're not just cleaning—we're creating smiles, one broom at a time.
+                  As we begin our journey, we're focused on creating positive experiences for every client we serve.
+                  We're not just aiming to clean—we're aiming to create smiles, one broom at a time.
                 </p>
               </div>
             </div>
@@ -207,7 +207,9 @@ export default function AboutPage() {
       <Header />
 
       <main className="flex-1">
-        <PageFlipper pages={pages} />
+        <div className="overflow-hidden">
+          <PageFlipper pages={pages} />
+        </div>
       </main>
 
       <AccessibilityToolbar />
