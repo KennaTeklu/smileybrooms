@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, type ReactNode } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 interface PageFlipperProps {
@@ -16,12 +16,46 @@ export function PageFlipper({ pages }: PageFlipperProps) {
   const [currentPage, setCurrentPage] = useState(0)
   const [isScrolling, setIsScrolling] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
+  const pageRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Reset page refs when pages change
+  useEffect(() => {
+    pageRefs.current = pageRefs.current.slice(0, pages.length)
+  }, [pages.length])
 
   useEffect(() => {
     let timeout: NodeJS.Timeout
 
     const handleWheel = (e: WheelEvent) => {
-      if (isScrolling) return
+      if (isScrolling) {
+        e.preventDefault()
+        return
+      }
+
+      // Get the current page element
+      const currentPageElement = pageRefs.current[currentPage]
+
+      if (currentPageElement) {
+        const isScrollable = currentPageElement.scrollHeight > currentPageElement.clientHeight
+        const isScrolledToBottom =
+          Math.abs(currentPageElement.scrollHeight - currentPageElement.scrollTop - currentPageElement.clientHeight) < 5
+        const isScrolledToTop = currentPageElement.scrollTop <= 5
+
+        // If scrolling down and not at bottom of scrollable content, let the default scroll happen
+        if (e.deltaY > 0 && isScrollable && !isScrolledToBottom) {
+          return
+        }
+
+        // If scrolling up and not at top of scrollable content, let the default scroll happen
+        if (e.deltaY < 0 && isScrollable && !isScrolledToTop) {
+          return
+        }
+
+        // Prevent default only when we're going to change pages
+        if ((e.deltaY > 0 && currentPage < pages.length - 1) || (e.deltaY < 0 && currentPage > 0)) {
+          e.preventDefault()
+        }
+      }
 
       setIsScrolling(true)
 
@@ -58,7 +92,7 @@ export function PageFlipper({ pages }: PageFlipperProps) {
       }
     }
 
-    window.addEventListener("wheel", handleWheel)
+    window.addEventListener("wheel", handleWheel, { passive: false })
     window.addEventListener("keydown", handleKeyDown)
 
     return () => {
@@ -73,6 +107,13 @@ export function PageFlipper({ pages }: PageFlipperProps) {
     setTouchStart(e.touches[0].clientY)
   }
 
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Prevent default touch move behavior when we're going to change pages
+    if (isScrolling) {
+      e.preventDefault()
+    }
+  }
+
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStart === null || isScrolling) return
 
@@ -80,6 +121,22 @@ export function PageFlipper({ pages }: PageFlipperProps) {
     const diff = touchStart - touchEnd
 
     if (Math.abs(diff) < 50) return // Minimum swipe distance
+
+    // Get the current page element
+    const currentPageElement = pageRefs.current[currentPage]
+
+    if (currentPageElement) {
+      const isScrollable = currentPageElement.scrollHeight > currentPageElement.clientHeight
+      const isScrolledToBottom =
+        Math.abs(currentPageElement.scrollHeight - currentPageElement.scrollTop - currentPageElement.clientHeight) < 5
+      const isScrolledToTop = currentPageElement.scrollTop <= 5
+
+      // If swiping up and not at bottom of scrollable content, let the default scroll happen
+      if (diff > 0 && isScrollable && !isScrolledToBottom) return
+
+      // If swiping down and not at top of scrollable content, let the default scroll happen
+      if (diff < 0 && isScrollable && !isScrolledToTop) return
+    }
 
     setIsScrolling(true)
 
@@ -107,11 +164,13 @@ export function PageFlipper({ pages }: PageFlipperProps) {
     <div
       className="relative h-[calc(100vh-8rem)] overflow-hidden"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {pages.map((page, index) => (
         <div
           key={page.id}
+          ref={(el) => (pageRefs.current[index] = el)}
           className={cn(
             "absolute top-0 left-0 w-full h-full transition-transform duration-700 ease-in-out overflow-y-auto px-4 py-8",
             index === currentPage ? "translate-y-0" : index < currentPage ? "-translate-y-full" : "translate-y-full",

@@ -48,7 +48,7 @@ export default function Features() {
     <section className="bg-gray-50 py-16 dark:bg-gray-900/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose Smiley Brooms?</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose smileybrooms?</h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
             We deliver exceptional cleaning services with attention to detail and customer satisfaction.
           </p>

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
-import '../../providers/auth_provider.dart';
-import '../../providers/theme_provider.dart';
-import '../../utils/constants.dart';
+import 'package:smiley_brooms/providers/auth_provider.dart';
+import 'package:smiley_brooms/providers/theme_provider.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({Key? key}) : super(key: key);
@@ -13,7 +11,7 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
-
+    
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -25,20 +23,18 @@ class AppDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Image.asset(
+                  'assets/images/logo_white.png',
+                  height: 60,
+                ),
+                const SizedBox(height: 10),
                 Text(
-                  AppConstants.appName,
+                  authProvider.isAuthenticated 
+                      ? 'Hello, ${authProvider.user?.displayName ?? 'User'}'
+                      : 'Welcome to Smiley Brooms',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Professional Cleaning Services',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
               ],
@@ -48,81 +44,84 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.home),
             title: const Text('Home'),
             onTap: () {
-              Navigator.pop(context);
               context.go('/');
+              Navigator.pop(context);
             },
           ),
           ListTile(
             leading: const Icon(Icons.calculate),
-            title: const Text('Service Calculator'),
+            title: const Text('Price Calculator'),
             onTap: () {
-              Navigator.pop(context);
               context.go('/calculator');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text('Cart'),
-            onTap: () {
               Navigator.pop(context);
-              context.go('/cart');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.download),
-            title: const Text('Downloads'),
-            onTap: () {
-              Navigator.pop(context);
-              context.go('/downloads');
             },
           ),
           ListTile(
             leading: const Icon(Icons.info),
             title: const Text('About Us'),
             onTap: () {
-              Navigator.pop(context);
               context.go('/about');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.contact_mail),
-            title: const Text('Contact Us'),
-            onTap: () {
               Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.contact_support),
+            title: const Text('Contact'),
+            onTap: () {
               context.go('/contact');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.work),
+            title: const Text('Careers'),
+            onTap: () {
+              context.go('/careers');
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.download),
+            title: const Text('Downloads'),
+            onTap: () {
+              context.go('/downloads');
+              Navigator.pop(context);
             },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.brightness_6),
-            title: const Text('Dark Mode'),
-            trailing: Switch(
-              value: themeProvider.isDarkMode,
-              onChanged: (value) {
-                themeProvider.toggleTheme();
-              },
-            ),
+            leading: const Icon(Icons.shopping_cart),
+            title: const Text('Cart'),
             onTap: () {
-              themeProvider.toggleTheme();
+              context.go('/cart');
+              Navigator.pop(context);
             },
           ),
-          const Divider(),
-          if (authProvider.isLoggedIn)
+          if (authProvider.isAuthenticated)
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text('Profile'),
               onTap: () {
-                Navigator.pop(context);
                 context.go('/profile');
+                Navigator.pop(context);
               },
             ),
-          if (authProvider.isLoggedIn)
+          ListTile(
+            leading: Icon(themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            title: Text(themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode'),
+            onTap: () {
+              themeProvider.toggleTheme();
+              Navigator.pop(context);
+            },
+          ),
+          const Divider(),
+          if (authProvider.isAuthenticated)
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
-              onTap: () {
+              onTap: () async {
+                await authProvider.signOut();
                 Navigator.pop(context);
-                authProvider.logout();
                 context.go('/');
               },
             )
@@ -131,8 +130,8 @@ class AppDrawer extends StatelessWidget {
               leading: const Icon(Icons.login),
               title: const Text('Login'),
               onTap: () {
-                Navigator.pop(context);
                 context.go('/login');
+                Navigator.pop(context);
               },
             ),
         ],

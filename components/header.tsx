@@ -3,19 +3,20 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Sun, Moon, Phone } from "lucide-react"
+import { Menu, X, Sun, Moon, Phone, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import Logo from "@/components/logo"
-import { Cart } from "@/components/cart"
 import { ServiceCounter } from "@/components/service-counter"
+import { Cart } from "@/components/cart"
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const { setTheme, theme } = useTheme()
   const pathname = usePathname()
+  const [isBouncing, setIsBouncing] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,18 +26,41 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  useEffect(() => {
+    // Set initial bounce
+    setIsBouncing(true)
+    const timer = setTimeout(() => {
+      setIsBouncing(false)
+    }, 400) // Duration of the bounce animation
+
+    // Set up interval for periodic bouncing
+    const bounceInterval = setInterval(() => {
+      setIsBouncing(true)
+      setTimeout(() => {
+        setIsBouncing(false)
+      }, 400)
+    }, 10000) // Bounce every 10 seconds
+
+    return () => {
+      clearTimeout(timer)
+      clearInterval(bounceInterval)
+    }
+  }, [])
+
+  // Navigation items
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Pricing", href: "/pricing" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
     { name: "Careers", href: "/careers" },
   ]
+
+  // Filter out current page from navigation
+  const filteredNavigation = navigation.filter((item) => item.href !== pathname)
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-200",
+        "sticky top-0 z-[50] w-full transition-all duration-200",
         isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-950/80" : "bg-transparent",
       )}
     >
@@ -50,15 +74,13 @@ export function Header() {
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => (
+            {filteredNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
                   "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
+                  "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
                 )}
               >
                 {item.name}
@@ -66,9 +88,14 @@ export function Header() {
             ))}
             <Link
               href="/downloads"
-              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+              className={cn(
+                "px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 relative flex items-center border-2 border-primary border-dashed",
+                pathname === "/downloads" ? "hidden" : "",
+                isBouncing ? "animate-bounce" : "",
+              )}
             >
-              Downloads
+              Install App
+              <Download className="h-4 w-4 ml-1 inline-block" />
             </Link>
           </nav>
 
@@ -76,13 +103,13 @@ export function Header() {
             {/* Service Counter */}
             <ServiceCounter />
 
-            {/* Phone number */}
+            {/* Phone number with improved visibility */}
             <a
               href="tel:6028000605"
-              className="hidden md:flex items-center text-sm font-medium text-gray-700 hover:text-primary dark:text-gray-200 dark:hover:text-primary"
+              className="hidden md:flex items-center text-sm font-medium text-primary hover:text-primary/80 dark:text-primary dark:hover:text-primary/80 transition-colors"
             >
               <Phone className="h-4 w-4 mr-1" />
-              <span>602-800-0605</span>
+              <span className="font-semibold">602-800-0605</span>
             </a>
 
             {/* Theme toggle button with fixed functionality */}
@@ -91,15 +118,17 @@ export function Header() {
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-              className="hidden md:flex"
+              className="flex"
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
 
-            {/* Single Cart Component */}
-            <Cart />
+            {/* Enhanced Cart Component - removed "View Cart" text */}
+            <div className="relative">
+              <Cart />
+            </div>
           </div>
 
           {/* Mobile menu */}
@@ -110,7 +139,7 @@ export function Header() {
                 <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px] z-[100]">
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between py-4">
                   <Logo size="sm" />
@@ -121,35 +150,36 @@ export function Header() {
                   </SheetTrigger>
                 </div>
                 <nav className="flex flex-col space-y-4 mt-4">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "px-4 py-2 rounded-md text-base font-medium transition-colors",
-                        pathname === item.href
-                          ? "bg-primary/10 text-primary"
-                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
-                      )}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                  {/* Show all navigation items in mobile menu except current page */}
+                  {navigation
+                    .filter((item) => item.href !== pathname)
+                    .map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="px-4 py-2 rounded-md text-base font-medium transition-colors text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
 
-                  <Link
-                    href="/downloads"
-                    className="px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                  >
-                    Downloads
-                  </Link>
+                  {/* Only show Install App link if not on downloads page */}
+                  {pathname !== "/downloads" && (
+                    <Link
+                      href="/downloads"
+                      className="px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 border-2 border-primary border-dashed"
+                    >
+                      Install App
+                    </Link>
+                  )}
 
                   {/* Phone number in mobile menu */}
                   <a
                     href="tel:6028000605"
-                    className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                    className="flex items-center px-4 py-2 rounded-md text-base font-medium text-primary hover:bg-gray-100 dark:text-primary dark:hover:bg-gray-800"
                   >
                     <Phone className="h-5 w-5 mr-2" />
-                    <span>602-800-0605</span>
+                    <span className="font-semibold">602-800-0605</span>
                   </a>
 
                   {/* Service Counter in mobile menu */}

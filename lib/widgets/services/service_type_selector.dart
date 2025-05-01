@@ -76,9 +76,86 @@ class ServiceTypeSelector extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => onTypeSelected(type),
-      child: Container
+      child: Container### Smiley Brooms Android Application Development
 
-Let's implement the cleanliness slider widget:
+I'll create a comprehensive Flutter-based Android application that mirrors your web application's functionality while optimizing for mobile experiences. Flutter will allow for potential iOS expansion in the future.
 
-```dart file="lib/widgets/services/cleanliness_slider.dart"
-... This file was left out for brevity. Assume it is correct and does not need any modifications. ...
+First, let's set up the project structure and core files:
+
+```dart file="lib/main.dart"
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
+import 'package:smiley_brooms/firebase_options.dart';
+import 'package:smiley_brooms/providers/auth_provider.dart';
+import 'package:smiley_brooms/providers/cart_provider.dart';
+import 'package:smiley_brooms/providers/theme_provider.dart';
+import 'package:smiley_brooms/services/notification_service.dart';
+import 'package:smiley_brooms/utils/app_router.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print("Handling a background message: ${message.messageId}");
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+  
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  // Initialize Stripe
+  Stripe.publishableKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
+  await Stripe.instance.applySettings();
+  
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Initialize notification service
+  await NotificationService().init();
+  
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp.router(
+            title: 'Smiley Brooms',
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              brightness: Brightness.light,
+              fontFamily: 'Inter',
+            ),
+            darkTheme: ThemeData(
+              primarySwatch: Colors.blue,
+              brightness: Brightness.dark,
+              fontFamily: 'Inter',
+            ),
+            themeMode: themeProvider.themeMode,
+            routerConfig: AppRouter.router,
+            debugShowCheckedModeBanner: false,
+          );
+        },
+      ),
+    );
+  }
+}

@@ -17,8 +17,8 @@ interface ServiceDetailsModalProps {
   totalPrice: number
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   onUpgrade?: () => void
-  addToCart?: (item: any, source: string) => void // Add addToCart to props
-  service?: any // Add service to props
+  addToCart?: (item: any, source: string) => void
+  service?: any
 }
 
 export function ServiceDetailsModal({
@@ -30,8 +30,8 @@ export function ServiceDetailsModal({
   totalPrice,
   paymentFrequency,
   onUpgrade,
-  addToCart, // Destructure addToCart from props
-  service, // Destructure service from props
+  addToCart,
+  service,
 }: ServiceDetailsModalProps) {
   const [selectedTab, setSelectedTab] = useState(serviceType)
 
@@ -104,6 +104,11 @@ export function ServiceDetailsModal({
       )
       onOpenChange(false) // Close the modal after adding to cart
     }
+  }
+
+  const handleBookNow = () => {
+    window.location.href = "/pricing" // Fixed to redirect to pricing page
+    onOpenChange(false)
   }
 
   return (
@@ -241,19 +246,28 @@ export function ServiceDetailsModal({
 
         <Separator className="my-4" />
 
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-between space-x-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {serviceType === "standard" ? (
-            <Button onClick={handleUpgrade}>
-              Upgrade to Premium <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={handleAddToCart}>
-              Add to Cart <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
+
+          <div className="flex space-x-2">
+            {addToCart && service && (
+              <Button variant="outline" onClick={handleAddToCart}>
+                Add to Cart
+              </Button>
+            )}
+
+            {serviceType === "standard" ? (
+              <Button onClick={handleUpgrade}>
+                Upgrade to Premium <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={handleBookNow} className="bg-primary hover:bg-primary/90">
+                Book Now <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

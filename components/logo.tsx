@@ -26,7 +26,7 @@ export default function Logo({ className, size = "md" }: LogoProps) {
         <div className="absolute bottom-[30%] left-[25%] w-[50%] h-[20%] border-b-4 border-gray-900 rounded-b-full"></div>
       </div>
       <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-        Smiley Brooms
+        smileybrooms
       </span>
     </div>
   )

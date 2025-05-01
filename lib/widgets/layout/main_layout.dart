@@ -1,39 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-
-import '../../providers/cart_provider.dart';
-import '../../utils/constants.dart';
-import '../common/cart_button.dart';
-import 'app_drawer.dart';
+import 'package:smiley_brooms/widgets/layout/app_drawer.dart';
+import 'package:smiley_brooms/widgets/common/cart_button.dart';
 
 class MainLayout extends StatefulWidget {
   final Widget child;
-
-  const MainLayout({Key? key, required this.child}) : super(key: key);
+  
+  const MainLayout({
+    Key? key,
+    required this.child,
+  }) : super(key: key);
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
+  int _calculateSelectedIndex(BuildContext context) {
+    final String location = GoRouterState.of(context).location;
+    
+    if (location.startsWith('/')) {
+      if (location == '/') return 0;
+      if (location.startsWith('/calculator')) return 1;
+      if (location.startsWith('/downloads')) return 2;
+      if (location.startsWith('/contact')) return 3;
+      if (location.startsWith('/profile')) return 4;
+    }
+    
+    return 0;
+  }
+
+  void _onItemTapped(int index, BuildContext context) {
+    switch (index) {
+      case 0:
+        context.go('/');
+        break;
+      case 1:
+        context.go('/calculator');
+        break;
+      case 2:
+        context.go('/downloads');
+        break;
+      case 3:
+        context.go('/contact');
+        break;
+      case 4:
+        context.go('/profile');
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Update the current index based on the current route
-    _updateCurrentIndex(GoRouterState.of(context).matchedLocation);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppConstants.appName),
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 40,
+        ),
         actions: [
-          Consumer<CartProvider>(
-            builder: (context, cartProvider, child) {
-              return CartButton(
-                itemCount: cartProvider.itemCount,
-                onPressed: () => context.go('/cart'),
-              );
+          CartButton(),
+          IconButton(
+            icon: const Icon(Icons.phone),
+            onPressed: () {
+              // Launch phone call
             },
           ),
         ],
@@ -41,9 +71,11 @@ class _MainLayoutState extends State<MainLayout> {
       drawer: const AppDrawer(),
       body: widget.child,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
+        currentIndex: _calculateSelectedIndex(context),
+        onTap: (index) => _onItemTapped(index, context),
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -54,8 +86,12 @@ class _MainLayoutState extends State<MainLayout> {
             label: 'Calculator',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
+            icon: Icon(Icons.download),
+            label: 'Downloads',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contact_support),
+            label: 'Contact',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -64,38 +100,5 @@ class _MainLayoutState extends State<MainLayout> {
         ],
       ),
     );
-  }
-
-  void _updateCurrentIndex(String location) {
-    if (location == '/') {
-      _currentIndex = 0;
-    } else if (location == '/calculator') {
-      _currentIndex = 1;
-    } else if (location == '/cart') {
-      _currentIndex = 2;
-    } else if (location == '/profile') {
-      _currentIndex = 3;
-    }
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        context.go('/');
-        break;
-      case 1:
-        context.go('/calculator');
-        break;
-      case 2:
-        context.go('/cart');
-        break;
-      case 3:
-        context.go('/profile');
-        break;
-    }
   }
 }
