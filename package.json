@@ -64,11 +64,14 @@
     "svelte": "latest",
     "vue": "latest",
     "vue-router": "latest",
+    "@auth/core": "latest",
+    "nodemailer": "latest",
     "framer-motion": "latest",
     "@vercel/analytics": "latest",
     "path": "latest",
-    "js-cookie": "latest",
     "canvas-confetti": "latest",
+    "next-auth": "latest",
+    "js-cookie": "latest",
     "stripe": "latest"
   },
   "devDependencies": {

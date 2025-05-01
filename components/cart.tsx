@@ -37,7 +37,7 @@ export function Cart() {
   const { cart, removeItem, updateQuantity, clearCart, addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [paymentMethod, setPaymentMethod] = useState("both")
   const [videoRecordingDiscount, setVideoRecordingDiscount] = useState(0)
   const [isDiscountApplied, setIsDiscountApplied] = useState(false)
 
@@ -192,6 +192,7 @@ export function Cart() {
         hasRecurringService: customItems.some((item) => item.metadata?.isRecurring),
         itemCategories: cart.items.map((item) => item.priceId).join(","),
         discountsApplied: customerData?.allowVideoRecording ? "video_recording" : "none",
+        paymentMethod: paymentMethod,
       })
 
       // Format cart items for better readability
@@ -271,6 +272,7 @@ export function Cart() {
             }
           : undefined,
         isRecurring: false,
+        paymentMethod: paymentMethod,
       })
 
       if (checkoutUrl) {

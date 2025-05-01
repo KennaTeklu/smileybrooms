@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { CartProvider } from "@/lib/cart-context"
 import ClientLayout from "./client-layout"
 import PageViewTracker from "@/components/page-view-tracker"
+import { SessionProvider } from "@/components/session-provider"
 
 export const metadata = {
   title: "Smiley Brooms Cleaning Service",
@@ -21,13 +22,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <CartProvider>
-            <ClientLayout>
-              <PageViewTracker />
-              {children}
-              <Toaster />
-            </ClientLayout>
-          </CartProvider>
+          <SessionProvider>
+            <CartProvider>
+              <ClientLayout>
+                <PageViewTracker />
+                {children}
+                <Toaster />
+              </ClientLayout>
+            </CartProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

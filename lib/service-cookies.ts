@@ -1,3 +1,5 @@
+"use client"
+
 import Cookies from "js-cookie"
 
 const SERVICE_COUNT_KEY = "service_count"
@@ -45,4 +47,8 @@ export function updateServiceRecord(id: string, updates: Partial<ServiceRecord>)
 export function getRemainingServices(): number {
   const history = getServiceHistory()
   return history.filter((record) => !record.completed).length
+}
+
+export function getServiceRecords(): ServiceRecord[] {
+  return getServiceHistory()
 }

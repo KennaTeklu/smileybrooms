@@ -58,6 +58,12 @@ export function TermsModal({ trigger, className }) {
               We strive to provide high-quality cleaning services. If you are not satisfied with our service, please
               contact us within 24 hours, and we will address your concerns promptly.
             </p>
+            <p>
+              Our satisfaction guarantee allows us to redo parts of the cleaning that did not meet expectations within
+              24 hours of the original service. This guarantee does not cover new stains, spills, or messes that occur
+              after our service has been completed. The guarantee is limited to one redo per service and is subject to
+              availability.
+            </p>
 
             <h2 className="text-lg font-semibold">6. Property Access and Safety</h2>
             <p>
@@ -81,20 +87,48 @@ export function TermsModal({ trigger, className }) {
               protect your personal information.
             </p>
 
-            <h2 className="text-lg font-semibold">9. Modifications to Terms</h2>
+            <h2 className="text-lg font-semibold">9. Website and App Usage</h2>
+            <p>
+              Our website and mobile applications are provided for legitimate use in connection with our cleaning
+              services. Any attempt to manipulate, abuse, or exploit our systems, including but not limited to:
+            </p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>Attempting to obtain unauthorized discounts or services</li>
+              <li>Creating multiple accounts to circumvent limitations or restrictions</li>
+              <li>Submitting false information or fraudulent payment details</li>
+              <li>Reverse engineering or attempting to compromise our systems</li>
+              <li>Using automated tools, bots, or scripts to interact with our website</li>
+              <li>Engaging in any activity that disrupts or interferes with our services</li>
+            </ul>
+            <p className="mt-2">
+              is strictly prohibited and may result in termination of your account, denial of service, and potential
+              legal action. We reserve the right to refuse service to anyone who violates these terms.
+            </p>
+
+            <h2 className="text-lg font-semibold">10. Service Limitations</h2>
+            <p>Our cleaning services have certain limitations. We do not provide:</p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>Hazardous waste removal or cleaning of biohazardous materials</li>
+              <li>Cleaning of areas that require specialized equipment or training not specified in your service</li>
+              <li>Moving of heavy furniture or items exceeding 25 pounds</li>
+              <li>Cleaning of areas that are inaccessible or unsafe</li>
+              <li>Services that violate local, state, or federal laws and regulations</li>
+            </ul>
+
+            <h2 className="text-lg font-semibold">11. Modifications to Terms</h2>
             <p>
               smileybrooms LLC reserves the right to modify these Terms at any time. Changes will be effective
               immediately upon posting on our website. Your continued use of our services after any changes indicates
               your acceptance of the modified Terms.
             </p>
 
-            <h2 className="text-lg font-semibold">10. Governing Law</h2>
+            <h2 className="text-lg font-semibold">12. Governing Law</h2>
             <p>
               These Terms shall be governed by and construed in accordance with the laws of the state where smileybrooms
               LLC operates, without regard to its conflict of law provisions.
             </p>
 
-            <h2 className="text-lg font-semibold">11. Contact Information</h2>
+            <h2 className="text-lg font-semibold">13. Contact Information</h2>
             <p>
               If you have any questions about these Terms, please contact us at:
               <br />
