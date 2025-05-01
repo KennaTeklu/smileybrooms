@@ -6,11 +6,14 @@ const validateEnv = (name: string, value?: string): string => {
   if (!value) {
     // In development, provide fallbacks for easier local development
     if (process.env.NODE_ENV === "development") {
-      if (name === "NEXTAUTH_SECRET") {
-        return "development-secret-do-not-use-in-production"
+      if (name === "STRIPE_SECRET_KEY") {
+        return "sk_test_dummy_key"
       }
-      if (name === "NEXTAUTH_URL") {
-        return "http://localhost:3000"
+      if (name === "STRIPE_WEBHOOK_SECRET") {
+        return "whsec_dummy_key"
+      }
+      if (name === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") {
+        return "pk_test_dummy_key"
       }
     }
 
@@ -23,8 +26,7 @@ const validateEnv = (name: string, value?: string): string => {
 
 // Export environment variables with validation
 export const env = {
-  NEXTAUTH_URL: validateEnv("NEXTAUTH_URL", process.env.NEXTAUTH_URL),
-  NEXTAUTH_SECRET: validateEnv("NEXTAUTH_SECRET", process.env.NEXTAUTH_SECRET),
+  // Removed NEXTAUTH_URL and NEXTAUTH_SECRET
   STRIPE_SECRET_KEY: validateEnv("STRIPE_SECRET_KEY", process.env.STRIPE_SECRET_KEY),
   STRIPE_WEBHOOK_SECRET: validateEnv("STRIPE_WEBHOOK_SECRET", process.env.STRIPE_WEBHOOK_SECRET),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: validateEnv(

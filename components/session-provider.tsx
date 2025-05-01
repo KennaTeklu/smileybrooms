@@ -1,12 +1,8 @@
 "use client"
 
-import type { ReactNode } from "react"
+import type React from "react"
 
-interface SessionProviderProps {
-  children: ReactNode
-}
-
-// Simple mock session provider that just renders children without any auth functionality
-export function SessionProvider({ children }: SessionProviderProps) {
+// Simplified mock provider that doesn't require any environment variables
+export function SessionProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

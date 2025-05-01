@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 // Simple mock authentication endpoint that returns JSON instead of throwing errors
+// No environment variables are required
 export async function GET() {
   return NextResponse.json({
     user: null,
