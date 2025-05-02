@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Toolkit.Uwp.Notifications;
-using SmileyBroomsWindows.Models;
 using System;
 using System.IO;
 using System.Media;
@@ -11,105 +10,77 @@ namespace SmileyBroomsWindows.Services
     public class NotificationService
     {
         private readonly ILogger<NotificationService> _logger;
-        private readonly SettingsService _settingsService;
-        private SoundPlayer _soundPlayer;
+        private readonly SoundPlayer _soundPlayer;
 
-        public NotificationService(
-            ILogger<NotificationService> logger,
-            SettingsService settingsService)
+        public NotificationService(ILogger<NotificationService> logger)
         {
             _logger = logger;
-            _settingsService = settingsService;
             
             // Initialize sound player
-            var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Sounds", "notification.wav");
-            if (File.Exists(soundPath))
+            try
             {
-                _soundPlayer = new SoundPlayer(soundPath);
-                _soundPlayer.Load();
+                string soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Sounds", "notification.wav");
+                if (File.Exists(soundPath))
+                {
+                    _soundPlayer = new SoundPlayer(soundPath);
+                    _soundPlayer.Load();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing sound player");
             }
         }
 
-        public void ShowNotification(string title, string message, NotificationType type = NotificationType.Information)
+        public void ShowToast(string title, string message)
         {
             try
             {
-                if (!_settingsService.GetSetting<bool>("AppSettings:NotificationsEnabled"))
-                {
-                    return;
-                }
-
-                _logger.LogInformation($"Showing notification: {title} - {message}");
-
-                // Play sound
+                // Play notification sound
                 _soundPlayer?.Play();
 
                 // Show toast notification
-                var builder = new ToastContentBuilder()
+                new ToastContentBuilder()
                     .AddText(title)
-                    .AddText(message);
+                    .AddText(message)
+                    .Show();
 
-                // Add appropriate icon based on type
-                switch (type)
+                _logger.LogInformation("Toast notification shown: {Title} - {Message}", title, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing toast notification");
+                
+                // Fallback to message box if toast fails
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    case NotificationType.Success:
-                        builder.AddAppLogoOverride(new Uri("ms-appx:///Assets/Images/success.png"));
-                        break;
-                    case NotificationType.Warning:
-                        builder.AddAppLogoOverride(new Uri("ms-appx:///Assets/Images/warning.png"));
-                        break;
-                    case NotificationType.Error:
-                        builder.AddAppLogoOverride(new Uri("ms-appx:///Assets/Images/error.png"));
-                        break;
-                    default:
-                        builder.AddAppLogoOverride(new Uri("ms-appx:///Assets/Images/info.png"));
-                        break;
-                }
-
-                builder.Show();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error showing notification");
+                    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                });
             }
         }
 
-        public void ShowBookingConfirmation(Booking booking)
+        public void ShowError(string title, string message)
         {
             try
             {
-                var title = "Booking Confirmed";
-                var message = $"Your {booking.ServiceName} is scheduled for {booking.BookingDate} at {booking.BookingTime}.";
-                
-                ShowNotification(title, message, NotificationType.Success);
+                // Show error toast notification
+                new ToastContentBuilder()
+                    .AddText(title)
+                    .AddText(message)
+                    .Show();
+
+                _logger.LogError("Error notification shown: {Title} - {Message}", title, message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error showing booking confirmation");
-            }
-        }
-
-        public void ShowBookingReminder(Booking booking)
-        {
-            try
-            {
-                var title = "Booking Reminder";
-                var message = $"Your {booking.ServiceName} is scheduled for tomorrow at {booking.BookingTime}.";
+                _logger.LogError(ex, "Error showing error notification");
                 
-                ShowNotification(title, message, NotificationType.Information);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error showing booking reminder");
+                // Fallback to message box if toast fails
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                });
             }
         }
-    }
-
-    public enum NotificationType
-    {
-        Information,
-        Success,
-        Warning,
-        Error
     }
 }

@@ -1,10 +1,9 @@
-using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace SmileyBroomsWindows.ViewModels
 {
-    public class ViewModelBase : INotifyPropertyChanged
+    public abstract class ViewModelBase : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
 

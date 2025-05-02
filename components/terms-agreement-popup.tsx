@@ -65,7 +65,7 @@ export default function TermsAgreementPopup({ onAccept }: TermsAgreementPopupPro
           <h3 className="font-medium">Service Agreement</h3>
           <p>
             By using our website and services, you agree to the following terms and conditions. These terms govern your
-            use of the smileybrooms LLC website and services.
+            use of the Smiley Brooms website and services.
           </p>
 
           <h3 className="font-medium">Cleaning Services</h3>

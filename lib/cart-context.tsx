@@ -165,41 +165,33 @@ type CartContextType = {
   clearCart: () => void
 }
 
-// Create context with a default undefined value
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-// Export the provider component
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
 
   // Load cart from localStorage on initial render
   useEffect(() => {
-    try {
-      const savedCart = typeof window !== "undefined" ? localStorage.getItem("cart") : null
-      if (savedCart) {
-        const parsedCart = JSON.parse(savedCart) as CartState
-        parsedCart.items.forEach((item) => {
-          dispatch({ type: "ADD_ITEM", payload: item })
-        })
-      }
-    } catch (error) {
-      console.error("Error loading cart from localStorage:", error)
+    const savedCart = localStorage.getItem("cart")
+    if (savedCart) {
+      const parsedCart = JSON.parse(savedCart) as CartState
+      parsedCart.items.forEach((item) => {
+        dispatch({ type: "ADD_ITEM", payload: item })
+      })
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("cart", JSON.stringify(cart))
-      }
+    localStorage.setItem("cart", JSON.stringify(cart))
 
-      // Track cart view when cart changes and has items
-      if (cart.items.length > 0) {
+    // Track cart view when cart changes and has items
+    if (cart.items.length > 0) {
+      try {
         trackViewCart(cart.items, cart.totalPrice)
+      } catch (error) {
+        console.error("Error tracking cart view:", error)
       }
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error)
     }
   }, [cart])
 
@@ -229,14 +221,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// Export the hook for using the context
-export function useCart() {
+export const useCart = () => {
   const context = useContext(CartContext)
   if (context === undefined) {
     throw new Error("useCart must be used within a CartProvider")
   }
   return context
 }
-
-// Export the context itself
-export { CartContext }

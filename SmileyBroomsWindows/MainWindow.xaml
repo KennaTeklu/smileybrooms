@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SmileyBroomsWindows"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:tb="http://www.hardcodet.net/taskbar"
         mc:Ignorable="d"
         Title="Smiley Brooms" 
         Height="720" 
@@ -21,19 +20,10 @@
     
     <Window.Resources>
         <ResourceDictionary>
-            <tb:TaskbarIcon x:Key="NotifyIcon"
-                          IconSource="/Assets/app_icon.ico"
-                          ToolTipText="Smiley Brooms"
-                          MenuActivation="RightClick">
-                <tb:TaskbarIcon.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Open" Command="{Binding OpenCommand}" />
-                        <MenuItem Header="Check for Updates" Command="{Binding CheckUpdatesCommand}" />
-                        <Separator />
-                        <MenuItem Header="Exit" Command="{Binding ExitCommand}" />
-                    </ContextMenu>
-                </tb:TaskbarIcon.ContextMenu>
-            </tb:TaskbarIcon>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Cyan" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
     
@@ -47,12 +37,12 @@
         <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ShadowAssist.ShadowDepth="Depth2">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <ToggleButton x:Name="MenuToggleButton" Style="{StaticResource MaterialDesignHamburgerToggleButton}" IsChecked="False" Command="{Binding ToggleMenuCommand}"/>
+                    <ToggleButton x:Name="MenuToggleButton" Style="{StaticResource MaterialDesignHamburgerToggleButton}" IsChecked="False" Click="MenuToggleButton_Click"/>
                     <TextBlock VerticalAlignment="Center" Margin="16,0,0,0" Text="Smiley Brooms" FontSize="20"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                    <TextBlock VerticalAlignment="Center" Margin="0,0,16,0" Text="You rest, we take care of the rest!" FontStyle="Italic"/>
-                    <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Settings" Command="{Binding NavigateToSettingsCommand}">
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,16,0" Text="You rest, we take care of the rest :)" FontStyle="Italic"/>
+                    <Button Style="{StaticResource MaterialDesignIconButton}" ToolTip="Settings" Click="SettingsButton_Click">
                         <materialDesign:PackIcon Kind="Cog" />
                     </Button>
                 </StackPanel>
@@ -67,34 +57,34 @@
             </Grid.ColumnDefinitions>
 
             <!-- Navigation Drawer -->
-            <materialDesign:DrawerHost Grid.Column="0" IsLeftDrawerOpen="{Binding IsMenuOpen}">
+            <materialDesign:DrawerHost Grid.Column="0" IsLeftDrawerOpen="{Binding ElementName=MenuToggleButton, Path=IsChecked}">
                 <materialDesign:DrawerHost.LeftDrawerContent>
                     <DockPanel MinWidth="220">
                         <StackPanel DockPanel.Dock="Top" Margin="0,20,0,20">
-                            <Image Source="/Assets/app_icon.ico" Width="100" Height="100" Margin="0,0,0,10"/>
+                            <Image Source="Assets/app_icon.ico" Width="100" Height="100" Margin="0,0,0,10"/>
                             <TextBlock Text="Smiley Brooms" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold"/>
                             <TextBlock Text="Windows App" HorizontalAlignment="Center" FontSize="14" Opacity="0.7"/>
                         </StackPanel>
-                        <ListBox x:Name="NavigationList" SelectedIndex="{Binding SelectedNavigationIndex}">
-                            <ListBoxItem>
+                        <ListBox x:Name="NavigationList" SelectionChanged="NavigationList_SelectionChanged">
+                            <ListBoxItem x:Name="HomeItem" IsSelected="True">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Home" Width="24" Height="24" VerticalAlignment="Center"/>
                                     <TextBlock Text="Home" Margin="16,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ListBoxItem>
-                            <ListBoxItem>
+                            <ListBoxItem x:Name="ServicesItem">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Broom" Width="24" Height="24" VerticalAlignment="Center"/>
                                     <TextBlock Text="Services" Margin="16,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ListBoxItem>
-                            <ListBoxItem>
+                            <ListBoxItem x:Name="BookingsItem">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Calendar" Width="24" Height="24" VerticalAlignment="Center"/>
                                     <TextBlock Text="Bookings" Margin="16,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </ListBoxItem>
-                            <ListBoxItem>
+                            <ListBoxItem x:Name="SupportItem">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Help" Width="24" Height="24" VerticalAlignment="Center"/>
                                     <TextBlock Text="Support" Margin="16,0,0,0" VerticalAlignment="Center"/>
@@ -106,7 +96,7 @@
             </materialDesign:DrawerHost>
 
             <!-- Content Frame -->
-            <Frame x:Name="ContentFrame" Grid.Column="1" NavigationUIVisibility="Hidden" Content="{Binding CurrentView}"/>
+            <Frame x:Name="ContentFrame" Grid.Column="1" NavigationUIVisibility="Hidden"/>
         </Grid>
     </Grid>
 </Window>

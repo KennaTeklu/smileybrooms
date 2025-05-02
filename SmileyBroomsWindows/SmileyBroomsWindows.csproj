@@ -5,7 +5,7 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app_icon.ico</ApplicationIcon>
     <Authors>Smiley Brooms Cleaning Services</Authors>
     <Company>Smiley Brooms Cleaning Services</Company>
@@ -40,9 +40,11 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.16" />
     <PackageReference Include="Serilog" Version="3.0.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-    <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmileyBroomsWindows.Core\SmileyBroomsWindows.Core.csproj" />
+    <ProjectReference Include="..\SmileyBroomsWindows.Data\SmileyBroomsWindows.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,9 +57,10 @@
     <None Update="Assets\Images\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Data\InitialData.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)..\Build\SignExecutable.ps1&quot; -ExePath &quot;$(TargetPath)&quot;" />
+  </Target>
 
 </Project>

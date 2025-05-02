@@ -7,7 +7,7 @@ export default function Testimonials() {
       name: "Sarah Johnson",
       role: "Homeowner",
       content:
-        "I've tried several cleaning services, but smileybrooms is by far the best. Their attention to detail is amazing, and my house has never looked better!",
+        "I've tried several cleaning services, but Smiley Brooms is by far the best. Their attention to detail is amazing, and my house has never looked better!",
       rating: 5,
       image: "/placeholder.svg?height=100&width=100",
     },
@@ -15,7 +15,7 @@ export default function Testimonials() {
       name: "Michael Chen",
       role: "Business Owner",
       content:
-        "We use smileybrooms for our office cleaning, and they've been fantastic. Reliable, thorough, and our employees love coming to a clean workspace every day.",
+        "We use Smiley Brooms for our office cleaning, and they've been fantastic. Reliable, thorough, and our employees love coming to a clean workspace every day.",
       rating: 5,
       image: "/placeholder.svg?height=100&width=100",
     },
@@ -23,7 +23,7 @@ export default function Testimonials() {
       name: "Emily Rodriguez",
       role: "Apartment Resident",
       content:
-        "As a busy professional, I don't have time to clean my apartment. smileybrooms has been a lifesaver! Easy booking, great service, and reasonable prices.",
+        "As a busy professional, I don't have time to clean my apartment. Smiley Brooms has been a lifesaver! Easy booking, great service, and reasonable prices.",
       rating: 4,
       image: "/placeholder.svg?height=100&width=100",
     },

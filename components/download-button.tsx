@@ -13,7 +13,6 @@ interface DownloadButtonProps {
   className?: string
   showIcon?: boolean
   children?: React.ReactNode
-  directDownload?: boolean
 }
 
 export function DownloadButton({
@@ -22,7 +21,6 @@ export function DownloadButton({
   size = "default",
   className = "",
   showIcon = true,
-  directDownload = false,
   children,
 }: DownloadButtonProps) {
   const router = useRouter()
@@ -32,18 +30,11 @@ export function DownloadButton({
     setIsLoading(true)
 
     try {
-      if (platform === "windows" && directDownload) {
-        // Direct download for Windows to C:\ drive
-        window.location.href = "/api/windows-download"
-        setTimeout(() => {
-          setIsLoading(false)
-        }, 3000)
-      } else {
-        // Navigate to download page with platform parameter
-        router.push(`/download?platform=${platform}`)
-      }
+      // Navigate to download page with platform parameter
+      router.push(`/download?platform=${platform}`)
     } catch (error) {
       console.error("Download error:", error)
+    } finally {
       setIsLoading(false)
     }
   }
@@ -148,7 +139,7 @@ export function DownloadButton({
       case "macos":
         return "macOS"
       case "windows":
-        return directDownload ? "Windows (C:\\ Drive)" : "Windows"
+        return "Windows"
       case "linux-deb":
         return "Linux (DEB)"
       case "linux-rpm":
@@ -161,13 +152,7 @@ export function DownloadButton({
   }
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      className={`${className} border-2 border-primary border-dashed`}
-      onClick={handleDownload}
-      disabled={isLoading}
-    >
+    <Button variant={variant} size={size} className={className} onClick={handleDownload} disabled={isLoading}>
       {isLoading ? (
         <>
           <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

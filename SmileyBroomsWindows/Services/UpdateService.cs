@@ -1,30 +1,22 @@
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using SmileyBroomsWindows.Models;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
+using Newtonsoft.Json;
 
 namespace SmileyBroomsWindows.Services
 {
     public class UpdateService
     {
-        private readonly ILogger<UpdateService> _logger;
         private readonly HttpClient _httpClient;
-        private readonly SettingsService _settingsService;
+        private readonly string _updateUrl = "https://www.smileybrooms.com/api/windows-update";
         private readonly Version _currentVersion;
 
-        public UpdateService(
-            ILogger<UpdateService> logger,
-            HttpClient httpClient,
-            SettingsService settingsService)
+        public UpdateService(HttpClient httpClient)
         {
-            _logger = logger;
             _httpClient = httpClient;
-            _settingsService = settingsService;
             _currentVersion = new Version(1, 0, 0); // Should match the app version
         }
 
@@ -32,20 +24,13 @@ namespace SmileyBroomsWindows.Services
         {
             try
             {
-                if (!_settingsService.GetSetting<bool>("AppSettings:CheckForUpdatesOnStartup"))
-                {
-                    return;
-                }
-
-                _logger.LogInformation("Checking for updates");
-                var response = await _httpClient.GetStringAsync("windows-update");
+                var response = await _httpClient.GetStringAsync(_updateUrl);
                 var updateInfo = JsonConvert.DeserializeObject<UpdateInfo>(response);
 
                 if (updateInfo != null && new Version(updateInfo.Version) > _currentVersion)
                 {
-                    _logger.LogInformation($"Update available: {updateInfo.Version}");
                     var result = MessageBox.Show(
-                        $"A new version ({updateInfo.Version}) is available. Would you like to download it now?\n\nRelease Notes:\n{updateInfo.ReleaseNotes}",
+                        $"A new version ({updateInfo.Version}) is available. Would you like to download it now?",
                         "Update Available",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Information);
@@ -55,14 +40,11 @@ namespace SmileyBroomsWindows.Services
                         await DownloadAndInstallUpdateAsync(updateInfo.DownloadUrl);
                     }
                 }
-                else
-                {
-                    _logger.LogInformation("No updates available");
-                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking for updates");
+                // Log the error but don't show it to the user
+                Debug.WriteLine($"Error checking for updates: {ex.Message}");
             }
         }
 
@@ -70,9 +52,7 @@ namespace SmileyBroomsWindows.Services
         {
             try
             {
-                _logger.LogInformation($"Downloading update from {downloadUrl}");
-                
-                // Show progress window
+                // Show download progress
                 var progressWindow = new ProgressWindow("Downloading Update");
                 progressWindow.Show();
 
@@ -104,7 +84,6 @@ namespace SmileyBroomsWindows.Services
                 }
 
                 progressWindow.Close();
-                _logger.LogInformation("Update downloaded successfully");
 
                 // Run the installer
                 var startInfo = new ProcessStartInfo
@@ -115,20 +94,55 @@ namespace SmileyBroomsWindows.Services
                 };
 
                 Process.Start(startInfo);
-                _logger.LogInformation("Installer started");
 
                 // Close the application to allow the installer to run
                 Application.Current.Shutdown();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error downloading or installing update");
                 MessageBox.Show(
                     $"Failed to download or install the update: {ex.Message}",
                     "Update Failed",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        private class UpdateInfo
+        {
+            public string Version { get; set; }
+            public string DownloadUrl { get; set; }
+            public string ReleaseNotes { get; set; }
+        }
+    }
+
+    public class ProgressWindow : Window
+    {
+        private System.Windows.Controls.ProgressBar _progressBar;
+
+        public ProgressWindow(string title)
+        {
+            Title = title;
+            Width = 400;
+            Height = 100;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            ResizeMode = ResizeMode.NoResize;
+
+            var grid = new System.Windows.Controls.Grid();
+            Content = grid;
+
+            _progressBar = new System.Windows.Controls.ProgressBar
+            {
+                Margin = new Thickness(20),
+                Height = 20
+            };
+
+            grid.Children.Add(_progressBar);
+        }
+
+        public void UpdateProgress(double progress)
+        {
+            Dispatcher.Invoke(() => _progressBar.Value = progress * 100);
         }
     }
 }

@@ -3,7 +3,10 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
 
-import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -13,7 +16,6 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  duration?: number
 }
 
 const actionTypes = {
@@ -55,7 +57,6 @@ interface State {
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-const dismissTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
@@ -73,41 +74,20 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
-const addToDismissQueue = (toastId: string, duration = 3000) => {
-  if (dismissTimeouts.has(toastId)) {
-    return
-  }
-
-  const timeout = setTimeout(() => {
-    dismissTimeouts.delete(toastId)
-    dispatch({
-      type: "DISMISS_TOAST",
-      toastId: toastId,
-    })
-  }, duration)
-
-  dismissTimeouts.set(toastId, timeout)
-}
-
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
-      const newToast = action.toast
-
-      // Auto-dismiss toast after specified duration or default 3 seconds
-      if (newToast.duration !== 0) {
-        addToDismissQueue(newToast.id, newToast.duration || 3000)
-      }
-
       return {
         ...state,
-        toasts: [newToast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
 
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
       }
 
     case "DISMISS_TOAST": {
@@ -131,7 +111,7 @@ export const reducer = (state: State, action: Action): State => {
                 ...t,
                 open: false,
               }
-            : t,
+            : t
         ),
       }
     }
@@ -162,7 +142,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: ToastProps & { duration?: number }) {
+function toast({ ...props }: Toast) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -178,7 +158,6 @@ function toast({ ...props }: ToastProps & { duration?: number }) {
       ...props,
       id,
       open: true,
-      duration: props.duration,
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
