@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef, type ReactNode, useCallback } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 interface PageFlipperProps {
@@ -10,31 +10,6 @@ interface PageFlipperProps {
     id: string
     content: ReactNode
   }[]
-}
-
-// Throttle function
-function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T {
-  let inThrottle: boolean
-  let lastFunc: ReturnType<typeof setTimeout>
-  let lastRan: number
-  return function (this: any, ...args: Parameters<T>): ReturnType<T> | void {
-    if (!inThrottle) {
-      func.apply(this, args)
-      lastRan = Date.now()
-      inThrottle = true
-    } else {
-      clearTimeout(lastFunc)
-      lastFunc = setTimeout(
-        () => {
-          if (Date.now() - lastRan >= limit) {
-            func.apply(this, args)
-            lastRan = Date.now()
-          }
-        },
-        limit - (Date.now() - lastRan),
-      )
-    }
-  } as T
 }
 
 export function PageFlipper({ pages }: PageFlipperProps) {
@@ -47,36 +22,6 @@ export function PageFlipper({ pages }: PageFlipperProps) {
   useEffect(() => {
     pageRefs.current = pageRefs.current.slice(0, pages.length)
   }, [pages.length])
-
-  const goToNextPage = useCallback(() => {
-    if (!isScrolling && currentPage < pages.length - 1) {
-      setIsScrolling(true)
-      setCurrentPage((prev) => prev + 1)
-      setTimeout(() => {
-        setIsScrolling(false)
-      }, 800)
-    }
-  }, [currentPage, isScrolling, pages.length])
-
-  const goToPrevPage = useCallback(() => {
-    if (!isScrolling && currentPage > 0) {
-      setIsScrolling(true)
-      setCurrentPage((prev) => prev - 1)
-      setTimeout(() => {
-        setIsScrolling(false)
-      }, 800)
-    }
-  }, [currentPage, isScrolling])
-
-  useEffect(() => {
-    const handleResize = () => {
-      // Force recalculation of page heights on resize
-      setCurrentPage(currentPage)
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [currentPage])
 
   useEffect(() => {
     let timeout: NodeJS.Timeout
@@ -147,15 +92,6 @@ export function PageFlipper({ pages }: PageFlipperProps) {
       }
     }
 
-    const handleScroll = throttle((e) => {
-      // Prevent default only during active scrolling
-      if (isScrolling) {
-        e.preventDefault()
-      }
-
-      // Rest of the scroll handling logic
-    }, 100)
-
     window.addEventListener("wheel", handleWheel, { passive: false })
     window.addEventListener("keydown", handleKeyDown)
 
@@ -218,36 +154,6 @@ export function PageFlipper({ pages }: PageFlipperProps) {
 
     setTouchStart(null)
   }
-
-  useEffect(() => {
-    let touchStartY = 0
-
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartY = e.touches[0].clientY
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      const touchY = e.touches[0].clientY
-      const diff = touchStartY - touchY
-
-      if (Math.abs(diff) > 50) {
-        if (diff > 0) {
-          goToNextPage()
-        } else {
-          goToPrevPage()
-        }
-        touchStartY = touchY
-      }
-    }
-
-    document.addEventListener("touchstart", handleTouchStart)
-    document.addEventListener("touchmove", handleTouchMove)
-
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart)
-      document.removeEventListener("touchmove", handleTouchMove)
-    }
-  }, [goToNextPage, goToPrevPage])
 
   // Navigation dots
   const handleDotClick = (index: number) => {

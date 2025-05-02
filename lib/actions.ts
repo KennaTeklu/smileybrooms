@@ -2,9 +2,9 @@
 
 import Stripe from "stripe"
 
-// Initialize Stripe with the secret key and latest API version
+// Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16", // Using the latest stable API version
+  apiVersion: "2023-10-16",
 })
 
 type CheckoutSessionParams = {
@@ -34,8 +34,6 @@ type CheckoutSessionParams = {
     }
   }
   isRecurring?: boolean
-  recurringInterval?: "week" | "month" | "year"
-  paymentMethod?: "card" | "bank" | "both"
 }
 
 export async function createCheckoutSession({
@@ -46,8 +44,6 @@ export async function createCheckoutSession({
   customerEmail,
   customerData,
   isRecurring = false,
-  recurringInterval = "month",
-  paymentMethod = "both",
 }: CheckoutSessionParams): Promise<string> {
   try {
     // Create standard line items for products with price IDs
@@ -68,7 +64,7 @@ export async function createCheckoutSession({
         ...(isRecurring
           ? {
               recurring: {
-                interval: recurringInterval === "week" ? "week" : recurringInterval === "year" ? "year" : "month",
+                interval: "month", // Default to monthly for recurring payments
               },
             }
           : {}),
@@ -91,17 +87,6 @@ export async function createCheckoutSession({
       customerId = customer.id
     }
 
-    // Determine payment method types based on selection
-    const paymentMethodTypes: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = []
-
-    if (paymentMethod === "both" || paymentMethod === "card") {
-      paymentMethodTypes.push("card")
-    }
-
-    if (paymentMethod === "both" || paymentMethod === "bank") {
-      paymentMethodTypes.push("us_bank_account")
-    }
-
     // Create the checkout session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       line_items: allLineItems,
@@ -114,12 +99,7 @@ export async function createCheckoutSession({
         customData: JSON.stringify(customLineItems.map((item) => item.metadata || {})),
       },
       billing_address_collection: "auto",
-      payment_method_types: paymentMethodTypes,
-      payment_intent_data: !isRecurring
-        ? {
-            setup_future_usage: "off_session",
-          }
-        : undefined,
+      payment_method_types: ["card"],
     }
 
     // Add shipping address collection if customer data has address
@@ -184,33 +164,7 @@ export async function handleStripeWebhook(request: Request) {
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         // Handle successful payment intent
-        await processSuccessfulPaymentIntent(paymentIntent)
-        break
-
-      case "payment_intent.payment_failed":
-        const failedPaymentIntent = event.data.object as Stripe.PaymentIntent
-        // Handle failed payment intent
-        console.error(
-          `Payment failed for intent ${failedPaymentIntent.id}: ${failedPaymentIntent.last_payment_error?.message || "Unknown error"}`,
-        )
-        break
-
-      case "customer.subscription.created":
-        const subscription = event.data.object as Stripe.Subscription
-        // Handle new subscription
-        console.log(`New subscription created: ${subscription.id}`)
-        break
-
-      case "customer.subscription.updated":
-        const updatedSubscription = event.data.object as Stripe.Subscription
-        // Handle subscription update
-        console.log(`Subscription updated: ${updatedSubscription.id}`)
-        break
-
-      case "customer.subscription.deleted":
-        const deletedSubscription = event.data.object as Stripe.Subscription
-        // Handle subscription cancellation
-        console.log(`Subscription cancelled: ${deletedSubscription.id}`)
+        console.log(`Payment intent ${paymentIntent.id} succeeded`)
         break
 
       default:
@@ -251,31 +205,4 @@ async function processSuccessfulPayment(session: Stripe.Checkout.Session) {
   }
 
   // You can add additional processing logic here
-}
-
-async function processSuccessfulPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
-  console.log(`Processing successful payment intent ${paymentIntent.id}`)
-
-  // Extract payment method details
-  const paymentMethodId = paymentIntent.payment_method
-
-  if (paymentMethodId) {
-    try {
-      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId as string)
-      console.log(`Payment method type: ${paymentMethod.type}`)
-
-      // Handle different payment method types
-      if (paymentMethod.type === "us_bank_account") {
-        // Handle ACH payment
-        console.log("ACH payment processed successfully")
-      } else if (paymentMethod.type === "card") {
-        // Handle card payment
-        console.log("Card payment processed successfully")
-      }
-    } catch (error) {
-      console.error("Error retrieving payment method:", error)
-    }
-  }
-
-  // Additional processing as needed
 }
