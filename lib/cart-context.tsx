@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 import { trackAddToCart, trackRemoveFromCart, trackViewCart } from "./analytics-utils"
+import { useToast } from "@/components/ui/use-toast"
 
 export type CartItem = {
   id: string
@@ -169,6 +170,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
+  const { toast } = useToast()
 
   // Load cart from localStorage on initial render
   useEffect(() => {
@@ -200,10 +202,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       type: "ADD_ITEM",
       payload: { ...item, quantity: item.quantity || 1 },
     })
+
+    if (toast) {
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart`,
+        duration: 3000, // Auto-dismiss after 3 seconds
+      })
+    }
   }
 
   const removeItem = (id: string) => {
     dispatch({ type: "REMOVE_ITEM", payload: id })
+
+    if (toast) {
+      toast({
+        title: "Removed from cart",
+        description: "Item has been removed from your cart",
+        duration: 3000,
+      })
+    }
   }
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -212,6 +230,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     dispatch({ type: "CLEAR_CART" })
+
+    if (toast) {
+      toast({
+        title: "Cart cleared",
+        description: "All items have been removed from your cart",
+        duration: 3000,
+      })
+    }
   }
 
   return (

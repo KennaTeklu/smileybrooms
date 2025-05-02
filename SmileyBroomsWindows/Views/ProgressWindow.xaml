@@ -1,0 +1,54 @@
+<Window x:Class="SmileyBroomsWindows.Views.ProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Operation in Progress" 
+        Height="200" 
+        Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock x:Name="TitleTextBlock" 
+                   Grid.Row="0" 
+                   Text="Please wait..." 
+                   FontSize="18" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,10"/>
+        
+        <TextBlock x:Name="MessageTextBlock" 
+                   Grid.Row="1" 
+                   Text="Operation in progress..." 
+                   TextWrapping="Wrap" 
+                   Margin="0,0,0,15"/>
+        
+        <ProgressBar x:Name="ProgressBar" 
+                     Grid.Row="2" 
+                     IsIndeterminate="True" 
+                     Height="10" 
+                     Margin="0,0,0,15"/>
+        
+        <Button x:Name="CancelButton" 
+                Grid.Row="3" 
+                Content="Cancel" 
+                HorizontalAlignment="Right" 
+                Click="CancelButton_Click"/>
+    </Grid>
+</Window>

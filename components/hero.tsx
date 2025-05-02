@@ -30,7 +30,7 @@ export default function Hero() {
               Professional Cleaning Services
             </div>
             <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Sparkling Clean Spaces, <span className="text-primary">Happy Faces</span>
+              You rest, we take care of the rest!
             </h1>
             <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
               Experience the joy of coming home to a perfectly clean space. Our professional cleaning services are

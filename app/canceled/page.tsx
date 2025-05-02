@@ -30,6 +30,9 @@ export default function CanceledPage() {
               <ShoppingCart className="mr-2 h-4 w-4" /> Continue Shopping
             </Link>
           </Button>
+          <Button asChild className="mt-4">
+            <Link href="/pricing">Book a new service</Link>
+          </Button>
         </CardFooter>
       </Card>
 

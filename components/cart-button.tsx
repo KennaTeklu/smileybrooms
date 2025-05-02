@@ -15,7 +15,7 @@ interface CartButtonProps {
   size?: "default" | "sm" | "lg" | "icon"
 }
 
-export default function CartButton({ className, variant = "outline", size = "icon" }: CartButtonProps) {
+export default function CartButton({ className, variant = "outline", size = "default" }: CartButtonProps) {
   const { cart } = useCart()
   const [isClient, setIsClient] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -43,8 +43,8 @@ export default function CartButton({ className, variant = "outline", size = "ico
           size={size}
           className={cn("relative", isAnimating && "animate-bounce-once", className)}
         >
-          <ShoppingCart className={cn("h-5 w-5", size !== "icon" && "mr-2")} />
-          {size !== "icon" && <span>Cart</span>}
+          <ShoppingCart className="h-5 w-5 mr-2" />
+          <span>Cart</span>
           {isClient && cart.totalItems > 0 && (
             <Badge
               variant="destructive"

@@ -54,7 +54,8 @@ export default function WindowsDownloadPage() {
                   <h4 className="font-semibold text-amber-800">How to install safely</h4>
                   <p className="text-amber-700">
                     If you see a warning, you can safely proceed by clicking "More info" and then "Run anyway" to
-                    install our application.
+                    install our application. The application will be installed directly to C:\SmileyBrooms for easy
+                    access.
                   </p>
                 </div>
               </div>

@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import FixedFooter from "@/components/fixed-footer"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
+import Header from "@/components/header"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -36,6 +37,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <CartProvider>
             <div className="flex min-h-screen flex-col pb-16">
+              {/* Make sure the header has the highest z-index */}
+              <div className="relative z-50">
+                <Header />
+              </div>
               <Suspense>{children}</Suspense>
               <Toaster />
               <FixedFooter />

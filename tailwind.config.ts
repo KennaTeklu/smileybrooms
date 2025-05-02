@@ -80,6 +80,14 @@ const config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        pageTransitionUp: {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        pageTransitionDown: {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -87,6 +95,8 @@ const config = {
         slideUp: "slideUp 0.5s ease-out",
         fadeIn: "fadeIn 0.6s ease-out",
         shine: "shine 3s infinite linear",
+        pageTransitionUp: "pageTransitionUp 0.8s ease-out",
+        pageTransitionDown: "pageTransitionDown 0.8s ease-out",
       },
     },
   },

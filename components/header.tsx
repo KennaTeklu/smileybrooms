@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Sun, Moon, Phone } from "lucide-react"
+import { Menu, X, Sun, Moon, Phone, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useTheme } from "next-themes"
@@ -37,7 +37,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-200",
+        "sticky top-0 z-[60] w-full transition-all duration-200",
         isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-950/80" : "bg-transparent",
       )}
     >
@@ -67,8 +67,9 @@ export function Header() {
             ))}
             <Link
               href="/downloads"
-              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 flex items-center"
             >
+              <Download className="h-4 w-4 mr-1 animate-bounce" />
               Downloads
             </Link>
           </nav>
@@ -99,8 +100,10 @@ export function Header() {
               <span className="sr-only">Toggle theme</span>
             </Button>
 
-            {/* Single Cart Component */}
-            <Cart />
+            {/* Single Cart Component with text label */}
+            <div className="flex items-center">
+              <Cart showLabel={true} />
+            </div>
           </div>
 
           {/* Mobile menu */}
@@ -139,9 +142,10 @@ export function Header() {
 
                   <Link
                     href="/downloads"
-                    className="px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                    className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
-                    Downloads
+                    <Download className="h-5 w-5 mr-2 animate-bounce" />
+                    <span>Downloads</span>
                   </Link>
 
                   {/* Phone number in mobile menu */}

@@ -40,11 +40,25 @@ const getServicesPerYearFromFrequency = (frequency: string) => {
   }
 }
 
-export function Cart() {
+interface CartProps {
+  showLabel?: boolean
+}
+
+export function Cart({ showLabel = false }: CartProps) {
   const { cart, removeItem, updateQuantity, clearCart, addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
+
+  // This will ensure the cart stays open when other dialogs/popups are closed
+  const handleOpenChange = (open: boolean) => {
+    // Only process actual close requests, not side-effects from other popups
+    if (!open && isOpen) {
+      setIsOpen(false)
+    } else if (open) {
+      setIsOpen(true)
+    }
+  }
 
   // Function to create Google Maps link
   const createGoogleMapsLink = (address: string) => {
@@ -56,6 +70,7 @@ export function Cart() {
     toast({
       title: "Item removed",
       description: "The item has been removed from your cart",
+      duration: 3000,
     })
   }
 
@@ -68,6 +83,16 @@ export function Cart() {
     toast({
       title: "Cart cleared",
       description: "All items have been removed from your cart",
+      duration: 3000,
+    })
+  }
+
+  const handleAddItem = (item) => {
+    addItem(item)
+    toast({
+      title: "Item added",
+      description: "The item has been added to your cart",
+      duration: 3000, // Auto-dismiss after 3 seconds
     })
   }
 
@@ -77,6 +102,7 @@ export function Cart() {
         title: "Cart is empty",
         description: "Please add items to your cart before proceeding to checkout",
         variant: "destructive",
+        duration: 3000,
       })
       return
     }
@@ -221,6 +247,7 @@ export function Cart() {
         title: "Checkout failed",
         description: "An error occurred during checkout. Please try again.",
         variant: "destructive",
+        duration: 3000,
       })
     } finally {
       setIsCheckingOut(false)
@@ -228,10 +255,11 @@ export function Cart() {
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="relative">
+        <Button variant="outline" size={showLabel ? "default" : "icon"} className="relative">
           <ShoppingCart className="h-5 w-5" />
+          {showLabel && <span className="ml-2">Cart</span>}
           {cart.totalItems > 0 && (
             <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
               {cart.totalItems}
@@ -442,6 +470,7 @@ export function Cart() {
                                 description:
                                   "Video recording discount has already been used for this address in a previous order.",
                                 variant: "warning",
+                                duration: 3000,
                               })
                               return
                             }
@@ -465,7 +494,7 @@ export function Cart() {
 
                                 // Remove and re-add the item to update it
                                 removeItem(item.id)
-                                addItem(updatedItem)
+                                handleAddItem(updatedItem)
                               }
                             })
 
@@ -480,6 +509,7 @@ export function Cart() {
                               description: checked
                                 ? `Video recording discount of ${formatCurrency(videoRecordingDiscount)} applied for ${addressCount} address${addressCount > 1 ? "es" : ""}.`
                                 : "Video recording discount has been removed.",
+                              duration: 3000,
                             })
                           }}
                         />

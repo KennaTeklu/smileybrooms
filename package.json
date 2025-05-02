@@ -68,8 +68,8 @@
     "@vercel/analytics": "latest",
     "path": "latest",
     "js-cookie": "latest",
-    "canvas-confetti": "latest",
-    "stripe": "latest"
+    "stripe": "latest",
+    "canvas-confetti": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
