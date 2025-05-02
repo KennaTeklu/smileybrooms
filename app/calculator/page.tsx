@@ -6,10 +6,11 @@ import Footer from "@/components/footer"
 import PriceCalculator from "@/components/price-calculator"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
-import type { AddressData } from "@/components/address-collection-modal"
+import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import StickyCartButton from "@/components/sticky-cart-button"
 
 type CalculatedService = {
   rooms: Record<string, number>
@@ -47,7 +48,7 @@ export default function CalculatorPage() {
     setCalculatedService(data)
   }
 
-  // Add to cart directly without showing address modal
+  // Show address modal when Add to Cart is clicked
   const handleAddToCart = () => {
     if (!calculatedService) {
       toast({
@@ -67,22 +68,7 @@ export default function CalculatorPage() {
       return
     }
 
-    // Create default address data
-    const defaultAddress = {
-      fullName: "Guest Customer",
-      email: "guest@example.com",
-      phone: "555-555-5555",
-      address: "123 Main St",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "12345",
-      specialInstructions: "",
-      allowVideoRecording: false,
-      videoRecordingDiscount: 0,
-    }
-
-    // Directly handle the submission with default data
-    handleAddressSubmit(defaultAddress)
+    setShowAddressModal(true)
   }
 
   // Process the address data and add to cart
@@ -209,6 +195,16 @@ export default function CalculatorPage() {
     <div className="flex min-h-screen flex-col">
       <Header />
 
+      {/* Sticky Add to Cart Button */}
+      {calculatedService && calculatedService.totalPrice > 0 && (
+        <StickyCartButton
+          totalPrice={calculatedService.totalPrice}
+          isServiceAvailable={calculatedService.isServiceAvailable}
+          onAddToCart={handleAddToCart}
+          visible={showStickyButton}
+        />
+      )}
+
       <div className="container mx-auto px-4 py-8 flex-1">
         <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
@@ -232,7 +228,15 @@ export default function CalculatorPage() {
         </div>
       </div>
 
-      {/* Address Collection Modal removed to prevent pop-up */}
+      {/* Address Collection Modal */}
+      {calculatedService && (
+        <AddressCollectionModal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          onSubmit={handleAddressSubmit}
+          calculatedPrice={calculatedService.totalPrice}
+        />
+      )}
 
       {/* Terms Agreement Popup */}
       <TermsAgreementPopup onAccept={() => setTermsAccepted(true)} />

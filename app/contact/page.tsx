@@ -225,8 +225,8 @@ export default function ContactPage() {
                     <Mail className="h-6 w-6 text-primary mt-1" />
                     <div>
                       <h3 className="font-medium">Email</h3>
-                      <p className="text-gray-600 dark:text-gray-400">hello@smileybrooms.com</p>
                       <p className="text-gray-600 dark:text-gray-400">info@smileybrooms.com</p>
+                      <p className="text-gray-600 dark:text-gray-400">support@smileybrooms.com</p>
                     </div>
                   </CardContent>
                 </Card>

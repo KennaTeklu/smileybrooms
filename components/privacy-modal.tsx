@@ -11,7 +11,7 @@ interface PrivacyModalProps {
 export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto mt-16 sm:mt-20">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Privacy Policy</DialogTitle>
           <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
@@ -24,7 +24,7 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
           <div>
             <h2 className="text-xl font-semibold mb-2">1. Introduction</h2>
             <p>
-              This Privacy Policy ("Policy") explains how smileybrooms LLC ("we," "our," "us") collects, uses, and
+              This Privacy Policy ("Policy") explains how [Company Name] ("we," "our," "us") collects, uses, and
               protects your personal information when you access and use our services, including our website, platform,
               and waitlist services (collectively referred to as the "Service"). By using the Service, you consent to
               the practices described in this Policy.

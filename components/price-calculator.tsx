@@ -16,11 +16,27 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ServiceDetailsModal } from "./service-details-modal"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { getFormEmoji, getCommonMetadata } from "@/lib/form-utils"
 
-export default function PriceCalculator({ onCalculationComplete, onAddToCart }) {
-  const [rooms, setRooms] = useState({
+interface PriceCalculatorProps {
+  onCalculationComplete?: (data: {
+    rooms: Record<string, number>
+    frequency: string
+    totalPrice: number
+    serviceType: "standard" | "detailing"
+    cleanlinessLevel: number
+    priceMultiplier: number
+    isServiceAvailable: boolean
+    addressId: string
+    paymentFrequency: "per_service" | "monthly" | "yearly"
+  }) => void
+  onAddToCart?: () => void
+}
+
+export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
+  const [rooms, setRooms] = useState<Record<string, number>>({
     master_bedroom: 0,
     bedroom: 0,
     bathroom: 0,
@@ -35,62 +51,260 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
     guest_room: 0,
     garage: 0,
   })
+
   const [frequency, setFrequency] = useState("one_time")
-  const [serviceType, setServiceType] = useState("standard")
+  const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
   const [cleanlinessLevel, setCleanlinessLevel] = useState(7)
   const [totalPrice, setTotalPrice] = useState(0)
   const [showItemized, setShowItemized] = useState(false)
-  const [itemizedDetails, setItemizedDetails] = useState([])
+  const [itemizedDetails, setItemizedDetails] = useState<Array<{ label: string; amount: number | null }>>([])
   const [addressId, setAddressId] = useState(`address-${Date.now()}`)
   const [hasSelections, setHasSelections] = useState(false)
-  const [paymentFrequency, setPaymentFrequency] = useState("per_service")
+  const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
   const [showServiceDetails, setShowServiceDetails] = useState(false)
   const { toast } = useToast()
   const { addItem } = useCart()
 
-  // Calculate price whenever inputs change
-  useEffect(() => calculatePrice(), [rooms, frequency, serviceType, cleanlinessLevel, paymentFrequency])
+  // Calculate price whenever rooms, frequency, serviceType, or cleanlinessLevel changes
+  useEffect(() => {
+    calculatePrice()
+  }, [rooms, frequency, serviceType, cleanlinessLevel, paymentFrequency])
 
-  const handleRoomChange = (roomType, value) => setRooms((prev) => ({ ...prev, [roomType]: Number.parseInt(value) }))
+  const handleRoomChange = (roomType: string, value: string) => {
+    setRooms((prev) => ({
+      ...prev,
+      [roomType]: Number.parseInt(value),
+    }))
+  }
 
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(amount)
+  }
 
-  const formatRoomName = (name) => name.replace(/_/g, " ").toUpperCase()
+  const formatRoomName = (name: string) => {
+    return name.replace(/_/g, " ").toUpperCase()
+  }
 
-  // Combined utility functions for price calculation
+  const calculateDiscount = (newPrice: number, originalPrice: number) => {
+    return (((originalPrice - newPrice) / originalPrice) * 100).toFixed(2)
+  }
+
+  const getPriceMultiplier = () => {
+    let multiplier = 1
+
+    // Apply service type multiplier
+    if (serviceType === "detailing") {
+      multiplier *= 3.5
+    }
+
+    // Apply cleanliness level multiplier
+    if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
+      multiplier *= 3.5
+    }
+
+    return multiplier
+  }
+
+  const isServiceAvailable = () => {
+    return cleanlinessLevel >= 4
+  }
+
+  // Get number of services per year based on frequency
+  const getServicesPerYear = () => {
+    switch (frequency) {
+      case "weekly":
+        return 52
+      case "biweekly":
+        return 26
+      case "monthly":
+        return 12
+      case "semi_annual":
+        return 2
+      case "annually":
+        return 1
+      case "vip_daily":
+        return 365
+      case "one_time":
+      default:
+        return 1
+    }
+  }
+
+  // Calculate payment multiplier based on payment frequency
+  const getPaymentMultiplier = () => {
+    // If one-time service, no discount regardless of payment frequency
+    if (frequency === "one_time") {
+      return 1
+    }
+
+    // Get number of services per year
+    const servicesPerYear = getServicesPerYear()
+
+    // For recurring services, discount depends on payment frequency relative to service frequency
+    switch (paymentFrequency) {
+      case "monthly":
+        // Only apply discount if service is more frequent than monthly
+        if (servicesPerYear > 12) {
+          return 0.98 // 2% discount for monthly payments on more frequent services
+        }
+        return 1 // No discount if service is monthly or less frequent
+
+      case "yearly":
+        // Only apply discount if service is more frequent than yearly
+        if (servicesPerYear > 1) {
+          return 0.92 // 8% discount for yearly payments on more frequent services
+        }
+        return 1 // No discount if service is yearly
+
+      case "per_service":
+      default:
+        return 1 // No discount for per-service payments
+    }
+  }
+
+  // Calculate number of payments per year
+  const getPaymentsPerYear = () => {
+    switch (paymentFrequency) {
+      case "monthly":
+        return 12
+      case "yearly":
+        return 1
+      case "per_service":
+      default:
+        return getServicesPerYear()
+    }
+  }
+
+  // Update the calculatePrice function to reflect the new pricing structure
   const calculatePrice = () => {
     // Calculate base price from room selections
     const basePrice = Object.entries(ROOM_CONFIG.roomPrices).reduce((total, [roomType, price]) => {
-      return total + price * (rooms[roomType] || 0)
+      const numRooms = rooms[roomType as keyof typeof rooms] || 0
+      return total + price * numRooms
     }, 0)
 
     // Get frequency multiplier
-    const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[frequency] || 1
+    const frequencyMultiplier =
+      ROOM_CONFIG.frequencyMultipliers[frequency as keyof typeof ROOM_CONFIG.frequencyMultipliers]
 
     // Check if there are any room selections
     const hasRoomSelections = Object.values(rooms).some((value) => value > 0)
     setHasSelections(hasRoomSelections)
 
-    // Calculate multipliers and service availability
+    // Apply price multiplier based on service type and cleanliness level
     const priceMultiplier = getPriceMultiplier()
-    const isServiceAvailable = cleanlinessLevel >= 4
 
-    // Calculate payment details
-    const servicesPerYear = getServicesPerYear()
-    const paymentsPerYear = getPaymentsPerYear()
-    const servicesPerPayment = servicesPerYear / paymentsPerYear
-    const paymentMultiplier = getPaymentMultiplier()
-
-    // Calculate final price
+    // Calculate price per service
     let pricePerService = hasRoomSelections
       ? basePrice * frequencyMultiplier * priceMultiplier + ROOM_CONFIG.serviceFee
       : 0
+
+    // Apply payment frequency discount
+    const paymentMultiplier = getPaymentMultiplier()
     pricePerService = pricePerService * paymentMultiplier
+
+    // Calculate total upfront payment based on payment frequency
+    const servicesPerYear = getServicesPerYear()
+    const paymentsPerYear = getPaymentsPerYear()
+    const servicesPerPayment = servicesPerYear / paymentsPerYear
     const totalUpfrontPayment = pricePerService * servicesPerPayment
 
     setTotalPrice(totalUpfrontPayment)
-    generateItemizedDetails(basePrice, frequencyMultiplier, hasRoomSelections)
+
+    // Generate itemized details
+    const details: Array<{ label: string; amount: number | null }> = []
+
+    // Add room details
+    Object.entries(ROOM_CONFIG.roomPrices).forEach(([roomType, price]) => {
+      const numRooms = rooms[roomType as keyof typeof rooms] || 0
+      if (numRooms > 0) {
+        details.push({
+          label: `${formatRoomName(roomType)} (${numRooms})`,
+          amount: price * numRooms,
+        })
+      }
+    })
+
+    // Add frequency adjustment if applicable
+    if (hasRoomSelections && frequency !== "weekly") {
+      const weeklyPrice = basePrice * ROOM_CONFIG.frequencyMultipliers.weekly
+      const currentPrice = basePrice * frequencyMultiplier
+      const priceDifference = currentPrice - weeklyPrice
+
+      if (priceDifference < 0) {
+        const discountPercentage = calculateDiscount(currentPrice, weeklyPrice)
+        details.push({
+          label: `${frequency.charAt(0).toUpperCase() + frequency.slice(1).replace("_", " ")} Discount (${discountPercentage}% off)`,
+          amount: null,
+        })
+      } else {
+        details.push({
+          label: `${frequency.charAt(0).toUpperCase() + frequency.slice(1).replace("_", " ")} Adjustment`,
+          amount: null,
+        })
+      }
+    }
+
+    // Add payment frequency discount
+    if (paymentFrequency !== "per_service" && frequency !== "one_time") {
+      const servicesPerYear = getServicesPerYear()
+
+      // Only show discount if payment is less frequent than service
+      if (
+        (paymentFrequency === "monthly" && servicesPerYear > 12) ||
+        (paymentFrequency === "yearly" && servicesPerYear > 1)
+      ) {
+        const discountLabel = paymentFrequency === "yearly" ? "15%" : "5%"
+        details.push({
+          label: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment discount (${discountLabel})`,
+          amount: null,
+        })
+      } else {
+        // Just mention the payment plan without discount
+        details.push({
+          label: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment plan`,
+          amount: null,
+        })
+      }
+    }
+
+    // Add service type adjustment
+    if (hasRoomSelections && serviceType === "detailing") {
+      details.push({
+        label: "Premium Detailing (3.5x)",
+        amount: null,
+      })
+    }
+
+    // Add cleanliness level adjustment
+    if (hasRoomSelections && cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
+      details.push({
+        label: "Extra Cleaning Required (3.5x)",
+        amount: null,
+      })
+    }
+
+    // Add service fee
+    if (hasRoomSelections) {
+      details.push({
+        label: "Service Fee",
+        amount: ROOM_CONFIG.serviceFee,
+      })
+    }
+
+    // Add payment frequency explanation
+    if (hasRoomSelections && frequency !== "one_time" && paymentFrequency !== "per_service") {
+      details.push({
+        label: `Paying for ${servicesPerPayment} services upfront (${paymentFrequency})`,
+        amount: null,
+      })
+    }
+
+    setItemizedDetails(details)
 
     // Call the callback if provided
     if (onCalculationComplete && hasRoomSelections) {
@@ -101,96 +315,14 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
         serviceType,
         cleanlinessLevel,
         priceMultiplier,
-        isServiceAvailable,
+        isServiceAvailable: isServiceAvailable(),
         addressId,
         paymentFrequency,
       })
     }
   }
 
-  // Helper functions for price calculation
-  const getPriceMultiplier = () => {
-    let multiplier = 1
-    if (serviceType === "detailing") multiplier *= 3.5
-    if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) multiplier *= 3.5
-    return multiplier
-  }
-
-  const getServicesPerYear = () => {
-    const servicesMap = { weekly: 52, biweekly: 26, monthly: 12, semi_annual: 2, annually: 1, vip_daily: 365 }
-    return servicesMap[frequency] || 1
-  }
-
-  const getPaymentsPerYear = () => {
-    const paymentsMap = { monthly: 12, yearly: 1, per_service: getServicesPerYear() }
-    return paymentsMap[paymentFrequency] || getServicesPerYear()
-  }
-
-  const getPaymentMultiplier = () => {
-    if (frequency === "one_time") return 1
-
-    const servicesPerYear = getServicesPerYear()
-
-    if (paymentFrequency === "monthly" && servicesPerYear > 12) return 0.98
-    if (paymentFrequency === "yearly" && servicesPerYear > 1) return 0.92
-
-    return 1
-  }
-
-  // Generate itemized details for display
-  const generateItemizedDetails = (basePrice, frequencyMultiplier, hasRoomSelections) => {
-    const details = []
-
-    // Add room details
-    Object.entries(ROOM_CONFIG.roomPrices).forEach(([roomType, price]) => {
-      const numRooms = rooms[roomType] || 0
-      if (numRooms > 0) {
-        details.push({ label: `${formatRoomName(roomType)} (${numRooms})`, amount: price * numRooms })
-      }
-    })
-
-    // Add other details based on selections
-    if (hasRoomSelections) {
-      // Add frequency adjustment
-      if (frequency !== "weekly") {
-        details.push({
-          label: `${frequency.charAt(0).toUpperCase() + frequency.slice(1).replace("_", " ")} Adjustment`,
-          amount: null,
-        })
-      }
-
-      // Add payment frequency discount
-      if (paymentFrequency !== "per_service" && frequency !== "one_time") {
-        const servicesPerYear = getServicesPerYear()
-        if (
-          (paymentFrequency === "monthly" && servicesPerYear > 12) ||
-          (paymentFrequency === "yearly" && servicesPerYear > 1)
-        ) {
-          const discountLabel = paymentFrequency === "yearly" ? "15%" : "5%"
-          details.push({
-            label: `${paymentFrequency.charAt(0).toUpperCase() + paymentFrequency.slice(1)} payment discount (${discountLabel})`,
-            amount: null,
-          })
-        }
-      }
-
-      // Add service type and cleanliness adjustments
-      if (serviceType === "detailing") {
-        details.push({ label: "Premium Detailing (3.5x)", amount: null })
-      }
-
-      if (cleanlinessLevel >= 4 && cleanlinessLevel < 7) {
-        details.push({ label: "Extra Cleaning Required (3.5x)", amount: null })
-      }
-
-      // Add service fee
-      details.push({ label: "Service Fee", amount: ROOM_CONFIG.serviceFee })
-    }
-
-    setItemizedDetails(details)
-  }
-
-  // Handle cart operations
+  // Handle the add to cart button click
   const handleAddToCart = () => {
     if (!hasSelections) {
       toast({
@@ -201,7 +333,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
       return
     }
 
-    if (cleanlinessLevel < 4) {
+    if (!isServiceAvailable()) {
       toast({
         title: "Service unavailable",
         description: "Please contact us for extremely dirty conditions",
@@ -210,17 +342,22 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
       return
     }
 
-    // Skip showing the modal and directly call the final add to cart function
-    handleFinalAddToCart()
+    // Show service details modal
+    setShowServiceDetails(true)
   }
 
+  // Handle service upgrade
   const handleServiceUpgrade = () => {
     setServiceType("detailing")
-    toast({ title: "Service upgraded", description: "Your service has been upgraded to Premium Detailing" })
+    toast({
+      title: "Service upgraded",
+      description: "Your service has been upgraded to Premium Detailing",
+    })
   }
 
+  // Handle final add to cart after viewing details
   const handleFinalAddToCart = () => {
-    // Create service data object
+    // Create enhanced data object for analytics and sheet tracking
     const serviceData = {
       name: `${serviceType === "standard" ? "Standard" : "Premium"} Cleaning Service`,
       serviceType,
@@ -242,10 +379,13 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
           totalRooms: Object.values(rooms).reduce((sum, count) => sum + count, 0),
           roomBreakdown: Object.entries(rooms)
             .filter(([_, count]) => count > 0)
-            .reduce((acc, [type, count]) => {
-              acc[type] = count
-              return acc
-            }, {}),
+            .reduce(
+              (acc, [type, count]) => {
+                acc[type] = count
+                return acc
+              },
+              {} as Record<string, number>,
+            ),
         },
         calculatedPrice: totalPrice,
         priceMultiplier: getPriceMultiplier(),
@@ -259,74 +399,93 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
       },
     }
 
-    // Add to cart
+    // Add to cart with source tracking
     addItem({
       id: `custom-cleaning-${Date.now()}`,
       name: `${serviceType === "standard" ? "Standard" : "Premium"} Cleaning Service`,
       price: totalPrice,
       priceId: "price_custom_cleaning",
       quantity: 1,
-      sourceSection: "Price Calculator",
+      sourceSection: "Price Calculator", // Add source section for analytics
       metadata: {
         serviceType,
         frequency,
         cleanlinessLevel,
         rooms,
         paymentFrequency,
-        calculatorData: serviceData,
-        customer: { addressId },
+        calculatorData: serviceData, // Add the enhanced data
+        customer: {
+          addressId,
+        },
       },
     })
 
-    // Log calculator usage
+    // Also send this data directly to the Google Sheet for immediate tracking
+    // This helps track calculator usage even if the user doesn't complete checkout
     try {
-      fetch(
-        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec",
-        {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            formType: "calculator_usage",
-            name: "Calculator User",
-            email: "anonymous@calculator.use",
-            message: `${getFormEmoji("calculator")} Price Calculator: ${serviceType} ${frequency} service configured`,
-            meta: getCommonMetadata(),
-            data: serviceData,
-          }),
+      const scriptURL =
+        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+      fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
         },
-      ).catch((error) => console.error("Error logging calculator usage:", error))
+        body: JSON.stringify({
+          formType: "calculator_usage",
+          name: "Calculator User",
+          email: "anonymous@calculator.use",
+          message: `${getFormEmoji("calculator")} Price Calculator: ${serviceType} ${frequency} service configured`,
+          meta: getCommonMetadata(),
+          data: serviceData,
+        }),
+      }).catch((error) => {
+        console.error("Error logging calculator usage:", error)
+      })
     } catch (error) {
       console.error("Error logging calculator usage:", error)
     }
 
+    // Close the modal
     setShowServiceDetails(false)
-    if (onAddToCart) onAddToCart()
+
+    // Call the onAddToCart callback if provided
+    if (onAddToCart) {
+      onAddToCart()
+    }
   }
 
   // Get payment frequency description
   const getPaymentFrequencyDescription = () => {
-    if (frequency === "one_time") return "One-time payment"
+    if (frequency === "one_time") {
+      return "One-time payment"
+    }
 
     const servicesPerYear = getServicesPerYear()
     const paymentsPerYear = getPaymentsPerYear()
     const servicesPerPayment = servicesPerYear / paymentsPerYear
 
-    if (paymentFrequency === "per_service") return "Pay each time service occurs"
-
-    if (paymentFrequency === "monthly") {
-      if (servicesPerYear > 12)
-        return `Pay monthly (${servicesPerPayment.toFixed(1)} services per payment, 2% discount)`
-      if (frequency === "monthly") return "Pay monthly (matches service frequency)"
-      return "Pay monthly (prepayment for less frequent service)"
+    switch (paymentFrequency) {
+      case "per_service":
+        return `Pay each time service occurs`
+      case "monthly":
+        if (servicesPerYear > 12) {
+          return `Pay monthly (${servicesPerPayment.toFixed(1)} services per payment, 2% discount)`
+        } else if (frequency === "monthly") {
+          return `Pay monthly (matches service frequency)`
+        } else {
+          return `Pay monthly (prepayment for less frequent service)`
+        }
+      case "yearly":
+        if (servicesPerYear > 1) {
+          return `Pay yearly (${servicesPerYear} services per payment, 8% discount)`
+        } else {
+          return `Pay yearly (matches service frequency)`
+        }
+      default:
+        return "Select payment frequency"
     }
-
-    if (paymentFrequency === "yearly") {
-      if (servicesPerYear > 1) return `Pay yearly (${servicesPerYear} services per payment, 8% discount)`
-      return "Pay yearly (matches service frequency)"
-    }
-
-    return "Select payment frequency"
   }
 
   return (
@@ -339,11 +498,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
           {/* Cleanliness Level Slider */}
           <CleanlinessSlider onChange={setCleanlinessLevel} />
 
-          {cleanlinessLevel < 4 && (
+          {!isServiceAvailable() && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Service currently unavailable for extremely dirty conditions. Please contact us for a custom quote.
+                Service currently unavailable for extremely dirty conditions. Please contact us for a custom quote and
+                assessment.
               </AlertDescription>
             </Alert>
           )}
@@ -367,7 +527,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
                     {formatRoomName(roomType)}:
                   </label>
                   <Select
-                    value={rooms[roomType].toString()}
+                    value={rooms[roomType as keyof typeof rooms].toString()}
                     onValueChange={(value) => handleRoomChange(roomType, value)}
                   >
                     <SelectTrigger>
@@ -405,20 +565,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
             onClick={() => setShowItemized(!showItemized)}
           />
         </div>
-
-        {/* Add to Cart Button - Moved to be directly below pricing info */}
-        {hasSelections && onAddToCart && (
-          <div className="mt-4 mb-4">
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={handleAddToCart}
-              disabled={cleanlinessLevel < 4 || totalPrice <= 0}
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
-            </Button>
-          </div>
-        )}
 
         <Card
           className={`frequency-selection bg-gradient-to-r from-cyan-500 to-blue-600 border-none text-white mb-6 transition-all ${showItemized ? "mb-0" : ""}`}
@@ -460,7 +606,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
                 <Label className="block mb-3 text-lg font-medium">Payment Frequency:</Label>
                 <RadioGroup
                   value={paymentFrequency}
-                  onValueChange={(value) => setPaymentFrequency(value)}
+                  onValueChange={(value) => setPaymentFrequency(value as "per_service" | "monthly" | "yearly")}
                   className="space-y-3"
                 >
                   <div className="flex items-center space-x-2">
@@ -514,9 +660,32 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }) 
             3. Discounts applied based on payment frequency.
           </p>
         </div>
+
+        {hasSelections && onAddToCart && (
+          <div className="mt-6">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleAddToCart}
+              disabled={!isServiceAvailable() || totalPrice <= 0}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Service Details Modal - Removed to prevent pop-up behavior */}
+      {/* Service Details Modal */}
+      <ServiceDetailsModal
+        open={showServiceDetails}
+        onOpenChange={setShowServiceDetails}
+        serviceType={serviceType}
+        frequency={frequency}
+        cleanlinessLevel={cleanlinessLevel}
+        totalPrice={totalPrice}
+        onUpgrade={handleServiceUpgrade}
+        onAddToCart={handleFinalAddToCart}
+      />
     </div>
   )
 }

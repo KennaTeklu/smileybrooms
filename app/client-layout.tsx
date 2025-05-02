@@ -6,7 +6,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import FixedFooter from "@/components/fixed-footer"
-import PageViewTracker from "@/components/page-view-tracker"
+import { PageViewTracker } from "@/components/page-view-tracker"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
