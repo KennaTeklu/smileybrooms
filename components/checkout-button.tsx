@@ -19,7 +19,7 @@ interface CheckoutButtonProps {
   size?: "default" | "sm" | "lg" | "icon"
   isRecurring?: boolean
   recurringInterval?: "week" | "month" | "year"
-  paymentMethod?: "card" | "bank" | "both"
+  paymentMethod?: "card" | "bank" | "wallet"
   customerData?: {
     name?: string
     email?: string
@@ -45,7 +45,7 @@ export default function CheckoutButton({
   size = "default",
   isRecurring = false,
   recurringInterval = "month",
-  paymentMethod = "both",
+  paymentMethod = "card",
   customerData,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -72,7 +72,6 @@ export default function CheckoutButton({
           cancelUrl: `${window.location.origin}/canceled`,
           isRecurring,
           recurringInterval,
-          paymentMethod,
           customerData,
         })
       } else if (productName && productPrice) {
@@ -93,7 +92,6 @@ export default function CheckoutButton({
           cancelUrl: `${window.location.origin}/canceled`,
           isRecurring,
           recurringInterval,
-          paymentMethod,
           customerData,
         })
       } else {

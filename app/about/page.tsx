@@ -2,6 +2,8 @@ import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Shield, Leaf, Award, Users } from "lucide-react"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { PageFlipper } from "@/components/page-flipper"
 
 export default function AboutPage() {
   const values = [
@@ -33,13 +35,11 @@ export default function AboutPage() {
     },
   ]
 
-  return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-
-      <main className="flex-1">
-        {/* Hero Section */}
-        <div className="py-12 bg-gradient-to-b from-primary/10 to-transparent">
+  const pages = [
+    {
+      id: "hero",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gradient-to-b from-primary/10 to-transparent">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-bold mb-4">About smileybrooms LLC</h1>
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -47,9 +47,12 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
-
-        {/* Our Story Section */}
-        <div className="py-12">
+      ),
+    },
+    {
+      id: "our-story",
+      content: (
+        <div className="flex items-center justify-center h-full">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
@@ -77,9 +80,12 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-
-        {/* Mission & Vision Section */}
-        <div className="py-12 bg-gray-50 dark:bg-gray-900/50">
+      ),
+    },
+    {
+      id: "mission-vision",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-3xl font-bold mb-6">Our Mission & Vision</h2>
@@ -102,10 +108,13 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-
-        {/* Core Values Section */}
-        <div className="py-12">
-          <div className="container mx-auto px-4">
+      ),
+    },
+    {
+      id: "core-values",
+      content: (
+        <div className="flex flex-col h-full">
+          <div className="container mx-auto px-4 py-8">
             <h2 className="text-3xl font-bold mb-6 text-center">Our Core Values</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
               {values.map((value, index) => (
@@ -124,9 +133,12 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-
-        {/* Our Commitment Section */}
-        <div className="py-12">
+      ),
+    },
+    {
+      id: "our-commitment",
+      content: (
+        <div className="flex items-center justify-center h-full">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold mb-6 text-center">Our Commitment</h2>
@@ -163,9 +175,12 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-
-        {/* Why smileybrooms Section */}
-        <div className="py-12 bg-gray-50 dark:bg-gray-900/50">
+      ),
+    },
+    {
+      id: "why-smileybrooms",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-3xl font-bold mb-6">Why "smileybrooms"?</h2>
@@ -183,8 +198,19 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+
+      <main className="flex-1">
+        <PageFlipper pages={pages} />
       </main>
 
+      <AccessibilityToolbar />
       <Footer />
     </div>
   )

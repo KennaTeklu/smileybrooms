@@ -5,10 +5,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { CartProvider } from "@/lib/cart-context"
 import ClientLayout from "./client-layout"
 import PageViewTracker from "@/components/page-view-tracker"
-import { AccessibilityProvider } from "@/components/accessibility/accessibility-provider"
-import AccessibilityToolbar from "@/components/accessibility/accessibility-toolbar"
-import KeyboardShortcuts from "@/components/accessibility/keyboard-shortcuts"
-import AccessibilityHelp from "@/components/accessibility/accessibility-help"
 
 export const metadata = {
   title: "Smiley Brooms Cleaning Service",
@@ -26,16 +22,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <CartProvider>
-            <AccessibilityProvider>
-              <ClientLayout>
-                <PageViewTracker />
-                {children}
-                <Toaster />
-                <AccessibilityToolbar />
-                <KeyboardShortcuts />
-                <AccessibilityHelp />
-              </ClientLayout>
-            </AccessibilityProvider>
+            <ClientLayout>
+              <PageViewTracker />
+              {children}
+              <Toaster />
+            </ClientLayout>
           </CartProvider>
         </ThemeProvider>
       </body>

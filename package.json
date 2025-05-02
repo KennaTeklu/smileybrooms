@@ -67,8 +67,8 @@
     "framer-motion": "latest",
     "@vercel/analytics": "latest",
     "path": "latest",
-    "canvas-confetti": "latest",
     "js-cookie": "latest",
+    "canvas-confetti": "latest",
     "stripe": "latest"
   },
   "devDependencies": {
