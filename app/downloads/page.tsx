@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { DownloadButton } from "@/components/download-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Download } from "lucide-react"
+import Footer from "@/components/footer"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
 
 export const metadata: Metadata = {
   title: "Download Smiley Brooms App",
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function DownloadsPage() {
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-12 px-4 mb-8">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -29,7 +31,7 @@ export default function DownloadsPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 flex-1">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold mb-6">Available for All Platforms</h2>
           <p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
@@ -156,6 +158,9 @@ export default function DownloadsPage() {
           </div>
         </div>
       </div>
+
+      <AccessibilityToolbar />
+      <Footer />
     </div>
   )
 }

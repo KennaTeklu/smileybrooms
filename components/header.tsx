@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
 import Logo from "@/components/logo"
 import { Cart } from "@/components/cart"
 import { ServiceCounter } from "@/components/service-counter"
+import { Badge } from "@/components/ui/badge"
 
-// Replace the header component with this updated version that only has one cart button
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const { setTheme, theme } = useTheme()
@@ -34,11 +34,16 @@ export function Header() {
     { name: "Careers", href: "/careers" },
   ]
 
+  // Filter out current page from navigation
+  const filteredNavigation = navigation.filter((item) => item.href !== pathname)
+
   return (
     <header
       className={cn(
-        "sticky top-0 z-[60] w-full transition-all duration-200",
-        isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-950/80" : "bg-transparent",
+        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-200",
+        isScrolled
+          ? "bg-white/90 backdrop-blur-md shadow-sm dark:bg-gray-950/90"
+          : "bg-white/70 dark:bg-gray-950/70 backdrop-blur-sm",
       )}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,27 +56,28 @@ export function Header() {
 
           {/* Desktop navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => (
+            {filteredNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 className={cn(
                   "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
+                  "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
                 )}
               >
                 {item.name}
               </Link>
             ))}
-            <Link
-              href="/downloads"
-              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 flex items-center"
-            >
-              <Download className="h-4 w-4 mr-1 animate-bounce" />
-              Downloads
-            </Link>
+            {pathname !== "/downloads" && (
+              <Link
+                href="/downloads"
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 flex items-center"
+              >
+                <Download className="h-4 w-4 mr-1 animate-bounce" />
+                Downloads
+                <Badge className="ml-1.5 bg-green-500 text-white text-xs py-0 px-1.5">New</Badge>
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center space-x-4">
@@ -125,28 +131,26 @@ export function Header() {
                   </SheetTrigger>
                 </div>
                 <nav className="flex flex-col space-y-4 mt-4">
-                  {navigation.map((item) => (
+                  {filteredNavigation.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={cn(
-                        "px-4 py-2 rounded-md text-base font-medium transition-colors",
-                        pathname === item.href
-                          ? "bg-primary/10 text-primary"
-                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
-                      )}
+                      className="px-4 py-2 rounded-md text-base font-medium transition-colors text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                     >
                       {item.name}
                     </Link>
                   ))}
 
-                  <Link
-                    href="/downloads"
-                    className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                  >
-                    <Download className="h-5 w-5 mr-2 animate-bounce" />
-                    <span>Downloads</span>
-                  </Link>
+                  {pathname !== "/downloads" && (
+                    <Link
+                      href="/downloads"
+                      className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                    >
+                      <Download className="h-5 w-5 mr-2 animate-bounce" />
+                      <span>Downloads</span>
+                      <Badge className="ml-2 bg-green-500 text-white text-xs py-0 px-1.5">New</Badge>
+                    </Link>
+                  )}
 
                   {/* Phone number in mobile menu */}
                   <a

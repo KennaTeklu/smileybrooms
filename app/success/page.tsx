@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, MapPin, ExternalLink, Calendar, CreditCard, ArrowRight, Home } from "lucide-react"
+import { CheckCircle, MapPin, ExternalLink, Calendar, CreditCard, ArrowRight, Home, Plus } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
@@ -257,8 +257,11 @@ export default function SuccessPage() {
                     <ArrowRight className="mr-2 h-4 w-4" /> Browse More Services
                   </Link>
                 </Button>
-                <Button asChild className="mt-4">
-                  <Link href="/pricing">Book a new service</Link>
+                <Button asChild>
+                  <Link href="/pricing" className="flex items-center">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Book a New Service
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>

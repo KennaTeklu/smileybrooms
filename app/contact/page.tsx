@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
@@ -146,8 +145,6 @@ export default function ContactPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
-
       <main className="flex-1">
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">

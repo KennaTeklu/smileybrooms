@@ -1,6 +1,5 @@
 "use client"
 import { useRouter } from "next/navigation"
-import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -84,8 +83,6 @@ export default function CareersPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
-
       <main className="flex-1">
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">

@@ -4,7 +4,18 @@ import { SheetTrigger } from "@/components/ui/sheet"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Trash2, Plus, Minus, MapPin, ExternalLink, CreditCard, Loader2, Info } from "lucide-react"
+import {
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Minus,
+  MapPin,
+  ExternalLink,
+  CreditCard,
+  Loader2,
+  Info,
+  PhoneCall,
+} from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
@@ -16,6 +27,7 @@ import { Separator } from "@/components/ui/separator"
 import PaymentMethodSelector from "./payment-method-selector"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -49,6 +61,8 @@ export function Cart({ showLabel = false }: CartProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false)
 
   // This will ensure the cart stays open when other dialogs/popups are closed
   const handleOpenChange = (open: boolean) => {
@@ -108,6 +122,8 @@ export function Cart({ showLabel = false }: CartProps) {
     }
 
     setIsCheckingOut(true)
+    setCheckoutError(null)
+    setCheckoutSuccess(false)
 
     try {
       // Separate regular items from custom cleaning items
@@ -239,15 +255,17 @@ export function Cart({ showLabel = false }: CartProps) {
       })
 
       if (checkoutUrl) {
+        setCheckoutSuccess(true)
         window.location.href = checkoutUrl
       }
     } catch (error) {
       console.error("Error during checkout:", error)
+      setCheckoutError("An error occurred during checkout. Please try again or call us for assistance.")
       toast({
         title: "Checkout failed",
         description: "An error occurred during checkout. Please try again.",
         variant: "destructive",
-        duration: 3000,
+        duration: 5000,
       })
     } finally {
       setIsCheckingOut(false)
@@ -288,8 +306,40 @@ export function Cart({ showLabel = false }: CartProps) {
             </div>
           ) : (
             <div className="space-y-4">
+              {checkoutError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTitle className="flex items-center">
+                    <Info className="h-4 w-4 mr-2" /> Checkout Error
+                  </AlertTitle>
+                  <AlertDescription className="mt-2">
+                    <p>{checkoutError}</p>
+                    <div className="mt-2 flex items-center">
+                      <p>Please call us at:</p>
+                      <a href="tel:6028000605" className="flex items-center ml-2 text-primary font-medium">
+                        <PhoneCall className="h-4 w-4 mr-1" />
+                        602-800-0605
+                      </a>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {checkoutSuccess && (
+                <Alert className="mb-4 bg-green-50 text-green-800 border-green-100">
+                  <AlertTitle className="flex items-center text-green-800">
+                    <Info className="h-4 w-4 mr-2" /> Processing your order
+                  </AlertTitle>
+                  <AlertDescription className="text-green-700">
+                    <p>You're being redirected to complete your purchase...</p>
+                    <div className="mt-2 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {cart.items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4">
+                <div key={item.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       {item.image && (
@@ -415,6 +465,12 @@ export function Cart({ showLabel = false }: CartProps) {
 
         {cart.items.length > 0 && (
           <div className="border-t pt-4 mt-auto">
+            {/* Payment Method Selector */}
+            <div className="my-4">
+              <h3 className="text-sm font-medium mb-2">Payment Method</h3>
+              <PaymentMethodSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
+            </div>
+
             {/* Video Recording Discount */}
             {cart.items.some((item) => item.metadata?.customer) && (
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg my-4">
@@ -547,12 +603,6 @@ export function Cart({ showLabel = false }: CartProps) {
                 </div>
               </div>
             )}
-
-            {/* Payment Method Selector */}
-            <div className="my-4">
-              <h3 className="text-sm font-medium mb-2">Payment Method</h3>
-              <PaymentMethodSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
-            </div>
 
             <Separator className="my-4" />
 

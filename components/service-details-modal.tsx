@@ -13,6 +13,8 @@ import {
   ShoppingCart,
   ChevronDown,
   ChevronRight,
+  Clock,
+  User,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -31,6 +33,12 @@ interface ServiceDetailsModalProps {
   addToCart?: (item: any, source: string) => void
   service?: any
   rooms?: Record<string, number>
+  customerInfo?: {
+    name?: string
+    address?: string
+    phone?: string
+    email?: string
+  }
 }
 
 export function ServiceDetailsModal({
@@ -45,9 +53,11 @@ export function ServiceDetailsModal({
   addToCart,
   service,
   rooms = {},
+  customerInfo,
 }: ServiceDetailsModalProps) {
   const [selectedTab, setSelectedTab] = useState(serviceType)
   const [orderSummaryExpanded, setOrderSummaryExpanded] = useState(true)
+  const [customerInfoExpanded, setCustomerInfoExpanded] = useState(false)
 
   // Calculate premium price (3.5x standard)
   const premiumPrice = serviceType === "standard" ? totalPrice * 3.5 : totalPrice
@@ -108,6 +118,26 @@ export function ServiceDetailsModal({
   // Format room type for display
   const formatRoomType = (roomType: string) => {
     return roomType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  }
+
+  // Estimate cleaning duration based on room count and service type
+  const estimateCleaningDuration = () => {
+    // Base time: 30 min per room for standard, 60 min for detailing
+    const baseTimePerRoom = serviceType === "standard" ? 30 : 60
+
+    // Calculate total minutes
+    const totalMinutes = totalRoomCount * baseTimePerRoom
+
+    // Apply cleanliness modifier
+    const cleanlinessModifier = cleanlinessLevel < 4 ? 2 : cleanlinessLevel < 7 ? 1.5 : 1
+
+    const adjustedMinutes = totalMinutes * cleanlinessModifier
+
+    // Convert to hours and minutes
+    const hours = Math.floor(adjustedMinutes / 60)
+    const minutes = Math.round(adjustedMinutes % 60)
+
+    return `${hours > 0 ? `${hours} hour${hours !== 1 ? "s" : ""}` : ""} ${minutes > 0 ? `${minutes} minutes` : ""}`
   }
 
   const handleUpgrade = () => {
@@ -205,6 +235,14 @@ export function ServiceDetailsModal({
                 </div>
 
                 <div className="flex justify-between items-center">
+                  <span className="font-medium">Estimated Duration:</span>
+                  <div className="flex items-center">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span className="text-sm">{estimateCleaningDuration()}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
                   <span className="font-medium">Rooms:</span>
                   <span className="text-sm font-semibold">{totalRoomCount} rooms total</span>
                 </div>
@@ -233,6 +271,62 @@ export function ServiceDetailsModal({
                   </span>
                 </div>
               </div>
+            )}
+
+            {/* Customer Information Section */}
+            {customerInfo && (
+              <>
+                <div
+                  className="flex items-center justify-between cursor-pointer mb-3 mt-6"
+                  onClick={() => setCustomerInfoExpanded(!customerInfoExpanded)}
+                >
+                  <h3 className="font-semibold text-lg text-blue-800 dark:text-blue-300">Customer Information</h3>
+                  <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
+                    {customerInfoExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-blue-600" />
+                    )}
+                  </Button>
+                </div>
+
+                {customerInfoExpanded && (
+                  <div className="space-y-3 text-blue-700 dark:text-blue-300">
+                    {customerInfo.name && (
+                      <div className="flex items-start">
+                        <User className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">Name:</span> {customerInfo.name}
+                        </div>
+                      </div>
+                    )}
+                    {customerInfo.address && (
+                      <div className="flex items-start">
+                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">Address:</span> {customerInfo.address}
+                        </div>
+                      </div>
+                    )}
+                    {customerInfo.phone && (
+                      <div className="flex items-start">
+                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">Phone:</span> {customerInfo.phone}
+                        </div>
+                      </div>
+                    )}
+                    {customerInfo.email && (
+                      <div className="flex items-start">
+                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-medium">Email:</span> {customerInfo.email}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

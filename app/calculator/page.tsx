@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Header } from "@/components/header"
 import Footer from "@/components/footer"
 import PriceCalculator from "@/components/price-calculator"
 import { useCart } from "@/lib/cart-context"
@@ -193,8 +192,6 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
-
       {/* Sticky Add to Cart Button */}
       {calculatedService && calculatedService.totalPrice > 0 && (
         <StickyCartButton

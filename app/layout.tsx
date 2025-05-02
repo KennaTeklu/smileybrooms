@@ -37,11 +37,12 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <CartProvider>
             <div className="flex min-h-screen flex-col pb-16">
-              {/* Make sure the header has the highest z-index */}
-              <div className="relative z-50">
-                <Header />
-              </div>
-              <Suspense>{children}</Suspense>
+              {/* Single, unified header component */}
+              <Header />
+              {/* Add padding-top to account for fixed header */}
+              <main className="flex-1 pt-16">
+                <Suspense>{children}</Suspense>
+              </main>
               <Toaster />
               <FixedFooter />
               <Analytics />

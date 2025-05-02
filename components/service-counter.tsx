@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button"
 import { Calendar, CheckCircle, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 export function ServiceCounter() {
   const [serviceCount, setServiceCount] = useState(0)
@@ -83,8 +84,8 @@ export function ServiceCounter() {
           )}
         </div>
         <div className="p-4 border-t bg-muted/50">
-          <Button asChild className="w-full" size="sm">
-            <a href="/services">Book a new service</a>
+          <Button asChild variant="default" className="w-full">
+            <Link href="/pricing">Book a New Service</Link>
           </Button>
         </div>
       </PopoverContent>

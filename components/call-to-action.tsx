@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
 
 export default function CallToAction() {
   return (
@@ -13,10 +12,8 @@ export default function CallToAction() {
             hassle.
           </p>
           <div className="mt-8 flex flex-col justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-            <Button asChild size="lg" variant="secondary" className="text-primary">
-              <Link href="/calculator">
-                Calculate Your Price <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+            <Button asChild size="lg">
+              <Link href="/pricing">Get Started</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
               <Link href="/contact">Contact Us</Link>
