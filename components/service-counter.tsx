@@ -84,7 +84,7 @@ export function ServiceCounter() {
         </div>
         <div className="p-4 border-t bg-muted/50">
           <Button asChild className="w-full" size="sm">
-            <a href="/services">Book a new service</a>
+            <a href="/pricing">Book a new service</a>
           </Button>
         </div>
       </PopoverContent>

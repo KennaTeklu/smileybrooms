@@ -11,7 +11,7 @@ export function WindowsDownloadInstructions() {
           <HardDrive className="mr-2 h-6 w-6 text-blue-500" />
           Install to C:\ Drive Instructions
         </CardTitle>
-        <CardDescription>Follow these steps to install Smiley Brooms to your C:\ drive</CardDescription>
+        <CardDescription>Follow these steps to install smileybrooms to your C:\ drive</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -34,7 +34,7 @@ export function WindowsDownloadInstructions() {
             <div className="border rounded-md p-4 bg-gray-50">
               <div className="flex items-center">
                 <Download className="h-5 w-5 text-blue-500 mr-2" />
-                <span className="font-medium">SmileyBrooms_Setup.exe</span>
+                <span className="font-medium">smileybrooms_Setup.exe</span>
                 <span className="ml-auto text-sm text-gray-500">25.4 MB</span>
               </div>
             </div>
@@ -47,7 +47,7 @@ export function WindowsDownloadInstructions() {
               <li>Open File Explorer</li>
               <li>Navigate to your Downloads folder</li>
               <li>
-                Find <span className="font-mono bg-gray-100 px-1 rounded">SmileyBrooms_Setup.exe</span>
+                Find <span className="font-mono bg-gray-100 px-1 rounded">smileybrooms_Setup.exe</span>
               </li>
               <li>Cut the file (Ctrl+X)</li>
               <li>Navigate to C:\ drive</li>
@@ -60,11 +60,11 @@ export function WindowsDownloadInstructions() {
             <p className="mb-2">Run the installer from your C:\ drive:</p>
             <ol className="list-decimal pl-6 space-y-2">
               <li>
-                Double-click <span className="font-mono bg-gray-100 px-1 rounded">SmileyBrooms_Setup.exe</span>
+                Double-click <span className="font-mono bg-gray-100 px-1 rounded">smileybrooms_Setup.exe</span>
               </li>
               <li>If prompted by User Account Control, click "Yes"</li>
               <li>Follow the on-screen instructions to complete installation</li>
-              <li>When asked for installation location, keep the default C:\Smiley Brooms</li>
+              <li>When asked for installation location, keep the default C:\smileybrooms</li>
             </ol>
           </div>
 
@@ -74,8 +74,8 @@ export function WindowsDownloadInstructions() {
               <div>
                 <h4 className="font-semibold text-green-800">Installation Complete</h4>
                 <p className="text-green-700">
-                  After installation, you can launch Smiley Brooms from your desktop or Start menu. The application will
-                  be installed in C:\Smiley Brooms.
+                  After installation, you can launch smileybrooms from your desktop or Start menu. The application will
+                  be installed in C:\smileybrooms.
                 </p>
               </div>
             </div>

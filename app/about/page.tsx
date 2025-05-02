@@ -3,6 +3,7 @@ import Footer from "@/components/footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Shield, Leaf, Award, Users } from "lucide-react"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { PageFlipper } from "@/components/page-flipper"
 
 export default function AboutPage() {
   const values = [
@@ -34,50 +35,30 @@ export default function AboutPage() {
     },
   ]
 
-  const team = [
+  const pages = [
     {
-      name: "Sarah Johnson",
-      role: "Founder & CEO",
-      bio: "With over 15 years in the cleaning industry, Sarah founded Smiley Brooms with a vision to transform the cleaning experience for both clients and cleaning professionals.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Michael Rodriguez",
-      role: "Operations Manager",
-      bio: "Michael ensures that every cleaning job is scheduled efficiently and completed to our high standards of quality.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Jennifer Lee",
-      role: "Customer Experience Director",
-      bio: "Jennifer is dedicated to making sure every client has an exceptional experience with Smiley Brooms.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-  ]
-
-  return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-
-      <main className="flex-1">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
+      id: "hero",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gradient-to-b from-primary/10 to-transparent">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">About Smiley Brooms</h1>
+            <h1 className="text-4xl font-bold mb-4">About smileybrooms LLC</h1>
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               We're on a mission to make cleaning a happy experience for everyone.
             </p>
           </div>
         </div>
-
-        {/* Our Story */}
-        <section className="py-16">
+      ),
+    },
+    {
+      id: "our-story",
+      content: (
+        <div className="flex items-center justify-center h-full">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <p>
-                  Smiley Brooms was founded in 2015 with a simple but powerful idea: cleaning services should leave
+                  smileybrooms LLC was founded in 2015 with a simple but powerful idea: cleaning services should leave
                   everyone smiling—both the clients who enjoy a spotless space and the cleaning professionals who take
                   pride in their work.
                 </p>
@@ -87,7 +68,7 @@ export default function AboutPage() {
                   committed to our core values of quality, trust, and sustainability.
                 </p>
                 <p>
-                  We named our company "Smiley Brooms" because we believe cleaning should be a positive experience that
+                  We named our company "smileybrooms" because we believe cleaning should be a positive experience that
                   brings joy. A clean space isn't just about appearance—it's about creating a healthy, comfortable
                   environment where you can thrive.
                 </p>
@@ -98,10 +79,13 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Mission & Vision */}
-        <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
+        </div>
+      ),
+    },
+    {
+      id: "mission-vision",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-3xl font-bold mb-6">Our Mission & Vision</h2>
@@ -123,57 +107,38 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Core Values */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-10 text-center">Our Core Values</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        </div>
+      ),
+    },
+    {
+      id: "core-values",
+      content: (
+        <div className="flex flex-col h-full">
+          <div className="container mx-auto px-4 py-8">
+            <h2 className="text-3xl font-bold mb-6 text-center">Our Core Values</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
               {values.map((value, index) => (
                 <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4">
                     <div className="flex flex-col items-center text-center">
-                      <div className="p-3 bg-primary/10 rounded-full mb-4">
-                        <value.icon className="h-8 w-8 text-primary" />
+                      <div className="p-3 bg-primary/10 rounded-full mb-3">
+                        <value.icon className="h-6 w-6 text-primary" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">{value.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-400">{value.description}</p>
+                      <h3 className="text-lg font-semibold mb-1">{value.title}</h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">{value.description}</p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
-        </section>
-
-        {/* Meet the Team */}
-        <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-10 text-center">Meet Our Team</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {team.map((member, index) => (
-                <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-square relative">
-                    <img
-                      src={member.image || "/placeholder.svg"}
-                      alt={member.name}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
-                    <p className="text-primary font-medium mb-3">{member.role}</p>
-                    <p className="text-gray-600 dark:text-gray-400">{member.bio}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Our Commitment */}
-        <section className="py-16">
+        </div>
+      ),
+    },
+    {
+      id: "our-commitment",
+      content: (
+        <div className="flex items-center justify-center h-full">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold mb-6 text-center">Our Commitment</h2>
@@ -209,17 +174,20 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        {/* Why "Smiley"? */}
-        <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
+        </div>
+      ),
+    },
+    {
+      id: "why-smileybrooms",
+      content: (
+        <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900/50">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-6">Why "Smiley Brooms"?</h2>
+              <h2 className="text-3xl font-bold mb-6">Why "smileybrooms"?</h2>
               <div className="text-lg">
                 <p>
-                  Our name reflects our philosophy: cleaning should bring happiness. The "Smiley" represents the
-                  satisfaction and joy that comes from a clean, healthy space. The "Brooms" symbolize our commitment to
+                  Our name reflects our philosophy: cleaning should bring happiness. The "smiley" represents the
+                  satisfaction and joy that comes from a clean, healthy space. The "brooms" symbolize our commitment to
                   traditional cleaning values combined with modern techniques.
                 </p>
                 <p className="mt-4">
@@ -229,7 +197,17 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+
+      <main className="flex-1">
+        <PageFlipper pages={pages} />
       </main>
 
       <AccessibilityToolbar />

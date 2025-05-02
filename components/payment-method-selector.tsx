@@ -1,59 +1,72 @@
 "use client"
-import { Card, CardContent } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { CreditCard, Landmark, Wallet } from "lucide-react"
 
-type PaymentMethod = "card" | "bank" | "wallet"
+import { useState } from "react"
+import { CreditCard, Building, Wallet } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface PaymentMethodSelectorProps {
-  onSelect: (method: PaymentMethod) => void
-  selectedMethod: PaymentMethod
+  onSelect: (method: string) => void
+  selectedMethod?: string
+  className?: string
 }
 
-export default function PaymentMethodSelector({ onSelect, selectedMethod }: PaymentMethodSelectorProps) {
+export default function PaymentMethodSelector({
+  onSelect,
+  selectedMethod = "card",
+  className,
+}: PaymentMethodSelectorProps) {
+  const [selected, setSelected] = useState(selectedMethod)
+
+  const handleSelect = (method: string) => {
+    setSelected(method)
+    onSelect(method)
+  }
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <RadioGroup
-          value={selectedMethod}
-          onValueChange={(value) => onSelect(value as PaymentMethod)}
-          className="grid grid-cols-3 gap-4"
-        >
-          <div className="relative">
-            <RadioGroupItem value="card" id="card" className="peer sr-only" />
-            <Label
-              htmlFor="card"
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <CreditCard className="mb-3 h-6 w-6" />
-              Credit Card
-            </Label>
-          </div>
+    <div className={cn("grid grid-cols-3 gap-2", className)}>
+      <button
+        type="button"
+        onClick={() => handleSelect("card")}
+        className={cn(
+          "flex flex-col items-center justify-center p-3 border rounded-md transition-colors",
+          selected === "card"
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700",
+        )}
+      >
+        <CreditCard className="h-6 w-6 mb-1" />
+        <span className="text-sm font-medium">Credit Card</span>
+      </button>
 
-          <div className="relative">
-            <RadioGroupItem value="bank" id="bank" className="peer sr-only" />
-            <Label
-              htmlFor="bank"
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <Landmark className="mb-3 h-6 w-6" />
-              Bank Account
-            </Label>
-          </div>
+      <button
+        type="button"
+        onClick={() => handleSelect("bank")}
+        className={cn(
+          "flex flex-col items-center justify-center p-3 border rounded-md transition-colors",
+          selected === "bank"
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700",
+        )}
+      >
+        <Building className="h-6 w-6 mb-1" />
+        <span className="text-sm font-medium">Bank Account</span>
+        <span className="text-xs text-muted-foreground">ACH Transfer</span>
+      </button>
 
-          <div className="relative">
-            <RadioGroupItem value="wallet" id="wallet" className="peer sr-only" />
-            <Label
-              htmlFor="wallet"
-              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-            >
-              <Wallet className="mb-3 h-6 w-6" />
-              Digital Wallet
-            </Label>
-          </div>
-        </RadioGroup>
-      </CardContent>
-    </Card>
+      <button
+        type="button"
+        onClick={() => handleSelect("both")}
+        className={cn(
+          "flex flex-col items-center justify-center p-3 border rounded-md transition-colors",
+          selected === "both"
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700",
+        )}
+      >
+        <Wallet className="h-6 w-6 mb-1" />
+        <span className="text-sm font-medium">Choose Later</span>
+        <span className="text-xs text-muted-foreground">At Checkout</span>
+      </button>
+    </div>
   )
 }

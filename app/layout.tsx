@@ -1,46 +1,41 @@
 import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { CartProvider } from "@/lib/cart-context"
+import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import FixedFooter from "@/components/fixed-footer"
-import { Analytics } from "@vercel/analytics/react"
-import { Suspense } from "react"
+import { CartProvider } from "@/lib/cart-context"
+import ClientLayout from "./client-layout"
+import PageViewTracker from "@/components/page-view-tracker"
+import { AccessibilityProvider } from "@/components/accessibility/accessibility-provider"
+import AccessibilityToolbar from "@/components/accessibility/accessibility-toolbar"
+import KeyboardShortcuts from "@/components/accessibility/keyboard-shortcuts"
+import AccessibilityHelp from "@/components/accessibility/accessibility-help"
 
-const inter = Inter({ subsets: ["latin"] })
-
-export const metadata: Metadata = {
-  title: "Smiley Brooms - Professional Cleaning Services",
-  description: "Book professional cleaning services for your home or office",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-icon.png",
-  },
+export const metadata = {
+  title: "Smiley Brooms Cleaning Service",
+  description: "Professional cleaning services for homes and businesses",
     generator: 'v0.dev'
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className={inter.className}>
+      <body>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <CartProvider>
-            <div className="flex min-h-screen flex-col pb-16">
-              <Suspense>{children}</Suspense>
-              <Toaster />
-              <FixedFooter />
-              <Analytics />
-            </div>
+            <AccessibilityProvider>
+              <ClientLayout>
+                <PageViewTracker />
+                {children}
+                <Toaster />
+                <AccessibilityToolbar />
+                <KeyboardShortcuts />
+                <AccessibilityHelp />
+              </ClientLayout>
+            </AccessibilityProvider>
           </CartProvider>
         </ThemeProvider>
       </body>

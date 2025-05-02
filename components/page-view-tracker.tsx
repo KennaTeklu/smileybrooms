@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { track } from "@vercel/analytics"
 
-export function PageViewTracker() {
+export default function PageViewTracker() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const previousPathRef = useRef<string | null>(null)

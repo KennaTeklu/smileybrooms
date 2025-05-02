@@ -58,7 +58,7 @@ export default function FixedFooter() {
               Careers
             </Link>
             <Link
-              href="/pricing"
+              href="/calculator"
               className="hidden sm:flex items-center text-sm font-medium text-gray-700 hover:text-primary dark:text-gray-300 dark:hover:text-primary"
             >
               Pricing

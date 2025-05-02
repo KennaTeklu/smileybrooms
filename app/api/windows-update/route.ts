@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  // In a real app, this would check the latest version in a database
+  // Simple version that doesn't access the file system
   const latestVersion = {
     version: "1.0.1",
-    downloadUrl: "https://www.smileybrooms.com/downloads/SmileyBrooms_Setup.exe",
+    downloadUrl: "/downloads/SmileyBrooms_Setup.exe",
     releaseNotes: "- Fixed Windows Defender issues\n- Improved performance\n- Added new features",
   }
 
