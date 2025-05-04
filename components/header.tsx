@@ -3,182 +3,102 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Sun, Moon, Phone, Download } from "lucide-react"
+import { Menu, Home, Phone, Info, Calendar, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useTheme } from "next-themes"
-import { cn } from "@/lib/utils"
 import Logo from "@/components/logo"
-import { Cart } from "@/components/cart"
-import { ServiceCounter } from "@/components/service-counter"
-import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { AnimatedDownloadButton } from "@/components/animated-download-button"
+import { InteractivePhoneNumber } from "@/components/interactive-phone-number"
 
-export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const { setTheme, theme } = useTheme()
+// Define navigation items
+const navigationItems = [
+  { name: "Home", href: "/", icon: <Home className="h-4 w-4 mr-2" /> },
+  { name: "Pricing", href: "/pricing", icon: <Calendar className="h-4 w-4 mr-2" /> },
+  { name: "About", href: "/about", icon: <Info className="h-4 w-4 mr-2" /> },
+  { name: "Contact", href: "/contact", icon: <Phone className="h-4 w-4 mr-2" /> },
+  { name: "Support", href: "/support", icon: <HelpCircle className="h-4 w-4 mr-2" /> },
+]
+
+export default function Header() {
   const pathname = usePathname()
+  const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
+
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const navigation = [
-    { name: "Home", href: "/" },
-    { name: "Pricing", href: "/pricing" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
-    { name: "Careers", href: "/careers" },
-  ]
-
-  // Filter out current page from navigation
-  const filteredNavigation = navigation.filter((item) => item.href !== pathname)
-
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-200",
-        isScrolled
-          ? "bg-white/90 backdrop-blur-md shadow-sm dark:bg-gray-950/90"
-          : "bg-white/70 dark:bg-gray-950/70 backdrop-blur-sm",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        isScrolled || pathname !== "/"
+          ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm"
+          : "bg-transparent",
       )}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <Logo size="sm" />
-            </Link>
-          </div>
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center">
+          <Logo className="hover:opacity-90 transition-opacity" />
+        </Link>
 
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {filteredNavigation.map((item) => (
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-6">
+          {navigationItems.map((item) => {
+            // Skip rendering this nav item if we're currently on its page
+            if (pathname === item.href) return null
+
+            return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={cn(
-                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800",
-                )}
+                className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors flex items-center"
               >
+                {item.icon}
                 {item.name}
               </Link>
-            ))}
-            {pathname !== "/downloads" && (
-              <Link
-                href="/downloads"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 flex items-center"
-              >
-                <Download className="h-4 w-4 mr-1 animate-bounce" />
-                Downloads
-                <Badge className="ml-1.5 bg-green-500 text-white text-xs py-0 px-1.5">New</Badge>
-              </Link>
-            )}
-          </nav>
+            )
+          })}
+        </div>
 
-          <div className="flex items-center space-x-4">
-            {/* Service Counter */}
-            <ServiceCounter />
+        <div className="flex items-center gap-4">
+          {/* Phone Call Button */}
+          <InteractivePhoneNumber phoneNumber="(602) 800-0605" variant="default" />
 
-            {/* Phone number */}
-            <a
-              href="tel:6028000605"
-              className="hidden md:flex items-center text-sm font-medium text-gray-700 hover:text-primary dark:text-gray-200 dark:hover:text-primary"
-            >
-              <Phone className="h-4 w-4 mr-1" />
-              <span>602-800-0605</span>
-            </a>
-
-            {/* Theme toggle button with fixed functionality */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-              className="hidden md:flex"
-            >
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-
-            {/* Single Cart Component with text label */}
-            <div className="flex items-center">
-              <Cart showLabel={true} />
-            </div>
+          {/* Animated Download Button */}
+          <div className="hidden md:block">
+            <AnimatedDownloadButton />
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Open menu</span>
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between py-4">
-                  <Logo size="sm" />
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                </div>
-                <nav className="flex flex-col space-y-4 mt-4">
-                  {filteredNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="px-4 py-2 rounded-md text-base font-medium transition-colors text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-
-                  {pathname !== "/downloads" && (
-                    <Link
-                      href="/downloads"
-                      className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-                    >
-                      <Download className="h-5 w-5 mr-2 animate-bounce" />
-                      <span>Downloads</span>
-                      <Badge className="ml-2 bg-green-500 text-white text-xs py-0 px-1.5">New</Badge>
-                    </Link>
-                  )}
-
-                  {/* Phone number in mobile menu */}
-                  <a
-                    href="tel:6028000605"
-                    className="flex items-center px-4 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+            <SheetContent>
+              <div className="flex flex-col gap-4 mt-8">
+                {navigationItems.map((item) => (
+                  // Don't filter out current page in mobile menu for better UX
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      "px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2",
+                      pathname === item.href && "bg-gray-100 dark:bg-gray-800 font-medium",
+                    )}
                   >
-                    <Phone className="h-5 w-5 mr-2" />
-                    <span>602-800-0605</span>
-                  </a>
-
-                  {/* Service Counter in mobile menu */}
-                  <div className="px-4 py-2">
-                    <ServiceCounter />
-                  </div>
-                </nav>
-                <div className="mt-auto py-6">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                    aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-                    className="ml-4"
-                  >
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Toggle theme</span>
-                  </Button>
-                </div>
+                    {item.icon}
+                    {item.name}
+                  </Link>
+                ))}
               </div>
             </SheetContent>
           </Sheet>
@@ -187,5 +107,3 @@ export function Header() {
     </header>
   )
 }
-
-export default Header

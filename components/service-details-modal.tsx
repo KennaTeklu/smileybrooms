@@ -1,25 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import {
-  Check,
-  X,
-  ArrowRight,
-  Info,
-  Clipboard,
-  CheckCircle,
-  ShoppingCart,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  User,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
+import { CheckCircle, AlertTriangle, ArrowRight } from "lucide-react"
+import { useState } from "react"
 
 interface ServiceDetailsModalProps {
   open: boolean
@@ -28,8 +20,9 @@ interface ServiceDetailsModalProps {
   frequency: string
   cleanlinessLevel: number
   totalPrice: number
+  onUpgrade: () => void
+  onAddToCart: () => void
   paymentFrequency?: "per_service" | "monthly" | "yearly"
-  onUpgrade?: () => void
   addToCart?: (item: any, source: string) => void
   service?: any
   rooms?: Record<string, number>
@@ -48,8 +41,9 @@ export function ServiceDetailsModal({
   frequency,
   cleanlinessLevel,
   totalPrice,
-  paymentFrequency,
   onUpgrade,
+  onAddToCart,
+  paymentFrequency,
   addToCart,
   service,
   rooms = {},
@@ -102,8 +96,17 @@ export function ServiceDetailsModal({
 
   // Format frequency for display
   const formatFrequency = (freq: string) => {
-    return freq.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    return freq.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
   }
+
+  const getCleanlinessDescription = (level: number) => {
+    if (level >= 8) return "Very Clean"
+    if (level >= 6) return "Clean"
+    if (level >= 4) return "Somewhat Dirty"
+    return "Very Dirty"
+  }
+
+  const shouldRecommendUpgrade = serviceType === "standard" && (cleanlinessLevel < 7 || frequency === "one_time")
 
   // Get cleanliness level text
   const getCleanlinessLevelText = (level: number) => {
@@ -171,310 +174,80 @@ export function ServiceDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center">
-            <Clipboard className="mr-2 h-5 w-5 text-primary" />
-            Order Summary & Service Details
-          </DialogTitle>
-          <DialogDescription>
-            Please review your selections before proceeding to add this service to your cart
-          </DialogDescription>
+          <DialogTitle>Service Details</DialogTitle>
+          <DialogDescription>Review your cleaning service details before adding to cart</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
-          {/* Order Summary Section */}
-          <div className="md:col-span-1 bg-blue-50 dark:bg-blue-900/30 rounded-lg p-5 border border-blue-200 dark:border-blue-800">
-            <div
-              className="flex items-center justify-between cursor-pointer mb-3"
-              onClick={() => setOrderSummaryExpanded(!orderSummaryExpanded)}
-            >
-              <h3 className="font-semibold text-lg text-blue-800 dark:text-blue-300">Your Selections</h3>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                {orderSummaryExpanded ? (
-                  <ChevronDown className="h-5 w-5 text-blue-600" />
-                ) : (
-                  <ChevronRight className="h-5 w-5 text-blue-600" />
-                )}
-              </Button>
+        <div className="py-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="font-medium">Service Type:</span>
+              <span className="text-right">
+                {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+              </span>
             </div>
 
-            {orderSummaryExpanded && (
-              <div className="space-y-3 text-blue-700 dark:text-blue-300">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Service Type:</span>
-                  <Badge
-                    variant={serviceType === "standard" ? "outline" : "secondary"}
-                    className={
-                      serviceType === "standard"
-                        ? "bg-green-50 text-green-700 border-green-200"
-                        : "bg-purple-50 text-purple-700 border-purple-200"
-                    }
-                  >
-                    {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
-                  </Badge>
-                </div>
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="font-medium">Frequency:</span>
+              <span className="text-right">{formatFrequency(frequency)}</span>
+            </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Frequency:</span>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    {formatFrequency(frequency)}
-                  </Badge>
-                </div>
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="font-medium">Cleanliness Level:</span>
+              <span className="text-right">{getCleanlinessDescription(cleanlinessLevel)}</span>
+            </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Payment:</span>
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
-                    {getPaymentFrequencyLabel()}
-                  </Badge>
-                </div>
+            <div className="flex justify-between items-center font-bold">
+              <span>Total Price:</span>
+              <span className="text-right">{formatCurrency(totalPrice)}</span>
+            </div>
+          </div>
 
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Cleanliness:</span>
-                  <span className="text-sm">{getCleanlinessLevelText(cleanlinessLevel)}</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Estimated Duration:</span>
-                  <div className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    <span className="text-sm">{estimateCleaningDuration()}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Rooms:</span>
-                  <span className="text-sm font-semibold">{totalRoomCount} rooms total</span>
-                </div>
-
-                <Separator className="my-3 bg-blue-200" />
-
-                {/* Room Breakdown */}
-                <div className="space-y-1">
-                  <h4 className="text-sm font-medium">Room Breakdown:</h4>
-                  {Object.entries(rooms)
-                    .filter(([_, count]) => count > 0)
-                    .map(([roomType, count]) => (
-                      <div key={roomType} className="flex justify-between text-sm">
-                        <span>{formatRoomType(roomType)}:</span>
-                        <span>{count}</span>
-                      </div>
-                    ))}
-                </div>
-
-                <Separator className="my-3 bg-blue-200" />
-
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Price:</span>
-                  <span className="text-lg font-bold text-blue-800 dark:text-blue-200">
-                    {formatCurrency(totalPrice)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Customer Information Section */}
-            {customerInfo && (
-              <>
-                <div
-                  className="flex items-center justify-between cursor-pointer mb-3 mt-6"
-                  onClick={() => setCustomerInfoExpanded(!customerInfoExpanded)}
-                >
-                  <h3 className="font-semibold text-lg text-blue-800 dark:text-blue-300">Customer Information</h3>
-                  <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                    {customerInfoExpanded ? (
-                      <ChevronDown className="h-5 w-5 text-blue-600" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-blue-600" />
-                    )}
+          {shouldRecommendUpgrade && (
+            <div className="mt-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-md">
+              <div className="flex">
+                <AlertTriangle className="h-6 w-6 text-amber-500 mr-2 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-amber-800">Recommendation</h4>
+                  <p className="text-sm text-amber-700 mb-2">
+                    {cleanlinessLevel < 7
+                      ? "For your current cleanliness level, we recommend upgrading to our Premium Detailing service for better results."
+                      : "For one-time cleanings, our Premium Detailing service provides a more thorough cleaning experience."}
+                  </p>
+                  <Button variant="outline" size="sm" onClick={onUpgrade}>
+                    Upgrade to Premium
                   </Button>
                 </div>
+              </div>
+            </div>
+          )}
 
-                {customerInfoExpanded && (
-                  <div className="space-y-3 text-blue-700 dark:text-blue-300">
-                    {customerInfo.name && (
-                      <div className="flex items-start">
-                        <User className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Name:</span> {customerInfo.name}
-                        </div>
-                      </div>
-                    )}
-                    {customerInfo.address && (
-                      <div className="flex items-start">
-                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Address:</span> {customerInfo.address}
-                        </div>
-                      </div>
-                    )}
-                    {customerInfo.phone && (
-                      <div className="flex items-start">
-                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Phone:</span> {customerInfo.phone}
-                        </div>
-                      </div>
-                    )}
-                    {customerInfo.email && (
-                      <div className="flex items-start">
-                        <Info className="h-4 w-4 mr-2 mt-1 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Email:</span> {customerInfo.email}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Service Details Tabs */}
-          <div className="md:col-span-2">
-            <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as "standard" | "detailing")}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="standard">Standard Cleaning</TabsTrigger>
-                <TabsTrigger value="detailing">Premium Detailing</TabsTrigger>
-              </TabsList>
-              <TabsContent value="standard" className="pt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <Badge variant="outline" className="px-3 py-1 text-sm">
-                      {frequency.replace("_", " ").toUpperCase()}
-                    </Badge>
-                    {paymentFrequency && paymentFrequency !== "per_service" && (
-                      <Badge
-                        variant="outline"
-                        className="px-3 py-1 text-sm ml-2 bg-blue-50 text-blue-700 border-blue-200"
-                      >
-                        {paymentFrequency.toUpperCase()} PAYMENT
-                      </Badge>
-                    )}
-                  </div>
-                  <span className="text-xl font-bold">{formatCurrency(totalPrice)}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-lg flex items-center">
-                      <Check className="h-5 w-5 text-green-500 mr-2" />
-                      What's Included
-                    </h3>
-                    <ul className="space-y-2">
-                      {standardFeatures.included.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <Check className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-lg flex items-center">
-                      <X className="h-5 w-5 text-red-500 mr-2" />
-                      What's Not Included
-                    </h3>
-                    <ul className="space-y-2">
-                      {standardFeatures.excluded.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <X className="h-4 w-4 text-red-500 mr-2 mt-1 flex-shrink-0" />
-                          <span className="text-gray-600">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {serviceType === "standard" && (
-                  <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h3 className="font-medium text-lg flex items-center text-blue-800">
-                      <Info className="h-5 w-5 mr-2" />
-                      Upgrade to Premium Detailing
-                    </h3>
-                    <p className="mt-2 text-blue-700">
-                      Get a more thorough cleaning with our Premium Detailing service. Includes deep cleaning of
-                      appliances, inside cabinets, windows, baseboards, and more!
-                    </p>
-                    <Button onClick={handleUpgrade} className="mt-3" variant="outline">
-                      Upgrade to Premium {formatCurrency(premiumPrice)} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="detailing" className="pt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <Badge variant="outline" className="px-3 py-1 text-sm bg-indigo-50 text-indigo-700 border-indigo-200">
-                    {frequency.replace("_", " ").toUpperCase()} - PREMIUM
-                  </Badge>
-                  <span className="text-xl font-bold">{formatCurrency(premiumPrice)}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-lg flex items-center">
-                      <Check className="h-5 w-5 text-green-500 mr-2" />
-                      What's Included
-                    </h3>
-                    <ul className="space-y-2">
-                      {detailingFeatures.included.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <Check className="h-4 w-4 text-green-500 mr-2 mt-1 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-lg flex items-center">
-                      <X className="h-5 w-5 text-red-500 mr-2" />
-                      What's Not Included
-                    </h3>
-                    <ul className="space-y-2">
-                      {detailingFeatures.excluded.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                          <X className="h-4 w-4 text-red-500 mr-2 mt-1 flex-shrink-0" />
-                          <span className="text-gray-600">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mt-6 bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="font-medium text-lg flex items-center text-green-800">
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    You've Selected Our Best Service
-                  </h3>
-                  <p className="mt-2 text-green-700">
-                    Premium Detailing is our most comprehensive cleaning service, perfect for deep cleaning and detailed
-                    attention to every corner of your home.
+          {serviceType === "detailing" && (
+            <div className="mt-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-md">
+              <div className="flex">
+                <CheckCircle className="h-6 w-6 text-green-500 mr-2 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-green-800">Premium Service Selected</h4>
+                  <p className="text-sm text-green-700">
+                    You've selected our most thorough cleaning service. Our team will take extra care to ensure your
+                    space is spotless.
                   </p>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <Separator className="my-6" />
-
-        <div className="flex justify-end space-x-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="sm:flex-1">
+            Go Back
           </Button>
-          {serviceType === "standard" ? (
-            <Button onClick={handleUpgrade} variant="secondary">
-              Upgrade to Premium <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : null}
-          <Button onClick={handleAddToCart} className="gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Add to Cart
+          <Button onClick={onAddToCart} className="sm:flex-1">
+            Add to Cart <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

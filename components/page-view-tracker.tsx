@@ -1,4 +1,4 @@
-"use client"
+"\"use client"
 
 import { useEffect, useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
@@ -31,3 +31,5 @@ export function PageViewTracker() {
   // This component doesn't render anything
   return null
 }
+
+export default PageViewTracker

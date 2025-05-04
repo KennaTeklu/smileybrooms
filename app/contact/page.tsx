@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import Footer from "@/components/footer"
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
+import { InteractivePhoneNumber } from "@/components/interactive-phone-number"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -234,16 +234,10 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-medium">Phone</h3>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Main:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
-                        </a>
+                        Main: <InteractivePhoneNumber phoneNumber="(602) 800-0605" variant="default" />
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Support:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
-                        </a>
+                        Support: <InteractivePhoneNumber phoneNumber="(602) 800-0605" variant="default" />
                       </p>
                     </div>
                   </CardContent>
@@ -295,8 +289,6 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

@@ -1,153 +1,143 @@
 "use client"
-import { Facebook, Instagram, Twitter } from "lucide-react"
+
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown } from "lucide-react"
 import Logo from "@/components/logo"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+
+type FooterSection = {
+  title: string
+  links: {
+    label: string
+    href: string
+    external?: boolean
+  }[]
+}
+
+const footerSections: FooterSection[] = [
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+    ],
+  },
+  {
+    title: "Services",
+    links: [
+      { label: "Home Cleaning", href: "/services/home" },
+      { label: "Office Cleaning", href: "/services/office" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Terms", href: "/terms" },
+      { label: "Privacy", href: "/privacy" },
+    ],
+  },
+  {
+    title: "Pricing",
+    links: [{ label: "Get a Quote", href: "/pricing" }],
+  },
+]
 
 export default function Footer() {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [flashEffect, setFlashEffect] = useState(false)
   const currentYear = new Date().getFullYear()
 
+  const handleToggle = () => {
+    if (isExpanded) {
+      // When closing, trigger the flash effect
+      setFlashEffect(true)
+      setTimeout(() => {
+        setFlashEffect(false)
+      }, 100) // Brief flash
+    }
+    setIsExpanded(!isExpanded)
+  }
+
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Logo className="text-white" />
-            <p className="mt-4">Professional cleaning services for homes and businesses.</p>
-            <div className="mt-6 flex space-x-4">
-              <a
-                href="#"
-                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
-                aria-label="Facebook"
+    <footer
+      className={cn(
+        "relative bg-gray-50 dark:bg-gray-900 py-6 overflow-hidden",
+        flashEffect && "after:absolute after:inset-0 after:bg-white after:opacity-30 after:z-10 after:animate-flash",
+      )}
+    >
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col items-center justify-center gap-4">
+          {/* Logo and Toggle Button */}
+          <div className="flex items-center justify-center w-full">
+            <Logo className="h-8 w-auto" />
+            <button
+              onClick={handleToggle}
+              className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? "Collapse footer" : "Expand footer"}
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
+            </button>
+          </div>
+
+          {/* Expandable Content */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-4"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
               >
+                {footerSections.map((section, index) => (
+                  <div key={index} className="flex flex-col gap-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{section.title}</h3>
+                    <ul className="flex flex-col gap-2">
+                      {section.links.map((link, i) => (
+                        <li key={i}>
+                          <Link
+                            href={link.href}
+                            className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
+                            target={link.external ? "_blank" : undefined}
+                            rel={link.external ? "noopener noreferrer" : undefined}
+                          >
+                            {link.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Copyright and Social Links */}
+          <div className="flex flex-col md:flex-row items-center justify-between w-full border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+            <p className="text-gray-500 dark:text-gray-400 text-xs">
+              &copy; {currentYear} Your Company. All rights reserved.
+            </p>
+            <div className="flex gap-4">
+              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a
-                href="#"
-                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
-                aria-label="Instagram"
-              >
+              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a
-                href="#"
-                className="rounded-full bg-gray-800 p-2 hover:bg-primary hover:text-white"
-                aria-label="Twitter"
-              >
+              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 <Twitter className="h-5 w-5" />
               </a>
-            </div>
-            {/* App Download Buttons */}
-            <div className="mt-6">
-              <h3 className="mb-4 text-lg font-semibold">Download Our App</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <a
-                  href="/download?platform=ios"
-                  className="flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-2 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 19c-4.3 0-7.8-3.4-7.8-7.8 0-4.3 3.4-7.8 7.8-7.8 4.3 0 7.8 3.4 7.8 7.8 0 4.3-3.4 7.8-7.8 7.8z" />
-                    <path d="M12 19V5" />
-                    <path d="M5 12h14" />
-                  </svg>
-                  iOS
-                </a>
-                <a
-                  href="/download?platform=android"
-                  className="flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-2 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                    <path d="M12 18h.01" />
-                  </svg>
-                  Android
-                </a>
-                <a
-                  href="/download?platform=macos"
-                  className="flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-2 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9 22h6" />
-                    <path d="M2 8.5A2.5 2.5 0 0 1 4.5 6h15A2.5 2.5 0 0 1 22 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5v-9z" />
-                    <path d="M12 6v16" />
-                  </svg>
-                  macOS
-                </a>
-                <a
-                  href="/download?platform=windows"
-                  className="flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-2 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                  </svg>
-                  Windows
-                </a>
-              </div>
-              <div className="mt-3">
-                <a
-                  href="/download?platform=linux-appimage"
-                  className="flex items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mr-2 h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 16a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
-                    <path d="M8 16a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" />
-                    <path d="M3 7V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2" />
-                    <path d="M7 10v4" />
-                    <path d="M17 10v4" />
-                  </svg>
-                  Linux
-                </a>
-              </div>
             </div>
           </div>
         </div>
       </div>
-      <div className="bg-gray-800 text-center p-4">&copy; {currentYear} Smiley Brooms. All rights reserved.</div>
     </footer>
   )
 }

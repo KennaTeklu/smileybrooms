@@ -1,26 +1,43 @@
 "use client"
 
+import type React from "react"
+
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, ChevronDown, Info } from "lucide-react"
+import {
+  ChevronDown,
+  Info,
+  Calendar,
+  Home,
+  Clock,
+  Bed,
+  Bath,
+  Utensils,
+  Sofa,
+  UtensilsCrossed,
+  Briefcase,
+  Gamepad2,
+  HardDriveIcon as Boot,
+  Shirt,
+  Sun,
+  Users,
+  Car,
+} from "lucide-react"
 import { ROOM_CONFIG } from "@/lib/room-config"
 import CleanlinessSlider from "./cleanliness-slider"
 import ServiceTypeSelector from "./service-type-selector"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle } from "lucide-react"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ServiceDetailsModal } from "./service-details-modal"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { getFormEmoji, getCommonMetadata } from "@/lib/form-utils"
 
-interface PriceCalculatorProps {
+interface PricingCalculatorProps {
   onCalculationComplete?: (data: {
     rooms: Record<string, number>
     frequency: string
@@ -31,11 +48,13 @@ interface PriceCalculatorProps {
     isServiceAvailable: boolean
     addressId: string
     paymentFrequency: "per_service" | "monthly" | "yearly"
+    isRecurring: boolean
+    recurringInterval: "week" | "month" | "year"
   }) => void
   onAddToCart?: () => void
 }
 
-export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
+export default function PricingCalculator({ onCalculationComplete, onAddToCart }: PricingCalculatorProps) {
   const [rooms, setRooms] = useState<Record<string, number>>({
     master_bedroom: 0,
     bedroom: 0,
@@ -62,6 +81,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [hasSelections, setHasSelections] = useState(false)
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
   const [showServiceDetails, setShowServiceDetails] = useState(false)
+  const [showVipCallDialog, setShowVipCallDialog] = useState(false)
+
+  // State for collapsible sections
+  const [serviceTypeOpen, setServiceTypeOpen] = useState(false)
+  const [cleanlinessLevelOpen, setCleanlinessLevelOpen] = useState(false)
+
   const { toast } = useToast()
   const { addItem } = useCart()
 
@@ -69,6 +94,13 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   useEffect(() => {
     calculatePrice()
   }, [rooms, frequency, serviceType, cleanlinessLevel, paymentFrequency])
+
+  // Update payment frequency when VIP daily is selected
+  useEffect(() => {
+    if (frequency === "vip_daily") {
+      setPaymentFrequency("per_service")
+    }
+  }, [frequency])
 
   const handleRoomChange = (roomType: string, value: string) => {
     setRooms((prev) => ({
@@ -203,6 +235,10 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       ? basePrice * frequencyMultiplier * priceMultiplier + ROOM_CONFIG.serviceFee
       : 0
 
+    if (!hasRoomSelections) {
+      pricePerService = 0
+    }
+
     // Apply payment frequency discount
     const paymentMultiplier = getPaymentMultiplier()
     pricePerService = pricePerService * paymentMultiplier
@@ -306,8 +342,20 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
     setItemizedDetails(details)
 
+    // Determine if the service is recurring and the interval
+    const isRecurring = frequency !== "one_time"
+    let recurringInterval: "week" | "month" | "year" = "month"
+
+    if (frequency === "weekly" || frequency === "biweekly") {
+      recurringInterval = "week"
+    } else if (frequency === "monthly") {
+      recurringInterval = "month"
+    } else {
+      recurringInterval = "year"
+    }
+
     // Call the callback if provided
-    if (onCalculationComplete && hasRoomSelections) {
+    if (onCalculationComplete) {
       onCalculationComplete({
         rooms,
         frequency,
@@ -318,6 +366,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         isServiceAvailable: isServiceAvailable(),
         addressId,
         paymentFrequency,
+        isRecurring,
+        recurringInterval,
       })
     }
   }
@@ -369,7 +419,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         .join(", "),
       totalRooms: Object.values(rooms).reduce((sum, count) => sum + count, 0),
       paymentFrequency,
-      formType: "calculator",
+      formType: "pricing",
       meta: getCommonMetadata(),
       data: {
         serviceDetails: {
@@ -433,27 +483,40 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          formType: "calculator_usage",
-          name: "Calculator User",
-          email: "anonymous@calculator.use",
-          message: `${getFormEmoji("calculator")} Price Calculator: ${serviceType} ${frequency} service configured`,
+          formType: "pricing_usage",
+          name: "Pricing User",
+          email: "anonymous@pricing.use",
+          message: `${getFormEmoji("pricing")} Pricing Calculator: ${serviceType} ${frequency} service configured`,
           meta: getCommonMetadata(),
           data: serviceData,
         }),
       }).catch((error) => {
-        console.error("Error logging calculator usage:", error)
+        console.error("Error logging pricing usage:", error)
       })
     } catch (error) {
-      console.error("Error logging calculator usage:", error)
+      console.error("Error logging pricing usage:", error)
     }
 
     // Close the modal
     setShowServiceDetails(false)
 
+    // Ensure body scroll is not locked
+    setTimeout(() => {
+      document.body.style.overflow = ""
+      document.body.style.paddingRight = ""
+    }, 100)
+
     // Call the onAddToCart callback if provided
     if (onAddToCart) {
       onAddToCart()
     }
+
+    // Show success toast
+    toast({
+      title: "Added to cart",
+      description: "Your cleaning service has been added to the cart",
+      duration: 3000,
+    })
   }
 
   // Get payment frequency description
@@ -489,14 +552,54 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   }
 
   return (
-    <div className="calculator-container flex flex-col md:flex-row gap-6">
-      <div className="calculator-display flex-1 md:mr-8">
+    <div className="pricing-container flex flex-col md:flex-row gap-6">
+      <div className="pricing-display flex-1 md:mr-8">
         <form id="price-calculator" className="space-y-8">
-          {/* Service Type Selector */}
-          <ServiceTypeSelector value={serviceType} onChange={setServiceType} />
+          {/* Service Type Selector - Improved Collapsible */}
+          <div className="border rounded-lg overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={() => setServiceTypeOpen(!serviceTypeOpen)}
+              className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center">
+                <Home className="h-5 w-5 mr-2 text-primary" />
+                <span className="font-medium text-lg">Service Type</span>
+              </div>
+              <ChevronDown
+                className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${serviceTypeOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-          {/* Cleanliness Level Slider */}
-          <CleanlinessSlider onChange={setCleanlinessLevel} />
+            {serviceTypeOpen && (
+              <div className="px-4 pb-6 pt-2 border-t">
+                <ServiceTypeSelector value={serviceType} onChange={setServiceType} />
+              </div>
+            )}
+          </div>
+
+          {/* Cleanliness Level Slider - Improved Collapsible */}
+          <div className="border rounded-lg overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={() => setCleanlinessLevelOpen(!cleanlinessLevelOpen)}
+              className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-primary" />
+                <span className="font-medium text-lg">Cleanliness Level</span>
+              </div>
+              <ChevronDown
+                className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${cleanlinessLevelOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {cleanlinessLevelOpen && (
+              <div className="px-4 pb-6 pt-2 border-t">
+                <CleanlinessSlider onChange={setCleanlinessLevel} />
+              </div>
+            )}
+          </div>
 
           {!isServiceAvailable() && (
             <Alert variant="destructive">
@@ -512,37 +615,60 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
           {/* Room Selection */}
           <div>
-            <h3 className="text-lg font-medium mb-4">Select Rooms to Clean</h3>
+            <h3 className="text-lg font-medium mb-4 flex items-center">
+              <Home className="h-5 w-5 mr-2" />
+              Select Rooms to Clean
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => (
-                <Card
-                  key={roomType}
-                  className="p-6 hover:shadow-md transition-all hover:-translate-y-1 hover:border-primary"
-                >
-                  <label
-                    htmlFor={roomType}
-                    className="block mb-3 font-semibold text-gray-700 dark:text-gray-300 pl-6 relative"
+              {Object.entries(ROOM_CONFIG.roomPrices).map(([roomType, price]) => {
+                // Define icons for each room type
+                const roomIcons: Record<string, React.ReactNode> = {
+                  master_bedroom: <Bed className="h-5 w-5" />,
+                  bedroom: <Bed className="h-5 w-5" />,
+                  bathroom: <Bath className="h-5 w-5" />,
+                  kitchen: <Utensils className="h-5 w-5" />,
+                  living_room: <Sofa className="h-5 w-5" />,
+                  dining_room: <UtensilsCrossed className="h-5 w-5" />,
+                  office: <Briefcase className="h-5 w-5" />,
+                  playroom: <Gamepad2 className="h-5 w-5" />,
+                  mudroom: <Boot className="h-5 w-5" />,
+                  laundry_room: <Shirt className="h-5 w-5" />,
+                  sunroom: <Sun className="h-5 w-5" />,
+                  guest_room: <Users className="h-5 w-5" />,
+                  garage: <Car className="h-5 w-5" />,
+                }
+
+                return (
+                  <Card
+                    key={roomType}
+                    className="p-6 hover:shadow-md transition-all hover:-translate-y-1 hover:border-primary"
                   >
-                    <span className="absolute left-0 top-1/2 transform -translate-y-1/2">🧹</span>
-                    {formatRoomName(roomType)}:
-                  </label>
-                  <Select
-                    value={rooms[roomType as keyof typeof rooms].toString()}
-                    onValueChange={(value) => handleRoomChange(roomType, value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="0" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[0, 1, 2, 3, 4, 5].map((num) => (
-                        <SelectItem key={num} value={num.toString()}>
-                          {num}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Card>
-              ))}
+                    <div className="flex items-center mb-3">
+                      <div className="bg-primary/10 p-2 rounded-full mr-3">
+                        {roomIcons[roomType] || <Home className="h-5 w-5" />}
+                      </div>
+                      <label htmlFor={roomType} className="block font-semibold text-gray-700 dark:text-gray-300">
+                        {formatRoomName(roomType)}
+                      </label>
+                    </div>
+                    <Select
+                      value={rooms[roomType as keyof typeof rooms].toString()}
+                      onValueChange={(value) => handleRoomChange(roomType, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="0" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </form>
@@ -571,9 +697,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <label htmlFor="frequency" className="text-xl font-medium">
-                Service Frequency:
-              </label>
+              <div className="flex items-center">
+                <Calendar className="h-5 w-5 mr-2" />
+                <label htmlFor="frequency" className="text-xl font-medium">
+                  Service Frequency:
+                </label>
+              </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -601,91 +730,97 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </SelectContent>
             </Select>
 
-            {frequency !== "one_time" && (
-              <div className="mt-6 bg-white/20 p-4 rounded-md">
-                <Label className="block mb-3 text-lg font-medium">Payment Frequency:</Label>
-                <RadioGroup
-                  value={paymentFrequency}
-                  onValueChange={(value) => setPaymentFrequency(value as "per_service" | "monthly" | "yearly")}
-                  className="space-y-3"
+            {frequency !== "one_time" && frequency !== "vip_daily" && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 mr-2" />
+                    <label htmlFor="paymentFrequency" className="text-xl font-medium">
+                      Payment Frequency:
+                    </label>
+                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-white/80 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-white text-gray-800">
+                        <p className="max-w-xs">How often would you like to be billed?</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                <Select value={paymentFrequency} onValueChange={setPaymentFrequency}>
+                  <SelectTrigger className="bg-white/90 border-white/30 text-gray-800">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="per_service">Pay Per Service</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <p className="mt-2 text-sm text-white/80">{getPaymentFrequencyDescription()}</p>
+              </div>
+            )}
+
+            {frequency === "vip_daily" && (
+              <div className="mt-4 bg-white/20 p-4 rounded-md">
+                <p className="text-sm">
+                  VIP Daily service is our premium offering with dedicated staff. Please contact us for details.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setShowVipCallDialog(true)}
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="per_service" id="per_service" />
-                    <Label htmlFor="per_service" className="cursor-pointer">
-                      Pay per service
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="monthly" id="monthly" />
-                    <Label htmlFor="monthly" className="cursor-pointer">
-                      {frequency === "weekly" || frequency === "biweekly" || frequency === "vip_daily"
-                        ? "Pay monthly (2% discount)"
-                        : "Pay monthly"}
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yearly" id="yearly" />
-                    <Label htmlFor="yearly" className="cursor-pointer">
-                      {frequency === "one_time" || frequency === "annually" ? "Pay yearly" : "Pay yearly (8% discount)"}
-                    </Label>
-                  </div>
-                </RadioGroup>
-                <p className="text-sm text-white/80 mt-2">{getPaymentFrequencyDescription()}</p>
+                  Request VIP Consultation
+                </Button>
               </div>
             )}
           </div>
         </Card>
 
-        <div
-          className={`itemized-bill bg-white/90 backdrop-blur-md rounded-xl border border-white/30 shadow-md overflow-hidden transition-all duration-300 ${showItemized ? "max-h-[500px] opacity-100 mt-6" : "max-h-0 opacity-0"}`}
-        >
-          <ul id="itemized-list" className="divide-y">
-            {itemizedDetails.map((item, index) => (
-              <li key={index} className="p-4 flex justify-between items-center hover:bg-blue-50/50 transition-colors">
-                <span>{item.label}</span>
-                {item.amount !== null && (
-                  <>
-                    <span className="flex-1 border-b border-dotted border-gray-300 mx-4"></span>
-                    <span>{formatCurrency(item.amount)}</span>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm text-gray-500 italic p-4">
-            1. Tax & fees included.
-            <br />
-            2. All payments are made upfront.
-            <br />
-            3. Discounts applied based on payment frequency.
-          </p>
-        </div>
+        {showItemized && (
+          <Card className="mb-6 border-t-0 rounded-t-none">
+            <div className="p-6">
+              <h3 className="text-lg font-medium mb-4">Itemized Breakdown</h3>
+              <div className="space-y-2">
+                {itemizedDetails.map((detail, index) => (
+                  <div key={index} className="flex justify-between">
+                    <span className="text-gray-600">{detail.label}</span>
+                    {detail.amount !== null && <span>{formatCurrency(detail.amount)}</span>}
+                  </div>
+                ))}
+                <Separator className="my-2" />
+                <div className="flex justify-between font-bold">
+                  <span>Total:</span>
+                  <span>{formatCurrency(totalPrice)}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
-        {hasSelections && onAddToCart && (
-          <div className="mt-6">
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={handleAddToCart}
-              disabled={!isServiceAvailable() || totalPrice <= 0}
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
-            </Button>
-          </div>
+        <Button
+          onClick={onAddToCart}
+          disabled={!hasSelections || !isServiceAvailable()}
+          className="w-full py-6 text-lg"
+        >
+          {!hasSelections
+            ? "Select Rooms to Continue"
+            : !isServiceAvailable()
+              ? "Contact Us for Quote"
+              : `Add to Cart - ${formatCurrency(totalPrice)}`}
+        </Button>
+
+        {!hasSelections && (
+          <p className="text-sm text-gray-500 mt-2 text-center">Please select at least one room to clean.</p>
         )}
       </div>
-
-      {/* Service Details Modal */}
-      <ServiceDetailsModal
-        open={showServiceDetails}
-        onOpenChange={setShowServiceDetails}
-        serviceType={serviceType}
-        frequency={frequency}
-        cleanlinessLevel={cleanlinessLevel}
-        totalPrice={totalPrice}
-        onUpgrade={handleServiceUpgrade}
-        onAddToCart={handleFinalAddToCart}
-      />
     </div>
   )
 }

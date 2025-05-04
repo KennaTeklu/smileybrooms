@@ -3,36 +3,31 @@
  */
 
 // Add emoji prefix based on form type for visual categorization in spreadsheets
-export const getFormEmoji = (formType: string): string => {
-  switch (formType) {
-    case "waitlist":
-      return "🟢"
+export function getFormEmoji(formType: string): string {
+  switch (formType.toLowerCase()) {
     case "contact":
-      return "🔵"
-    case "career":
-      return "🟡"
-    case "address":
-      return "🟣"
-    case "checkout":
-      return "🔴"
+      return "📞"
+    case "pricing":
+      return "💰"
+    case "booking":
+      return "📅"
+    case "waitlist":
+      return "⏳"
+    case "feedback":
+      return "📝"
     default:
-      return "⚪"
+      return "📋"
   }
 }
 
 // Get common metadata for all form submissions
-export const getCommonMetadata = () => {
-  if (typeof window === "undefined") return {}
-
+export function getCommonMetadata() {
   return {
-    submitDate: new Date().toISOString(),
-    browser: navigator.userAgent,
-    page: window.location.pathname,
-    referrer: document.referrer || "direct",
-    device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
-    sessionId: sessionStorage.getItem("session_id") || createSessionId(),
-    language: navigator.language,
-    screenSize: `${window.innerWidth}x${window.innerHeight}`,
+    timestamp: new Date().toISOString(),
+    browser: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+    page: typeof window !== "undefined" ? window.location.pathname : "/",
+    referrer: typeof document !== "undefined" ? document.referrer || "direct" : "unknown",
+    device: typeof navigator !== "undefined" && /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
   }
 }
 

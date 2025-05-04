@@ -1,33 +1,58 @@
+"use client"
+
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+import { motion } from "framer-motion"
+import LogoIcon from "./logo-icon"
+import { createRoot } from "react-dom/client"
 
 interface LogoProps {
   className?: string
-  size?: "sm" | "md" | "lg"
+  iconOnly?: boolean
 }
 
-export default function Logo({ className, size = "md" }: LogoProps) {
-  const sizeClasses = {
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-12 w-12",
-  }
-
+export default function Logo({ className, iconOnly = false }: LogoProps) {
   return (
-    <div className={cn("flex items-center space-x-2", className)}>
-      <div className={cn("relative", sizeClasses[size])}>
-        {/* Smiley face circle */}
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-full"></div>
+    <div className={cn("flex items-center", className)}>
+      <motion.div
+        className="relative flex items-center justify-center h-10 w-10 rounded-full overflow-hidden"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Image
+          src="/logo-icon.png"
+          alt="Smiley Brooms Logo"
+          width={40}
+          height={40}
+          className="object-cover"
+          priority
+          onError={(e) => {
+            // If image fails to load, replace with SVG
+            const target = e.target as HTMLImageElement
+            target.style.display = "none"
+            const container = target.parentElement
+            if (container) {
+              const svgElement = document.createElement("div")
+              container.appendChild(svgElement)
+              const root = createRoot(svgElement)
+              root.render(<LogoIcon />)
+            }
+          }}
+        />
+      </motion.div>
 
-        {/* Eyes */}
-        <div className="absolute top-[30%] left-[25%] w-[12%] h-[12%] bg-gray-900 rounded-full"></div>
-        <div className="absolute top-[30%] right-[25%] w-[12%] h-[12%] bg-gray-900 rounded-full"></div>
-
-        {/* Smile */}
-        <div className="absolute bottom-[30%] left-[25%] w-[50%] h-[20%] border-b-4 border-gray-900 rounded-b-full"></div>
-      </div>
-      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-        Smiley Brooms
-      </span>
+      {!iconOnly && (
+        <motion.div
+          initial={{ opacity: 0, x: -5 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="ml-2 font-bold text-xl"
+        >
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+            SmileyBrooms
+          </span>
+        </motion.div>
+      )}
     </div>
   )
 }

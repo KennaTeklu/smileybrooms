@@ -2,52 +2,58 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { CartProvider } from "@/lib/cart-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import FixedFooter from "@/components/fixed-footer"
-import { Analytics } from "@vercel/analytics/react"
-import { Suspense } from "react"
-import Header from "@/components/header"
+import EnhancedNavigation from "@/components/enhanced-navigation"
+import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
+import UnifiedFooter from "@/components/unified-footer"
+import PageViewTracker from "@/components/page-view-tracker"
+import { PhoneNumberProvider } from "@/components/providers/phone-number-provider"
+import { SupportBotProvider } from "@/lib/support-bot-context"
+import { SupportBot } from "@/components/support-bot"
+import { CartProvider } from "@/lib/cart-context"
+import { SkipToContent } from "@/components/skip-to-content"
+import { ScreenReaderAnnouncer } from "@/components/screen-reader-announcer"
+import { TranslationProvider } from "@/lib/i18n/client"
+import UnifiedActionButtons from "@/components/unified-action-buttons"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Smiley Brooms - Professional Cleaning Services",
-  description: "Book professional cleaning services for your home or office",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-icon.png",
-  },
+  description: "Professional cleaning services for homes and offices with a smile.",
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
-      </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <CartProvider>
-            <div className="flex min-h-screen flex-col pb-16">
-              {/* Single, unified header component */}
-              <Header />
-              {/* Add padding-top to account for fixed header */}
-              <main className="flex-1 pt-16">
-                <Suspense>{children}</Suspense>
-              </main>
-              <Toaster />
-              <FixedFooter />
-              <Analytics />
-            </div>
-          </CartProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <TranslationProvider>
+            <PhoneNumberProvider>
+              <CartProvider>
+                <SupportBotProvider>
+                  <PageViewTracker />
+                  <SkipToContent />
+                  <EnhancedNavigation />
+                  <main id="main-content" className="pt-16">
+                    {children}
+                  </main>
+                  <PersistentBookNowButton />
+                  <UnifiedActionButtons />
+                  <UnifiedFooter />
+                  <SupportBot />
+                  <Toaster />
+                  <ScreenReaderAnnouncer messages={[]} />
+                </SupportBotProvider>
+              </CartProvider>
+            </PhoneNumberProvider>
+          </TranslationProvider>
         </ThemeProvider>
       </body>
     </html>

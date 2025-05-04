@@ -1,32 +1,33 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Footer from "@/components/footer"
-import PriceCalculator from "@/components/price-calculator"
+import PricingCalculator from "@/components/pricing-calculator"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
-import StickyCartButton from "@/components/sticky-cart-button"
+// Remove FloatingActionButtons import
+
+type CalculatedService = {
+  rooms: Record<string, number>
+  frequency: string
+  totalPrice: number
+  serviceType: "standard" | "detailing"
+  cleanlinessLevel: number
+  priceMultiplier: number
+  isServiceAvailable: boolean
+  addressId: string
+  paymentFrequency: "per_service" | "monthly" | "yearly"
+  isRecurring: boolean
+  recurringInterval: "week" | "month" | "year"
+}
 
 export default function PricingPage() {
-  const [calculatedService, setCalculatedService] = useState<{
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-  } | null>(null)
-
+  const [calculatedService, setCalculatedService] = useState<CalculatedService | null>(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [showStickyButton, setShowStickyButton] = useState(true)
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -39,20 +40,8 @@ export default function PricingPage() {
     }
   }, [])
 
-  const handleCalculationComplete = (data: {
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    addressId: string
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-  }) => {
-    // Omit the addressId as we don't need it in our simplified approach
-    const { addressId, ...rest } = data
-    setCalculatedService(rest)
+  const handleCalculationComplete = (data: CalculatedService) => {
+    setCalculatedService(data)
   }
 
   // Show address modal when Add to Cart is clicked
@@ -100,7 +89,7 @@ export default function PricingPage() {
     const serviceName = `${serviceTypeLabel} ${frequencyLabel} (${totalRooms} rooms)`
 
     // Get the room types that were selected
-    const selectedRooms = Object.entries(calculatedService.rooms)
+    const selectedRoomsList = Object.entries(calculatedService.rooms)
       .filter(([_, count]) => count > 0)
       .map(([type, count]) => `${type.replace(/_/g, " ")} x${count}`)
       .join(", ")
@@ -109,6 +98,46 @@ export default function PricingPage() {
     const finalPrice = addressData.allowVideoRecording
       ? calculatedService.totalPrice - addressData.videoRecordingDiscount
       : calculatedService.totalPrice
+
+    // Create Google Maps link for the address
+    const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.state} ${addressData.zipCode}`
+    const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+
+    // Build the message for the waitlist API
+    const formattedMessage = `
+    Service: ${serviceName}
+    Rooms: ${selectedRoomsList}
+    Frequency: ${frequencyLabel}
+    Address: ${fullAddress}
+    Special Instructions: ${addressData.specialInstructions || "None"}
+    Video Recording: ${addressData.allowVideoRecording ? "Yes" : "No"}
+    Maps Link: ${googleMapsLink}
+    Recurring: ${calculatedService.isRecurring ? `Yes (${calculatedService.recurringInterval}ly)` : "No"}
+  `.trim()
+
+    // Submit to waitlist API
+    const waitlistData = {
+      name: addressData.fullName,
+      email: addressData.email,
+      phone: addressData.phone,
+      message: formattedMessage,
+      source: "Pricing Form",
+    }
+
+    // Submit to waitlist API (using the Google Sheets script URL)
+    const scriptURL =
+      "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+    fetch(scriptURL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(waitlistData),
+    }).catch((error) => {
+      console.error("Error submitting to waitlist:", error)
+    })
 
     // Generate a unique ID that includes the address to help with combining similar items
     const itemId = `custom-cleaning-${addressData.address.replace(/\s+/g, "-").toLowerCase()}-${calculatedService.serviceType}-${calculatedService.frequency}-${calculatedService.paymentFrequency}`
@@ -122,7 +151,7 @@ export default function PricingPage() {
       image: "/placeholder.svg?height=100&width=100",
       paymentFrequency: calculatedService.paymentFrequency,
       metadata: {
-        rooms: selectedRooms,
+        rooms: selectedRoomsList,
         frequency: calculatedService.frequency,
         serviceType: calculatedService.serviceType,
         isRecurring: calculatedService.isRecurring,
@@ -137,6 +166,7 @@ export default function PricingPage() {
           zipCode: addressData.zipCode,
           specialInstructions: addressData.specialInstructions,
           allowVideoRecording: addressData.allowVideoRecording,
+          googleMapsLink: googleMapsLink,
         },
       },
     })
@@ -159,29 +189,23 @@ export default function PricingPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky Add to Cart Button */}
-      {calculatedService && calculatedService.totalPrice > 0 && (
-        <StickyCartButton
-          totalPrice={calculatedService.totalPrice}
-          isServiceAvailable={calculatedService.isServiceAvailable}
-          onAddToCart={handleAddToCart}
-          visible={showStickyButton}
-        />
-      )}
-
       <div className="container mx-auto px-4 py-8 flex-1">
-        <h1 className="text-3xl font-bold text-center mb-8">Pricing Calculator</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
         <div className="max-w-6xl mx-auto">
-          {/* Main Calculator */}
+          {/* Main Pricing Calculator */}
           <Card>
             <CardHeader>
               <CardTitle>Calculate Your Cleaning Price</CardTitle>
               <CardDescription>Configure the cleaning details for your location</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="calculator-container">
-                <PriceCalculator key={calculatorKey} onCalculationComplete={handleCalculationComplete} />
+              <div className="pricing-container">
+                <PricingCalculator
+                  key={calculatorKey}
+                  onCalculationComplete={handleCalculationComplete}
+                  onAddToCart={handleAddToCart}
+                />
               </div>
             </CardContent>
           </Card>
@@ -201,10 +225,9 @@ export default function PricingPage() {
       {/* Terms Agreement Popup */}
       <TermsAgreementPopup onAccept={() => setTermsAccepted(true)} />
 
-      {/* Accessibility Toolbar */}
-      <AccessibilityToolbar />
+      {/* Remove FloatingActionButtons component */}
 
-      <Footer />
+      {/* Remove Footer component */}
     </div>
   )
 }

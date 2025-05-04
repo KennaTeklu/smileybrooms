@@ -69,6 +69,11 @@ export function Cart({ showLabel = false }: CartProps) {
     // Only process actual close requests, not side-effects from other popups
     if (!open && isOpen) {
       setIsOpen(false)
+      // Ensure body scroll is not locked when cart closes
+      setTimeout(() => {
+        document.body.style.overflow = ""
+        document.body.style.paddingRight = ""
+      }, 100)
     } else if (open) {
       setIsOpen(true)
     }
