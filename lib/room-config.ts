@@ -1,4 +1,4 @@
-export const ROOM_CONFIG = {
+export const roomConfig = {
   serviceFee: 50,
   roomPrices: {
     master_bedroom: 54.28,
@@ -24,4 +24,19 @@ export const ROOM_CONFIG = {
     annually: 2.56,
     vip_daily: 7.5,
   },
+  roomTypes: [
+    { id: "master_bedroom", name: "Master Bedroom", basePrice: 54.28 },
+    { id: "bedroom", name: "Bedroom", basePrice: 35.42 },
+    { id: "bathroom", name: "Bathroom", basePrice: 43.63 },
+    { id: "kitchen", name: "Kitchen", basePrice: 54.8 },
+    { id: "living_room", name: "Living Room", basePrice: 31.37 },
+    { id: "dining_room", name: "Dining Room", basePrice: 25.63 },
+    { id: "office", name: "Office", basePrice: 19.53 },
+    { id: "playroom", name: "Playroom", basePrice: 25.64 },
+    { id: "mudroom", name: "Mudroom", basePrice: 21.73 },
+    { id: "laundry_room", name: "Laundry Room", basePrice: 13.46 },
+    { id: "sunroom", name: "Sunroom", basePrice: 22.25 },
+    { id: "guest_room", name: "Guest Room", basePrice: 35.42 },
+    { id: "garage", name: "Garage", basePrice: 83.99 },
+  ],
 }

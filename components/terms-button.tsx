@@ -1,59 +1,36 @@
+/**
+ * Terms Button Component
+ *
+ * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
+ *
+ * This component provides a button to open the terms modal from anywhere in the app.
+ */
+
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { Button, type ButtonProps } from "@/components/ui/button"
 import { FileText } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import EnhancedTermsModal from "./enhanced-terms-modal"
-import { saveTermsAcceptance } from "@/lib/terms-utils"
+import { useTerms } from "@/lib/terms-context"
 
-interface TermsButtonProps {
-  variant?: "default" | "outline" | "ghost" | "link"
-  size?: "default" | "sm" | "lg"
-  initialTab?: "terms" | "privacy"
-  className?: string
-  children?: React.ReactNode
+interface TermsButtonProps extends ButtonProps {
+  showIcon?: boolean
+  label?: string
 }
 
-export default function TermsButton({
-  variant = "link",
-  size = "default",
-  initialTab = "terms",
+export function TermsButton({
+  showIcon = true,
+  label = "Terms & Privacy",
   className,
-  children,
+  variant = "ghost",
+  size = "sm",
+  ...props
 }: TermsButtonProps) {
-  const [showTerms, setShowTerms] = useState(false)
-
-  const handleOpenTerms = () => {
-    setShowTerms(true)
-  }
-
-  const handleAccept = () => {
-    saveTermsAcceptance()
-    setShowTerms(false)
-  }
+  const { openTermsModal } = useTerms()
 
   return (
-    <>
-      <Button variant={variant} size={size} onClick={handleOpenTerms} className={className}>
-        {children || (
-          <>
-            <FileText className="h-4 w-4 mr-2" />
-            {initialTab === "terms" ? "Terms & Conditions" : "Privacy Policy"}
-          </>
-        )}
-      </Button>
-
-      {showTerms && (
-        <EnhancedTermsModal
-          isOpen={showTerms}
-          onClose={() => setShowTerms(false)}
-          onAccept={handleAccept}
-          initialTab={initialTab}
-          continuousScroll={true}
-        />
-      )}
-    </>
+    <Button onClick={openTermsModal} variant={variant} size={size} className={className} {...props}>
+      {showIcon && <FileText className="h-4 w-4 mr-2" />}
+      {label}
+    </Button>
   )
 }

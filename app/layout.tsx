@@ -12,11 +12,12 @@ import SharePanel from "@/components/share-panel"
 import PageViewTracker from "@/components/page-view-tracker"
 import { CartProvider } from "@/lib/cart-context"
 import { TermsEntryManager } from "@/components/terms-entry-manager"
+import { TermsProvider } from "@/lib/terms-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Smiley Brooms - Professional Cleaning Services",
+  title: "smileybrooms - Professional Cleaning Services",
   description: "Professional cleaning services for homes and offices with a smile.",
     generator: 'v0.dev'
 }
@@ -30,17 +31,19 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <CartProvider>
-            <PageViewTracker />
-            <EnhancedNavigation />
-            <div className="pt-16">{children}</div>
-            <TermsEntryManager />
-            <PersistentBookNowButton />
-            <AccessibilityPanel />
-            <SharePanel />
-            <UnifiedFooter />
-            <Toaster />
-          </CartProvider>
+          <TermsProvider>
+            <CartProvider>
+              <PageViewTracker />
+              <EnhancedNavigation />
+              <div className="pt-16">{children}</div>
+              <TermsEntryManager />
+              <PersistentBookNowButton />
+              <AccessibilityPanel />
+              <SharePanel />
+              <UnifiedFooter />
+              <Toaster />
+            </CartProvider>
+          </TermsProvider>
         </ThemeProvider>
       </body>
     </html>
