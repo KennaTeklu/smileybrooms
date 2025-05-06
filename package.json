@@ -74,8 +74,7 @@
     "react-intersection-observer": "latest",
     "keen-slider": "latest",
     "@tanstack/react-query": "latest",
-    "react-device-detect": "latest",
-    "uuid": "latest"
+    "react-device-detect": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

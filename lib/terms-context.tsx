@@ -1,9 +1,19 @@
+/**
+ * Terms and Conditions Context Provider
+ *
+ * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
+ *
+ * This context provides comprehensive legal protection across the entire website
+ * by managing terms acceptance, tracking user consent, and enforcing terms
+ * acceptance on all pages except the homepage.
+ */
+
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  hasAcceptedTerms as checkTermsAccepted, // Renamed import to avoid conflict
+  hasAcceptedTerms,
   saveTermsAcceptance,
   getTermsAcceptanceDate,
   shouldForceShowTerms,
@@ -16,9 +26,8 @@ const CURRENT_TERMS_VERSION = "1.0.0"
 
 // Define the context type
 interface TermsContextType {
-  hasAcceptedTerms: boolean
-  acceptTerms: () => void
-  resetTerms: () => void
+  // State
+  isTermsAccepted: boolean
   termsAcceptanceDate: string | null
   termsVersion: string | null
   showTermsModal: boolean
@@ -26,6 +35,7 @@ interface TermsContextType {
   // Actions
   openTermsModal: () => void
   closeTermsModal: () => void
+  acceptTerms: () => void
   declineTerms: () => void
 
   // Utilities
@@ -48,11 +58,10 @@ interface TermsProviderProps {
 
 // Create the provider component
 export function TermsProvider({ children }: TermsProviderProps) {
-  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false)
+  const [isTermsAccepted, setIsTermsAccepted] = useState<boolean>(false)
   const [termsAcceptanceDate, setTermsAcceptanceDate] = useState<string | null>(null)
   const [termsVersion, setTermsVersion] = useState<string | null>(null)
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false)
-  const [isTermsAccepted, setIsTermsAccepted] = useState<boolean>(false)
 
   const pathname = usePathname()
   const router = useRouter()
@@ -60,12 +69,6 @@ export function TermsProvider({ children }: TermsProviderProps) {
   // Initialize state from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Load terms acceptance status from localStorage on initial render
-      const savedStatus = localStorage.getItem("termsAccepted")
-      if (savedStatus === "true") {
-        setHasAcceptedTerms(true)
-      }
-
       // Check if browser-level permission was granted
       const browserAccepted = localStorage.getItem("browserTermsAccepted") === "true"
 
@@ -77,8 +80,8 @@ export function TermsProvider({ children }: TermsProviderProps) {
         // Don't show modal if browser already accepted
         setShowTermsModal(false)
       } else {
-        // Regular initialization - using the imported function, not the state variable
-        const accepted = checkTermsAccepted() // Fixed: using the renamed import
+        // Regular initialization
+        const accepted = hasAcceptedTerms()
         const acceptanceDate = getTermsAcceptanceDate()
         const version = localStorage.getItem("termsVersion") || null
 
@@ -130,9 +133,6 @@ export function TermsProvider({ children }: TermsProviderProps) {
 
   // Accept terms
   const acceptTerms = useCallback(() => {
-    setHasAcceptedTerms(true)
-    localStorage.setItem("termsAccepted", "true")
-
     saveTermsAcceptance()
 
     // Save current terms version
@@ -149,11 +149,6 @@ export function TermsProvider({ children }: TermsProviderProps) {
     setTermsVersion(CURRENT_TERMS_VERSION)
     setShowTermsModal(false)
   }, [])
-
-  const resetTerms = () => {
-    setHasAcceptedTerms(false)
-    localStorage.removeItem("termsAccepted")
-  }
 
   // Decline terms
   const declineTerms = useCallback(() => {
@@ -188,14 +183,13 @@ export function TermsProvider({ children }: TermsProviderProps) {
 
   // Create context value
   const contextValue: TermsContextType = {
-    hasAcceptedTerms,
-    acceptTerms,
-    resetTerms,
+    isTermsAccepted,
     termsAcceptanceDate,
     termsVersion,
     showTermsModal,
     openTermsModal,
     closeTermsModal,
+    acceptTerms,
     declineTerms,
     isPathCritical,
     requireTermsAcceptance,
@@ -208,8 +202,10 @@ export function TermsProvider({ children }: TermsProviderProps) {
 // Custom hook to use the terms context
 export function useTerms() {
   const context = useContext(TermsContext)
+
   if (context === undefined) {
     throw new Error("useTerms must be used within a TermsProvider")
   }
+
   return context
 }

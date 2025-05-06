@@ -606,16 +606,9 @@ export function Cart({ showLabel = false }: CartProps) {
 
             <Separator className="my-4" />
 
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-medium">Estimated Price</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {cart.items.length} {cart.items.length === 1 ? "item" : "items"}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{formatCurrency(cart.totalPrice)}</div>
-              </div>
+            <div className="flex justify-between py-2 font-medium">
+              <span>Total</span>
+              <span>{formatCurrency(cart.totalPrice)}</span>
             </div>
 
             <div className="flex flex-col gap-2 pt-4">

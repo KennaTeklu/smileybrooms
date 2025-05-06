@@ -1,3 +1,9 @@
+/**
+ * Enhanced Terms Modal Component
+ *
+ * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
+ */
+
 "use client"
 
 import React from "react"
@@ -1361,9 +1367,9 @@ export default function EnhancedTermsModal({
         setShowAnimatedButtons(true)
       }
 
-      // Check if we're at 75% of the content and show confirmation popup
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight * 0.75
-      if (isNearBottom && !showConfirmationPopup) {
+      // Check if we're at the bottom of the content and show confirmation popup
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50
+      if (isAtBottom && !showConfirmationPopup && allTermsViewed && allPrivacyViewed) {
         setShowConfirmationPopup(true)
       }
 
@@ -1395,10 +1401,10 @@ export default function EnhancedTermsModal({
       })
 
       // Check if we're near the bottom of the content
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100
 
       // If we're near the bottom, mark all sections as viewed
-      if (isAtBottom) {
+      if (isNearBottom) {
         const allTermsIds = termsSections.map((s) => s.id)
         const allPrivacyIds = privacySections.map((s) => s.id)
 
@@ -1418,7 +1424,7 @@ export default function EnhancedTermsModal({
 
       // Check if user has scrolled a small amount and request browser notification permission
       // This will trigger the browser's native permission popup
-      const hasScrolledMinimum = scrollTop > 30
+      const hasScrolledMinimum = scrollTop > 50
       if (hasScrolledMinimum && !localStorage.getItem("permissionRequested")) {
         // Mark that we've requested permission so we don't ask again
         localStorage.setItem("permissionRequested", "true")
@@ -1799,16 +1805,10 @@ export default function EnhancedTermsModal({
 
   return (
     <AnimatePresence>
-      <motion.div
-        key="modal"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-white dark:bg-gray-900"
-      >
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-white dark:bg-gray-900">
         <div ref={modalRef} className="relative w-full h-full flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-4 md:p-6 border-b border-gray-200 dark:border-gray-700r-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 z-10 shadow-sm">
             <div>
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
                 <FileText className="h-5 w-5 mr-2" />
@@ -2144,299 +2144,292 @@ export default function EnhancedTermsModal({
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Back to top button */}
-            {showBackToTop && (
-              <button
-                onClick={scrollToTop}
-                className="fixed bottom-24 right-6 p-3 rounded-full bg-blue-600 text-white shadow-lg z-20 hover:bg-blue-700 transition-colors"
-                aria-label="Back to top"
+          {/* Back to top button */}
+          {showBackToTop && (
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-24 right-6 p-3 rounded-full bg-blue-600 text-white shadow-lg z-20 hover:bg-blue-700 transition-colors"
+              aria-label="Back to top"
+            >
+              <ArrowUp className="h-5 w-5" />
+            </button>
+          )}
+
+          {/* Animated Accept/Decline Buttons */}
+          {showAnimatedButtons && showAcceptButtons && !showConfirmationPopup && (
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 20,
+              }}
+              className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 items-center"
+            >
+              <div className="text-center mb-2 sm:mb-0 sm:mr-4">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">You've completed reading!</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Please accept or decline our terms</p>
+              </div>
+              <div className="flex gap-3">
+                <motion.button
+                  onClick={handleDecline}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    "px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+                    forceAccept && "opacity-50 cursor-not-allowed",
+                  )}
+                  disabled={forceAccept}
+                >
+                  Decline
+                </motion.button>
+                <motion.button
+                  onClick={onAccept}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                >
+                  Accept Terms
+                </motion.button>
+              </div>
+              <motion.button
+                onClick={() => setShowAnimatedButtons(false)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="absolute -top-2 -right-2 bg-gray-200 dark:bg-gray-700 rounded-full p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
               >
-                <ArrowUp className="h-5 w-5" />
-              </button>
-            )}
+                <X className="h-4 w-4" />
+              </motion.button>
+            </motion.div>
+          )}
 
-            {/* Animated Accept/Decline Buttons */}
-            {showAnimatedButtons && showAcceptButtons && !showConfirmationPopup && (
+          {/* Decline Dialog */}
+          <AnimatePresence>
+            {showDeclineDialog && (
               <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 20,
-                }}
-                className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-30 bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 items-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
               >
-                <div className="text-center mb-2 sm:mb-0 sm:mr-4">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">You've completed reading!</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Please accept or decline our terms</p>
-                </div>
-                <div className="flex gap-3">
-                  <motion.button
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
+                >
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    We're sorry to see you go
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    You've declined our Terms and Conditions. We understand that you may have concerns, and we respect
+                    your decision. What would you like to do next?
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => setShowDeclineDialog(false)}
+                      className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={handleGoToHomepage}
+                      className="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Home className="h-4 w-4" />
+                      Homepage
+                    </button>
+                    <button
+                      onClick={handleGoodbye}
+                      className="flex-1 py-2 px-4 bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-200 dark:hover:bg-rose-800/30 text-rose-700 dark:text-rose-400 rounded-md transition-colors"
+                    >
+                      Goodbye
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Confirmation Popup */}
+          <AnimatePresence>
+            {showConfirmationPopup && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-0"
+              >
+                <motion.div
+                  initial={{ y: -100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -100, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 mt-0"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Browser Permission Required</h3>
+                    <button
+                      onClick={() => setShowConfirmationPopup(false)}
+                      className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    Your browser requires you to accept our Terms and Privacy Policy to continue. This permission will
+                    allow you to access the website indefinitely without further prompts.
+                  </p>
+
+                  <div className="space-y-4 mb-6">
+                    <div className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800">
+                      <div className="flex items-center h-5">
+                        <input
+                          id="terms-checkbox"
+                          type="checkbox"
+                          checked={termsChecked}
+                          onChange={(e) => setTermsChecked(e.target.checked)}
+                          className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                      </div>
+                      <label
+                        htmlFor="terms-checkbox"
+                        className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >
+                        I have read and agree to the{" "}
+                        <span className="text-blue-600 dark:text-blue-500 font-semibold">Terms and Conditions</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800">
+                      <div className="flex items-center h-5">
+                        <input
+                          id="privacy-checkbox"
+                          type="checkbox"
+                          checked={privacyChecked}
+                          onChange={(e) => setPrivacyChecked(e.target.checked)}
+                          className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600"
+                        />
+                      </div>
+                      <label
+                        htmlFor="privacy-checkbox"
+                        className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+                      >
+                        I have read and agree to the{" "}
+                        <span className="text-blue-600 dark:text-blue-500 font-semibold">Privacy Policy</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => setShowConfirmationPopup(false)}
+                      className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={handleContinueToWebsite}
+                      className={`flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2 ${
+                        !termsChecked || !privacyChecked ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      disabled={!termsChecked || !privacyChecked}
+                    >
+                      Grant Browser Permission
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Footer */}
+          <div className="sticky bottom-0 p-4 md:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 shadow-lg">
+            <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+              © 2025 smileybrooms LLC. All rights reserved.
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {showAcceptButtons ? (
+                <>
+                  <button
                     onClick={handleDecline}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
                     className={cn(
-                      "px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+                      "w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
                       forceAccept && "opacity-50 cursor-not-allowed",
                     )}
                     disabled={forceAccept}
                   >
                     Decline
-                  </motion.button>
-                  <motion.button
+                  </button>
+                  <button
                     onClick={onAccept}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                    className="w-full sm:w-auto px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                   >
-                    Accept Terms
-                  </motion.button>
+                    Accept Terms & Conditions
+                  </button>
+                </>
+              ) : (
+                <div className="w-full flex justify-center items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <Lock className="h-4 w-4" />
+                  <span>Please read both documents completely to continue</span>
                 </div>
-                <motion.button
-                  onClick={() => setShowAnimatedButtons(false)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="absolute -top-2 -right-2 bg-gray-200 dark:bg-gray-700 rounded-full p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600"
+              )}
+            </div>
+          </div>
+
+          {/* Decline Dialog */}
+          <AnimatePresence>
+            {showDeclineDialog && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
                 >
-                  <X className="h-4 w-4" />
-                </motion.button>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                    We're sorry to see you go
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    You've declined our Terms and Conditions. We understand that you may have concerns, and we respect
+                    your decision. What would you like to do next?
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => setShowDeclineDialog(false)}
+                      className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={handleGoToHomepage}
+                      className="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Home className="h-4 w-4" />
+                      Homepage
+                    </button>
+                    <button
+                      onClick={handleGoodbye}
+                      className="flex-1 py-2 px-4 bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-200 dark:hover:bg-rose-800/30 text-rose-700 dark:text-rose-400 rounded-md transition-colors"
+                    >
+                      Goodbye
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
-
-            {/* Decline Dialog */}
-            <AnimatePresence>
-              {showDeclineDialog && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                >
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-                  >
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                      We're sorry to see you go
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-6">
-                      You've declined our Terms and Conditions. We understand that you may have concerns, and we respect
-                      your decision. What would you like to do next?
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        onClick={() => setShowDeclineDialog(false)}
-                        className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
-                      >
-                        Go Back
-                      </button>
-                      <button
-                        onClick={handleGoToHomepage}
-                        className="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-md transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Home className="h-4 w-4" />
-                        Homepage
-                      </button>
-                      <button
-                        onClick={handleGoodbye}
-                        className="flex-1 py-2 px-4 bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-200 dark:hover:bg-rose-800/30 text-rose-700 dark:text-rose-400 rounded-md transition-colors"
-                      >
-                        Goodbye
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Confirmation Popup - Integrated into the modal */}
-            <AnimatePresence>
-              {showConfirmationPopup && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg p-4 z-30"
-                >
-                  <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        Browser Permission Required
-                      </h3>
-                      <button
-                        onClick={() => setShowConfirmationPopup(false)}
-                        className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                      Your browser requires you to accept our Terms and Privacy Policy to continue. This permission will
-                      allow you to access the website indefinitely without further prompts.
-                    </p>
-
-                    <div className="space-y-3 mb-4">
-                      <div className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800">
-                        <div className="flex items-center h-5">
-                          <input
-                            id="terms-checkbox"
-                            type="checkbox"
-                            checked={termsChecked}
-                            onChange={(e) => setTermsChecked(e.target.checked)}
-                            className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600"
-                          />
-                        </div>
-                        <label
-                          htmlFor="terms-checkbox"
-                          className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                        >
-                          I have read and agree to the{" "}
-                          <button
-                            onClick={() => scrollToSection("introduction")}
-                            className="text-blue-600 dark:text-blue-500 font-semibold hover:underline"
-                          >
-                            Terms and Conditions
-                          </button>
-                        </label>
-                      </div>
-
-                      <div className="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800">
-                        <div className="flex items-center h-5">
-                          <input
-                            id="privacy-checkbox"
-                            type="checkbox"
-                            checked={privacyChecked}
-                            onChange={(e) => setPrivacyChecked(e.target.checked)}
-                            className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600"
-                          />
-                        </div>
-                        <label
-                          htmlFor="privacy-checkbox"
-                          className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-                        >
-                          I have read and agree to the{" "}
-                          <button
-                            onClick={() => scrollToSection("information-collect")}
-                            className="text-blue-600 dark:text-blue-500 font-semibold hover:underline"
-                          >
-                            Privacy Policy
-                          </button>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        onClick={() => setShowConfirmationPopup(false)}
-                        className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
-                      >
-                        Continue Reading
-                      </button>
-                      <button
-                        onClick={handleContinueToWebsite}
-                        className={`flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2 ${
-                          !termsChecked || !privacyChecked ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        disabled={!termsChecked || !privacyChecked}
-                      >
-                        Grant Browser Permission
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 p-4 md:p-6 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 shadow-lg">
-              <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
-                © 2025 smileybrooms LLC. All rights reserved.
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                {showAcceptButtons ? (
-                  <>
-                    <button
-                      onClick={handleDecline}
-                      className={cn(
-                        "w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
-                        forceAccept && "opacity-50 cursor-not-allowed",
-                      )}
-                      disabled={forceAccept}
-                    >
-                      Decline
-                    </button>
-                    <button
-                      onClick={onAccept}
-                      className="w-full sm:w-auto px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                    >
-                      Accept Terms & Conditions
-                    </button>
-                  </>
-                ) : (
-                  <div className="w-full flex justify-center items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    <Lock className="h-4 w-4" />
-                    <span>Please read both documents completely to continue</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Decline Dialog */}
-            <AnimatePresence>
-              {showDeclineDialog && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                >
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-                  >
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                      We're sorry to see you go
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-6">
-                      You've declined our Terms and Conditions. We understand that you may have concerns, and we respect
-                      your decision. What would you like to do next?
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        onClick={() => setShowDeclineDialog(false)}
-                        className="flex-1 py-2 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-md transition-colors"
-                      >
-                        Go Back
-                      </button>
-                      <button
-                        onClick={handleGoToHomepage}
-                        className="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/30 text-blue-700 dark:text-blue-400 rounded-md transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Home className="h-4 w-4" />
-                        Homepage
-                      </button>
-                      <button
-                        onClick={handleGoodbye}
-                        className="flex-1 py-2 px-4 bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-200 dark:hover:bg-rose-800/30 text-rose-700 dark:text-rose-400 rounded-md transition-colors"
-                      >
-                        Goodbye
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
     </AnimatePresence>
   )
 }

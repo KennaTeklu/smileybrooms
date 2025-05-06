@@ -1,3 +1,9 @@
+/**
+ * Price Calculator Component
+ *
+ * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
+ */
+
 "use client"
 
 import { useState, useEffect } from "react"

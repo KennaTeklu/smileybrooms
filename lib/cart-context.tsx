@@ -1,186 +1,253 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
-import { v4 as uuidv4 } from "uuid"
+import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import { trackAddToCart, trackRemoveFromCart, trackViewCart } from "./analytics-utils"
+import { useToast } from "@/components/ui/use-toast"
 
-// Define types
-export interface CartItem {
+export type CartItem = {
   id: string
   name: string
   price: number
+  priceId: string
   quantity: number
-  priceId?: string
   image?: string
+  sourceSection?: string
   metadata?: Record<string, any>
   paymentFrequency?: "per_service" | "monthly" | "yearly"
 }
 
-interface CartContextType {
-  cart: {
-    items: CartItem[]
-    totalItems: number
-    totalPrice: number
+type CartState = {
+  items: CartItem[]
+  totalItems: number
+  totalPrice: number
+}
+
+type CartAction =
+  | { type: "ADD_ITEM"; payload: CartItem }
+  | { type: "REMOVE_ITEM"; payload: string }
+  | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
+  | { type: "CLEAR_CART" }
+
+const initialState: CartState = {
+  items: [],
+  totalItems: 0,
+  totalPrice: 0,
+}
+
+const calculateCartTotals = (items: CartItem[]): { totalItems: number; totalPrice: number } => {
+  return items.reduce(
+    (totals, item) => {
+      return {
+        totalItems: totals.totalItems + item.quantity,
+        totalPrice: totals.totalPrice + item.price * item.quantity,
+      }
+    },
+    { totalItems: 0, totalPrice: 0 },
+  )
+}
+
+const cartReducer = (state: CartState, action: CartAction): CartState => {
+  switch (action.type) {
+    case "ADD_ITEM": {
+      // Check if there's a similar item with the same service type and address
+      const similarItemIndex = state.items.findIndex((item) => {
+        // For custom cleaning services, check if they have the same service type, address, and payment frequency
+        if (
+          item.priceId === "price_custom_cleaning" &&
+          action.payload.priceId === "price_custom_cleaning" &&
+          item.metadata?.serviceType === action.payload.metadata?.serviceType &&
+          item.metadata?.frequency === action.payload.metadata?.frequency &&
+          item.paymentFrequency === action.payload.paymentFrequency
+        ) {
+          // Check if addresses match
+          const itemAddress = item.metadata?.customer?.address?.toLowerCase()
+          const payloadAddress = action.payload.metadata?.customer?.address?.toLowerCase()
+          return itemAddress && payloadAddress && itemAddress === payloadAddress
+        }
+
+        // For standard products, just check the ID
+        return item.id === action.payload.id
+      })
+
+      let updatedItems: CartItem[]
+
+      if (similarItemIndex >= 0) {
+        updatedItems = state.items.map((item, index) => {
+          if (index === similarItemIndex) {
+            return { ...item, quantity: item.quantity + action.payload.quantity }
+          }
+          return item
+        })
+      } else {
+        updatedItems = [...state.items, action.payload]
+
+        // Track the add to cart event with analytics
+        try {
+          trackAddToCart({
+            id: action.payload.id,
+            name: action.payload.name,
+            price: action.payload.price,
+            sourceSection: action.payload.sourceSection || "Unknown",
+          })
+        } catch (error) {
+          console.error("Error tracking add to cart:", error)
+        }
+      }
+
+      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+
+      return {
+        ...state,
+        items: updatedItems,
+        totalItems,
+        totalPrice,
+      }
+    }
+
+    case "REMOVE_ITEM": {
+      // Find the item before removing it to track the event
+      const itemToRemove = state.items.find((item) => item.id === action.payload)
+
+      const updatedItems = state.items.filter((item) => item.id !== action.payload)
+      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+
+      // Track the remove from cart event with analytics
+      if (itemToRemove) {
+        try {
+          trackRemoveFromCart({
+            id: itemToRemove.id,
+            name: itemToRemove.name,
+            price: itemToRemove.price,
+          })
+        } catch (error) {
+          console.error("Error tracking remove from cart:", error)
+        }
+      }
+
+      return {
+        ...state,
+        items: updatedItems,
+        totalItems,
+        totalPrice,
+      }
+    }
+
+    case "UPDATE_QUANTITY": {
+      const updatedItems = state.items.map((item) => {
+        if (item.id === action.payload.id) {
+          return { ...item, quantity: action.payload.quantity }
+        }
+        return item
+      })
+
+      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+
+      return {
+        ...state,
+        items: updatedItems,
+        totalItems,
+        totalPrice,
+      }
+    }
+
+    case "CLEAR_CART":
+      return initialState
+
+    default:
+      return state
   }
-  addItem: (item: Omit<CartItem, "id">) => void
+}
+
+type CartContextType = {
+  cart: CartState
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
 }
 
-// Create context
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-// Provider component
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<{
-    items: CartItem[]
-    totalItems: number
-    totalPrice: number
-  }>({
-    items: [],
-    totalItems: 0,
-    totalPrice: 0,
-  })
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [cart, dispatch] = useReducer(cartReducer, initialState)
+  const { toast } = useToast()
 
   // Load cart from localStorage on initial render
   useEffect(() => {
     const savedCart = localStorage.getItem("cart")
     if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart))
-      } catch (error) {
-        console.error("Failed to parse cart from localStorage:", error)
-        // Reset cart if parsing fails
-        setCart({
-          items: [],
-          totalItems: 0,
-          totalPrice: 0,
-        })
-      }
+      const parsedCart = JSON.parse(savedCart) as CartState
+      parsedCart.items.forEach((item) => {
+        dispatch({ type: "ADD_ITEM", payload: item })
+      })
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart))
+
+    // Track cart view when cart changes and has items
+    if (cart.items.length > 0) {
+      try {
+        trackViewCart(cart.items, cart.totalPrice)
+      } catch (error) {
+        console.error("Error tracking cart view:", error)
+      }
+    }
   }, [cart])
 
-  // Add item to cart
-  const addItem = (item: Omit<CartItem, "id">) => {
-    setCart((prevCart) => {
-      // Check if item with same properties already exists
-      const existingItemIndex = prevCart.items.findIndex((i) => {
-        // For custom items with metadata, we need to check if they have the same metadata
-        if (item.metadata) {
-          // For items with customer data, we consider them unique
-          if (item.metadata.customer) {
-            return false
-          }
+  const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
+    dispatch({
+      type: "ADD_ITEM",
+      payload: { ...item, quantity: item.quantity || 1 },
+    })
 
-          // For other items with metadata, compare the metadata
-          return (
-            i.name === item.name &&
-            i.price === item.price &&
-            JSON.stringify(i.metadata) === JSON.stringify(item.metadata)
-          )
-        }
-
-        // For regular items, just check name and price
-        return i.name === item.name && i.price === item.price && !i.metadata
+    if (toast) {
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart`,
+        duration: 3000, // Auto-dismiss after 3 seconds
       })
-
-      let newItems: CartItem[]
-
-      if (existingItemIndex > -1) {
-        // Update quantity of existing item
-        newItems = [...prevCart.items]
-        newItems[existingItemIndex] = {
-          ...newItems[existingItemIndex],
-          quantity: newItems[existingItemIndex].quantity + (item.quantity || 1),
-        }
-      } else {
-        // Add new item
-        newItems = [
-          ...prevCart.items,
-          {
-            ...item,
-            id: uuidv4(),
-            quantity: item.quantity || 1,
-          },
-        ]
-      }
-
-      // Calculate new totals
-      const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0)
-      const totalPrice = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-      return {
-        items: newItems,
-        totalItems,
-        totalPrice,
-      }
-    })
+    }
   }
 
-  // Remove item from cart
   const removeItem = (id: string) => {
-    setCart((prevCart) => {
-      const newItems = prevCart.items.filter((item) => item.id !== id)
-      const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0)
-      const totalPrice = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    dispatch({ type: "REMOVE_ITEM", payload: id })
 
-      return {
-        items: newItems,
-        totalItems,
-        totalPrice,
-      }
-    })
+    if (toast) {
+      toast({
+        title: "Removed from cart",
+        description: "Item has been removed from your cart",
+        duration: 3000,
+      })
+    }
   }
 
-  // Update item quantity
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return
-
-    setCart((prevCart) => {
-      const newItems = prevCart.items.map((item) => (item.id === id ? { ...item, quantity } : item))
-      const totalItems = newItems.reduce((sum, item) => sum + item.quantity, 0)
-      const totalPrice = newItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-      return {
-        items: newItems,
-        totalItems,
-        totalPrice,
-      }
-    })
+    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
   }
 
-  // Clear cart
   const clearCart = () => {
-    setCart({
-      items: [],
-      totalItems: 0,
-      totalPrice: 0,
-    })
+    dispatch({ type: "CLEAR_CART" })
+
+    if (toast) {
+      toast({
+        title: "Cart cleared",
+        description: "All items have been removed from your cart",
+        duration: 3000,
+      })
+    }
   }
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-      }}
-    >
+    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart }}>
       {children}
     </CartContext.Provider>
   )
 }
 
-// Custom hook to use the cart context
-export function useCart() {
+export const useCart = () => {
   const context = useContext(CartContext)
   if (context === undefined) {
     throw new Error("useCart must be used within a CartProvider")
