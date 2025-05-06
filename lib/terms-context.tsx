@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import {
+  hasAcceptedTerms as checkTermsAccepted, // Renamed import to avoid conflict
   saveTermsAcceptance,
   getTermsAcceptanceDate,
   shouldForceShowTerms,
@@ -76,8 +77,8 @@ export function TermsProvider({ children }: TermsProviderProps) {
         // Don't show modal if browser already accepted
         setShowTermsModal(false)
       } else {
-        // Regular initialization
-        const accepted = hasAcceptedTerms()
+        // Regular initialization - using the imported function, not the state variable
+        const accepted = checkTermsAccepted() // Fixed: using the renamed import
         const acceptanceDate = getTermsAcceptanceDate()
         const version = localStorage.getItem("termsVersion") || null
 
