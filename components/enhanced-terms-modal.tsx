@@ -1,9 +1,3 @@
-/**
- * Enhanced Terms Modal Component
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
- */
-
 "use client"
 
 import React from "react"
@@ -1805,7 +1799,13 @@ export default function EnhancedTermsModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-white dark:bg-gray-900">
+      <motion.div
+        key="modal"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-white dark:bg-gray-900"
+      >
         <div ref={modalRef} className="relative w-full h-full flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-4 md:p-6 border-b border-gray-200 dark:border-gray-700r-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 z-10 shadow-sm">
@@ -2103,7 +2103,6 @@ export default function EnhancedTermsModal({
                           </span>
                         )}
                       </h2>
-
                     </div>
 
                     <div className="mt-4 max-w-full break-words">{section.content}</div>
@@ -2266,7 +2265,9 @@ export default function EnhancedTermsModal({
                 >
                   <div className="max-w-3xl mx-auto">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Browser Permission Required</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        Browser Permission Required
+                      </h3>
                       <button
                         onClick={() => setShowConfirmationPopup(false)}
                         className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400"
@@ -2435,6 +2436,7 @@ export default function EnhancedTermsModal({
             </AnimatePresence>
           </div>
         </div>
-      </AnimatePresence>
-    )
-  }
+      </motion.div>
+    </AnimatePresence>
+  )
+}
