@@ -5,18 +5,12 @@ import { ShoppingCart } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { useState, useEffect } from "react"
 
 interface StickyCartButtonProps {
   totalPrice: number
   isServiceAvailable: boolean
   onAddToCart: () => void
   visible: boolean
-  className?: string
-  variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
-  size?: "default" | "sm" | "lg" | "icon"
-  showAsStatic?: boolean
-  staticPosition?: "top" | "bottom"
 }
 
 export default function StickyCartButton({
@@ -24,66 +18,14 @@ export default function StickyCartButton({
   isServiceAvailable,
   onAddToCart,
   visible,
-  className = "",
-  variant = "default",
-  size = "lg",
-  showAsStatic = false,
-  staticPosition = "bottom",
 }: StickyCartButtonProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [scrollPosition, setScrollPosition] = useState(0)
-  const [showFloating, setShowFloating] = useState(false)
-
-  // Track scroll position to determine when to show floating button
-  useEffect(() => {
-    const handleScroll = () => {
-      const position = window.scrollY
-      setScrollPosition(position)
-
-      // Show floating button when scrolled past a certain point
-      // and when not showing as static
-      if (!showAsStatic) {
-        const calculatorElement = document.getElementById("price-calculator")
-        if (calculatorElement) {
-          const calculatorBottom = calculatorElement.getBoundingClientRect().bottom
-          setShowFloating(calculatorBottom < 0)
-        } else {
-          setShowFloating(position > 300)
-        }
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    handleScroll() // Initial check
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [showAsStatic])
 
   if (!visible) return null
 
-  // If showing as static button (in the calculator UI)
-  if (showAsStatic) {
-    return (
-      <Button
-        variant={variant}
-        size={size}
-        onClick={onAddToCart}
-        disabled={!isServiceAvailable || totalPrice <= 0}
-        className={`gap-2 w-full ${className}`}
-      >
-        <ShoppingCart className="h-5 w-5" />
-        Add to Cart {totalPrice > 0 && `• ${formatCurrency(totalPrice)}`}
-      </Button>
-    )
-  }
-
-  // Otherwise show as floating button when needed
   return (
     <AnimatePresence>
-      {showFloating &&
-        visible &&
+      {visible &&
         (isDesktop ? (
           // Side floating button for desktop
           <motion.div

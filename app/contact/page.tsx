@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
-import { InteractivePhoneNumber } from "@/components/interactive-phone-number"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -234,10 +233,16 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-medium">Phone</h3>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Main: <InteractivePhoneNumber phoneNumber="(602) 800-0605" variant="default" />
+                        Main:{" "}
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
+                        </a>
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Support: <InteractivePhoneNumber phoneNumber="(602) 800-0605" variant="default" />
+                        Support:{" "}
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
+                        </a>
                       </p>
                     </div>
                   </CardContent>

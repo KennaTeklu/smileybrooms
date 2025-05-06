@@ -6,7 +6,6 @@ import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown, Phone } from "luc
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { InteractivePhoneNumber } from "@/components/interactive-phone-number"
 
 type FooterSection = {
   title: string
@@ -42,10 +41,6 @@ const footerSections: FooterSection[] = [
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
     ],
-  },
-  {
-    title: "Pricing",
-    links: [{ label: "Pricing", href: "/pricing" }],
   },
 ]
 
@@ -159,11 +154,11 @@ export default function UnifiedFooter() {
                     <Twitter className="h-4 w-4" />
                   </a>
                   <a
-                    href="#"
+                    href="tel:6028000605"
                     className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
                     aria-label="Call Us"
                   >
-                    <InteractivePhoneNumber phoneNumber="6028000605" showIcon={true} className="h-4 w-4 p-0 m-0" />
+                    <Phone className="h-4 w-4" />
                   </a>
                 </motion.div>
               </motion.div>
@@ -173,7 +168,9 @@ export default function UnifiedFooter() {
           {/* Phone number - Always visible */}
           <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Phone className="h-4 w-4" />
-            <InteractivePhoneNumber phoneNumber="6028000605" showIcon={false} variant="subtle" />
+            <a href="tel:6028000605" className="hover:text-primary transition-colors">
+              (602) 800-0605
+            </a>
           </div>
 
           {/* Copyright - Always visible */}

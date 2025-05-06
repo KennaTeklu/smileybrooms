@@ -1,5 +1,6 @@
 "use client"
 import { useRouter } from "next/navigation"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCheck, Users, Star, Heart, Clock, MapPin } from "lucide-react"
@@ -139,6 +140,8 @@ export default function CareersPage() {
           </div>
         </section>
       </main>
+
+      <AccessibilityToolbar />
     </div>
   )
 }

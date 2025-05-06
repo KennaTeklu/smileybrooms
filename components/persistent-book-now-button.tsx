@@ -14,7 +14,7 @@ export function PersistentBookNowButton() {
   const pathname = usePathname()
 
   // Hide button on pricing page
-  const shouldShow = pathname !== "/pricing"
+  const shouldShow = pathname !== "/pricing" && pathname !== "/calculator"
 
   useEffect(() => {
     const handleScroll = () => {

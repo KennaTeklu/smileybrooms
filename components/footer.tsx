@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown } from "lucide-react"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 
 type FooterSection = {
   title: string
@@ -37,10 +36,6 @@ const footerSections: FooterSection[] = [
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
     ],
-  },
-  {
-    title: "Pricing",
-    links: [{ label: "Get a Quote", href: "/pricing" }],
   },
 ]
 
@@ -90,51 +85,99 @@ export default function Footer() {
           <AnimatePresence>
             {isExpanded && (
               <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-4"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
+                transition={{ duration: 0.7, ease: [0.04, 0.62, 0.23, 0.98] }}
+                className="w-full overflow-hidden"
               >
-                {footerSections.map((section, index) => (
-                  <div key={index} className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{section.title}</h3>
-                    <ul className="flex flex-col gap-2">
-                      {section.links.map((link, i) => (
-                        <li key={i}>
-                          <Link
-                            href={link.href}
-                            className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm"
-                            target={link.external ? "_blank" : undefined}
-                            rel={link.external ? "noopener noreferrer" : undefined}
-                          >
-                            {link.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8">
+                  {footerSections.map((section) => (
+                    <motion.div
+                      key={section.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                    >
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{section.title}</h3>
+                      <ul className="space-y-2">
+                        {section.links.map((link) => (
+                          <motion.li key={link.label} whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
+                            <a
+                              href={link.href}
+                              className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors flex items-center"
+                              target={link.external ? "_blank" : undefined}
+                              rel={link.external ? "noopener noreferrer" : undefined}
+                            >
+                              {link.label}
+                            </a>
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Social Links */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="flex justify-center space-x-4 py-4"
+                >
+                  <a
+                    href="#"
+                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
+                    aria-label="Facebook"
+                  >
+                    <Facebook className="h-4 w-4" />
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
+                    aria-label="Instagram"
+                  >
+                    <Instagram className="h-4 w-4" />
+                  </a>
+                  <a
+                    href="#"
+                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
+                    aria-label="Twitter"
+                  >
+                    <Twitter className="h-4 w-4" />
+                  </a>
+                </motion.div>
+
+                {/* App Download Links - Simplified */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="flex flex-wrap justify-center gap-4 py-4"
+                >
+                  <a
+                    href="/downloads/smiley-brooms-ios.html"
+                    className="text-xs text-gray-500 hover:text-primary transition-colors"
+                  >
+                    iOS App
+                  </a>
+                  <a
+                    href="/downloads/smiley-brooms-android.html"
+                    className="text-xs text-gray-500 hover:text-primary transition-colors"
+                  >
+                    Android App
+                  </a>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Copyright and Social Links */}
-          <div className="flex flex-col md:flex-row items-center justify-between w-full border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-            <p className="text-gray-500 dark:text-gray-400 text-xs">
-              &copy; {currentYear} Your Company. All rights reserved.
-            </p>
-            <div className="flex gap-4">
-              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-            </div>
+          {/* Copyright - Always visible */}
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            &copy; {currentYear} Smiley Brooms. All rights reserved.
           </div>
         </div>
       </div>

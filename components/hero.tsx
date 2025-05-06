@@ -6,7 +6,6 @@ import { ArrowDown } from "lucide-react"
 import { motion } from "framer-motion"
 import CountUp from "react-countup"
 import { useInView } from "react-intersection-observer"
-import Link from "next/link"
 
 export default function Hero() {
   const [showWaitlist, setShowWaitlist] = useState(false)
@@ -91,11 +90,9 @@ export default function Hero() {
               className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0"
               variants={itemVariants}
             >
-              <Button size="lg" className="text-base group" asChild>
-                <Link href="/pricing">
-                  Book New Services
-                  <ArrowDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-1" />
-                </Link>
+              <Button size="lg" className="text-base group" onClick={scrollToSelections}>
+                Book New Services
+                <ArrowDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-1" />
               </Button>
               <Button variant="outline" size="lg" className="text-base" onClick={() => setShowWaitlist(true)}>
                 Join Waitlist
@@ -141,8 +138,8 @@ export default function Hero() {
                 <p className="mb-3 text-sm opacity-90">
                   A thorough cleaning of your entire home, from ceiling to floor.
                 </p>
-                <Button size="sm" variant="secondary" asChild>
-                  <Link href="/pricing">Learn More</Link>
+                <Button size="sm" variant="secondary" onClick={scrollToSelections}>
+                  Learn More
                 </Button>
               </div>
             </div>
