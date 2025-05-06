@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Menu, X, Home, Info, Phone, Briefcase, Download, Calculator, ChevronRight } from "lucide-react"
+import { Menu, X, Home, Info, Phone, Briefcase, Download, Calculator, ChevronRight, Code } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { name: "Careers", href: "/careers", icon: <Briefcase className="h-5 w-5" />, description: "Join our team" },
   { name: "Downloads", href: "/downloads", icon: <Download className="h-5 w-5" />, description: "Get our apps" },
   { name: "Pricing", href: "/pricing", icon: <Calculator className="h-5 w-5" />, description: "Calculate your quote" },
+  { name: "Tech Stack", href: "/tech-stack", icon: <Code className="h-5 w-5" />, description: "Our technology stack" },
 ]
 
 export default function EnhancedNavigation() {
