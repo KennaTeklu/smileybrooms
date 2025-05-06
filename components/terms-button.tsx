@@ -1,36 +1,59 @@
-/**
- * Terms Button Component
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
- *
- * This component provides a button to open the terms modal from anywhere in the app.
- */
-
 "use client"
 
-import { Button, type ButtonProps } from "@/components/ui/button"
-import { FileText } from "lucide-react"
-import { useTerms } from "@/lib/terms-context"
+import type React from "react"
 
-interface TermsButtonProps extends ButtonProps {
-  showIcon?: boolean
-  label?: string
+import { useState } from "react"
+import { FileText } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import EnhancedTermsModal from "./enhanced-terms-modal"
+import { saveTermsAcceptance } from "@/lib/terms-utils"
+
+interface TermsButtonProps {
+  variant?: "default" | "outline" | "ghost" | "link"
+  size?: "default" | "sm" | "lg"
+  initialTab?: "terms" | "privacy"
+  className?: string
+  children?: React.ReactNode
 }
 
-export function TermsButton({
-  showIcon = true,
-  label = "Terms & Privacy",
+export default function TermsButton({
+  variant = "link",
+  size = "default",
+  initialTab = "terms",
   className,
-  variant = "ghost",
-  size = "sm",
-  ...props
+  children,
 }: TermsButtonProps) {
-  const { openTermsModal } = useTerms()
+  const [showTerms, setShowTerms] = useState(false)
+
+  const handleOpenTerms = () => {
+    setShowTerms(true)
+  }
+
+  const handleAccept = () => {
+    saveTermsAcceptance()
+    setShowTerms(false)
+  }
 
   return (
-    <Button onClick={openTermsModal} variant={variant} size={size} className={className} {...props}>
-      {showIcon && <FileText className="h-4 w-4 mr-2" />}
-      {label}
-    </Button>
+    <>
+      <Button variant={variant} size={size} onClick={handleOpenTerms} className={className}>
+        {children || (
+          <>
+            <FileText className="h-4 w-4 mr-2" />
+            {initialTab === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+          </>
+        )}
+      </Button>
+
+      {showTerms && (
+        <EnhancedTermsModal
+          isOpen={showTerms}
+          onClose={() => setShowTerms(false)}
+          onAccept={handleAccept}
+          initialTab={initialTab}
+          continuousScroll={true}
+        />
+      )}
+    </>
   )
 }

@@ -1,78 +1,120 @@
-/**
- * Terms Entry Manager Component
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
- *
- * This component manages the display of the terms modal based on context state
- * and enforces terms acceptance before allowing access to protected pages.
- */
-
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import EnhancedTermsModal from "./enhanced-terms-modal"
-import { useTerms } from "@/lib/terms-context"
+import {
+  hasAcceptedTerms,
+  saveTermsAcceptance,
+  isFirstVisit,
+  markPageAsVisited,
+  hasScrolledToBottom,
+  shouldForceShowTerms,
+  clearForceShowTerms,
+  resetTermsStorage,
+} from "@/lib/terms-utils"
 
 export function TermsEntryManager() {
-  const { showTermsModal, closeTermsModal, acceptTerms, isTermsAccepted, isPathCritical, openTermsModal } = useTerms()
-
+  const [showTerms, setShowTerms] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-
-  // Check if current path requires terms acceptance
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const browserAccepted = localStorage.getItem("browserTermsAccepted") === "true"
-
-      // If browser has already accepted, don't show modal
-      if (browserAccepted) {
-        return
-      }
-
-      // If not on homepage and terms not accepted, show terms modal
-      if (pathname !== "/" && !isTermsAccepted) {
-        openTermsModal()
-
-        // After a small delay, show the confirmation popup directly
-        // This ensures the modal appears consistently across different entry points
-        setTimeout(() => {
-          // Use a custom event to communicate with the modal component
-          const event = new CustomEvent("showTermsConfirmation")
-          window.dispatchEvent(event)
-        }, 1000)
-      }
-    }
-  }, [pathname, isTermsAccepted, openTermsModal])
+  const isHomepage = pathname === "/"
+  const bottomTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const hasShownTermsRef = useRef(false)
+  const [termsBlocking, setTermsBlocking] = useState(false)
 
   // For development/testing - accessible via window.resetTerms()
   useEffect(() => {
     if (typeof window !== "undefined") {
       // @ts-ignore
-      window.resetTerms = () => {
-        // Import dynamically to avoid issues with SSR
-        import("@/lib/terms-utils").then(({ resetTermsStorage }) => {
-          resetTermsStorage()
-          window.location.reload()
-        })
-      }
+      window.resetTerms = resetTermsStorage
     }
   }, [])
 
-  // Determine if the current path requires forced acceptance
-  // All paths except homepage require forced acceptance
-  const forceAccept = pathname !== "/"
+  useEffect(() => {
+    // Check if terms should be forced to show (e.g., after redirection)
+    if (shouldForceShowTerms()) {
+      setShowTerms(true)
+      clearForceShowTerms()
+      return
+    }
+
+    // Don't show terms if already accepted
+    if (hasAcceptedTerms()) return
+
+    // Generate a unique key for this page
+    const pageKey = `visited_${pathname}`
+
+    // Check if this is the first visit to this page
+    const firstVisit = isFirstVisit(pageKey)
+
+    if (isHomepage) {
+      // For homepage, we need to detect scrolling to bottom
+      const handleScroll = () => {
+        if (hasShownTermsRef.current) return
+
+        if (hasScrolledToBottom()) {
+          // Clear any existing timer
+          if (bottomTimerRef.current) {
+            clearTimeout(bottomTimerRef.current)
+          }
+
+          // Set a new timer for 3 seconds
+          bottomTimerRef.current = setTimeout(() => {
+            if (hasScrolledToBottom() && !hasAcceptedTerms()) {
+              setShowTerms(true)
+              hasShownTermsRef.current = true
+            }
+          }, 3000)
+        } else {
+          // Clear timer if user scrolls away from bottom
+          if (bottomTimerRef.current) {
+            clearTimeout(bottomTimerRef.current)
+            bottomTimerRef.current = null
+          }
+        }
+      }
+
+      window.addEventListener("scroll", handleScroll)
+      return () => {
+        window.removeEventListener("scroll", handleScroll)
+        if (bottomTimerRef.current) {
+          clearTimeout(bottomTimerRef.current)
+        }
+      }
+    } else if (firstVisit) {
+      // For non-homepage, show terms on first visit and block navigation
+      setShowTerms(true)
+      setTermsBlocking(true)
+      markPageAsVisited(pageKey)
+    }
+  }, [pathname, isHomepage])
+
+  const handleAccept = () => {
+    saveTermsAcceptance()
+    setShowTerms(false)
+    setTermsBlocking(false)
+  }
+
+  const handleClose = () => {
+    if (termsBlocking && !isHomepage) {
+      // If terms are blocking and we're not on homepage, redirect to homepage
+      router.push("/")
+    } else {
+      setShowTerms(false)
+    }
+  }
 
   return (
     <>
-      {showTermsModal && (
+      {showTerms && (
         <EnhancedTermsModal
-          isOpen={showTermsModal}
-          onClose={closeTermsModal}
-          onAccept={acceptTerms}
+          isOpen={showTerms}
+          onClose={handleClose}
+          onAccept={handleAccept}
           initialTab="terms"
           continuousScroll={true}
-          forceAccept={forceAccept}
+          forceAccept={termsBlocking && !isHomepage}
         />
       )}
     </>

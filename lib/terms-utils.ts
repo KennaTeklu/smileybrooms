@@ -1,7 +1,5 @@
 /**
  * Terms and Conditions utility functions
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
  */
 
 // Check if user has accepted terms

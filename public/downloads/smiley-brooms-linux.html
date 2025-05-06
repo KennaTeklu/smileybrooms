@@ -1,222 +1,59 @@
-<!-- Note: Always use "smileybrooms" (lowercase, one word) instead of "Smiley Brooms" -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>smileybrooms for Linux</title>
-    <style>
-        body {
-            font-family: 'Ubuntu', 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #300a24;
-            color: #fff;
-        }
-        .container {
-            text-align: center;
-            max-width: 800px;
-            padding: 20px;
-        }
-        .logo {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 20px;
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
-        }
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            color: #e95420;
-        }
-        p {
-            font-size: 1.1rem;
-            line-height: 1.5;
-            color: #f0f0f0;
-            margin-bottom: 30px;
-        }
-        .download-section {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .download-btn {
-            background-color: #e95420;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .download-btn:hover {
-            background-color: #c7411b;
-        }
-        .steps {
-            margin-top: 40px;
-            text-align: left;
-            background-color: #2c2c2c;
-            padding: 30px;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        .installation-tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #444;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #333;
-            color: #ccc;
-            border: none;
-            margin-right: 5px;
-            border-radius: 4px 4px 0 0;
-        }
-        .tab.active {
-            background-color: #e95420;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .code-block {
-            background-color: #1e1e1e;
-            padding: 15px;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            margin: 15px 0;
-        }
-        .system-req {
-            background-color: #333;
-            padding: 20px;
-            border-radius: 4px;
-            margin-top: 30px;
-            border-left: 4px solid #e95420;
-        }
-        .system-req h3 {
-            margin-top: 0;
-            color: #e95420;
-        }
-        .system-req ul {
-            text-align: left;
-            padding-left: 20px;
-        }
-        .system-req li {
-            margin-bottom: 8px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smiley Brooms Linux App</title>
+  <style>
+    body {
+      font-family: Ubuntu, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #e95420;
+    }
+    .download-btn {
+      display: inline-block;
+      background-color: #e95420;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 20px;
+      margin-right: 10px;
+    }
+    .app-icon {
+      width: 120px;
+      height: 120px;
+      margin: 20px auto;
+      background-color: #f0f0f0;
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <img src="/favicon.ico" alt="smileybrooms Logo" class="logo">
-        <h1>smileybrooms for Linux</h1>
-        <p>Download our Linux application to book cleaning services, track your appointments, and manage your cleaning schedule from your Linux machine.</p>
-        
-        <div class="download-section">
-            <a href="/downloads/smileybrooms.deb" class="download-btn" download>Download .deb (Ubuntu/Debian)</a>
-            <a href="/downloads/smileybrooms.rpm" class="download-btn" download>Download .rpm (Fedora/RHEL)</a>
-            <a href="/downloads/smileybrooms.AppImage" class="download-btn" download>Download AppImage (Universal)</a>
-        </div>
-        <p>Version 1.2.0 | Last updated: May 2023</p>
-        
-        <div class="steps">
-            <h2>Installation Instructions</h2>
-            
-            <div class="installation-tabs">
-                <button class="tab active" onclick="openTab(event, 'debian')">Ubuntu/Debian</button>
-                <button class="tab" onclick="openTab(event, 'fedora')">Fedora/RHEL</button>
-                <button class="tab" onclick="openTab(event, 'appimage')">AppImage</button>
-            </div>
-            
-            <div id="debian" class="tab-content active">
-                <h3>Installing on Ubuntu/Debian-based distributions</h3>
-                <p>After downloading the .deb package, you can install it using either the graphical package manager or the command line:</p>
-                
-                <p><strong>Using the command line:</strong></p>
-                <div class="code-block">
-                    sudo dpkg -i ~/Downloads/smileybrooms.deb<br>
-                    sudo apt-get install -f # To resolve any dependencies
-                </div>
-                
-                <p><strong>Using the graphical interface:</strong></p>
-                <ol>
-                    <li>Navigate to your Downloads folder</li>
-                    <li>Double-click on the smileybrooms.deb file</li>
-                    <li>The Software Center should open</li>
-                    <li>Click "Install" and enter your password when prompted</li>
-                </ol>
-            </div>
-            
-            <div id="fedora" class="tab-content">
-                <h3>Installing on Fedora/RHEL-based distributions</h3>
-                <p>After downloading the .rpm package, you can install it using either the graphical package manager or the command line:</p>
-                
-                <p><strong>Using the command line:</strong></p>
-                <div class="code-block">
-                    sudo dnf install ~/Downloads/smileybrooms.rpm
-                </div>
-                
-                <p><strong>Using the graphical interface:</strong></p>
-                <ol>
-                    <li>Navigate to your Downloads folder</li>
-                    <li>Double-click on the smileybrooms.rpm file</li>
-                    <li>The Software Center should open</li>
-                    <li>Click "Install" and enter your password when prompted</li>
-                </ol>
-            </div>
-            
-            <div id="appimage" class="tab-content">
-                <h3>Using the AppImage (works on most Linux distributions)</h3>
-                <p>AppImage is a universal package format that runs on most Linux distributions without installation:</p>
-                
-                <ol>
-                    <li>Download the AppImage file</li>
-                    <li>Make it executable with the following command:</li>
-                </ol>
-                
-                <div class="code-block">
-                    chmod +x ~/Downloads/smileybrooms.AppImage
-                </div>
-                
-                <ol start="3">
-                    <li>Run the AppImage by double-clicking it or using the command line:</li>
-                </ol>
-                
-                <div class="code-block">
-                    ~/Downloads/smileybrooms.AppImage
-                </div>
-            </div>
-            
-            <div class="system-req">
-                <h3>System Requirements</h3>
-                <ul>
-                    <li>Any modern Linux distribution (Ubuntu 20.04+, Fedora 34+, etc.)</li>
-                    <li>4GB RAM minimum (8GB recommended)</li>
-                    <li>200MB free disk space</li>
-                    <li>X11 or Wayland display server</li>
-                    <li>Internet connection required for booking services</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
+  <div class="app-icon">SB</div>
+  <h1>Smiley Brooms Linux App</h1>
+  <p>This is a placeholder for the Smiley Brooms Linux application.</p>
+  <p>Version: 1.0.0</p>
+  <p>Size: 14.3 MB</p>
+  <p>Compatibility: Most modern Linux distributions</p>
+  
+  <div>
+    <a href="/downloads/smiley-brooms.deb" class="download-btn">.deb Package</a>
+    <a href="/downloads/smiley-brooms.rpm" class="download-btn">.rpm Package</a>
+    <a href="/downloads/smiley-brooms.AppImage" class="download-btn">.AppImage</a>
+  </div>
+  
+  <p style="margin-top: 40px; font-size: 0.8em; color: #666;">
+    Note: This is a placeholder. In a real implementation, this would link to distribution-specific packages.
+  </p>
+</body>
+</html>
