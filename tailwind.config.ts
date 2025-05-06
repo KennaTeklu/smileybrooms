@@ -1,23 +1,8 @@
 import type { Config } from "tailwindcss"
-
-const config = {
+const shadcnConfig = {
   darkMode: ["class"],
-  content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-  ],
-  prefix: "",
+  content: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "*.{js,ts,jsx,tsx,mdx}"],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -59,48 +44,52 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        slideUp: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        fadeIn: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        shine: {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(100%)" },
-        },
-        pageTransitionUp: {
-          "0%": { transform: "translateY(100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
-        pageTransitionDown: {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        slideUp: "slideUp 0.5s ease-out",
-        fadeIn: "fadeIn 0.6s ease-out",
-        shine: "shine 3s infinite linear",
-        pageTransitionUp: "pageTransitionUp 0.8s ease-out",
-        pageTransitionDown: "pageTransitionDown 0.8s ease-out",
-      },
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config
+}
+
+const config: Config = {
+  darkMode: shadcnConfig.darkMode,
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "*.{js,ts,jsx,tsx,mdx}",
+    ...shadcnConfig.content,
+  ],
+  theme: {
+    ...shadcnConfig.theme,
+    extend: {
+      ...shadcnConfig.theme.extend,
+      borderRadius: {
+        "4xl": "2rem",
+        ...shadcnConfig.theme.extend.borderRadius,
+      },
+      animation: {
+        "spin-slow": "spin 3s linear infinite",
+      },
+    },
+  },
+  plugins: [
+    ...shadcnConfig.plugins,
+    ({ addComponents }) => {
+      addComponents({
+        ".btn": {
+          padding: ".5rem 1rem",
+          borderRadius: ".25rem",
+          fontWeight: "600",
+        },
+        ".btn-blue": {
+          backgroundColor: "#3490dc",
+          color: "#fff",
+          "&:hover": {
+            backgroundColor: "#2779bd",
+          },
+        },
+      })
+    },
+  ],
+}
 
 export default config
