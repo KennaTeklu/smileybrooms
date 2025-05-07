@@ -1,98 +1,72 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, ExternalLink, Code, CheckCircle2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-type TechVersion = {
+interface TechnologyVersion {
   name: string
   version: string
   status: "stable" | "rc" | "beta" | "alpha"
   description: string
   releaseDate?: string
   docsUrl: string
+  repoUrl: string
   changelogUrl?: string
-  notes?: string
-  icon?: React.ReactNode
 }
 
-const techVersions: TechVersion[] = [
+const technologies: TechnologyVersion[] = [
   {
     name: "Next.js",
     version: "15.0.0",
     status: "stable",
-    description: "The React framework for the web",
-    releaseDate: "2025-04-15",
+    description: "The React framework for the web. Used for server-side rendering and static site generation.",
+    releaseDate: "2023-10-26",
     docsUrl: "https://nextjs.org/docs",
-    changelogUrl: "https://nextjs.org/blog",
-    notes: "Introduces significant performance improvements and new features like Server Actions 2.0",
-    icon: <Code className="h-5 w-5" />,
+    repoUrl: "https://github.com/vercel/next.js",
+    changelogUrl: "https://github.com/vercel/next.js/releases",
   },
   {
     name: "Tailwind CSS",
     version: "4.0.0",
     status: "stable",
-    description: "A utility-first CSS framework",
-    releaseDate: "2025-03-10",
+    description: "A utility-first CSS framework. Version 4 introduces a new class naming convention.",
+    releaseDate: "2023-11-02",
     docsUrl: "https://tailwindcss.com/docs",
+    repoUrl: "https://github.com/tailwindlabs/tailwindcss",
     changelogUrl: "https://github.com/tailwindlabs/tailwindcss/releases",
-    notes: "Introduces a new class naming convention and improved performance",
-    icon: <Code className="h-5 w-5" />,
   },
   {
     name: "React",
     version: "18.2.0",
     status: "stable",
-    description: "A JavaScript library for building user interfaces",
-    releaseDate: "2024-06-22",
-    docsUrl: "https://react.dev/docs",
+    description: "A JavaScript library for building user interfaces. The foundation of our frontend.",
+    releaseDate: "2022-06-14",
+    docsUrl: "https://react.dev/",
+    repoUrl: "https://github.com/facebook/react",
     changelogUrl: "https://github.com/facebook/react/releases",
-    notes: "The latest stable release, with React 19 still in release candidate stage",
-    icon: <Code className="h-5 w-5" />,
   },
   {
     name: "TypeScript",
     version: "5.3.0",
     status: "stable",
-    description: "JavaScript with syntax for types",
-    releaseDate: "2024-11-15",
+    description: "A typed superset of JavaScript that compiles to plain JavaScript.",
+    releaseDate: "2023-11-01",
     docsUrl: "https://www.typescriptlang.org/docs/",
+    repoUrl: "https://github.com/microsoft/TypeScript",
     changelogUrl: "https://github.com/microsoft/TypeScript/releases",
-    notes: "Includes improved type inference and performance enhancements",
-    icon: <Code className="h-5 w-5" />,
   },
   {
     name: "shadcn/ui",
     version: "0.8.0",
     status: "stable",
-    description: "Beautifully designed components built with Radix UI and Tailwind CSS",
-    releaseDate: "2024-12-01",
-    docsUrl: "https://ui.shadcn.com",
-    changelogUrl: "https://github.com/shadcn-ui/ui/releases",
-    notes: "Includes new components and improved accessibility",
-    icon: <Code className="h-5 w-5" />,
+    description: "Beautifully designed components built with Radix UI and Tailwind CSS.",
+    docsUrl: "https://ui.shadcn.com/",
+    repoUrl: "https://github.com/shadcn/ui",
   },
 ]
-
-const statusColors = {
-  stable: "bg-green-500",
-  rc: "bg-yellow-500",
-  beta: "bg-orange-500",
-  alpha: "bg-red-500",
-}
-
-const statusLabels = {
-  stable: "Stable",
-  rc: "Release Candidate",
-  beta: "Beta",
-  alpha: "Alpha",
-}
 
 export function TechVersionsInfo() {
   const [expandedTech, setExpandedTech] = useState<string | null>(null)
@@ -101,120 +75,94 @@ export function TechVersionsInfo() {
     setExpandedTech(expandedTech === techName ? null : techName)
   }
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "stable":
+        return "bg-green-500 hover:bg-green-600"
+      case "rc":
+        return "bg-blue-500 hover:bg-blue-600"
+      case "beta":
+        return "bg-yellow-500 hover:bg-yellow-600"
+      case "alpha":
+        return "bg-red-500 hover:bg-red-600"
+      default:
+        return "bg-gray-500 hover:bg-gray-600"
+    }
+  }
+
   return (
-    <div className="space-y-4 w-full max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Technology Stack</h2>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3 text-green-500" />
-            <span>Up to date</span>
-          </Badge>
-          <Badge variant="outline" className="flex items-center gap-1">
-            <span>Last checked: May 6, 2025</span>
-          </Badge>
-        </div>
-      </div>
-
-      <div className="grid gap-4">
-        {techVersions.map((tech) => (
-          <Card key={tech.name} className="overflow-hidden">
-            <CardHeader
-              className={cn(
-                "cursor-pointer transition-colors",
-                expandedTech === tech.name ? "bg-muted/50" : "hover:bg-muted/30",
-              )}
-              onClick={() => toggleExpand(tech.name)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-md">{tech.icon}</div>
-                  <div>
-                    <CardTitle className="text-lg">{tech.name}</CardTitle>
-                    <CardDescription>{tech.description}</CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="font-semibold">{tech.version}</div>
-                    <Badge className={cn("text-white", statusColors[tech.status])}>{statusLabels[tech.status]}</Badge>
-                  </div>
-                  <ChevronDown
-                    className={cn(
-                      "h-5 w-5 transition-transform",
-                      expandedTech === tech.name ? "transform rotate-180" : "",
-                    )}
-                  />
-                </div>
+    <div className="space-y-4">
+      {technologies.map((tech) => (
+        <Card key={tech.name} className="overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle>{tech.name}</CardTitle>
+                <Badge className={getStatusColor(tech.status)}>v{tech.version}</Badge>
               </div>
-            </CardHeader>
-
-            <AnimatePresence>
-              {expandedTech === tech.name && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <CardContent className="pt-4">
-                    <div className="space-y-3">
-                      {tech.notes && (
-                        <div>
-                          <h4 className="text-sm font-semibold mb-1">Release Notes</h4>
-                          <p className="text-sm text-muted-foreground">{tech.notes}</p>
-                        </div>
-                      )}
-
-                      {tech.releaseDate && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">Release Date:</span>
-                          <span className="text-sm text-muted-foreground">{tech.releaseDate}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-end gap-2 pt-0 pb-4">
-                    <Button variant="outline" size="sm" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleExpand(tech.name)}
+                aria-expanded={expandedTech === tech.name}
+                aria-controls={`tech-details-${tech.name}`}
+              >
+                {expandedTech === tech.name ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+            <CardDescription>{tech.description}</CardDescription>
+          </CardHeader>
+          {expandedTech === tech.name && (
+            <CardContent id={`tech-details-${tech.name}`} className="pt-2">
+              <div className="space-y-2 text-sm">
+                {tech.releaseDate && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Release Date:</span>
+                    <span>{tech.releaseDate}</span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button asChild variant="outline" size="sm" className="justify-start">
+                    <a
+                      href={tech.docsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Documentation
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="justify-start">
+                    <a
+                      href={tech.repoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Repository
+                    </a>
+                  </Button>
+                  {tech.changelogUrl && (
+                    <Button asChild variant="outline" size="sm" className="justify-start">
                       <a
-                        href={tech.docsUrl}
+                        href={tech.changelogUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-2"
                       >
-                        Documentation
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Changelog
                       </a>
                     </Button>
-                    {tech.changelogUrl && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={tech.changelogUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1"
-                        >
-                          Changelog
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
-                    )}
-                  </CardFooter>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-        ))}
-      </div>
-
-      <div className="mt-8 p-4 bg-muted rounded-lg">
-        <h3 className="text-lg font-semibold mb-2">Our Update Policy</h3>
-        <p className="text-sm text-muted-foreground">
-          We maintain our applications with the latest stable versions of these technologies to ensure optimal
-          performance, security, and feature availability. Major version updates are thoroughly tested before deployment
-          to production.
-        </p>
-      </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      ))}
     </div>
   )
 }

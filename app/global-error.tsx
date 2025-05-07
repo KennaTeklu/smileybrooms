@@ -1,8 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Home } from "lucide-react"
-import Link from "next/link"
+import { Home, RefreshCw } from "lucide-react"
 
 export default function GlobalError({
   error,
@@ -14,19 +13,22 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
           <div className="space-y-6 max-w-md">
-            <h1 className="text-4xl font-bold text-gray-900">Critical Error</h1>
-            <p className="text-gray-600">A critical error has occurred. We apologize for the inconvenience.</p>
+            <h1 className="text-4xl font-bold">Something went wrong!</h1>
+            <p className="text-gray-600">We've encountered a critical error. Our team has been notified.</p>
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Button onClick={() => reset()} variant="outline">
+              <Button variant="outline" onClick={() => reset()} className="flex items-center gap-2">
+                <RefreshCw size={16} />
                 Try Again
               </Button>
-              <Button asChild>
-                <Link href="/">
-                  <Home className="mr-2 h-4 w-4" />
+
+              <Button asChild className="flex items-center gap-2">
+                <a href="/">
+                  <Home size={16} />
                   Return Home
-                </Link>
+                </a>
               </Button>
             </div>
           </div>
