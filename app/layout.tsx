@@ -13,6 +13,7 @@ import PageViewTracker from "@/components/page-view-tracker"
 import { CartProvider } from "@/lib/cart-context"
 import { TermsEntryManager } from "@/components/terms-entry-manager"
 import { TermsProvider } from "@/lib/terms-context"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -35,7 +36,9 @@ export default function RootLayout({
             <CartProvider>
               <PageViewTracker />
               <EnhancedNavigation />
-              <div className="pt-16">{children}</div>
+              <ErrorBoundary>
+                <div className="pt-16">{children}</div>
+              </ErrorBoundary>
               <TermsEntryManager />
               <PersistentBookNowButton />
               <AccessibilityPanel />
