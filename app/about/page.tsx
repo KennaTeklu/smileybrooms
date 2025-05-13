@@ -5,12 +5,10 @@ import { MissionVision } from "@/components/about/mission-vision"
 import { CoreValues } from "@/components/about/core-values"
 import { OurCommitment } from "@/components/about/our-commitment"
 import { WhySmileybrooms } from "@/components/about/why-smileybrooms"
-import { PageViewTracker } from "@/components/page-view-tracker"
 
 export default function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <PageViewTracker pageName="about" />
       <main className="flex-1 flex flex-col">
         {/* Hero Section */}
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">

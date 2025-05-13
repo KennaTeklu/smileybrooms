@@ -1,112 +1,81 @@
-// Track adding an item to the cart
-export function trackAddToCart(item: { id: string; name: string; price: number; sourceSection?: string }) {
+"use client"
+
+import { track } from "@vercel/analytics"
+
+/**
+ * Track cart events with Vercel Analytics
+ */
+export function trackCartEvent(eventName: string, properties: Record<string, any>) {
   try {
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "add_to_cart", {
-        currency: "USD",
-        value: item.price,
-        items: [
-          {
-            item_id: item.id,
-            item_name: item.name,
-            price: item.price,
-            quantity: 1,
-            item_category: "Cleaning Services",
-            item_list_name: item.sourceSection || "Product List",
-          },
-        ],
-      })
-    }
+    track(eventName, properties)
   } catch (error) {
-    console.error("Error tracking add to cart:", error)
+    console.error("Error tracking event:", error)
   }
 }
 
-// Track removing an item from the cart
-export function trackRemoveFromCart(item: { id: string; name: string; price: number }) {
-  try {
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "remove_from_cart", {
-        currency: "USD",
-        value: item.price,
-        items: [
-          {
-            item_id: item.id,
-            item_name: item.name,
-            price: item.price,
-            quantity: 1,
-            item_category: "Cleaning Services",
-          },
-        ],
-      })
-    }
-  } catch (error) {
-    console.error("Error tracking remove from cart:", error)
-  }
+/**
+ * Track when an item is added to the cart
+ */
+export function trackAddToCart(item: {
+  id: string
+  name: string
+  price: number
+  sourceSection?: string
+}) {
+  trackCartEvent("add_to_cart", {
+    item_id: item.id,
+    item_name: item.name,
+    price: item.price,
+    source_section: item.sourceSection || "Unknown",
+    timestamp: new Date().toISOString(),
+  })
 }
 
-// Track viewing the cart
-export function trackViewCart(items: any[], totalValue: number) {
-  try {
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "view_cart", {
-        currency: "USD",
-        value: totalValue,
-        items: items.map((item) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          item_category: "Cleaning Services",
-        })),
-      })
-    }
-  } catch (error) {
-    console.error("Error tracking view cart:", error)
-  }
+/**
+ * Track when an item is removed from the cart
+ */
+export function trackRemoveFromCart(item: {
+  id: string
+  name: string
+  price: number
+}) {
+  trackCartEvent("remove_from_cart", {
+    item_id: item.id,
+    item_name: item.name,
+    price: item.price,
+    timestamp: new Date().toISOString(),
+  })
 }
 
-// Track beginning checkout
-export function trackBeginCheckout(items: any[], totalValue: number) {
-  try {
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "begin_checkout", {
-        currency: "USD",
-        value: totalValue,
-        items: items.map((item) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          item_category: "Cleaning Services",
-        })),
-      })
-    }
-  } catch (error) {
-    console.error("Error tracking begin checkout:", error)
-  }
+/**
+ * Track when the cart is viewed
+ */
+export function trackViewCart(items: Array<any>, totalPrice: number) {
+  trackCartEvent("view_cart", {
+    items_count: items.length,
+    total_price: totalPrice,
+    timestamp: new Date().toISOString(),
+  })
 }
 
-// Track purchase completion
-export function trackPurchase(transactionId: string, items: any[], totalValue: number) {
-  try {
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "purchase", {
-        transaction_id: transactionId,
-        value: totalValue,
-        currency: "USD",
-        tax: totalValue * 0.07, // Assuming 7% tax
-        shipping: 0,
-        items: items.map((item) => ({
-          item_id: item.id,
-          item_name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          item_category: "Cleaning Services",
-        })),
-      })
-    }
-  } catch (error) {
-    console.error("Error tracking purchase:", error)
-  }
+/**
+ * Track when checkout is initiated
+ */
+export function trackBeginCheckout(items: Array<any>, totalPrice: number) {
+  trackCartEvent("begin_checkout", {
+    items_count: items.length,
+    total_price: totalPrice,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+// Empty template - functionality removed
+export const initAnalytics = () => {
+  // Template only - no functionality
+  console.log("Template analytics initialization")
+}
+
+export const trackConversion = (value: number, currency = "USD") => {
+  // Template only - no functionality
+  console.log("Template conversion tracking:", value, currency)
 }

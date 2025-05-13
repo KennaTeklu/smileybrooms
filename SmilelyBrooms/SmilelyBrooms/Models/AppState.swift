@@ -1,6 +1,17 @@
 import SwiftUI
 
 class AppState: ObservableObject {
+    @Published var currentTab: Tab = .home
+    
+    enum Tab {
+        case home, services, booking, profile
+    }
+    
+    // Basic app state properties
+    @Published var isDarkMode = false
+    @Published var selectedService: String?
+    @Published var showNewBookingSheet = false
+    
     @Published var isLoggedIn: Bool = false
     @Published var showLoginSheet: Bool = false
     @Published var userProfile: UserProfile?

@@ -22,19 +22,18 @@ type CheckoutSessionParams = {
   cancelUrl: string
   customerEmail?: string
   customerData?: {
-    name?: string
-    email?: string
-    phone?: string
-    address?: {
-      line1?: string
-      city?: string
-      state?: string
-      postal_code?: string
-      country?: string
+    name: string
+    email: string
+    phone: string
+    address: {
+      line1: string
+      city: string
+      state: string
+      postal_code: string
+      country: string
     }
   }
   isRecurring?: boolean
-  recurringInterval?: "week" | "month" | "year"
 }
 
 export async function createCheckoutSession({
@@ -45,7 +44,6 @@ export async function createCheckoutSession({
   customerEmail,
   customerData,
   isRecurring = false,
-  recurringInterval = "month",
 }: CheckoutSessionParams): Promise<string> {
   try {
     // Create standard line items for products with price IDs
@@ -66,7 +64,7 @@ export async function createCheckoutSession({
         ...(isRecurring
           ? {
               recurring: {
-                interval: recurringInterval as "week" | "month" | "year",
+                interval: "month", // Default to monthly for recurring payments
               },
             }
           : {}),
@@ -144,36 +142,29 @@ export async function createCheckoutSession({
   }
 }
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
-export async function handleStripeWebhook(req: Request) {
+export async function handleStripeWebhook(request: Request) {
   try {
-    const body = await req.text()
-    const signature = req.headers.get("stripe-signature") as string
+    const signature = request.headers.get("stripe-signature") || ""
+    const body = await request.text()
 
-    let event: Stripe.Event
-
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err: any) {
-      return { error: `Webhook signature verification failed: ${err.message}` }
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      return { error: "Missing Stripe webhook secret" }
     }
 
-    // Handle the event
+    const event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
+
+    // Handle different event types
     switch (event.type) {
       case "checkout.session.completed":
         const session = event.data.object as Stripe.Checkout.Session
-        // Handle successful payment
-        console.log("Payment successful for session:", session.id)
-        // Here you would typically:
-        // 1. Update order status in your database
-        // 2. Send confirmation email to customer
-        // 3. Schedule the cleaning service
+        // Process the successful payment
+        await processSuccessfulPayment(session)
         break
 
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log("Payment intent succeeded:", paymentIntent.id)
+        // Handle successful payment intent
+        console.log(`Payment intent ${paymentIntent.id} succeeded`)
         break
 
       default:
@@ -182,8 +173,8 @@ export async function handleStripeWebhook(req: Request) {
 
     return { success: true }
   } catch (error) {
-    console.error("Error in handleStripeWebhook:", error)
-    throw error
+    console.error("Error handling webhook:", error)
+    return { error: "Failed to handle webhook" }
   }
 }
 

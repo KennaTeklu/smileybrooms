@@ -1,229 +1,358 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence, useSpring } from "framer-motion"
+import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Accessibility, ChevronLeft, ChevronRight, Type, Contrast, MousePointer, ZoomIn, ZoomOut } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
+import { useClickOutside } from "@/hooks/use-click-outside"
 
-export function AccessibilityPanel() {
+export default function AccessibilityPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [fontScale, setFontScale] = useState(1)
+  const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
   const [saturation, setSaturation] = useState(1)
-  const [cursorScale, setCursorScale] = useState(1)
-  const [isDyslexicFont, setIsDyslexicFont] = useState(false)
-  const [isHighContrast, setIsHighContrast] = useState(false)
-  const [isMotionReduced, setIsMotionReduced] = useState(false)
-  const [isFocusIndicators, setIsFocusIndicators] = useState(false)
+  const [motionReduced, setMotionReduced] = useState(false)
+  const [highContrast, setHighContrast] = useState(false)
+  const [dyslexicFont, setDyslexicFont] = useState(false)
+  const [cursorSize, setCursorSize] = useState(1)
+  const [soundEffects, setSoundEffects] = useState(false)
+  const [keyboardMode, setKeyboardMode] = useState(false)
+  const [focusIndicators, setFocusIndicators] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const { theme, setTheme } = useTheme()
 
-  const togglePanel = () => {
-    setIsOpen(!isOpen)
-  }
+  const panelRef = useRef<HTMLDivElement>(null)
 
-  const increaseFontSize = () => {
-    const newScale = Math.min(fontScale + 0.1, 1.5)
-    setFontScale(newScale)
-    document.documentElement.style.setProperty("--accessibility-font-scale", newScale.toString())
-  }
+  // Smooth scroll position with spring physics
+  const smoothScrollY = useSpring(0, {
+    stiffness: 100,
+    damping: 20,
+    mass: 0.5,
+  })
 
-  const decreaseFontSize = () => {
-    const newScale = Math.max(fontScale - 0.1, 0.8)
-    setFontScale(newScale)
-    document.documentElement.style.setProperty("--accessibility-font-scale", newScale.toString())
-  }
+  // Track scroll position with smooth animation
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+      smoothScrollY.set(window.scrollY)
+    }
 
-  const increaseContrast = () => {
-    const newContrast = Math.min(contrast + 0.1, 1.5)
-    setContrast(newContrast)
-    document.documentElement.style.setProperty("--accessibility-contrast", newContrast.toString())
-  }
+    // Use passive: true for better performance
+    window.addEventListener("scroll", handleScroll, { passive: true })
 
-  const decreaseContrast = () => {
-    const newContrast = Math.max(contrast - 0.1, 0.8)
-    setContrast(newContrast)
-    document.documentElement.style.setProperty("--accessibility-contrast", newContrast.toString())
-  }
+    // Initial position setting
+    handleScroll()
 
-  const increaseSaturation = () => {
-    const newSaturation = Math.min(saturation + 0.1, 1.5)
-    setSaturation(newSaturation)
-    document.documentElement.style.setProperty("--accessibility-saturation", newSaturation.toString())
-  }
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [smoothScrollY])
 
-  const decreaseSaturation = () => {
-    const newSaturation = Math.max(saturation - 0.1, 0)
-    setSaturation(newSaturation)
-    document.documentElement.style.setProperty("--accessibility-saturation", newSaturation.toString())
-  }
+  // Close panel when clicking outside
+  useClickOutside(panelRef, () => {
+    if (isOpen) {
+      setIsOpen(false)
+    }
+  })
 
-  const increaseCursorSize = () => {
-    const newCursorScale = Math.min(cursorScale + 0.2, 2)
-    setCursorScale(newCursorScale)
-    document.documentElement.style.setProperty("--accessibility-cursor-scale", newCursorScale.toString())
-    document.body.classList.toggle("accessibility-cursor", newCursorScale > 1)
-  }
+  // Apply font size to body
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
+    }
+  }, [fontSize])
 
-  const decreaseCursorSize = () => {
-    const newCursorScale = Math.max(cursorScale - 0.2, 1)
-    setCursorScale(newCursorScale)
-    document.documentElement.style.setProperty("--accessibility-cursor-scale", newCursorScale.toString())
-    document.body.classList.toggle("accessibility-cursor", newCursorScale > 1)
-  }
+  // Apply contrast and saturation
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-contrast", contrast.toString())
+      document.documentElement.style.setProperty("--accessibility-saturation", saturation.toString())
+    }
+  }, [contrast, saturation])
 
-  const toggleDyslexicFont = () => {
-    setIsDyslexicFont(!isDyslexicFont)
-    document.body.classList.toggle("dyslexic-font", !isDyslexicFont)
-  }
+  // Apply high contrast mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (highContrast) {
+        document.body.classList.add("high-contrast")
+      } else {
+        document.body.classList.remove("high-contrast")
+      }
+    }
+  }, [highContrast])
 
-  const toggleHighContrast = () => {
-    setIsHighContrast(!isHighContrast)
-    document.body.classList.toggle("high-contrast", !isHighContrast)
-  }
+  // Apply dyslexic font
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (dyslexicFont) {
+        document.body.classList.add("dyslexic-font")
+      } else {
+        document.body.classList.remove("dyslexic-font")
+      }
+    }
+  }, [dyslexicFont])
 
-  const toggleMotionReduced = () => {
-    setIsMotionReduced(!isMotionReduced)
-    document.body.classList.toggle("motion-reduced", !isMotionReduced)
-  }
+  // Apply motion reduction
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (motionReduced) {
+        document.body.classList.add("motion-reduced")
+      } else {
+        document.body.classList.remove("motion-reduced")
+      }
+    }
+  }, [motionReduced])
 
-  const toggleFocusIndicators = () => {
-    setIsFocusIndicators(!isFocusIndicators)
-    document.body.classList.toggle("focus-indicators", !isFocusIndicators)
-  }
+  // Apply keyboard mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (keyboardMode) {
+        document.body.classList.add("keyboard-mode")
+      } else {
+        document.body.classList.remove("keyboard-mode")
+      }
+    }
+  }, [keyboardMode])
 
-  const resetAll = () => {
-    setFontScale(1)
-    setContrast(1)
-    setSaturation(1)
-    setCursorScale(1)
-    setIsDyslexicFont(false)
-    setIsHighContrast(false)
-    setIsMotionReduced(false)
-    setIsFocusIndicators(false)
+  // Apply focus indicators
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (focusIndicators) {
+        document.body.classList.add("focus-indicators")
+      } else {
+        document.body.classList.remove("focus-indicators")
+      }
+    }
+  }, [focusIndicators])
 
-    document.documentElement.style.setProperty("--accessibility-font-scale", "1")
-    document.documentElement.style.setProperty("--accessibility-contrast", "1")
-    document.documentElement.style.setProperty("--accessibility-saturation", "1")
-    document.documentElement.style.setProperty("--accessibility-cursor-scale", "1")
-
-    document.body.classList.remove("dyslexic-font")
-    document.body.classList.remove("high-contrast")
-    document.body.classList.remove("motion-reduced")
-    document.body.classList.remove("focus-indicators")
-    document.body.classList.remove("accessibility-cursor")
-  }
+  // Apply cursor size
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-cursor-scale", cursorSize.toString())
+    }
+  }, [cursorSize])
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="icon"
-        className="fixed bottom-24 right-4 z-50 rounded-full shadow-md"
-        onClick={togglePanel}
-        aria-label="Accessibility options"
-      >
-        <Accessibility className="h-5 w-5" />
-      </Button>
+    <motion.div
+      className="fixed left-0 z-50"
+      style={{
+        top: scrollY > 100 ? "auto" : "50%",
+        bottom: scrollY > 100 ? "20px" : "auto",
+        y: scrollY > 100 ? 0 : "-50%",
+        transition: "top 0.3s ease, bottom 0.3s ease, transform 0.3s ease",
+      }}
+    >
+      <AnimatePresence>
+        {isOpen ? (
+          <motion.div
+            ref={panelRef}
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="bg-white dark:bg-gray-900 shadow-lg rounded-r-lg overflow-hidden flex"
+          >
+            <div className="w-72 sm:w-80 max-h-[80vh] overflow-y-auto p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Accessibility
+                </h2>
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </div>
 
-      {isOpen && (
-        <div className="fixed bottom-24 right-16 z-50 bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 w-72 border border-gray-200 dark:border-gray-800">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg">Accessibility</h3>
-            <Button variant="ghost" size="sm" onClick={resetAll}>
-              Reset All
-            </Button>
-          </div>
+              <Tabs defaultValue="vision" className="w-full">
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="vision">Vision</TabsTrigger>
+                  <TabsTrigger value="motion">Motion</TabsTrigger>
+                  <TabsTrigger value="input">Input</TabsTrigger>
+                </TabsList>
 
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="flex items-center">
-                  <Type className="h-4 w-4 mr-2" />
-                  Text Size
-                </span>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="icon" onClick={decreaseFontSize} aria-label="Decrease text size">
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={increaseFontSize} aria-label="Increase text size">
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                </div>
+                <TabsContent value="vision" className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="font-size">Text Size</Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
+                        >
+                          <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
+                        >
+                          <ZoomIn className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Slider
+                      id="font-size"
+                      value={[fontSize * 100]}
+                      min={80}
+                      max={150}
+                      step={5}
+                      onValueChange={(value) => setFontSize(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(fontSize * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contrast">Contrast</Label>
+                    <Slider
+                      id="contrast"
+                      value={[contrast * 100]}
+                      min={75}
+                      max={150}
+                      step={5}
+                      onValueChange={(value) => setContrast(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(contrast * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="saturation">Saturation</Label>
+                    <Slider
+                      id="saturation"
+                      value={[saturation * 100]}
+                      min={0}
+                      max={200}
+                      step={5}
+                      onValueChange={(value) => setSaturation(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(saturation * 100)}%</p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="high-contrast">High Contrast</Label>
+                      <p className="text-xs text-muted-foreground">Increase text/background contrast</p>
+                    </div>
+                    <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="dyslexic-font">Dyslexia Friendly</Label>
+                      <p className="text-xs text-muted-foreground">Use dyslexia-friendly font</p>
+                    </div>
+                    <Switch id="dyslexic-font" checked={dyslexicFont} onCheckedChange={setDyslexicFont} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <p className="text-xs text-muted-foreground">Switch between light and dark</p>
+                    </div>
+                    <Switch
+                      id="dark-mode"
+                      checked={theme === "dark"}
+                      onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="motion" className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="reduce-motion">Reduce Motion</Label>
+                      <p className="text-xs text-muted-foreground">Minimize animations</p>
+                    </div>
+                    <Switch id="reduce-motion" checked={motionReduced} onCheckedChange={setMotionReduced} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="sound-effects">Sound Effects</Label>
+                      <p className="text-xs text-muted-foreground">Enable interface sounds</p>
+                    </div>
+                    <Switch id="sound-effects" checked={soundEffects} onCheckedChange={setSoundEffects} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="input" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cursor-size">Cursor Size</Label>
+                    <Slider
+                      id="cursor-size"
+                      value={[cursorSize * 100]}
+                      min={100}
+                      max={200}
+                      step={10}
+                      onValueChange={(value) => setCursorSize(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(cursorSize * 100)}%</p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="keyboard-mode">Keyboard Navigation</Label>
+                      <p className="text-xs text-muted-foreground">Optimize for keyboard use</p>
+                    </div>
+                    <Switch id="keyboard-mode" checked={keyboardMode} onCheckedChange={setKeyboardMode} />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="focus-indicators">Focus Indicators</Label>
+                      <p className="text-xs text-muted-foreground">Highlight focused elements</p>
+                    </div>
+                    <Switch id="focus-indicators" checked={focusIndicators} onCheckedChange={setFocusIndicators} />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setFontSize(1)
+                    setContrast(1)
+                    setSaturation(1)
+                    setMotionReduced(false)
+                    setHighContrast(false)
+                    setDyslexicFont(false)
+                    setCursorSize(1)
+                    setSoundEffects(false)
+                    setKeyboardMode(false)
+                    setFocusIndicators(false)
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset All Settings
+                </Button>
               </div>
             </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="flex items-center">
-                  <Contrast className="h-4 w-4 mr-2" />
-                  Contrast
-                </span>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="icon" onClick={decreaseContrast} aria-label="Decrease contrast">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={increaseContrast} aria-label="Increase contrast">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="flex items-center">
-                  <MousePointer className="h-4 w-4 mr-2" />
-                  Cursor Size
-                </span>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="icon" onClick={decreaseCursorSize} aria-label="Decrease cursor size">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={increaseCursorSize} aria-label="Increase cursor size">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                variant={isDyslexicFont ? "default" : "outline"}
-                size="sm"
-                className="w-full justify-start"
-                onClick={toggleDyslexicFont}
-              >
-                Dyslexia Friendly Font
-              </Button>
-
-              <Button
-                variant={isHighContrast ? "default" : "outline"}
-                size="sm"
-                className="w-full justify-start"
-                onClick={toggleHighContrast}
-              >
-                High Contrast Mode
-              </Button>
-
-              <Button
-                variant={isMotionReduced ? "default" : "outline"}
-                size="sm"
-                className="w-full justify-start"
-                onClick={toggleMotionReduced}
-              >
-                Reduce Motion
-              </Button>
-
-              <Button
-                variant={isFocusIndicators ? "default" : "outline"}
-                size="sm"
-                className="w-full justify-start"
-                onClick={toggleFocusIndicators}
-              >
-                Focus Indicators
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+          </motion.div>
+        ) : (
+          <motion.button
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => setIsOpen(true)}
+            className={cn(
+              "flex items-center justify-center p-3 bg-white dark:bg-gray-900",
+              "rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
+            aria-label="Open accessibility settings"
+          >
+            <Settings className="h-5 w-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

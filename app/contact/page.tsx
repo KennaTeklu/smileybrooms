@@ -11,9 +11,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Mail, Phone, MapPin, Clock } from "lucide-react"
-import { PageViewTracker } from "@/components/page-view-tracker"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
-import Footer from "@/components/footer"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -147,7 +144,6 @@ export default function ContactPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageViewTracker pageName="contact" />
       <main className="flex-1">
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">
@@ -298,8 +294,6 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-      <AccessibilityToolbar />
-      <Footer />
     </div>
   )
 }

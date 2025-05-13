@@ -1,67 +1,70 @@
-"use client"
+import { Sparkles, Clock, Shield, Users, Leaf, Calendar, CreditCard, Star } from "lucide-react"
 
-import { motion } from "framer-motion"
-import { Shield, Clock, Award, Sparkles } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-
-export function Features() {
+export default function Features() {
   const features = [
     {
-      icon: Shield,
-      name: "Professional Staff",
-      description: "Background-checked, trained professionals who take pride in their work.",
-    },
-    {
-      icon: Clock,
-      name: "Flexible Scheduling",
-      description: "Book a time that works for you, including evenings and weekends.",
-    },
-    {
-      icon: Award,
-      name: "Satisfaction Guarantee",
-      description: "If you're not happy with our service, we'll make it right.",
-    },
-    {
+      name: "Premium Quality",
+      description: "Our professional cleaners use high-quality equipment and eco-friendly products.",
       icon: Sparkles,
-      name: "Premium Cleaning",
-      description: "We use high-quality, eco-friendly products for a superior clean.",
+    },
+    {
+      name: "Flexible Scheduling",
+      description: "Book a cleaning service that fits your schedule, including evenings and weekends.",
+      icon: Clock,
+    },
+    {
+      name: "Insured & Bonded",
+      description: "All our cleaning professionals are fully insured and bonded for your peace of mind.",
+      icon: Shield,
+    },
+    {
+      name: "Vetted Professionals",
+      description: "Our cleaners undergo thorough background checks and professional training.",
+      icon: Users,
+    },
+    {
+      name: "Eco-Friendly Products",
+      description: "We use environmentally friendly cleaning products that are safe for your family and pets.",
+      icon: Leaf,
+    },
+    {
+      name: "Easy Booking",
+      description: "Book and manage your cleaning services online with just a few clicks.",
+      icon: Calendar,
+    },
+    {
+      name: "Transparent Pricing",
+      description: "No hidden fees or surprises. Get an accurate quote before booking.",
+      icon: CreditCard,
+    },
+    {
+      name: "Satisfaction Guaranteed",
+      description: "If you're not 100% satisfied, we'll re-clean at no additional cost.",
+      icon: Star,
     },
   ]
 
   return (
-    <section className="py-16 bg-white dark:bg-gray-950">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <Badge
-            variant="outline"
-            className="mb-4 px-3 py-1 border-indigo-200 text-indigo-700 dark:border-indigo-800 dark:text-indigo-400"
-          >
-            Why Choose Us
-          </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-            The smileybroom difference
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-            We're committed to providing the best cleaning experience possible
+    <section className="bg-gray-50 py-16 dark:bg-gray-900/50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose Smiley Brooms?</h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            We deliver exceptional cleaning services with attention to detail and customer satisfaction.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {features.map((feature, index) => (
-            <motion.div
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((feature) => (
+            <div
               key={feature.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm border border-gray-100 dark:border-gray-800"
+              className="rounded-xl bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-gray-800"
             >
-              <div className="bg-indigo-100 dark:bg-indigo-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <feature.icon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <feature.icon className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">{feature.name}</h3>
-              <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
-            </motion.div>
+              <h3 className="mb-2 text-lg font-medium">{feature.name}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{feature.description}</p>
+            </div>
           ))}
         </div>
       </div>

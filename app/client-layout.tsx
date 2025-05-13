@@ -5,28 +5,20 @@ import type React from "react"
 import { CartProvider } from "@/lib/cart-context"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { usePathname } from "next/navigation"
-import { useEffect } from "react"
-import PageViewTracker from "@/components/page-view-tracker"
-import { QueryClientProvider } from "@/components/providers/query-client-provider"
+import FixedFooter from "@/components/fixed-footer"
+import { PageViewTracker } from "@/components/page-view-tracker"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-
-  // Scroll to top on route change
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [pathname])
-
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <QueryClientProvider>
-        <CartProvider>
-          <PageViewTracker />
+      <CartProvider>
+        <PageViewTracker />
+        <div className="flex min-h-screen flex-col pb-16">
           {children}
           <Toaster />
-        </CartProvider>
-      </QueryClientProvider>
+          <FixedFooter />
+        </div>
+      </CartProvider>
     </ThemeProvider>
   )
 }

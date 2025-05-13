@@ -1,35 +1,35 @@
-"use client"
+"\"use client"
 
-import { useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { useEffect, useRef } from "react"
+import { usePathname, useSearchParams } from "next/navigation"
+import { track } from "@vercel/analytics"
 
-interface PageViewTrackerProps {
-  pageName?: string
-}
-
-export function PageViewTracker({ pageName }: PageViewTrackerProps) {
+export function PageViewTracker() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const previousPathRef = useRef<string | null>(null)
 
   useEffect(() => {
-    try {
+    // Only track if the path has changed
+    if (previousPathRef.current !== pathname) {
+      const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : "")
+
       // Track page view
-      const pageToTrack = pageName || pathname
+      track("page_view", {
+        page_path: pathname,
+        page_url: url,
+        page_title: document.title,
+        referrer: document.referrer || "direct",
+        timestamp: new Date().toISOString(),
+      })
 
-      // Example tracking code - replace with your actual analytics implementation
-      if (typeof window !== "undefined" && window.gtag) {
-        window.gtag("event", "page_view", {
-          page_title: document.title,
-          page_location: window.location.href,
-          page_path: pageToTrack,
-        })
-      }
-
-      console.log(`Page view tracked: ${pageToTrack}`)
-    } catch (error) {
-      console.error("Error tracking page view:", error)
+      // Update the previous path
+      previousPathRef.current = pathname
     }
-  }, [pathname, pageName])
+  }, [pathname, searchParams])
 
   // This component doesn't render anything
   return null
 }
+
+export default PageViewTracker

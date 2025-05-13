@@ -15,7 +15,6 @@ import { Briefcase, Upload } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { PageViewTracker } from "@/components/page-view-tracker"
 
 // Position-specific questions
 const positionQuestions = {
@@ -288,7 +287,6 @@ export default function CareerApplicationPage({ params }: { params: { position: 
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageViewTracker pageName={`careers-${position}`} />
       <main className="flex-1">
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">
