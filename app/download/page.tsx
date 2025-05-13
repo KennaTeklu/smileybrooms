@@ -1,120 +1,81 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import type { Metadata } from "next"
+import AppScreenshots from "@/components/app-screenshots"
+import AppFeaturesComparison from "@/components/app-features-comparison"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Apple, Smartphone, Monitor } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Download SmileyBrooms App",
+  description: "Download the SmileyBrooms app for iOS, Android, or desktop to manage your cleaning services on the go.",
+}
 
 export default function DownloadPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const platform = searchParams.get("platform")
-  const [downloadStarted, setDownloadStarted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!platform) {
-      setError("No platform specified")
-      return
-    }
-
-    // Start download automatically
-    startDownload()
-  }, [platform])
-
-  const startDownload = async () => {
-    try {
-      // Get download URL from API
-      const response = await fetch(`/api/download?platform=${platform}`)
-      const data = await response.json()
-
-      if (data.error) {
-        setError(data.error)
-        return
-      }
-
-      // Start download
-      setDownloadStarted(true)
-
-      // Create a direct download link
-      const link = document.createElement("a")
-      link.href = data.url
-      link.download = data.url.split("/").pop() || "smiley-brooms-app"
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      // Track download event
-      if (typeof window !== "undefined" && window.gtag) {
-        window.gtag("event", "app_download", {
-          platform: platform,
-          method: "direct",
-        })
-      }
-    } catch (err) {
-      console.error("Download error:", err)
-      setError("Failed to start download. Please try again.")
-    }
-  }
-
-  const getPlatformName = () => {
-    switch (platform) {
-      case "ios":
-        return "iOS"
-      case "android":
-        return "Android"
-      case "macos":
-        return "macOS"
-      case "windows":
-        return "Windows"
-      case "linux-deb":
-        return "Linux (DEB)"
-      case "linux-rpm":
-        return "Linux (RPM)"
-      case "linux-appimage":
-        return "Linux (AppImage)"
-      default:
-        return "Unknown"
-    }
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Downloading Smiley Brooms</CardTitle>
-          <CardDescription>
-            {downloadStarted
-              ? `Your download for ${getPlatformName()} should begin automatically.`
-              : `Preparing your ${getPlatformName()} download...`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error ? (
-            <div className="rounded-md bg-red-50 p-4 text-red-700">
-              <p>{error}</p>
+    <main className="container mx-auto px-4 py-12">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Download SmileyBrooms App</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Get the SmileyBrooms app for a seamless cleaning service experience on your preferred device.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-16">
+          <div>
+            <h2 className="text-2xl font-bold mb-4">Experience SmileyBrooms on Mobile</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Our mobile app gives you the full SmileyBrooms experience with additional features like real-time
+              tracking, push notifications, and offline access to your bookings.
+            </p>
+
+            <div className="space-y-4">
+              <Button asChild size="lg" className="w-full">
+                <a href="/downloads/smiley-brooms.apk" download>
+                  <Smartphone className="mr-2 h-5 w-5" />
+                  Download for Android
+                </a>
+              </Button>
+
+              <Button asChild size="lg" variant="outline" className="w-full">
+                <a href="/downloads/smiley-brooms.ipa" download>
+                  <Apple className="mr-2 h-5 w-5" />
+                  Download for iOS
+                </a>
+              </Button>
+
+              <Button asChild size="lg" variant="outline" className="w-full">
+                <a href="/downloads/smiley-brooms.dmg" download>
+                  <Monitor className="mr-2 h-5 w-5" />
+                  Download for Desktop
+                </a>
+              </Button>
             </div>
-          ) : downloadStarted ? (
-            <div className="rounded-md bg-green-50 p-4 text-green-700">
-              <p>Download started! If your download doesn't begin automatically, click the button below.</p>
-            </div>
-          ) : (
-            <div className="flex justify-center p-6">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          {downloadStarted && (
-            <Button className="w-full" onClick={startDownload}>
-              Download Again
-            </Button>
-          )}
-          <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
-            Return to Homepage
+          </div>
+
+          <div>
+            <AppScreenshots />
+          </div>
+        </div>
+
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold mb-4 text-center">Features Comparison</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 text-center">
+            See how the SmileyBrooms experience differs across platforms.
+          </p>
+
+          <AppFeaturesComparison />
+        </div>
+
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">Need Help?</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Having trouble downloading or installing the app? Our support team is here to help.
+          </p>
+          <Button asChild>
+            <a href="/contact">Contact Support</a>
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </main>
   )
 }

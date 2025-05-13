@@ -1,80 +1,32 @@
-/**
- * Terms Entry Manager Component
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
- *
- * This component manages the display of the terms modal based on context state
- * and enforces terms acceptance before allowing access to protected pages.
- */
-
 "use client"
 
 import { useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
-import EnhancedTermsModal from "./enhanced-terms-modal"
+import { usePathname } from "next/navigation"
 import { useTerms } from "@/lib/terms-context"
+import PremiumTermsModal from "@/components/premium-terms-modal"
 
 export function TermsEntryManager() {
-  const { showTermsModal, closeTermsModal, acceptTerms, isTermsAccepted, isPathCritical, openTermsModal } = useTerms()
-
   const pathname = usePathname()
-  const router = useRouter()
+  const { termsAccepted, openTermsModal } = useTerms()
 
-  // Check if current path requires terms acceptance
+  // Check if terms should be shown on certain pages
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const browserAccepted = localStorage.getItem("browserTermsAccepted") === "true"
+    // Skip terms check on the terms page itself to avoid loops
+    if (pathname === "/terms") return
 
-      // If browser has already accepted, don't show modal
-      if (browserAccepted) {
-        return
-      }
+    // Pages that require terms acceptance
+    const requiresTerms = ["/checkout", "/services", "/pricing", "/contact"].some((path) => pathname.startsWith(path))
 
-      // If not on homepage and terms not accepted, show terms modal
-      if (pathname !== "/" && !isTermsAccepted) {
-        openTermsModal()
+    // Show terms modal if not accepted and on a page that requires it
+    if (requiresTerms && !termsAccepted) {
+      // Small delay to ensure the UI is ready
+      const timer = setTimeout(() => {
+        openTermsModal?.()
+      }, 500)
 
-        // After a small delay, show the confirmation popup directly
-        // This ensures the modal appears consistently across different entry points
-        setTimeout(() => {
-          // Use a custom event to communicate with the modal component
-          const event = new CustomEvent("showTermsConfirmation")
-          window.dispatchEvent(event)
-        }, 1000)
-      }
+      return () => clearTimeout(timer)
     }
-  }, [pathname, isTermsAccepted, openTermsModal])
+  }, [pathname, termsAccepted, openTermsModal])
 
-  // For development/testing - accessible via window.resetTerms()
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      // @ts-ignore
-      window.resetTerms = () => {
-        // Import dynamically to avoid issues with SSR
-        import("@/lib/terms-utils").then(({ resetTermsStorage }) => {
-          resetTermsStorage()
-          window.location.reload()
-        })
-      }
-    }
-  }, [])
-
-  // Determine if the current path requires forced acceptance
-  // All paths except homepage require forced acceptance
-  const forceAccept = pathname !== "/"
-
-  return (
-    <>
-      {showTermsModal && (
-        <EnhancedTermsModal
-          isOpen={showTermsModal}
-          onClose={closeTermsModal}
-          onAccept={acceptTerms}
-          initialTab="terms"
-          continuousScroll={true}
-          forceAccept={forceAccept}
-        />
-      )}
-    </>
-  )
+  return <PremiumTermsModal />
 }

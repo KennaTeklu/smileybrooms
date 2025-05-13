@@ -1,26 +1,13 @@
 "use client"
 
 import { SheetTrigger } from "@/components/ui/sheet"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  ShoppingCart,
-  Trash2,
-  Plus,
-  Minus,
-  MapPin,
-  ExternalLink,
-  CreditCard,
-  Loader2,
-  Info,
-  PhoneCall,
-} from "lucide-react"
+import { ShoppingCart, Trash2, Plus, Minus, CreditCard, Loader2, Info, PhoneCall } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
@@ -28,6 +15,7 @@ import PaymentMethodSelector from "./payment-method-selector"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import Image from "next/image"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -56,6 +44,17 @@ interface CartProps {
   showLabel?: boolean
 }
 
+interface CartItem {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  image?: string
+  priceId: string
+  metadata?: any
+  paymentFrequency?: string
+}
+
 export function Cart({ showLabel = false }: CartProps) {
   const { cart, removeItem, updateQuantity, clearCart, addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
@@ -63,6 +62,7 @@ export function Cart({ showLabel = false }: CartProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   // This will ensure the cart stays open when other dialogs/popups are closed
   const handleOpenChange = (open: boolean) => {
@@ -88,11 +88,7 @@ export function Cart({ showLabel = false }: CartProps) {
     })
   }
 
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    updateQuantity(id, quantity)
-  }
-
-  const handleClearCart = () => {
+  const handleClearCartInner = () => {
     clearCart()
     toast({
       title: "Cart cleared",
@@ -101,12 +97,12 @@ export function Cart({ showLabel = false }: CartProps) {
     })
   }
 
-  const handleAddItem = (item) => {
+  const handleAddItem = (item: any) => {
     addItem(item)
     toast({
       title: "Item added",
       description: "The item has been added to your cart",
-      duration: 3000, // Auto-dismiss after 3 seconds
+      duration: 3000,
     })
   }
 
@@ -169,7 +165,7 @@ export function Cart({ showLabel = false }: CartProps) {
       }
 
       // Format cart items for better readability in spreadsheet
-      const formatCartSummary = (items) => {
+      const formatCartSummary = (items: CartItem[]) => {
         return items.map((item) => `${item.name} (${formatCurrency(item.price)} x ${item.quantity})`).join("; ")
       }
 
@@ -212,16 +208,19 @@ export function Cart({ showLabel = false }: CartProps) {
         const scriptURL =
           "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
 
-        fetch(scriptURL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(waitlistData),
-        }).catch((error) => {
-          console.error("Error submitting to waitlist:", error)
-        })
+        try {
+          await fetch(scriptURL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(waitlistData),
+          })
+        } catch (waitlistError) {
+          console.error("Error submitting to waitlist:", waitlistError)
+          // Continue with checkout even if waitlist submission fails
+        }
 
         // Mark video recording discount as permanently used for this address
         if (customerData.allowVideoRecording) {
@@ -257,19 +256,77 @@ export function Cart({ showLabel = false }: CartProps) {
       if (checkoutUrl) {
         setCheckoutSuccess(true)
         window.location.href = checkoutUrl
+      } else {
+        throw new Error("Failed to create checkout session. No checkout URL returned.")
       }
     } catch (error) {
       console.error("Error during checkout:", error)
-      setCheckoutError("An error occurred during checkout. Please try again or call us for assistance.")
+
+      // More specific error messages based on error type
+      let errorMessage = "An error occurred during checkout. Please try again or call us for assistance."
+
+      if (error instanceof TypeError) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error instanceof Error) {
+        if (error.message.includes("Stripe")) {
+          errorMessage = "Payment processing error. Please try a different payment method or contact support."
+        } else if (error.message.includes("session")) {
+          errorMessage = "Error creating checkout session. Please try again or use a different browser."
+        }
+      }
+
+      setCheckoutError(errorMessage)
       toast({
         title: "Checkout failed",
-        description: "An error occurred during checkout. Please try again.",
+        description: errorMessage,
         variant: "destructive",
         duration: 5000,
       })
     } finally {
       setIsCheckingOut(false)
     }
+  }
+
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+
+    setIsUpdating(true)
+    updateQuantity(id, newQuantity)
+    setTimeout(() => setIsUpdating(false), 500)
+  }
+
+  if (cart.items.length === 0) {
+    return (
+      <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+        <SheetTrigger asChild>
+          <Button variant="outline" size={showLabel ? "default" : "icon"} className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            {showLabel && <span className="ml-2">Cart</span>}
+            {cart.totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                {cart.totalItems}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="flex flex-col w-full sm:max-w-md md:max-w-lg">
+          <SheetHeader>
+            <SheetTitle className="flex items-center">
+              <ShoppingCart className="mr-2 h-5 w-5" /> Your Cart
+            </SheetTitle>
+          </SheetHeader>
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold mb-2">Your cart is empty</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Add some services to get started</p>
+            <SheetClose asChild>
+              <Button asChild>
+                <a href="/pricing">Browse Services</a>
+              </Button>
+            </SheetClose>
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
   }
 
   return (
@@ -293,18 +350,7 @@ export function Cart({ showLabel = false }: CartProps) {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto py-4">
-          {cart.items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center py-12">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Your cart is empty</p>
-              <p className="text-sm text-muted-foreground mt-1">Add items to your cart to see them here</p>
-              <SheetClose asChild>
-                <Button className="mt-6" variant="outline">
-                  Continue Shopping
-                </Button>
-              </SheetClose>
-            </div>
-          ) : (
+          <div className="space-y-6">
             <div className="space-y-4">
               {checkoutError && (
                 <Alert variant="destructive" className="mb-4">
@@ -339,128 +385,67 @@ export function Cart({ showLabel = false }: CartProps) {
               )}
 
               {cart.items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {item.image && (
-                        <div className="h-16 w-16 overflow-hidden rounded-md flex-shrink-0">
-                          <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
+                <div
+                  key={item.id}
+                  className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <div className="relative h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
+                    <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                  </div>
+
+                  <div className="flex-grow">
+                    <h4 className="font-medium">{item.name}</h4>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {item.metadata?.frequency && (
+                        <span className="capitalize">{item.metadata.frequency.replace(/_/g, " ")} • </span>
                       )}
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
-                        {item.metadata?.customer?.allowVideoRecording && (
-                          <span className="text-xs text-green-600 font-medium">Includes video recording discount</span>
-                        )}
-                        {item.paymentFrequency && item.paymentFrequency !== "per_service" && (
-                          <span className="text-xs text-blue-600 font-medium block">
-                            {(() => {
-                              // Get service frequency from metadata
-                              const serviceFrequency = item.metadata?.frequency || "one_time"
-
-                              // Determine if discount applies
-                              let hasDiscount = false
-                              let discountAmount = ""
-
-                              if (serviceFrequency !== "one_time") {
-                                const servicesPerYear = getServicesPerYearFromFrequency(serviceFrequency)
-
-                                if (item.paymentFrequency === "monthly" && servicesPerYear > 12) {
-                                  hasDiscount = true
-                                  discountAmount = "5%"
-                                } else if (item.paymentFrequency === "yearly" && servicesPerYear > 1) {
-                                  hasDiscount = true
-                                  discountAmount = "15%"
-                                }
-                              }
-
-                              return hasDiscount
-                                ? `${item.paymentFrequency === "monthly" ? "Monthly" : "Yearly"} payment plan (${discountAmount} discount)`
-                                : `${item.paymentFrequency === "monthly" ? "Monthly" : "Yearly"} payment plan`
-                            })()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center border rounded-md">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none"
-                          onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive/90"
-                        onClick={() => handleRemoveItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {item.paymentFrequency === "per_service"
+                        ? "One-time payment"
+                        : `${item.paymentFrequency} billing`}
                     </div>
                   </div>
 
-                  {/* Location details accordion */}
-                  {item.metadata?.customer && (
-                    <Accordion type="single" collapsible className="mt-2">
-                      <AccordionItem value="location-details" className="border-none">
-                        <AccordionTrigger className="py-2 text-sm">
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" /> Location Details
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="text-sm space-y-1 pb-2">
-                          <p>
-                            <strong>Address:</strong> {item.metadata.customer.address}
-                          </p>
-                          <p>
-                            <a
-                              href={createGoogleMapsLink(item.metadata.customer.address)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center"
-                            >
-                              <MapPin className="h-3 w-3 mr-1" />
-                              View on Google Maps
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                          </p>
-                          <p>
-                            <strong>Contact:</strong> {item.metadata.customer.name} | {item.metadata.customer.phone}
-                          </p>
-                          {item.metadata.customer.specialInstructions && (
-                            <p>
-                              <strong>Notes:</strong> {item.metadata.customer.specialInstructions}
-                            </p>
-                          )}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                      disabled={isUpdating}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="w-8 text-center">{item.quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      disabled={isUpdating}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="text-right min-w-[100px]">
+                    <div className="font-semibold">{formatCurrency(item.price * item.quantity)}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {item.quantity > 1 && `${formatCurrency(item.price)} each`}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-gray-500 hover:text-red-500"
+                    onClick={() => handleRemoveItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
         {cart.items.length > 0 && (
@@ -625,9 +610,17 @@ export function Cart({ showLabel = false }: CartProps) {
                   </>
                 )}
               </Button>
-              <Button variant="outline" className="w-full" onClick={handleClearCart}>
+              <Button variant="outline" className="w-full" onClick={handleClearCartInner}>
                 Clear Cart
               </Button>
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-right">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {cart.totalItems} {cart.totalItems === 1 ? "item" : "items"}
+                </div>
+                <div className="text-xl font-bold">Subtotal: {formatCurrency(cart.totalPrice)}</div>
+              </div>
             </div>
           </div>
         )}

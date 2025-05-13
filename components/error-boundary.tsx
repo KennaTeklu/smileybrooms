@@ -1,65 +1,54 @@
 "use client"
 
-import { Component, type ErrorInfo, type ReactNode } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Home, RefreshCw } from "lucide-react"
+import type React from "react"
 
-interface Props {
+import { Component, type ReactNode } from "react"
+
+interface ErrorBoundaryProps {
   children: ReactNode
   fallback?: ReactNode
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean
+  error?: Error
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false }
   }
 
-  public static getDerivedStateFromError(_: Error): State {
-    return { hasError: true }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo)
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error("Error caught by ErrorBoundary:", error, errorInfo)
+
+    // You could also log to an error reporting service here
+    // logErrorToService(error, errorInfo);
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback
-      }
-
+      // You can render any custom fallback UI
       return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
-          <div className="space-y-6 max-w-md">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Unexpected Error</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              We've encountered an unexpected error. Please try refreshing the page or return to the home page.
+        this.props.fallback || (
+          <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+            <h3 className="text-lg font-medium text-red-800">Something went wrong</h3>
+            <p className="mt-2 text-sm text-red-700">
+              Please try refreshing the page or contact support if the problem persists.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Button
-                variant="outline"
-                onClick={() => this.setState({ hasError: false })}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw size={16} />
-                Try Again
-              </Button>
-
-              <Button asChild className="flex items-center gap-2">
-                <Link href="/">
-                  <Home size={16} />
-                  Return Home
-                </Link>
-              </Button>
-            </div>
+            <button
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-3 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors"
+            >
+              Try again
+            </button>
           </div>
-        </div>
+        )
       )
     }
 

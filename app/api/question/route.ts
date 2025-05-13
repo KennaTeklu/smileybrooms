@@ -42,6 +42,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error processing question:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    // Add more specific error handling based on error type
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: "Invalid request format" }, { status: 400 })
+    }
+    return NextResponse.json(
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    )
   }
 }

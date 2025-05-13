@@ -1,101 +1,209 @@
 "use client"
 
-import { useState } from "react"
-import { Slider } from "@/components/ui/slider"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useCart } from "@/lib/cart-context"
+import { useToast } from "@/components/ui/use-toast"
+import EnhancedTermsModal from "@/components/enhanced-terms-modal"
 
 interface CleanlinessSliderProps {
-  onChange: (value: number) => void
+  value?: number
+  onChange?: (value: number) => void
+  onAddToCart?: (cleanlinessData: any) => void
 }
 
-export default function CleanlinessSlider({ onChange }: CleanlinessSliderProps) {
-  const [value, setValue] = useState(7)
+export function CleanlinessSlider({ value: externalValue, onChange, onAddToCart }: CleanlinessSliderProps) {
+  const [value, setValue] = useState(externalValue || 50)
+  const [showTermsModal, setShowTermsModal] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const { addItem } = useCart()
+  const { toast } = useToast()
 
-  const handleChange = (newValue: number[]) => {
-    const cleanlinessValue = newValue[0]
-    setValue(cleanlinessValue)
-    onChange(cleanlinessValue)
-  }
+  // Check if terms have been accepted on mount
+  useEffect(() => {
+    const accepted = localStorage.getItem("termsAccepted")
+    if (accepted) {
+      setTermsAccepted(true)
+    }
+  }, [])
 
-  // Determine which image to show based on cleanliness level
-  const getCleanlinessImage = () => {
-    if (value < 4) {
-      return "/images/very-dirty-home.jpg" // Extremely dirty
-    } else if (value < 7) {
-      return "/images/medium-dirty-home.jpg" // Medium dirty
+  // Update internal state when external prop changes
+  useEffect(() => {
+    if (externalValue !== undefined) {
+      setValue(externalValue)
+    }
+  }, [externalValue])
+
+  const getImagePath = () => {
+    if (value < 33) {
+      return "/images/very-dirty-home.jpg"
+    } else if (value < 66) {
+      return "/images/medium-dirty-home.jpg"
     } else {
-      return "/images/clean-home.jpg" // Clean
+      return "/images/clean-home.jpg"
     }
   }
 
-  // Get cleanliness level description
-  const getCleanlinessDescription = () => {
-    if (value < 4) {
-      return "Extremely Dirty - Service Unavailable"
-    } else if (value < 7) {
-      return "Moderately Dirty - Deep Cleaning Required"
-    } else if (value < 9) {
-      return "Lightly Dirty - Standard Cleaning"
-    } else {
-      return "Mostly Clean - Light Maintenance"
+  const getCleanlinessDescription = (level: number) => {
+    if (level >= 1 && level <= 3) {
+      return "Lightly Soiled - Standard cleaning will be sufficient"
+    } else if (level >= 4 && level <= 7) {
+      return "Moderately Soiled - Will require additional attention (+25%)"
+    } else if (level >= 8 && level <= 10) {
+      return "Heavily Soiled - Will require intensive cleaning (+50%)"
     }
+    return ""
+  }
+
+  const getDescription = () => {
+    if (value < 33) {
+      return "Very dirty: Needs deep cleaning"
+    } else if (value < 66) {
+      return "Moderately dirty: Standard cleaning recommended"
+    } else {
+      return "Mostly clean: Light maintenance cleaning"
+    }
+  }
+
+  const getRecommendation = () => {
+    if (value < 33) {
+      return "We recommend our Deep Cleaning service"
+    } else if (value < 66) {
+      return "We recommend our Regular Cleaning service"
+    } else {
+      return "We recommend our Light Maintenance Cleaning"
+    }
+  }
+
+  const getPrice = () => {
+    if (value < 33) {
+      return 249.99
+    } else if (value < 66) {
+      return 179.99
+    } else {
+      return 129.99
+    }
+  }
+
+  const handleChange = (newValue) => {
+    setValue(newValue)
+    if (onChange) {
+      onChange(newValue)
+    }
+  }
+
+  // FIX: Added missing openTermsModal function
+  const openTermsModal = () => {
+    setShowTermsModal(true)
+  }
+
+  const handleTermsAccept = () => {
+    setTermsAccepted(true)
+    localStorage.setItem("termsAccepted", "true")
+    setShowTermsModal(false)
+    toast({
+      title: "Terms Accepted",
+      description: "Thank you for accepting our terms and conditions.",
+    })
+  }
+
+  const handleAddToCart = () => {
+    if (!termsAccepted) {
+      openTermsModal()
+      return
+    }
+
+    const cleanlinessData = {
+      level: value < 33 ? "deep" : value < 66 ? "standard" : "light",
+      description: getDescription(),
+      price: getPrice(),
+      image: getImagePath(),
+    }
+
+    // If external handler provided, use it
+    if (onAddToCart) {
+      onAddToCart(cleanlinessData)
+      return
+    }
+
+    // Otherwise add to cart directly
+    addItem({
+      id: `cleanliness-${cleanlinessData.level}-${Date.now()}`,
+      name: `${cleanlinessData.level.charAt(0).toUpperCase() + cleanlinessData.level.slice(1)} Cleaning`,
+      price: cleanlinessData.price,
+      priceId: `price_${cleanlinessData.level}_cleaning`,
+      image: cleanlinessData.image,
+      quantity: 1,
+      paymentFrequency: "per_service",
+    })
+
+    toast({
+      title: "Added to cart!",
+      description: `${cleanlinessData.level.charAt(0).toUpperCase() + cleanlinessData.level.slice(1)} Cleaning has been added to your cart.`,
+    })
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-2">Current Cleanliness Level</h3>
-        <p className="text-sm text-gray-500 mb-4">Adjust the slider to indicate how dirty your space currently is</p>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-full md:w-1/2">
-          <div className="relative">
-            <Slider defaultValue={[value]} max={10} min={1} step={1} onValueChange={handleChange} className="mb-6" />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Extremely Dirty</span>
-              <span>Very Clean</span>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
-            <div className="flex items-center">
-              <div
-                className={cn(
-                  "w-3 h-3 rounded-full mr-2",
-                  value < 4 ? "bg-red-500" : value < 7 ? "bg-yellow-500" : value < 9 ? "bg-green-500" : "bg-blue-500",
-                )}
-              ></div>
-              <p className="font-medium">{getCleanlinessDescription()}</p>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              {value < 4
-                ? "This level of dirtiness requires special assessment. Please contact us for a custom quote."
-                : value < 7
-                  ? "This level requires deep cleaning services with special equipment and techniques."
-                  : value < 9
-                    ? "This level can be handled with our standard cleaning services."
-                    : "This level requires light maintenance cleaning to keep your space pristine."}
-            </p>
-          </div>
-        </div>
-
-        <div className="w-full md:w-1/2">
-          <div className="relative rounded-lg overflow-hidden h-[200px] md:h-[250px] shadow-md">
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-6">
+          <div className="relative h-48 overflow-hidden rounded-md">
             <img
-              src={getCleanlinessImage() || "/placeholder.svg"}
-              alt={`Cleanliness level ${value}`}
+              src={getImagePath() || "/placeholder.svg"}
+              alt="Cleanliness level"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-              <div className="p-4 text-white">
-                <p className="font-medium">Cleanliness Level: {value}/10</p>
-                <p className="text-sm opacity-90">{getCleanlinessDescription()}</p>
-              </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white p-3">
+              <p>{getDescription()}</p>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <label htmlFor="cleanliness" className="block text-sm font-medium">
+              How clean is your space currently?
+            </label>
+            <input
+              id="cleanliness"
+              type="range"
+              min="0"
+              max="100"
+              value={value}
+              onChange={(e) => handleChange(Number.parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Very Dirty</span>
+              <span>Average</span>
+              <span>Clean</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+            <p className="text-sm">{getRecommendation()}</p>
+          </div>
+
+          {value >= 90 && (
+            <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm rounded-r">
+              <strong>Note:</strong> For extremely soiled conditions, our standard service may not be sufficient. We
+              recommend selecting the Premium Detailing option for best results.
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <span className="font-bold">${getPrice().toFixed(2)}</span>
+            <Button onClick={handleAddToCart}>Add to Cart</Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+
+      {/* Terms Modal */}
+      <EnhancedTermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={handleTermsAccept}
+        initialTab="terms"
+      />
+    </Card>
   )
 }

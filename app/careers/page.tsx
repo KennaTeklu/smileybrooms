@@ -4,6 +4,7 @@ import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCheck, Users, Star, Heart, Clock, MapPin } from "lucide-react"
+import { PageViewTracker } from "@/components/page-view-tracker"
 
 export default function CareersPage() {
   const router = useRouter()
@@ -64,7 +65,7 @@ export default function CareersPage() {
       location: "Remote",
       type: "Full-time",
       description:
-        "Be the friendly voice of Smiley Brooms, handling customer inquiries, scheduling, and ensuring client satisfaction.",
+        "Be the friendly voice of Smiley Brooms, handling customer inquiries, bookings, and ensuring client satisfaction.",
     },
     {
       title: "Operations Manager",
@@ -82,6 +83,7 @@ export default function CareersPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <PageViewTracker pageName="careers" />
       <main className="flex-1">
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">

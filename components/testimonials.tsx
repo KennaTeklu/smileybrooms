@@ -1,202 +1,85 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { useInView } from "react-intersection-observer"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Star } from "lucide-react"
-import { useKeenSlider } from "keen-slider/react"
-import "keen-slider/keen-slider.min.css"
+import { StarIcon } from "lucide-react"
 
-const testimonials = [
+// Define the TESTIMONIALS constant here to avoid import issues
+const TESTIMONIALS = [
   {
     id: 1,
     name: "Sarah Johnson",
     role: "Homeowner",
-    content:
-      "Smiley Brooms transformed my home! Their attention to detail is incredible, and my house has never looked better. The team is professional, thorough, and always on time.",
-    avatar: "/professional-woman-smiling-headshot.png",
     rating: 5,
+    content: "The cleaning team was professional, thorough, and friendly. My home has never looked better!",
+    image: "/woman-portrait.png",
   },
   {
     id: 2,
     name: "Michael Chen",
     role: "Business Owner",
-    content:
-      "We've been using Smiley Brooms for our office cleaning for 6 months now, and the difference is remarkable. Our workspace is always spotless, and their team is respectful of our equipment and privacy.",
-    avatar: "/asian-man-professional-headshot.png",
     rating: 5,
+    content:
+      "We've been using their services for our office for over a year now. Always reliable and excellent quality.",
+    image: "/thoughtful-man-portrait.png",
   },
   {
     id: 3,
-    name: "Emily Rodriguez",
-    role: "Apartment Resident",
-    content:
-      "As someone with allergies, finding a cleaning service that uses eco-friendly products was essential. Smiley Brooms not only uses safe products but leaves my apartment smelling fresh without harsh chemicals.",
-    avatar: "/placeholder.svg?key=fnodm",
+    name: "Robert Williams",
+    role: "Property Manager",
     rating: 4,
+    content: "Great service for our rental properties. Tenants are always happy with the move-in condition.",
+    image: "/confident-businessman.png",
   },
   {
     id: 4,
-    name: "David Thompson",
-    role: "Real Estate Agent",
-    content:
-      "I recommend Smiley Brooms to all my clients for move-in/move-out cleanings. They make properties show-ready and have helped me close deals faster with their impeccable service.",
-    avatar: "/professional-man-suit-headshot.png",
+    name: "Emily Rodriguez",
+    role: "Working Professional",
     rating: 5,
-  },
-  {
-    id: 5,
-    name: "Lisa Patel",
-    role: "Working Parent",
-    content:
-      "With two kids and a full-time job, I was struggling to keep up with housework. Smiley Brooms has given me back my weekends and peace of mind. Worth every penny!",
-    avatar: "/indian-woman-professional-headshot.png",
-    rating: 5,
+    content: "As a busy professional, having a clean home without the stress is priceless. Highly recommend!",
+    image: "/professional-woman.png",
   },
 ]
 
-export default function Testimonials() {
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [loaded, setLoaded] = useState(false)
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  })
-
-  const [sliderRef, instanceRef] = useKeenSlider({
-    initial: 0,
-    slideChanged(slider) {
-      setCurrentSlide(slider.track.details.rel)
-    },
-    slides: {
-      perView: 1,
-      spacing: 16,
-    },
-    breakpoints: {
-      "(min-width: 640px)": {
-        slides: {
-          perView: 2,
-          spacing: 16,
-        },
-      },
-      "(min-width: 1024px)": {
-        slides: {
-          perView: 3,
-          spacing: 24,
-        },
-      },
-    },
-    created() {
-      setLoaded(true)
-    },
-  })
-
-  useEffect(() => {
-    if (inView && instanceRef.current) {
-      // Auto-advance slides every 5 seconds when in view
-      const interval = setInterval(() => {
-        if (instanceRef.current) {
-          instanceRef.current.next()
-        }
-      }, 5000)
-
-      return () => clearInterval(interval)
-    }
-  }, [inView, instanceRef])
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5,
-      },
-    },
-  }
-
+export function Testimonials() {
   return (
-    <section className="py-16 sm:py-24 bg-white dark:bg-gray-950">
-      <div className="container mx-auto px-4">
-        <motion.div
-          ref={ref}
-          className="text-center mb-12"
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-          variants={containerVariants}
-        >
-          <motion.h2 className="text-3xl font-bold mb-4" variants={itemVariants}>
-            What Our Customers Say
-          </motion.h2>
-          <motion.p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto" variants={itemVariants}>
-            Don't just take our word for it. Here's what our satisfied customers have to say about our cleaning
-            services.
-          </motion.p>
-        </motion.div>
+    <section className="py-16 bg-gray-50 dark:bg-gray-800">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">What Our Customers Say</h2>
+          <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500 dark:text-gray-400">
+            Don't just take our word for it. Here's what our satisfied customers have to say.
+          </p>
+        </div>
 
-        <div className="relative">
-          <div ref={sliderRef} className="keen-slider">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="keen-slider__slide">
-                <Card className="h-full">
-                  <CardContent className="pt-6">
-                    <div className="flex mb-4">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-5 w-5 ${
-                            i < testimonial.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <blockquote className="text-gray-700 dark:text-gray-300">"{testimonial.content}"</blockquote>
-                  </CardContent>
-                  <CardFooter>
-                    <div className="flex items-center">
-                      <Avatar className="h-10 w-10 mr-3">
-                        <AvatarImage src={testimonial.avatar || "/placeholder.svg"} alt={testimonial.name} />
-                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{testimonial.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</div>
-                      </div>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </div>
-            ))}
-          </div>
-
-          {loaded && instanceRef.current && (
-            <div className="flex justify-center mt-6 gap-2">
-              {[...Array(instanceRef.current.track.details.slides.length).keys()].map((idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    instanceRef.current?.moveToIdx(idx)
-                  }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    currentSlide === idx ? "bg-primary w-4" : "bg-gray-300 dark:bg-gray-700"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
+        <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          {TESTIMONIALS.map((testimonial) => (
+            <div
+              key={testimonial.id}
+              className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 flex flex-col h-full"
+            >
+              <div className="flex items-center mb-4">
+                <img
+                  src={testimonial.image || "/placeholder.svg"}
+                  alt={testimonial.name}
+                  className="h-12 w-12 rounded-full object-cover mr-4"
                 />
-              ))}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{testimonial.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role}</p>
+                </div>
+              </div>
+              <div className="flex mb-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <StarIcon
+                    key={i}
+                    className={`h-5 w-5 ${
+                      i < testimonial.rating ? "text-yellow-400" : "text-gray-300 dark:text-gray-600"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 flex-grow">{testimonial.content}</p>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </section>

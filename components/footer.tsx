@@ -3,8 +3,9 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown } from "lucide-react"
-import Logo from "@/components/logo"
+import { Logo } from "@/components/logo"
 import { cn } from "@/lib/utils"
+import { COMPANY_INFO } from "@/lib/constants"
 
 type FooterSection = {
   title: string
@@ -21,6 +22,7 @@ const footerSections: FooterSection[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
+      { label: "Careers", href: "/careers" },
     ],
   },
   {
@@ -28,6 +30,8 @@ const footerSections: FooterSection[] = [
     links: [
       { label: "Home Cleaning", href: "/services/home" },
       { label: "Office Cleaning", href: "/services/office" },
+      { label: "Deep Cleaning", href: "/services/deep" },
+      { label: "Move In/Out", href: "/services/move" },
     ],
   },
   {
@@ -35,11 +39,12 @@ const footerSections: FooterSection[] = [
     links: [
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
+      { label: "Cookies", href: "/cookies" },
     ],
   },
 ]
 
-export default function Footer() {
+export function Footer() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [flashEffect, setFlashEffect] = useState(false)
   const currentYear = new Date().getFullYear()
@@ -72,6 +77,7 @@ export default function Footer() {
               className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
               aria-expanded={isExpanded}
               aria-label={isExpanded ? "Collapse footer" : "Expand footer"}
+              aria-controls="footer-content"
             >
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -85,6 +91,7 @@ export default function Footer() {
           <AnimatePresence>
             {isExpanded && (
               <motion.div
+                id="footer-content"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -128,29 +135,35 @@ export default function Footer() {
                   className="flex justify-center space-x-4 py-4"
                 >
                   <a
-                    href="#"
+                    href={COMPANY_INFO.socialMedia.facebook}
                     className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
                     aria-label="Facebook"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Facebook className="h-4 w-4" />
                   </a>
                   <a
-                    href="#"
+                    href={COMPANY_INFO.socialMedia.instagram}
                     className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
                     aria-label="Instagram"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Instagram className="h-4 w-4" />
                   </a>
                   <a
-                    href="#"
+                    href={COMPANY_INFO.socialMedia.twitter}
                     className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
                     aria-label="Twitter"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Twitter className="h-4 w-4" />
                   </a>
                 </motion.div>
 
-                {/* App Download Links - Simplified */}
+                {/* Contact Information */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -159,16 +172,18 @@ export default function Footer() {
                   className="flex flex-wrap justify-center gap-4 py-4"
                 >
                   <a
-                    href="/downloads/smiley-brooms-ios.html"
+                    href={`tel:${COMPANY_INFO.phone}`}
                     className="text-xs text-gray-500 hover:text-primary transition-colors"
+                    aria-label={`Call us at ${COMPANY_INFO.phone}`}
                   >
-                    iOS App
+                    {COMPANY_INFO.phone}
                   </a>
                   <a
-                    href="/downloads/smiley-brooms-android.html"
+                    href={`mailto:${COMPANY_INFO.email}`}
                     className="text-xs text-gray-500 hover:text-primary transition-colors"
+                    aria-label={`Email us at ${COMPANY_INFO.email}`}
                   >
-                    Android App
+                    {COMPANY_INFO.email}
                   </a>
                 </motion.div>
               </motion.div>
@@ -177,7 +192,7 @@ export default function Footer() {
 
           {/* Copyright - Always visible */}
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            &copy; {currentYear} Smiley Brooms. All rights reserved.
+            &copy; {currentYear} {COMPANY_INFO.name}. All rights reserved.
           </div>
         </div>
       </div>

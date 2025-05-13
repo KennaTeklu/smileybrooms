@@ -1,202 +1,132 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {
-  isAndroid,
-  isIOS,
-  isMobile,
-  isTablet,
-  isWindows,
-  isMacOs,
-  isChrome,
-  isFirefox,
-  isSafari,
-  isOpera,
-  isEdge,
-  browserVersion,
-  osVersion,
-  mobileVendor,
-  mobileModel,
-} from "react-device-detect"
 
-export type DeviceType = "mobile" | "tablet" | "desktop" | "unknown"
-export type OSType = "ios" | "android" | "windows" | "macos" | "linux" | "unknown"
-export type BrowserType = "chrome" | "firefox" | "safari" | "edge" | "opera" | "unknown"
-
-export interface DeviceInfo {
-  // Device type
-  type: DeviceType
-  isMobile: boolean
-  isTablet: boolean
-  isDesktop: boolean
-
-  // Operating system
-  os: OSType
-  osVersion: string
-  isIOS: boolean
-  isAndroid: boolean
-  isWindows: boolean
-  isMacOS: boolean
-  isLinux: boolean
-
-  // Browser
-  browser: BrowserType
-  browserVersion: string
-  isChrome: boolean
-  isFirefox: boolean
-  isSafari: boolean
-  isEdge: boolean
-  isOpera: boolean
-
-  // Mobile specific
-  mobileVendor: string
-  mobileModel: string
-
-  // Screen
-  screenWidth: number
-  screenHeight: number
-  isLandscape: boolean
-  isPortrait: boolean
-
-  // Connection
-  isOnline: boolean
-  connectionType: string
-  effectiveConnectionType: string
-
-  // Recommended download
+interface DeviceInfo {
+  type: "mobile" | "tablet" | "desktop" | "unknown"
+  os: "ios" | "android" | "macos" | "windows" | "linux" | "unknown"
+  osVersion: string | null
+  browser: "chrome" | "firefox" | "safari" | "edge" | "opera" | "unknown"
+  browserVersion: string | null
   recommendedDownload: "ios" | "android" | "macos" | "windows" | "linux" | null
 }
 
 export function useEnhancedDeviceDetection(): DeviceInfo {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
-    // Default values
     type: "unknown",
-    isMobile: false,
-    isTablet: false,
-    isDesktop: false,
-
     os: "unknown",
-    osVersion: "",
-    isIOS: false,
-    isAndroid: false,
-    isWindows: false,
-    isMacOS: false,
-    isLinux: false,
-
+    osVersion: null,
     browser: "unknown",
-    browserVersion: "",
-    isChrome: false,
-    isFirefox: false,
-    isSafari: false,
-    isEdge: false,
-    isOpera: false,
-
-    mobileVendor: "",
-    mobileModel: "",
-
-    screenWidth: 0,
-    screenHeight: 0,
-    isLandscape: false,
-    isPortrait: true,
-
-    isOnline: true,
-    connectionType: "unknown",
-    effectiveConnectionType: "unknown",
-
+    browserVersion: null,
     recommendedDownload: null,
   })
 
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    // Determine device type
-    const isTabletDevice = isTablet
-    const isMobileDevice = isMobile && !isTabletDevice
-    const isDesktopDevice = !isMobileDevice && !isTabletDevice
+    // Detect device type
+    const userAgent = navigator.userAgent.toLowerCase()
+    let type: DeviceInfo["type"] = "unknown"
+    let os: DeviceInfo["os"] = "unknown"
+    let osVersion: string | null = null
+    let browser: DeviceInfo["browser"] = "unknown"
+    let browserVersion: string | null = null
+    let recommendedDownload: DeviceInfo["recommendedDownload"] = null
 
-    let deviceType: DeviceType = "unknown"
-    if (isTabletDevice) deviceType = "tablet"
-    else if (isMobileDevice) deviceType = "mobile"
-    else if (isDesktopDevice) deviceType = "desktop"
-
-    // Determine OS
-    let osType: OSType = "unknown"
-    if (isIOS) osType = "ios"
-    else if (isAndroid) osType = "android"
-    else if (isWindows) osType = "windows"
-    else if (isMacOs) osType = "macos"
-    else if (!isIOS && !isAndroid && !isWindows && !isMacOs) osType = "linux"
-
-    // Determine browser
-    let browserType: BrowserType = "unknown"
-    if (isChrome) browserType = "chrome"
-    else if (isFirefox) browserType = "firefox"
-    else if (isSafari) browserType = "safari"
-    else if (isEdge) browserType = "edge"
-    else if (isOpera) browserType = "opera"
-
-    // Screen information
-    const screenWidth = window.screen.width
-    const screenHeight = window.screen.height
-    const isLandscapeOrientation = screenWidth > screenHeight
-    const isPortraitOrientation = !isLandscapeOrientation
-
-    // Connection information
-    const isOnlineStatus = navigator.onLine
-    let connectionType = "unknown"
-    let effectiveConnectionType = "unknown"
-
-    // @ts-ignore - Navigator connection API
-    if (navigator.connection) {
-      // @ts-ignore
-      connectionType = navigator.connection.type || "unknown"
-      // @ts-ignore
-      effectiveConnectionType = navigator.connection.effectiveType || "unknown"
+    // Detect device type
+    if (/ipad|tablet|playbook|silk/i.test(userAgent)) {
+      type = "tablet"
+    } else if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(userAgent)) {
+      type = "mobile"
+    } else {
+      type = "desktop"
     }
 
-    // Determine recommended download
-    let recommendedDownloadType = null
-    if (isIOS) recommendedDownloadType = "ios"
-    else if (isAndroid) recommendedDownloadType = "android"
-    else if (isMacOs) recommendedDownloadType = "macos"
-    else if (isWindows) recommendedDownloadType = "windows"
-    else if (!isIOS && !isAndroid && !isMacOs && !isWindows) recommendedDownloadType = "linux"
+    // Detect OS
+    if (/iphone|ipad|ipod/i.test(userAgent)) {
+      os = "ios"
+      const match = userAgent.match(/os (\d+)_(\d+)/)
+      if (match) {
+        osVersion = `${match[1]}.${match[2]}`
+      }
+      recommendedDownload = "ios"
+    } else if (/android/i.test(userAgent)) {
+      os = "android"
+      const match = userAgent.match(/android (\d+)\.(\d+)/)
+      if (match) {
+        osVersion = `${match[1]}.${match[2]}`
+      }
+      recommendedDownload = "android"
+    } else if (/mac os x/i.test(userAgent)) {
+      os = "macos"
+      const match = userAgent.match(/mac os x (\d+)[._](\d+)/)
+      if (match) {
+        osVersion = `${match[1]}.${match[2]}`
+      }
+      recommendedDownload = "macos"
+    } else if (/windows/i.test(userAgent)) {
+      os = "windows"
+      const match = userAgent.match(/windows nt (\d+)\.(\d+)/)
+      if (match) {
+        const version = Number.parseFloat(`${match[1]}.${match[2]}`)
+        if (version >= 10) {
+          osVersion = "10+"
+        } else if (version >= 6.3) {
+          osVersion = "8.1"
+        } else if (version >= 6.2) {
+          osVersion = "8"
+        } else if (version >= 6.1) {
+          osVersion = "7"
+        } else {
+          osVersion = "Legacy"
+        }
+      }
+      recommendedDownload = "windows"
+    } else if (/linux/i.test(userAgent)) {
+      os = "linux"
+      recommendedDownload = "linux"
+    }
+
+    // Detect browser
+    if (/chrome/i.test(userAgent) && !/edg/i.test(userAgent)) {
+      browser = "chrome"
+      const match = userAgent.match(/chrome\/(\d+)\.(\d+)/)
+      if (match) {
+        browserVersion = match[1]
+      }
+    } else if (/firefox/i.test(userAgent)) {
+      browser = "firefox"
+      const match = userAgent.match(/firefox\/(\d+)\.(\d+)/)
+      if (match) {
+        browserVersion = match[1]
+      }
+    } else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) {
+      browser = "safari"
+      const match = userAgent.match(/version\/(\d+)\.(\d+)/)
+      if (match) {
+        browserVersion = match[1]
+      }
+    } else if (/edg/i.test(userAgent)) {
+      browser = "edge"
+      const match = userAgent.match(/edg\/(\d+)\.(\d+)/)
+      if (match) {
+        browserVersion = match[1]
+      }
+    } else if (/opera|opr/i.test(userAgent)) {
+      browser = "opera"
+      const match = userAgent.match(/(?:opera|opr)\/(\d+)\.(\d+)/)
+      if (match) {
+        browserVersion = match[1]
+      }
+    }
 
     setDeviceInfo({
-      type: deviceType,
-      isMobile: isMobileDevice,
-      isTablet: isTabletDevice,
-      isDesktop: isDesktopDevice,
-
-      os: osType,
-      osVersion: osVersion || "",
-      isIOS,
-      isAndroid,
-      isWindows,
-      isMacOS: isMacOs,
-      isLinux: !isIOS && !isAndroid && !isWindows && !isMacOs,
-
-      browser: browserType,
-      browserVersion: browserVersion || "",
-      isChrome,
-      isFirefox,
-      isSafari,
-      isEdge,
-      isOpera,
-
-      mobileVendor: mobileVendor || "",
-      mobileModel: mobileModel || "",
-
-      screenWidth,
-      screenHeight,
-      isLandscape: isLandscapeOrientation,
-      isPortrait: isPortraitOrientation,
-
-      isOnline: isOnlineStatus,
-      connectionType,
-      effectiveConnectionType,
-
-      recommendedDownload: recommendedDownloadType,
+      type,
+      os,
+      osVersion,
+      browser,
+      browserVersion,
+      recommendedDownload,
     })
   }, [])
 

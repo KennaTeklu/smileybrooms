@@ -1,7 +1,12 @@
 "use client"
 
+import { useEffect } from "react"
+import { Inter } from "next/font/google"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Home, RefreshCw } from "lucide-react"
+import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export default function GlobalError({
   error,
@@ -10,25 +15,29 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error(error)
+  }, [error])
+
   return (
     <html lang="en">
-      <body>
-        <div className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
-          <div className="space-y-6 max-w-md">
-            <h1 className="text-4xl font-bold">Something went wrong!</h1>
-            <p className="text-gray-600">We've encountered a critical error. Our team has been notified.</p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <Button variant="outline" onClick={() => reset()} className="flex items-center gap-2">
-                <RefreshCw size={16} />
-                Try Again
+      <body className={inter.className}>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+          <div className="text-center">
+            <h1 className="text-6xl font-bold text-destructive">Critical Error</h1>
+            <h2 className="text-3xl font-semibold mt-4 mb-6">Application Crashed</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-md mx-auto mb-8">
+              We apologize for the inconvenience. A critical error has occurred. Please try refreshing the page or
+              contact our support team.
+            </p>
+            {error.digest && <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Error ID: {error.digest}</p>}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={reset} size="lg">
+                Refresh Page
               </Button>
-
-              <Button asChild className="flex items-center gap-2">
-                <a href="/">
-                  <Home size={16} />
-                  Return Home
-                </a>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/">Return Home</Link>
               </Button>
             </div>
           </div>

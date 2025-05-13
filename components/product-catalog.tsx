@@ -1,78 +1,86 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import { ShoppingCart } from "lucide-react"
+import { useState } from "react"
 
-type Product = {
-  id: string
-  name: string
-  description: string
-  price: number
-  priceId: string
-  image: string
-}
-
-const products: Product[] = [
-  {
-    id: "prod_1",
-    name: "Basic Plan",
-    description: "Essential features for small businesses",
-    price: 29.99,
-    priceId: "price_basic123", // Replace with your actual Stripe price ID
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "prod_2",
-    name: "Premium Plan",
-    description: "Advanced features for growing businesses",
-    price: 49.99,
-    priceId: "price_premium123", // Replace with your actual Stripe price ID
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "prod_3",
-    name: "Enterprise Plan",
-    description: "Complete solution for large organizations",
-    price: 99.99,
-    priceId: "price_enterprise123", // Replace with your actual Stripe price ID
-    image: "/placeholder.svg?height=100&width=100",
-  },
-]
-
-export default function ProductCatalog() {
+export function ProductCatalog() {
   const { addItem } = useCart()
+  const [addedItems, setAddedItems] = useState<string[]>([])
 
-  const handleAddToCart = (product: Product) => {
+  const additionalServices = [
+    {
+      id: "carpet-cleaning",
+      name: "Carpet Cleaning",
+      description: "Deep clean your carpets",
+      price: 79.99,
+      priceId: "price_carpet_cleaning",
+      image: "/professional-carpet-cleaning.png",
+    },
+    {
+      id: "window-cleaning",
+      name: "Window Cleaning",
+      description: "Crystal clear windows",
+      price: 49.99,
+      priceId: "price_window_cleaning",
+      image: "/window-cleaning-professional.png",
+    },
+    {
+      id: "fridge-cleaning",
+      name: "Fridge Cleaning",
+      description: "Clean inside and out",
+      price: 39.99,
+      priceId: "price_fridge_cleaning",
+      image: "/refrigerator-cleaning.png",
+    },
+    {
+      id: "oven-cleaning",
+      name: "Oven Cleaning",
+      description: "Remove baked-on grease",
+      price: 44.99,
+      priceId: "price_oven_cleaning",
+      image: "/oven-cleaning.png",
+    },
+  ]
+
+  const handleAddToCart = (service) => {
     addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      priceId: product.priceId,
-      image: product.image,
-      sourceSection: "Product Catalog", // Add source section for analytics
+      id: service.id,
+      name: service.name,
+      price: service.price,
+      priceId: service.priceId,
+      image: service.image,
+      quantity: 1,
+      paymentFrequency: "per_service",
     })
+
+    // Show added state temporarily
+    setAddedItems((prev) => [...prev, service.id])
+    setTimeout(() => {
+      setAddedItems((prev) => prev.filter((id) => id !== service.id))
+    }, 2000)
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {products.map((product) => (
-        <Card key={product.id} className="flex flex-col">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <img src={product.image || "/placeholder.svg"} alt={product.name} className="h-32 w-32 object-contain" />
-            </div>
-            <CardTitle>{product.name}</CardTitle>
-            <CardDescription>{product.description}</CardDescription>
+    <div className="space-y-4">
+      {additionalServices.map((service) => (
+        <Card key={service.id}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">{service.name}</CardTitle>
           </CardHeader>
-          <CardContent className="flex-grow">
-            <div className="text-2xl font-bold">{formatCurrency(product.price)}</div>
+          <CardContent className="pb-2">
+            <p className="text-sm text-gray-500">{service.description}</p>
+            <p className="font-bold mt-1">${service.price.toFixed(2)}</p>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={() => handleAddToCart(product)}>
-              <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+            <Button
+              onClick={() => handleAddToCart(service)}
+              size="sm"
+              className="w-full"
+              disabled={addedItems.includes(service.id)}
+            >
+              {addedItems.includes(service.id) ? "Added!" : "Add to Cart"}
             </Button>
           </CardFooter>
         </Card>

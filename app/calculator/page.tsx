@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Footer from "@/components/footer"
-import PriceCalculator from "@/components/price-calculator"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
@@ -10,6 +9,8 @@ import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import StickyCartButton from "@/components/sticky-cart-button"
+import PriceCalculator from "@/components/price-calculator"
+import { PageViewTracker } from "@/components/page-view-tracker"
 
 type CalculatedService = {
   rooms: Record<string, number>
@@ -192,6 +193,8 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <PageViewTracker pageName="calculator" />
+
       {/* Sticky Add to Cart Button */}
       {calculatedService && calculatedService.totalPrice > 0 && (
         <StickyCartButton

@@ -93,7 +93,7 @@ export default function QuestionBox() {
       }
 
       // Submit form data to Google Sheets
-      await fetch(scriptURL, {
+      const response = await fetch(scriptURL, {
         method: "POST",
         mode: "no-cors",
         headers: {
@@ -102,6 +102,7 @@ export default function QuestionBox() {
         body: JSON.stringify(formData),
       })
 
+      // Since no-cors mode doesn't return readable response, we assume success if no error is thrown
       toast({
         title: "Question sent!",
         description: "We'll get back to you as soon as possible.",
@@ -115,9 +116,20 @@ export default function QuestionBox() {
       setIsOpen(false)
     } catch (error) {
       console.error("Error:", error)
+
+      // More specific error messages based on error type
+      let errorMessage = "There was an error sending your question. Please try again."
+
+      if (error instanceof TypeError) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error instanceof Error) {
+        // Log the specific error for debugging
+        console.error("Specific error:", error.message)
+      }
+
       toast({
         title: "Something went wrong",
-        description: "There was an error sending your question. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

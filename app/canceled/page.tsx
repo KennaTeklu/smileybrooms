@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { XCircle, ShoppingCart, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { PageViewTracker } from "@/components/page-view-tracker"
 
 export default function CanceledPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <PageViewTracker pageName="payment-canceled" />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
