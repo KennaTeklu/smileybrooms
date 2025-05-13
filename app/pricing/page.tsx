@@ -1,80 +1,179 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import PriceCalculator from "@/components/price-calculator"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import EnhancedTermsModal from "@/components/enhanced-terms-modal"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import AccessibilityPanel from "@/components/accessibility-panel"
-import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, Sparkles, FileText, Shield } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Slider } from "@/components/ui/slider"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { motion } from "framer-motion"
+import {
+  ShoppingCart,
+  Sparkles,
+  Lock,
+  CheckCircle,
+  Plus,
+  Minus,
+  AlertTriangle,
+  Home,
+  Bath,
+  UtensilsCrossed,
+  Briefcase,
+  Sofa,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+
+// Room types and their rates
+const roomTypes = [
+  { id: "bedroom", name: "Bedroom", icon: <Home className="h-5 w-5" />, standardRate: 25, detailingRate: 45 },
+  { id: "bathroom", name: "Bathroom", icon: <Bath className="h-5 w-5" />, standardRate: 30, detailingRate: 54 },
+  {
+    id: "kitchen",
+    name: "Kitchen",
+    icon: <UtensilsCrossed className="h-5 w-5" />,
+    standardRate: 50,
+    detailingRate: 90,
+  },
+  { id: "living_room", name: "Living Room", icon: <Sofa className="h-5 w-5" />, standardRate: 40, detailingRate: 72 },
+  { id: "office", name: "Office", icon: <Briefcase className="h-5 w-5" />, standardRate: 35, detailingRate: 63 },
+]
+
+// Cleanliness levels and their multipliers
+const cleanlinessLevels = [
+  { level: 1, label: "Light", multiplier: 1.0, description: "Regular maintenance cleaning" },
+  { level: 2, label: "Medium", multiplier: 1.3, description: "Moderate dirt and dust" },
+  { level: 3, label: "Deep", multiplier: 1.7, description: "Heavy dirt and stains" },
+  { level: 4, label: "Biohazard", multiplier: 0, description: "Requires specialized cleaning", disabled: true },
+]
+
+// Frequency options and their adjustments
+const frequencyOptions = [
+  { id: "weekly", label: "Weekly", initialMultiplier: 1.05, discountMultiplier: 0.88 },
+  { id: "biweekly", label: "Biweekly", initialMultiplier: 1.03, discountMultiplier: 0.92 },
+  { id: "monthly", label: "Monthly", initialMultiplier: 1.0, discountMultiplier: 0.95 },
+  { id: "annual", label: "Annual", initialMultiplier: 1.15, discountMultiplier: 0.8 },
+]
 
 export default function PricingPage() {
-  const [calculatedService, setCalculatedService] = useState<{
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-  } | null>(null)
+  // State for calculator
+  const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({
+    bedroom: 1,
+    bathroom: 1,
+    kitchen: 0,
+    living_room: 0,
+    office: 0,
+  })
+  const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
+  const [cleanlinessLevel, setCleanlinessLevel] = useState(1)
+  const [frequency, setFrequency] = useState("monthly")
+  const [allowVideo, setAllowVideo] = useState(false)
+  const [calculatedPrice, setCalculatedPrice] = useState(0)
+  const [isServiceAvailable, setIsServiceAvailable] = useState(true)
 
+  // State for modals and UI
   const [showAddressModal, setShowAddressModal] = useState(false)
-  const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
-  const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
-  const [showStickyButton, setShowStickyButton] = useState(true)
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
-  const { addItem } = useCart()
+  const { addItem, cart } = useCart()
   const { toast } = useToast()
 
   // Check if terms have been accepted
   useEffect(() => {
     const accepted = localStorage.getItem("termsAccepted")
-    if (accepted) {
+    if (accepted === "true") {
       setTermsAccepted(true)
     } else {
-      // Show terms popup if not accepted
+      // Show terms popup if not accepted on first visit
       setShowTermsModal(true)
     }
   }, [])
 
-  const handleCalculationComplete = (data: {
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    addressId: string
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-  }) => {
-    // Omit the addressId as we don't need it in our simplified approach
-    const { addressId, ...rest } = data
-    setCalculatedService(rest)
+  // Calculate price whenever selections change
+  useEffect(() => {
+    calculatePrice()
+  }, [selectedRooms, serviceType, cleanlinessLevel, frequency, allowVideo])
+
+  // Function to calculate the price
+  const calculatePrice = () => {
+    // 1. Calculate base price
+    let basePrice = 0
+    for (const roomType of roomTypes) {
+      const count = selectedRooms[roomType.id] || 0
+      const rate = serviceType === "standard" ? roomType.standardRate : roomType.detailingRate
+      basePrice += count * rate
+    }
+
+    // 2. Apply cleanliness multiplier
+    const cleanlinessMultiplier = cleanlinessLevels.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
+    let price = basePrice * cleanlinessMultiplier
+
+    // 3. Apply frequency adjustment
+    const frequencyOption = frequencyOptions.find((f) => f.id === frequency)
+    if (frequencyOption) {
+      price = price * frequencyOption.discountMultiplier
+    }
+
+    // 4. Apply video discount
+    if (allowVideo) {
+      price -= 25
+    }
+
+    // Check if service is available (Level 3-4 cleanliness with Standard service)
+    const isUnavailable = (cleanlinessLevel >= 3 && serviceType === "standard") || cleanlinessLevel === 4
+    setIsServiceAvailable(!isUnavailable)
+
+    // Set the calculated price (rounded to 2 decimal places)
+    setCalculatedPrice(Math.max(0, Math.round(price * 100) / 100))
+  }
+
+  // Function to increment room count
+  const incrementRoom = (roomId: string) => {
+    if ((selectedRooms[roomId] || 0) < 10) {
+      setSelectedRooms((prev) => ({
+        ...prev,
+        [roomId]: (prev[roomId] || 0) + 1,
+      }))
+    }
+  }
+
+  // Function to decrement room count
+  const decrementRoom = (roomId: string) => {
+    if ((selectedRooms[roomId] || 0) > 0) {
+      setSelectedRooms((prev) => ({
+        ...prev,
+        [roomId]: (prev[roomId] || 0) - 1,
+      }))
+    }
+  }
+
+  // Get total room count
+  const getTotalRoomCount = () => {
+    return Object.values(selectedRooms).reduce((sum, count) => sum + count, 0)
   }
 
   // Show address modal when Add to Cart is clicked
   const handleAddToCart = () => {
-    if (!calculatedService) {
+    if (!isServiceAvailable) {
       toast({
-        title: "No service selected",
-        description: "Please select rooms and services before adding to cart",
+        title: "Service Unavailable",
+        description: "Please select a lower cleanliness level or switch to Detailing service.",
         variant: "destructive",
       })
       return
     }
 
-    if (!calculatedService.isServiceAvailable) {
+    if (getTotalRoomCount() === 0) {
       toast({
-        title: "Service Unavailable",
-        description: "Please contact us for a custom quote for extremely dirty conditions.",
+        title: "No rooms selected",
+        description: "Please select at least one room before adding to cart.",
         variant: "destructive",
       })
       return
@@ -85,38 +184,36 @@ export default function PricingPage() {
 
   // Process the address data and add to cart
   const handleAddressSubmit = (addressData: AddressData) => {
-    if (!calculatedService) return
-
-    const frequencyLabel = {
-      one_time: "One-Time Cleaning",
-      weekly: "Weekly Cleaning",
-      biweekly: "Biweekly Cleaning",
-      monthly: "Monthly Cleaning",
-      semi_annual: "Semi-Annual Cleaning",
-      annually: "Annual Cleaning",
-      vip_daily: "VIP Daily Cleaning",
-    }[calculatedService.frequency]
+    // Get the frequency label
+    const frequencyLabel =
+      {
+        weekly: "Weekly Cleaning",
+        biweekly: "Biweekly Cleaning",
+        monthly: "Monthly Cleaning",
+        annual: "Annual Cleaning",
+      }[frequency] || "Cleaning Service"
 
     // Count total rooms
-    const totalRooms = Object.values(calculatedService.rooms).reduce((sum, count) => sum + count, 0)
+    const totalRooms = getTotalRoomCount()
 
     // Create a descriptive name for the service
-    const serviceTypeLabel = calculatedService.serviceType === "standard" ? "Standard" : "Premium Detailing"
+    const serviceTypeLabel = serviceType === "standard" ? "Standard" : "Premium Detailing"
     const serviceName = `${serviceTypeLabel} ${frequencyLabel} (${totalRooms} rooms)`
 
     // Get the room types that were selected
-    const selectedRooms = Object.entries(calculatedService.rooms)
+    const selectedRoomsList = Object.entries(selectedRooms)
       .filter(([_, count]) => count > 0)
-      .map(([type, count]) => `${type.replace(/_/g, " ")} x${count}`)
+      .map(([type, count]) => {
+        const roomType = roomTypes.find((r) => r.id === type)
+        return `${roomType?.name || type} x${count}`
+      })
       .join(", ")
 
     // Apply discount if video recording is allowed
-    const finalPrice = addressData.allowVideoRecording
-      ? calculatedService.totalPrice - addressData.videoRecordingDiscount
-      : calculatedService.totalPrice
+    const finalPrice = allowVideo ? calculatedPrice : calculatedPrice
 
     // Generate a unique ID that includes the address to help with combining similar items
-    const itemId = `custom-cleaning-${addressData.address.replace(/\s+/g, "-").toLowerCase()}-${calculatedService.serviceType}-${calculatedService.frequency}-${calculatedService.paymentFrequency}`
+    const itemId = `custom-cleaning-${addressData.address.replace(/\s+/g, "-").toLowerCase()}-${serviceType}-${frequency}`
 
     // Add to cart with customer data
     addItem({
@@ -124,14 +221,14 @@ export default function PricingPage() {
       name: serviceName,
       price: finalPrice,
       priceId: "price_custom_cleaning",
-      image: "/placeholder.svg?height=100&width=100",
-      paymentFrequency: calculatedService.paymentFrequency,
+      image: "/home-cleaning.png",
+      quantity: 1,
       metadata: {
-        rooms: selectedRooms,
-        frequency: calculatedService.frequency,
-        serviceType: calculatedService.serviceType,
-        isRecurring: calculatedService.frequency !== "one_time",
-        recurringInterval: calculatedService.frequency !== "one_time" ? calculatedService.frequency : null,
+        rooms: selectedRoomsList,
+        frequency,
+        serviceType,
+        cleanlinessLevel,
+        allowVideo,
         customer: {
           name: addressData.fullName,
           email: addressData.email,
@@ -141,7 +238,7 @@ export default function PricingPage() {
           state: addressData.state,
           zipCode: addressData.zipCode,
           specialInstructions: addressData.specialInstructions,
-          allowVideoRecording: addressData.allowVideoRecording,
+          allowVideoRecording: allowVideo,
         },
       },
     })
@@ -151,15 +248,6 @@ export default function PricingPage() {
       title: "Added to cart!",
       description: `${serviceName} has been added to your cart.`,
     })
-
-    // Reset calculator
-    resetCalculator()
-  }
-
-  // Reset calculator to initial state
-  const resetCalculator = () => {
-    setCalculatorKey((prevKey) => prevKey + 1) // Change key to force re-render
-    setCalculatedService(null)
   }
 
   // Function to open terms and conditions
@@ -191,116 +279,349 @@ export default function PricingPage() {
           Pricing Calculator
         </motion.h1>
 
-        <div className="max-w-6xl mx-auto">
-          {/* Main Calculator */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Card className="shadow-lg border-0 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
-                <CardTitle className="text-2xl">Calculate Your Cleaning Price</CardTitle>
-                <CardDescription>Configure the cleaning details for your location</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="calculator-container">
-                  <PriceCalculator key={calculatorKey} onCalculationComplete={handleCalculationComplete} />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Terms and Conditions Link */}
-          <div className="mt-6 text-center">
-            <Button
-              variant="link"
-              onClick={handleOpenTerms}
-              className="text-sm md:text-base text-gray-600 hover:text-blue-600 flex items-center justify-center mx-auto"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {/* Main Calculator Section */}
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
             >
-              <FileText className="h-4 w-4 mr-1" />
-              View Terms and Conditions
-            </Button>
+              <Card className="shadow-lg border-0 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+                  <CardTitle className="text-2xl">Calculate Your Cleaning Price</CardTitle>
+                  <CardDescription>Configure the cleaning details for your location</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {/* Service Type Toggle */}
+                  <div className="mb-8">
+                    <Label className="text-base font-medium mb-3 block">Service Type</Label>
+                    <Tabs
+                      defaultValue="standard"
+                      value={serviceType}
+                      onValueChange={(value) => setServiceType(value as "standard" | "detailing")}
+                      className="w-full"
+                    >
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="standard" className="text-sm md:text-base">
+                          Standard Cleaning
+                        </TabsTrigger>
+                        <TabsTrigger value="detailing" className="text-sm md:text-base">
+                          Premium Detailing
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {serviceType === "standard"
+                        ? "Basic cleaning for regular maintenance"
+                        : "Deep cleaning with extra attention to details (1.8x standard rate)"}
+                    </p>
+                  </div>
+
+                  {/* Room Selector */}
+                  <div className="mb-8">
+                    <Label className="text-base font-medium mb-3 block">Select Rooms</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {roomTypes.map((room) => (
+                        <div key={room.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full mr-3">{room.icon}</div>
+                            <div>
+                              <p className="font-medium">{room.name}</p>
+                              <p className="text-sm text-gray-500">
+                                ${serviceType === "standard" ? room.standardRate : room.detailingRate} per room
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => decrementRoom(room.id)}
+                              disabled={selectedRooms[room.id] === 0}
+                              className="h-8 w-8"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center font-medium">{selectedRooms[room.id] || 0}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => incrementRoom(room.id)}
+                              disabled={selectedRooms[room.id] === 10}
+                              className="h-8 w-8"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-sm text-gray-500 flex justify-between">
+                      <span>Min: 1 room</span>
+                      <span>Total rooms: {getTotalRoomCount()}</span>
+                      <span>Max: 10 per type</span>
+                    </div>
+                  </div>
+
+                  {/* Cleanliness Level Slider */}
+                  <div className="mb-8">
+                    <Label className="text-base font-medium mb-3 block">Cleanliness Level</Label>
+                    <div className="px-2">
+                      <Slider
+                        value={[cleanlinessLevel]}
+                        min={1}
+                        max={4}
+                        step={1}
+                        onValueChange={(value) => setCleanlinessLevel(value[0])}
+                        className="mb-6"
+                      />
+                      <div className="flex justify-between">
+                        {cleanlinessLevels.map((level) => (
+                          <div
+                            key={level.level}
+                            className={cn("text-center flex-1", cleanlinessLevel === level.level && "font-medium")}
+                          >
+                            <div className="text-sm">{level.label}</div>
+                            <div className="text-xs text-gray-500">
+                              {level.level === 4 ? "N/A" : `×${level.multiplier}`}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {cleanlinessLevel >= 3 && serviceType === "standard" && (
+                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm rounded-r flex items-start">
+                        <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Warning: High Cleanliness Level</p>
+                          <p>For deep cleaning needs, we recommend our Premium Detailing service.</p>
+                        </div>
+                      </div>
+                    )}
+                    {cleanlinessLevel === 4 && (
+                      <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-800 dark:text-red-300 text-sm rounded-r flex items-start">
+                        <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Biohazard Level Cleaning</p>
+                          <p>
+                            This level requires specialized cleaning services. Please contact us directly for a custom
+                            quote.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Frequency Dropdown */}
+                  <div className="mb-8">
+                    <Label className="text-base font-medium mb-3 block">Cleaning Frequency</Label>
+                    <Select value={frequency} onValueChange={setFrequency}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {frequencyOptions.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
+                            <span className="ml-2 text-xs text-green-600">
+                              ({Math.round((1 - option.discountMultiplier) * 100)}% savings)
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500 mt-2">Regular cleaning schedules receive discounted rates</p>
+                  </div>
+
+                  {/* Video Discount Checkbox */}
+                  <div className="mb-8">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="allow-video"
+                        checked={allowVideo}
+                        onCheckedChange={(checked) => setAllowVideo(checked === true)}
+                      />
+                      <div>
+                        <Label htmlFor="allow-video" className="text-base font-medium cursor-pointer">
+                          Allow Video Recording ($25 Discount)
+                        </Label>
+                        <p className="text-sm text-gray-500 mt-1">
+                          We may record parts of the cleaning process for training and marketing purposes
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terms and Conditions Link */}
+                  <div className="flex items-center justify-center mb-6">
+                    <Button
+                      variant="link"
+                      onClick={handleOpenTerms}
+                      className="text-sm md:text-base text-gray-600 hover:text-blue-600 flex items-center"
+                    >
+                      {termsAccepted ? (
+                        <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                      ) : (
+                        <Lock className="h-4 w-4 mr-1" />
+                      )}
+                      {termsAccepted ? "Terms Accepted" : "View Terms and Conditions"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
-          {/* Add to Cart Button - Strategically placed */}
-          <AnimatePresence>
-            {calculatedService && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.5 }}
-                className="mt-8 flex justify-center"
-              >
-                <Button
-                  onClick={handleAddToCart}
-                  size="lg"
-                  className="group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300"
-                  disabled={!calculatedService.isServiceAvailable || !termsAccepted}
-                >
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
-                  <span className="absolute top-0 left-0 w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Sparkles className="h-5 w-5 text-white animate-pulse" />
-                  </span>
-                  <ShoppingCart className="mr-2 h-5 w-5 inline-block" />
-                  <span className="font-medium">Add to Cart - ${calculatedService.totalPrice.toFixed(2)}</span>
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Floating Cart Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <Card className="shadow-lg border-0">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+                  <CardTitle className="text-xl flex items-center">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Price Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {/* Service Summary */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg mb-2">Selected Service</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service Type:</span>
+                        <span className="font-medium">
+                          {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Rooms:</span>
+                        <span className="font-medium">{getTotalRoomCount()} total</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Cleanliness Level:</span>
+                        <span className="font-medium">
+                          {cleanlinessLevels.find((c) => c.level === cleanlinessLevel)?.label || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Frequency:</span>
+                        <span className="font-medium">
+                          {frequencyOptions.find((f) => f.id === frequency)?.label || "N/A"}
+                        </span>
+                      </div>
+                      {allowVideo && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Video Discount:</span>
+                          <span className="font-medium text-green-600">-$25.00</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price Display */}
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-medium">Total Price:</span>
+                      <div className="text-right">
+                        <div className="text-3xl font-bold">
+                          ${calculatedPrice.toFixed(2)}
+                          <span className="text-sm font-normal text-gray-500 ml-1">
+                            /
+                            {frequency === "annual"
+                              ? "year"
+                              : frequency === "monthly"
+                                ? "month"
+                                : frequency === "biweekly"
+                                  ? "2 weeks"
+                                  : "week"}
+                          </span>
+                        </div>
+                        {cleanlinessLevel === 4 && (
+                          <Badge variant="destructive" className="mt-1">
+                            Service Unavailable
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add to Cart Button */}
+                  <Button
+                    onClick={handleAddToCart}
+                    size="lg"
+                    className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300"
+                    disabled={!isServiceAvailable || getTotalRoomCount() === 0}
+                  >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-indigo-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
+                    <span className="absolute top-0 left-0 w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Sparkles className="h-5 w-5 text-white animate-pulse" />
+                    </span>
+                    <ShoppingCart className="mr-2 h-5 w-5 inline-block" />
+                    <span className="font-medium">Add to Cart</span>
+                  </Button>
+
+                  {/* Cart Status */}
+                  {cart.items.length > 0 && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600">
+                        {cart.items.length} item{cart.items.length !== 1 ? "s" : ""} in cart
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Terms Status Indicator */}
+                  <div className="mt-6 flex justify-center">
+                    {termsAccepted ? (
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200 flex items-center"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Terms Accepted
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 border-amber-200 flex items-center"
+                      >
+                        <Lock className="h-3 w-3 mr-1" />
+                        Terms Not Accepted
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Terms and conditions section */}
-      <div className="mt-8 mb-12 mx-auto max-w-4xl p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md">
-        <div className="flex items-center gap-3 mb-4">
-          <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Terms and Conditions</h2>
-        </div>
-
-        <p className="text-gray-600 dark:text-gray-300 mb-4">
-          By proceeding with your purchase, you agree to our Terms and Conditions and Privacy Policy. These terms
-          outline important information about our services, payment processing, cancellation policies, and your rights
-          as a customer.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center gap-4 mt-6">
-          <Button onClick={handleOpenTerms} variant="outline" className="w-full sm:w-auto">
-            <FileText className="h-4 w-4 mr-2" />
-            Read Full Terms
+      {/* Mobile Sticky Add to Cart */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 shadow-lg z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Total Price:</p>
+            <p className="text-xl font-bold">${calculatedPrice.toFixed(2)}</p>
+          </div>
+          <Button
+            onClick={handleAddToCart}
+            disabled={!isServiceAvailable || getTotalRoomCount() === 0}
+            className="gap-2"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            Add to Cart
           </Button>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input
-              type="checkbox"
-              id="accept-terms"
-              checked={termsAccepted}
-              onChange={() => setTermsAccepted(!termsAccepted)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="accept-terms" className="text-sm text-gray-700 dark:text-gray-300">
-              I have read and agree to the Terms and Conditions
-            </label>
-          </div>
         </div>
-
-        {!termsAccepted && calculatedService && (
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm rounded-r">
-            Please accept the terms and conditions to proceed with your purchase.
-          </div>
-        )}
       </div>
 
       {/* Address Collection Modal */}
-      {calculatedService && (
-        <AddressCollectionModal
-          isOpen={showAddressModal}
-          onClose={() => setShowAddressModal(false)}
-          onSubmit={handleAddressSubmit}
-          calculatedPrice={calculatedService.totalPrice}
-        />
-      )}
+      <AddressCollectionModal
+        isOpen={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onSubmit={handleAddressSubmit}
+        calculatedPrice={calculatedPrice}
+      />
 
       {/* Enhanced Terms Modal */}
       <EnhancedTermsModal
@@ -309,9 +630,6 @@ export default function PricingPage() {
         onAccept={handleTermsAccept}
         initialTab="terms"
       />
-
-      {/* Accessibility Panel */}
-      <AccessibilityPanel />
     </div>
   )
 }

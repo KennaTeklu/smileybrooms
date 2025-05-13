@@ -14,8 +14,6 @@ import {
   HelpCircle,
   AlertTriangle,
   Info,
-  List,
-  Type,
   Home,
   Check,
   Lock,
@@ -24,8 +22,6 @@ import {
   Printer,
   Copy,
   Search,
-  Moon,
-  Sun,
   ArrowUp,
   Scale,
   UserCheck,
@@ -1802,62 +1798,49 @@ export default function EnhancedTermsModal({
       <div className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden bg-white dark:bg-gray-900">
         <div ref={modalRef} className="relative w-full h-full flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                <FileText className="h-5 w-5 mr-2" />
-                Terms and Privacy Policy
-              </h2>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Last updated: May 1, 2025</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Search"
-                title="Search"
-              >
-                <Search className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-              <button
-                onClick={() => setShowTableOfContents(!showTableOfContents)}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label={showTableOfContents ? "Hide table of contents" : "Show table of contents"}
-                title="Table of Contents"
-              >
-                <List className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-              <button
-                onClick={cycleTextSize}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label="Change text size"
-                title="Change Text Size"
-              >
-                <Type className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                title={isDarkMode ? "Light Mode" : "Dark Mode"}
-              >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                ) : (
-                  <Moon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                )}
-              </button>
-              {!forceAccept && (
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Close dialog"
-                  title="Close"
-                >
-                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                </button>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2
+              id="terms-modal-title"
+              className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center"
+            >
+              <FileText className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+              Terms & Privacy Policy
+            </h2>
+            <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-300">
+              Last updated: May 1, 2025 • Please review before continuing
+            </p>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
+            <button
+              onClick={() => setActiveTab("terms")}
+              className={cn(
+                "flex-1 py-3 px-4 text-sm md:text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset flex items-center justify-center",
+                activeTab === "terms"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-900"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white",
               )}
-            </div>
+              aria-selected={activeTab === "terms"}
+              role="tab"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Terms & Conditions
+            </button>
+            <button
+              onClick={() => setActiveTab("privacy")}
+              className={cn(
+                "flex-1 py-3 px-4 text-sm md:text-base font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset flex items-center justify-center",
+                activeTab === "privacy"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-900"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white",
+              )}
+              aria-selected={activeTab === "privacy"}
+              role="tab"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Privacy Policy
+            </button>
           </div>
 
           {/* Search Panel */}
@@ -1868,17 +1851,17 @@ export default function EnhancedTermsModal({
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-hidden"
+                className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-hidden sticky top-[49px] z-10"
               >
                 <div className="p-4">
-                  <div className="relative">
+                  <div className="relative max-w-xl mx-auto">
                     <Input
                       ref={searchInputRef}
                       type="text"
                       placeholder="Search terms and privacy policy..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 pr-10 py-2 text-base"
                     />
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     {searchQuery && (
@@ -1890,6 +1873,12 @@ export default function EnhancedTermsModal({
                       </button>
                     )}
                   </div>
+
+                  {searchQuery && (
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                      {searchResults.length > 0 ? `${searchResults.length} results found` : "No results found"}
+                    </div>
+                  )}
 
                   {searchResults.length > 0 && (
                     <div
@@ -1926,47 +1915,41 @@ export default function EnhancedTermsModal({
                       ))}
                     </div>
                   )}
-
-                  {searchQuery && searchResults.length === 0 && (
-                    <div className="mt-4 p-4 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md">
-                      No results found for "{searchQuery}"
-                    </div>
-                  )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Progress Indicator */}
-          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700 sticky top-[49px] z-10">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
               <div className="flex items-center">
-                <BookOpen className="h-3.5 w-3.5 mr-1" />
-                <span>Reading Progress:</span>
+                <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                <span>Reading Progress</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="flex items-center">
                   <div
                     className={cn(
-                      "h-2.5 w-2.5 rounded-full mr-1",
+                      "h-3 w-3 rounded-full mr-1.5",
                       allTermsViewed ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600",
                     )}
                   />
-                  <span>Terms</span>
+                  <span>Terms {allTermsViewed ? "✓" : ""}</span>
                 </div>
                 <div className="flex items-center">
                   <div
                     className={cn(
-                      "h-2.5 w-2.5 rounded-full mr-1",
+                      "h-3 w-3 rounded-full mr-1.5",
                       allPrivacyViewed ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600",
                     )}
                   />
-                  <span>Privacy</span>
+                  <span>Privacy {allPrivacyViewed ? "✓" : ""}</span>
                 </div>
               </div>
             </div>
             {/* Progress bar */}
-            <div className="w-full bg-gray-200 dark:bg-gray-700 h-1.5 mt-2 rounded-full overflow-hidden">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
               <div
                 className="bg-blue-600 dark:bg-blue-500 h-full transition-all duration-300 ease-in-out"
                 style={{ width: `${readingProgress}%` }}
@@ -2078,28 +2061,31 @@ export default function EnhancedTermsModal({
                 {/* Terms Sections */}
                 {termsSections.map((section, index) => (
                   <div key={section.id} data-section-id={section.id} className="mb-12 scroll-mt-24" id={section.id}>
-                    <div className="flex items-center mb-4">
-                      <div className="bg-blue-100 dark:bg-blue-900/30 p-2 md:p-3 rounded-full mr-3 md:mr-4 flex-shrink-0">
+                    <div className="flex items-start mb-4">
+                      <div className="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-full mr-3 md:mr-4 flex-shrink-0 mt-1">
                         {section.icon ? (
                           React.cloneElement(section.icon as React.ReactElement, {
-                            className: "h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400",
+                            className: "h-5 w-5 text-blue-600 dark:text-blue-400",
                           })
                         ) : (
-                          <FileText className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         )}
                       </div>
-                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white m-0 break-words">
-                        {index + 1}. {section.title}
-                        {section.important && (
-                          <span className="ml-2 inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 text-xs px-2 py-1 rounded-full">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Important
-                          </span>
-                        )}
-                      </h2>
+                      <div>
+                        <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white m-0 break-words flex items-center flex-wrap">
+                          {index + 1}. {section.title}
+                          {section.important && (
+                            <span className="ml-2 inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full mt-1 md:mt-0">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Important
+                            </span>
+                          )}
+                        </h2>
+                        <div className="h-1 w-12 bg-blue-600 dark:bg-blue-400 mt-2 rounded-full"></div>
+                      </div>
                     </div>
 
-                    <div className="mt-4 max-w-full break-words">{section.content}</div>
+                    <div className="mt-4 max-w-full break-words pl-10 md:pl-12">{section.content}</div>
                   </div>
                 ))}
 
@@ -2112,28 +2098,31 @@ export default function EnhancedTermsModal({
                 {/* Privacy Sections */}
                 {privacySections.map((section, index) => (
                   <div key={section.id} data-section-id={section.id} className="mb-12 scroll-mt-24" id={section.id}>
-                    <div className="flex items-center mb-4">
-                      <div className="bg-blue-100 dark:bg-blue-900/30 p-2 md:p-3 rounded-full mr-3 md:mr-4 flex-shrink-0">
+                    <div className="flex items-start mb-4">
+                      <div className="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-full mr-3 md:mr-4 flex-shrink-0 mt-1">
                         {section.icon ? (
                           React.cloneElement(section.icon as React.ReactElement, {
-                            className: "h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400",
+                            className: "h-5 w-5 text-blue-600 dark:text-blue-400",
                           })
                         ) : (
-                          <FileText className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         )}
                       </div>
-                      <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white m-0 break-words">
-                        {index + 1}. {section.title}
-                        {section.important && (
-                          <span className="ml-2 inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 text-xs px-2 py-1 rounded-full">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Important
-                          </span>
-                        )}
-                      </h2>
+                      <div>
+                        <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white m-0 break-words flex items-center flex-wrap">
+                          {index + 1}. {section.title}
+                          {section.important && (
+                            <span className="ml-2 inline-flex items-center bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full mt-1 md:mt-0">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Important
+                            </span>
+                          )}
+                        </h2>
+                        <div className="h-1 w-12 bg-blue-600 dark:bg-blue-400 mt-2 rounded-full"></div>
+                      </div>
                     </div>
 
-                    <div className="mt-4 max-w-full break-words">{section.content}</div>
+                    <div className="mt-4 max-w-full break-words pl-10 md:pl-12">{section.content}</div>
                   </div>
                 ))}
               </div>

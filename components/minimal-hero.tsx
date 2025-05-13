@@ -1,89 +1,106 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { ArrowRight, Star } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { ArrowDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function MinimalHero() {
-  const [isHovered, setIsHovered] = useState(false)
-  const router = useRouter()
+  const [currentTextIndex, setCurrentTextIndex] = useState(0)
+  const [displayText, setDisplayText] = useState("")
+  const [isTyping, setIsTyping] = useState(true)
+  const fullTexts = [
+    "You rest, we take care of the rest!",
+    "Professional cleaning at your fingertips!",
+    "Sparkling clean, every time!",
+    "Your home deserves the best!",
+  ]
+  const typingSpeed = 50
+  const erasingSpeed = 30
+  const pauseDuration = 2000
+  const textRef = useRef(fullTexts[0])
+
+  // Typing effect
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+
+    if (isTyping) {
+      if (displayText.length < textRef.current.length) {
+        timeout = setTimeout(() => {
+          setDisplayText(textRef.current.substring(0, displayText.length + 1))
+        }, typingSpeed)
+      } else {
+        timeout = setTimeout(() => {
+          setIsTyping(false)
+        }, pauseDuration)
+      }
+    } else {
+      if (displayText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayText(displayText.substring(0, displayText.length - 1))
+        }, erasingSpeed)
+      } else {
+        setCurrentTextIndex((prevIndex) => (prevIndex + 1) % fullTexts.length)
+        textRef.current = fullTexts[(currentTextIndex + 1) % fullTexts.length]
+        setIsTyping(true)
+      }
+    }
+
+    return () => clearTimeout(timeout)
+  }, [displayText, isTyping, currentTextIndex, fullTexts])
+
+  const scrollToBooking = () => {
+    const calculatorSection = document.getElementById("calculator")
+    if (calculatorSection) {
+      calculatorSection.scrollIntoView({ behavior: "smooth" })
+    } else {
+      // If calculator section doesn't exist on this page, navigate to calculator page
+      window.location.href = "/calculator"
+    }
+  }
 
   return (
-    <div className="relative bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950 overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-30 dark:opacity-20">
-        <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern-light dark:bg-grid-pattern-dark" />
-      </div>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-pattern">
+      {/* Background overlay with consistent opacity */}
+      <div className="absolute inset-0 bg-image-overlay" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
-        <div className="text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight"
-          >
-            <span className="block">Professional Cleaning</span>
-            <span className="block text-blue-600 dark:text-blue-400">That Makes You Smile</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-gray-600 dark:text-gray-300"
-          >
-            Experience the joy of coming home to a perfectly clean space. Our professional cleaning services are
-            designed to exceed your expectations and brighten your day.
-          </motion.p>
-
+      <div className="container mx-auto px-4 z-10">
+        <div className="flex flex-col items-center text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-8 flex flex-col sm:flex-row gap-4 justify-center"
+            transition={{ duration: 0.8 }}
+            className="mb-6"
           >
-            <Button
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              onClick={() => router.push("/calculator")}
-            >
-              Get Started
-              <motion.div
-                animate={{ x: isHovered ? 5 : 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              >
-                <ArrowRight className="h-5 w-5" />
-              </motion.div>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 px-8 py-6 text-lg rounded-full"
-              onClick={() => router.push("/pricing")}
-            >
-              View Pricing
-            </Button>
+            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 animate-glow">
+              smileybrooms
+            </h1>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-10 flex items-center justify-center text-sm text-gray-600 dark:text-gray-400"
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="mb-8 h-16"
           >
-            <div className="flex -space-x-1 mr-3">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-              ))}
-            </div>
-            <span>
-              <span className="font-medium">4.9/5</span> from over <span className="font-medium">2,000+</span> happy
-              customers
-            </span>
+            <h2 className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 typing-effect">{displayText}</h2>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+          >
+            <Button
+              onClick={scrollToBooking}
+              size="lg"
+              className="group relative overflow-hidden rounded-full px-8 py-6 neon-button"
+            >
+              <span className="relative z-10 text-lg font-medium">Book Now</span>
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:translate-y-1">
+                <ArrowDown className="h-4 w-4 animate-bounce" />
+              </span>
+            </Button>
           </motion.div>
         </div>
       </div>
