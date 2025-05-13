@@ -1,48 +1,38 @@
-import Cookies from "js-cookie"
+"use client"
 
-const SERVICE_COUNT_KEY = "service_count"
-const SERVICE_HISTORY_KEY = "service_history"
+const SERVICE_COUNT_KEY = "serviceCount"
+const SERVICE_HISTORY_KEY = "serviceHistory"
 
-export type ServiceRecord = {
-  id: string
-  name: string
-  date: string
-  completed: boolean
-  scheduledDate?: string
-}
-
+// Function to get the service count from localStorage
 export function getServiceCount(): number {
-  const count = Cookies.get(SERVICE_COUNT_KEY)
+  if (typeof window === "undefined") return 0
+  const count = localStorage.getItem(SERVICE_COUNT_KEY)
   return count ? Number.parseInt(count, 10) : 0
 }
 
-export function incrementServiceCount(): number {
+// Function to increment the service count in localStorage
+export function incrementServiceCount(): void {
+  if (typeof window === "undefined") return
   const currentCount = getServiceCount()
-  const newCount = currentCount + 1
-  Cookies.set(SERVICE_COUNT_KEY, newCount.toString(), { expires: 365 })
-  return newCount
+  localStorage.setItem(SERVICE_COUNT_KEY, (currentCount + 1).toString())
 }
 
-export function getServiceHistory(): ServiceRecord[] {
-  const history = Cookies.get(SERVICE_HISTORY_KEY)
+// Function to get the service history from localStorage
+export function getServiceHistory(): any[] {
+  if (typeof window === "undefined") return []
+  const history = localStorage.getItem(SERVICE_HISTORY_KEY)
   return history ? JSON.parse(history) : []
 }
 
-export function addServiceRecord(service: ServiceRecord): ServiceRecord[] {
+// Function to add a service record to localStorage
+export function addServiceRecord(record: any): void {
+  if (typeof window === "undefined") return
   const history = getServiceHistory()
-  const updatedHistory = [...history, service]
-  Cookies.set(SERVICE_HISTORY_KEY, JSON.stringify(updatedHistory), { expires: 365 })
-  return updatedHistory
+  localStorage.setItem(SERVICE_HISTORY_KEY, JSON.stringify([...history, record]))
 }
 
-export function updateServiceRecord(id: string, updates: Partial<ServiceRecord>): ServiceRecord[] {
-  const history = getServiceHistory()
-  const updatedHistory = history.map((record) => (record.id === id ? { ...record, ...updates } : record))
-  Cookies.set(SERVICE_HISTORY_KEY, JSON.stringify(updatedHistory), { expires: 365 })
-  return updatedHistory
-}
-
+// Function to get the remaining services (example: subscription based)
 export function getRemainingServices(): number {
-  const history = getServiceHistory()
-  return history.filter((record) => !record.completed).length
+  // This is a placeholder, implement your logic here
+  return 5 // Example: return a default value of 5
 }

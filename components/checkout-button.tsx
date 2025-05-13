@@ -6,7 +6,6 @@ import { createCheckoutSession } from "@/lib/actions"
 import { Loader2, CreditCard } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
-import { trackBeginCheckout } from "@/lib/analytics-utils"
 
 interface CheckoutButtonProps {
   priceId?: string
@@ -56,13 +55,6 @@ export default function CheckoutButton({
     setIsLoading(true)
     try {
       let checkoutUrl: string | undefined
-
-      // Track checkout initiated event
-      try {
-        trackBeginCheckout(cart.items, cart.totalPrice)
-      } catch (error) {
-        console.error("Error tracking checkout event:", error)
-      }
 
       if (priceId) {
         // Use price ID for standard products

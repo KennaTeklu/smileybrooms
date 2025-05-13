@@ -1,9 +1,3 @@
-/**
- * Enhanced Terms Modal Component
- *
- * IMPORTANT: Company name is always "smileybrooms" (lowercase, one word)
- */
-
 "use client"
 
 import React from "react"

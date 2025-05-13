@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Shield, Leaf, Award, Users } from "lucide-react"
 

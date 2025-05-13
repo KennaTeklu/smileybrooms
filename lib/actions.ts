@@ -7,135 +7,105 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2023-10-16",
 })
 
+type LineItem = {
+  price: string
+  quantity: number
+}
+
+type CustomLineItem = {
+  name: string
+  amount: number
+  quantity: number
+  metadata?: Record<string, any>
+}
+
 type CheckoutSessionParams = {
-  lineItems?: Array<{
-    price: string
-    quantity: number
-  }>
-  customLineItems?: Array<{
-    name: string
-    amount: number
-    quantity: number
-    metadata?: Record<string, any>
-  }>
+  lineItems?: LineItem[]
+  customLineItems?: CustomLineItem[]
   successUrl: string
   cancelUrl: string
-  customerEmail?: string
+  isRecurring?: boolean
+  recurringInterval?: "week" | "month" | "year"
   customerData?: {
-    name: string
-    email: string
-    phone: string
-    address: {
-      line1: string
-      city: string
-      state: string
-      postal_code: string
-      country: string
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
     }
   }
-  isRecurring?: boolean
 }
 
 export async function createCheckoutSession({
-  lineItems = [],
-  customLineItems = [],
+  lineItems,
+  customLineItems,
   successUrl,
   cancelUrl,
-  customerEmail,
-  customerData,
   isRecurring = false,
+  recurringInterval = "month",
+  customerData,
 }: CheckoutSessionParams): Promise<string> {
   try {
-    // Create standard line items for products with price IDs
-    const standardLineItems = lineItems.map((item) => ({
-      price: item.price,
-      quantity: item.quantity,
-    }))
+    // Prepare line items for the checkout session
+    let sessionLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
 
-    // Create custom line items for products without price IDs
-    const customPriceLineItems = customLineItems.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.name,
-          metadata: item.metadata || {},
+    // Add standard line items if provided
+    if (lineItems && lineItems.length > 0) {
+      sessionLineItems = lineItems.map((item) => ({
+        price: item.price,
+        quantity: item.quantity,
+      }))
+    }
+
+    // Add custom line items if provided
+    if (customLineItems && customLineItems.length > 0) {
+      const customItems = customLineItems.map((item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            metadata: item.metadata || {},
+          },
+          unit_amount: Math.round(item.amount * 100), // Convert to cents
+          recurring: isRecurring
+            ? {
+                interval: recurringInterval as Stripe.PriceData.Recurring.Interval,
+              }
+            : undefined,
         },
-        unit_amount: Math.round(item.amount * 100), // Convert to cents for Stripe
-        ...(isRecurring
-          ? {
-              recurring: {
-                interval: "month", // Default to monthly for recurring payments
-              },
-            }
-          : {}),
-      },
-      quantity: item.quantity,
-    }))
+        quantity: item.quantity,
+      }))
 
-    // Combine all line items
-    const allLineItems = [...standardLineItems, ...customPriceLineItems]
-
-    // Create a customer if customer data is provided
-    let customerId: string | undefined = undefined
-    if (customerData) {
-      const customer = await stripe.customers.create({
-        name: customerData.name,
-        email: customerData.email,
-        phone: customerData.phone,
-        address: customerData.address,
-      })
-      customerId = customer.id
+      sessionLineItems = [...sessionLineItems, ...customItems]
     }
 
     // Create the checkout session
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      line_items: allLineItems,
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: sessionLineItems,
       mode: isRecurring ? "subscription" : "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      customer_email: !customerId ? customerEmail : undefined,
-      customer: customerId,
-      metadata: {
-        customData: JSON.stringify(customLineItems.map((item) => item.metadata || {})),
-      },
+      customer_creation: "always",
       billing_address_collection: "auto",
-      payment_method_types: ["card"],
-    }
+      shipping_address_collection: customerData?.address
+        ? {
+            allowed_countries: ["US", "CA", "GB"],
+          }
+        : undefined,
+      customer_email: customerData?.email,
+      phone_number_collection: customerData?.phone
+        ? {
+            enabled: true,
+          }
+        : undefined,
+    })
 
-    // Add shipping address collection if customer data has address
-    if (customerData?.address) {
-      sessionParams.shipping_address_collection = {
-        allowed_countries: ["US"],
-      }
-
-      // Add shipping options
-      sessionParams.shipping_options = [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: {
-              amount: 0,
-              currency: "usd",
-            },
-            display_name: "Standard Service",
-            delivery_estimate: {
-              minimum: {
-                unit: "business_day",
-                value: 1,
-              },
-              maximum: {
-                unit: "business_day",
-                value: 3,
-              },
-            },
-          },
-        },
-      ]
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams)
-
-    return session.url || cancelUrl
+    return session.url || ""
   } catch (error) {
     console.error("Error creating checkout session:", error)
     throw new Error("Failed to create checkout session")

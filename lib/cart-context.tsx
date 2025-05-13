@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
-import { trackAddToCart, trackRemoveFromCart, trackViewCart } from "./analytics-utils"
 import { useToast } from "@/components/ui/use-toast"
 
 export type CartItem = {
@@ -80,18 +79,6 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         })
       } else {
         updatedItems = [...state.items, action.payload]
-
-        // Track the add to cart event with analytics
-        try {
-          trackAddToCart({
-            id: action.payload.id,
-            name: action.payload.name,
-            price: action.payload.price,
-            sourceSection: action.payload.sourceSection || "Unknown",
-          })
-        } catch (error) {
-          console.error("Error tracking add to cart:", error)
-        }
       }
 
       const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
@@ -105,24 +92,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
     }
 
     case "REMOVE_ITEM": {
-      // Find the item before removing it to track the event
-      const itemToRemove = state.items.find((item) => item.id === action.payload)
-
       const updatedItems = state.items.filter((item) => item.id !== action.payload)
       const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
-
-      // Track the remove from cart event with analytics
-      if (itemToRemove) {
-        try {
-          trackRemoveFromCart({
-            id: itemToRemove.id,
-            name: itemToRemove.name,
-            price: itemToRemove.price,
-          })
-        } catch (error) {
-          console.error("Error tracking remove from cart:", error)
-        }
-      }
 
       return {
         ...state,
@@ -186,15 +157,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart))
-
-    // Track cart view when cart changes and has items
-    if (cart.items.length > 0) {
-      try {
-        trackViewCart(cart.items, cart.totalPrice)
-      } catch (error) {
-        console.error("Error tracking cart view:", error)
-      }
-    }
   }, [cart])
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {

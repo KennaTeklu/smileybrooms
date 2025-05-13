@@ -1,5 +1,3 @@
-// Add a media query hook if it doesn't exist
-
 "use client"
 
 import { useState, useEffect } from "react"

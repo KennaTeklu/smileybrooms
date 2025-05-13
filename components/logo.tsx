@@ -1,3 +1,5 @@
+"use client"
+
 import { Smile } from "lucide-react"
 import { cn } from "@/lib/utils"
 

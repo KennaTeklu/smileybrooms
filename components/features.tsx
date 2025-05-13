@@ -1,3 +1,5 @@
+"use client"
+
 import { Sparkles, Clock, Shield, Users, Leaf, Calendar, CreditCard, Star } from "lucide-react"
 
 export default function Features() {

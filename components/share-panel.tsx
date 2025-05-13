@@ -115,7 +115,7 @@ const socialPlatforms: Record<string, SocialPlatform[]> = {
     },
     {
       name: "Snapchat",
-      icon: <Image className="h-5 w-5" />,
+      icon: <ImageIcon className="h-5 w-5" />,
       color: "bg-[#FFFC00] hover:bg-[#E6E300] text-black",
       url: "https://www.snapchat.com/",
       template: "Swipe up to check out this amazing cleaning service! 🧹✨ {url}",

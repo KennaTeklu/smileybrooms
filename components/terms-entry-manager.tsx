@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Terms Entry Manager Component
  *
@@ -6,8 +8,6 @@
  * This component manages the display of the terms modal based on context state
  * and enforces terms acceptance before allowing access to protected pages.
  */
-
-"use client"
 
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
