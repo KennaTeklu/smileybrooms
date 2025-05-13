@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
   { name: "Tech Stack", href: "/tech-stack", icon: <Code className="h-5 w-5" />, description: "Our technology stack" },
 ]
 
-export default function EnhancedNavigation() {
+export function EnhancedNavigation() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
