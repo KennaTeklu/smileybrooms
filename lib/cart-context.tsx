@@ -9,9 +9,6 @@ export type CartItem = {
   quantity: number
   image?: string
   description?: string
-  priceId?: string
-  metadata?: Record<string, any>
-  paymentFrequency?: string
 }
 
 type CartContextType = {

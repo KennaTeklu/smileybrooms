@@ -8,7 +8,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['images.unsplash.com', 'v0.blob.com'],
+    domains: ['images.unsplash.com'],
   },
   experimental: {
     serverActions: {

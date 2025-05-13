@@ -10,11 +10,6 @@ export async function GET(request: NextRequest) {
   try {
     console.log(`App download: ${platform}, version: ${version}`)
 
-    // Validate platform parameter
-    if (!platform) {
-      return NextResponse.json({ error: "Platform parameter is required" }, { status: 400 })
-    }
-
     // Map platform to file path
     let filePath = ""
     let fileName = ""
@@ -57,48 +52,19 @@ export async function GET(request: NextRequest) {
         contentType = "application/octet-stream"
         break
       default:
-        return NextResponse.json(
-          {
-            error:
-              "Invalid platform. Supported platforms: ios, android, macos, windows, linux-deb, linux-rpm, linux-appimage",
-          },
-          { status: 400 },
-        )
+        return NextResponse.json({ error: "Invalid platform" }, { status: 400 })
     }
 
     // For direct download from public folder
     const downloadUrl = `/downloads/${fileName}`
 
-    // Track download event (could be expanded with more analytics)
-    try {
-      // Add download tracking logic here if needed
-    } catch (trackingError) {
-      // Log but don't fail the download if tracking fails
-      console.error("Download tracking error:", trackingError)
-    }
-
     // Return the direct download URL
     return NextResponse.json({
       url: downloadUrl,
       directDownload: true,
-      contentType: contentType,
-      fileName: fileName,
     })
   } catch (error) {
-    console.error("Download error:", error)
-
-    // More specific error responses based on error type
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          error: "Failed to process download",
-          details: error.message,
-          stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-        },
-        { status: 500 },
-      )
-    }
-
-    return NextResponse.json({ error: "An unknown error occurred" }, { status: 500 })
+    console.error("Download tracking error:", error)
+    return NextResponse.json({ error: "Failed to process download" }, { status: 500 })
   }
 }

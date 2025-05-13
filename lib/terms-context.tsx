@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { MobileOptimizedTermsModal } from "@/components/mobile-optimized-terms-modal"
 
 type TermsContextType = {
   termsAccepted: boolean
@@ -117,6 +118,52 @@ export function TermsProvider({ children }: TermsProviderProps) {
       }}
     >
       {children}
+
+      {showTermsModal && (
+        <MobileOptimizedTermsModal
+          isOpen={showTermsModal}
+          onClose={closeTermsModal}
+          title="Terms and Conditions"
+          content={`
+         # Terms and Conditions
+         
+         ## 1. Introduction
+         
+         Welcome to SmileyBrooms! These Terms and Conditions govern your use of our website, mobile applications, and services. By accessing or using our services, you agree to be bound by these Terms.
+         
+         ## 2. Services
+         
+         SmileyBrooms provides home cleaning services, including but not limited to regular cleaning, deep cleaning, move-in/move-out cleaning, and office cleaning. All services are subject to availability in your area.
+         
+         ## 3. User Responsibilities
+         
+         Users are responsible for providing accurate information when booking services, ensuring access to the premises at the scheduled time, and maintaining a safe environment for our cleaning professionals.
+         
+         ## 4. Payment Terms
+         
+         Payment is required at the time of booking. We accept major credit cards and digital payment methods. Prices are subject to change without notice. Cancellation fees may apply for bookings cancelled less than 24 hours before the scheduled service.
+         
+         ## 5. Privacy Policy
+         
+         Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your personal information. By using our services, you consent to our data practices as described in our Privacy Policy.
+         
+         ## 6. Termination
+         
+         We reserve the right to terminate or suspend your access to our services at any time, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties, or for any other reason at our sole discretion.
+         
+         ## 7. Liability
+         
+         SmileyBrooms is not liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, resulting from your access to or use of, or inability to access or use, the services.
+         
+         ## 8. Changes to Terms
+         
+         We may modify these Terms at any time. Your continued use of our services after any changes indicates your acceptance of the modified Terms.
+         `}
+          onAccept={acceptTerms}
+          acceptLabel="Accept Terms"
+          cancelLabel="Cancel"
+        />
+      )}
     </TermsContext.Provider>
   )
 }

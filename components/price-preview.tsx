@@ -1,40 +1,40 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { formatCurrency } from "@/lib/utils"
 
 interface PricePreviewProps {
   price: number
-  paymentFrequency?: string
-  size?: "small" | "medium" | "large"
+  paymentFrequency?: "per_service" | "monthly" | "yearly"
+  size?: "default" | "large"
   animate?: boolean
 }
 
 export function PricePreview({
   price,
   paymentFrequency = "per_service",
-  size = "medium",
+  size = "default",
   animate = false,
 }: PricePreviewProps) {
-  const fontSizeClass = size === "small" ? "text-lg" : size === "large" ? "text-3xl" : "text-2xl"
-
-  const frequencyLabel = paymentFrequency === "monthly" ? "/month" : paymentFrequency === "yearly" ? "/year" : ""
+  const fontSize = size === "large" ? "text-3xl" : "text-2xl"
 
   return (
     <div className="flex items-baseline">
-      {animate ? (
+      <AnimatePresence mode="wait">
         <motion.span
-          key={price}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`font-bold ${fontSizeClass} text-primary`}
+          key={`${price}-${paymentFrequency}`}
+          initial={animate ? { opacity: 0, y: -10 } : undefined}
+          animate={animate ? { opacity: 1, y: 0 } : undefined}
+          exit={animate ? { opacity: 0, y: 10 } : undefined}
+          className={`font-bold text-primary ${fontSize}`}
         >
           {formatCurrency(price)}
         </motion.span>
-      ) : (
-        <span className={`font-bold ${fontSizeClass} text-primary`}>{formatCurrency(price)}</span>
+      </AnimatePresence>
+
+      {paymentFrequency !== "per_service" && (
+        <span className="text-sm text-gray-500 ml-1">/{paymentFrequency === "monthly" ? "month" : "year"}</span>
       )}
-      {frequencyLabel && <span className="text-sm text-gray-500 ml-1">{frequencyLabel}</span>}
     </div>
   )
 }

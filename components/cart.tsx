@@ -208,19 +208,16 @@ export function Cart({ showLabel = false }: CartProps) {
         const scriptURL =
           "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
 
-        try {
-          await fetch(scriptURL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(waitlistData),
-          })
-        } catch (waitlistError) {
-          console.error("Error submitting to waitlist:", waitlistError)
-          // Continue with checkout even if waitlist submission fails
-        }
+        fetch(scriptURL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(waitlistData),
+        }).catch((error) => {
+          console.error("Error submitting to waitlist:", error)
+        })
 
         // Mark video recording discount as permanently used for this address
         if (customerData.allowVideoRecording) {
@@ -256,29 +253,13 @@ export function Cart({ showLabel = false }: CartProps) {
       if (checkoutUrl) {
         setCheckoutSuccess(true)
         window.location.href = checkoutUrl
-      } else {
-        throw new Error("Failed to create checkout session. No checkout URL returned.")
       }
     } catch (error) {
       console.error("Error during checkout:", error)
-
-      // More specific error messages based on error type
-      let errorMessage = "An error occurred during checkout. Please try again or call us for assistance."
-
-      if (error instanceof TypeError) {
-        errorMessage = "Network error. Please check your connection and try again."
-      } else if (error instanceof Error) {
-        if (error.message.includes("Stripe")) {
-          errorMessage = "Payment processing error. Please try a different payment method or contact support."
-        } else if (error.message.includes("session")) {
-          errorMessage = "Error creating checkout session. Please try again or use a different browser."
-        }
-      }
-
-      setCheckoutError(errorMessage)
+      setCheckoutError("An error occurred during checkout. Please try again or call us for assistance.")
       toast({
         title: "Checkout failed",
-        description: errorMessage,
+        description: "An error occurred during checkout. Please try again.",
         variant: "destructive",
         duration: 5000,
       })

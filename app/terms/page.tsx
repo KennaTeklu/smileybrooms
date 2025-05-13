@@ -12,8 +12,6 @@ import { FileText, ShieldCheck, Check, ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { hasAcceptedTerms, saveTermsAcceptance } from "@/lib/terms-utils"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 
 export default function TermsPage() {
   const { termsAccepted, acceptTerms } = useTerms()
@@ -318,17 +316,6 @@ export default function TermsPage() {
           </CardFooter>
         </Tabs>
       </Card>
-
-      <div className="flex justify-between items-center mt-8">
-        <Button asChild variant="outline">
-          <Link href="/">Back to Home</Link>
-        </Button>
-
-        <div className="flex items-center space-x-2">
-          <Checkbox id="accept" />
-          <Label htmlFor="accept">I have read and accept the terms</Label>
-        </div>
-      </div>
 
       {/* Print-specific styles */}
       <style jsx global>{`

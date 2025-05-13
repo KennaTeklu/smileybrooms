@@ -13,15 +13,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items provided" }, { status: 400 })
     }
 
-    // Validate required parameters
-    if (!success_url) {
-      return NextResponse.json({ error: "success_url is required" }, { status: 400 })
-    }
-
-    if (!cancel_url) {
-      return NextResponse.json({ error: "cancel_url is required" }, { status: 400 })
-    }
-
     // Create line items for Stripe
     const lineItems = items.map((item: any) => ({
       price_data: {
@@ -47,30 +38,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ sessionId: session.id })
   } catch (error) {
     console.error("Stripe checkout error:", error)
-
-    // Handle Stripe-specific errors
-    if (error instanceof Stripe.errors.StripeError) {
-      const errorMessage = error.message || "Payment processing error"
-      const errorType = error.type || "unknown"
-
-      return NextResponse.json(
-        {
-          error: "Error creating checkout session",
-          message: errorMessage,
-          type: errorType,
-          code: error.statusCode || 500,
-        },
-        { status: error.statusCode || 500 },
-      )
-    }
-
-    // Handle other errors
-    return NextResponse.json(
-      {
-        error: "Error creating checkout session",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: "Error creating checkout session" }, { status: 500 })
   }
 }

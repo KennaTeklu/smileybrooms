@@ -4,10 +4,16 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { EnhancedNavigation } from "@/components/enhanced-navigation"
+import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
+import { UnifiedFooter } from "@/components/unified-footer"
+import { AccessibilityPanel } from "@/components/accessibility-panel"
+import { SharePanel } from "@/components/share-panel"
+import { PageViewTracker } from "@/components/page-view-tracker"
 import { CartProvider } from "@/lib/cart-context"
+import { TermsEntryManager } from "@/components/terms-entry-manager"
 import { TermsProvider } from "@/lib/terms-context"
-import { GlobalErrorBoundary } from "@/components/global-error-boundary"
-import { QueryClientProvider } from "@/components/query-client-provider"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,18 +31,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <GlobalErrorBoundary>
-            <CartProvider>
-              <TermsProvider>
-                <QueryClientProvider>
-                  {children}
-                  <Toaster />
-                </QueryClientProvider>
-              </TermsProvider>
-            </CartProvider>
-          </GlobalErrorBoundary>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <TermsProvider>
+              <CartProvider>
+                <PageViewTracker />
+                <EnhancedNavigation />
+                <div className="pt-16">{children}</div>
+                <TermsEntryManager />
+                <PersistentBookNowButton />
+                <AccessibilityPanel />
+                <SharePanel />
+                <UnifiedFooter />
+                <Toaster />
+              </CartProvider>
+            </TermsProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

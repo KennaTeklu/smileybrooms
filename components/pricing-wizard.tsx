@@ -1,54 +1,19 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  HelpCircle,
-  Check,
-  ChevronRight,
-  ChevronLeft,
-  Home,
-  Calendar,
-  Settings,
-  Sparkles,
-  Bath,
-  CookingPotIcon as Kitchen,
-  Sofa,
-  Coffee,
-  Briefcase,
-  Bed,
-  Plus,
-  Minus,
-  Info,
-} from "lucide-react"
+import { HelpCircle, Check, ChevronRight, ChevronLeft, Home, Calendar, Settings, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
-import { Slider } from "@/components/ui/slider"
-import { motion, AnimatePresence } from "framer-motion"
-
-// Define types
-interface UserPreferences {
-  lastSelectedRooms?: Record<string, number>
-  preferredServiceType?: "standard" | "detailing"
-  preferredFrequency?: string
-  preferredPaymentFrequency?: "per_service" | "monthly" | "yearly"
-}
-
-interface PricingWizardProps {
-  onCalculationComplete: (data: any) => void
-  onStepChange: (step: number) => void
-  userPreferences?: UserPreferences
-  abTestVariant?: "A" | "B"
-  initialStep?: number
-}
 
 // Room configuration with images and descriptions
 const ROOMS = {
@@ -145,24 +110,6 @@ const ROOMS = {
   },
 }
 
-// Room configuration
-const ROOM_TYPES = {
-  bedroom: { label: "Bedroom", icon: Bed, basePrice: { standard: 25, detailing: 40 } },
-  bathroom: { label: "Bathroom", icon: Bath, basePrice: { standard: 30, detailing: 50 } },
-  kitchen: { label: "Kitchen", icon: Kitchen, basePrice: { standard: 50, detailing: 75 } },
-  living_room: { label: "Living Room", icon: Sofa, basePrice: { standard: 40, detailing: 60 } },
-  dining_room: { label: "Dining Room", icon: Coffee, basePrice: { standard: 25, detailing: 40 } },
-  office: { label: "Office", icon: Briefcase, basePrice: { standard: 35, detailing: 55 } },
-}
-
-// Home presets
-const HOME_PRESETS = {
-  studio: { label: "Studio", rooms: { bedroom: 1, bathroom: 1, kitchen: 1, living_room: 1 } },
-  one_bedroom: { label: "1 Bedroom", rooms: { bedroom: 1, bathroom: 1, kitchen: 1, living_room: 1, dining_room: 1 } },
-  two_bedroom: { label: "2 Bedroom", rooms: { bedroom: 2, bathroom: 1, kitchen: 1, living_room: 1, dining_room: 1 } },
-  three_bedroom: { label: "3 Bedroom", rooms: { bedroom: 3, bathroom: 2, kitchen: 1, living_room: 1, dining_room: 1 } },
-}
-
 // Frequency configuration
 const FREQUENCIES = {
   one_time: {
@@ -209,14 +156,6 @@ const FREQUENCIES = {
   },
 }
 
-// Frequency options
-const FREQUENCY_OPTIONS = [
-  { value: "one_time", label: "One-time", discount: 0 },
-  { value: "weekly", label: "Weekly", discount: 12 },
-  { value: "biweekly", label: "Bi-weekly", discount: 8 },
-  { value: "monthly", label: "Monthly", discount: 5 },
-]
-
 // Payment frequency configuration
 const PAYMENT_FREQUENCIES = {
   per_service: {
@@ -236,13 +175,6 @@ const PAYMENT_FREQUENCIES = {
   },
 }
 
-// Payment frequency options
-const PAYMENT_OPTIONS = [
-  { value: "per_service", label: "Pay per service", discount: 0 },
-  { value: "monthly", label: "Monthly subscription", discount: 5 },
-  { value: "yearly", label: "Annual subscription", discount: 18 },
-]
-
 // Cleanliness level descriptions
 const CLEANLINESS_LEVELS = [
   {
@@ -257,21 +189,21 @@ const CLEANLINESS_LEVELS = [
     name: "Moderately Soiled",
     description: "Spaces that haven't been cleaned in a few weeks",
     multiplier: 1.3,
-    image: "/placeholder.svg?key=43bfz",
+    image: "/placeholder.svg?height=80&width=80&query=moderately messy home",
   },
   {
     level: 3,
     name: "Heavily Soiled",
     description: "Spaces requiring intensive cleaning after long periods",
     multiplier: 1.7,
-    image: "/placeholder.svg?key=5q7mn",
+    image: "/placeholder.svg?height=80&width=80&query=very messy home",
   },
   {
     level: 4,
     name: "Extremely Soiled",
     description: "Special services required, contact us for a custom quote",
     multiplier: 2.5,
-    image: "/placeholder.svg?key=hete5",
+    image: "/placeholder.svg?height=80&width=80&query=extremely dirty home",
   },
 ]
 
@@ -290,7 +222,7 @@ const SERVICE_TYPES = {
       "Making beds (linens must be provided)",
       "Emptying trash bins",
     ],
-    image: "/placeholder.svg?key=274s2",
+    image: "/placeholder.svg?height=120&width=120&query=standard house cleaning",
   },
   detailing: {
     name: "Premium Detailing",
@@ -306,7 +238,7 @@ const SERVICE_TYPES = {
       "Light fixture cleaning",
       "Spot cleaning of walls",
     ],
-    image: "/placeholder.svg?key=tjkx8",
+    image: "/placeholder.svg?height=120&width=120&query=premium detailed house cleaning",
   },
 }
 
@@ -317,7 +249,7 @@ const SERVICE_FEE = 15
 const VIDEO_DISCOUNT = 25
 
 // Preset home configurations for quick selection
-const HOME_PRESETS_OLD = [
+const HOME_PRESETS = [
   {
     id: "studio",
     name: "Studio Apartment",
@@ -343,6 +275,19 @@ const HOME_PRESETS_OLD = [
     image: "/placeholder.svg?height=60&width=60&query=family home floor plan",
   },
 ]
+
+interface PricingWizardProps {
+  onCalculationComplete?: (data: any) => void
+  onStepChange?: (step: number) => void
+  userPreferences?: {
+    lastSelectedRooms?: Record<string, number>
+    preferredServiceType?: "standard" | "detailing"
+    preferredFrequency?: string
+    preferredPaymentFrequency?: "per_service" | "monthly" | "yearly"
+  }
+  abTestVariant?: "A" | "B"
+  initialStep?: number
+}
 
 export function PricingWizard({
   onCalculationComplete,
@@ -400,9 +345,6 @@ export function PricingWizard({
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
 
   const { toast } = useToast()
-
-  // Refs to track if we need to call onStepChange
-  const prevStepRef = useRef(currentStep)
 
   // Check if any rooms are selected
   useEffect(() => {
@@ -567,14 +509,6 @@ export function PricingWizard({
     toast,
   ])
 
-  // Update parent component when step changes
-  useEffect(() => {
-    if (prevStepRef.current !== currentStep) {
-      onStepChange(currentStep)
-      prevStepRef.current = currentStep
-    }
-  }, [currentStep, onStepChange])
-
   const handleRoomChange = (room: string, value: number) => {
     setRooms((prev) => ({
       ...prev,
@@ -596,19 +530,8 @@ export function PricingWizard({
     }
   }
 
-  // Handle room count changes
-  const handleRoomChange2 = (roomType: string, count: number) => {
-    setRooms((prev) => ({
-      ...prev,
-      [roomType]: Math.max(0, count),
-    }))
-
-    // Clear preset selection when manually changing rooms
-    setSelectedPreset(null)
-  }
-
   const applyPreset = (presetId: string) => {
-    const preset = HOME_PRESETS_OLD.find((p) => p.id === presetId)
+    const preset = HOME_PRESETS.find((p) => p.id === presetId)
     if (!preset) return
 
     // Reset all rooms first
@@ -641,110 +564,6 @@ export function PricingWizard({
     toast({
       title: "Preset Applied",
       description: `${preset.name} configuration has been applied.`,
-    })
-  }
-
-  // Handle preset selection
-  const handlePresetSelect = (preset: string) => {
-    setSelectedPreset(preset)
-    setRooms(HOME_PRESETS[preset as keyof typeof HOME_PRESETS].rooms)
-  }
-
-  // Calculate the price based on all selections
-  const calculatePrice = () => {
-    // Base price calculation
-    let basePrice = 0
-    Object.entries(rooms).forEach(([roomType, count]) => {
-      const room = ROOM_TYPES[roomType as keyof typeof ROOM_TYPES]
-      if (room) {
-        basePrice += room.basePrice[serviceType] * count
-      }
-    })
-
-    // Add service fee
-    basePrice += 15
-
-    // Initialize discounts and surcharges arrays
-    const discounts = []
-    const surcharges = []
-
-    // Apply cleanliness level surcharge
-    let cleanlinessMultiplier = 1
-    if (cleanlinessLevel > 1) {
-      const surchargePercentage = cleanlinessLevel === 2 ? 30 : cleanlinessLevel === 3 ? 70 : 150
-      cleanlinessMultiplier = 1 + surchargePercentage / 100
-      surcharges.push({
-        label: `Cleanliness Level (${cleanlinessLevel})`,
-        amount: basePrice * (surchargePercentage / 100),
-        percentage: surchargePercentage,
-      })
-    }
-
-    // Apply frequency discount
-    const frequencyOption = FREQUENCY_OPTIONS.find((option) => option.value === frequency)
-    let frequencyDiscount = 0
-    if (frequencyOption && frequencyOption.discount > 0) {
-      frequencyDiscount = frequencyOption.discount / 100
-      discounts.push({
-        label: `${frequencyOption.label} Frequency`,
-        amount: basePrice * frequencyDiscount,
-        percentage: frequencyOption.discount,
-      })
-    }
-
-    // Apply payment frequency discount
-    const paymentOption = PAYMENT_OPTIONS.find((option) => option.value === paymentFrequency)
-    let paymentDiscount = 0
-    if (paymentOption && paymentOption.discount > 0) {
-      paymentDiscount = paymentOption.discount / 100
-      discounts.push({
-        label: `${paymentOption.label}`,
-        amount: basePrice * paymentDiscount,
-        percentage: paymentOption.discount,
-      })
-    }
-
-    // Apply video recording discount
-    if (allowVideoRecording) {
-      discounts.push({
-        label: "Video Recording Discount",
-        amount: 25,
-      })
-    }
-
-    // Calculate total price
-    let totalPrice = basePrice * cleanlinessMultiplier
-
-    // Apply frequency discount
-    totalPrice *= 1 - frequencyDiscount
-
-    // Apply payment discount
-    totalPrice *= 1 - paymentDiscount
-
-    // Apply video recording discount
-    if (allowVideoRecording) {
-      totalPrice -= 25
-    }
-
-    // Check if service is available (extreme soiling with standard cleaning is not available)
-    const isServiceAvailable = !(cleanlinessLevel >= 3 && serviceType === "standard")
-
-    // Round to 2 decimal places
-    totalPrice = Math.round(totalPrice * 100) / 100
-
-    // Send the calculated data to the parent component
-    onCalculationComplete({
-      rooms,
-      frequency,
-      totalPrice,
-      basePrice,
-      discounts,
-      surcharges,
-      serviceType,
-      cleanlinessLevel,
-      isServiceAvailable,
-      paymentFrequency,
-      allowVideoRecording,
     })
   }
 
@@ -790,21 +609,6 @@ export function PricingWizard({
     }
   }
 
-  const goToStep = (step: number) => {
-    if (step >= 1 && step <= 4) {
-      setCurrentStep(step)
-    }
-  }
-
-  // Check if we can proceed to the next step
-  const canProceed = () => {
-    if (currentStep === 1) {
-      // Can only proceed if at least one room is selected
-      return Object.values(rooms).some((count) => count > 0)
-    }
-    return true
-  }
-
   // Group rooms by type for better organization
   const roomGroups = {
     Bedrooms: ["master_bedroom", "bedroom", "guest_room"],
@@ -827,7 +631,7 @@ export function PricingWizard({
             <div className="mb-6">
               <h4 className="text-sm font-medium text-gray-500 mb-3">Quick Start with Home Presets</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {HOME_PRESETS_OLD.map((preset) => (
+                {HOME_PRESETS.map((preset) => (
                   <motion.div key={preset.id} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                     <Card
                       className={`cursor-pointer transition-all h-full ${
@@ -1380,40 +1184,6 @@ export function PricingWizard({
         <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
       </div>
 
-      {/* Step indicators */}
-      <div className="flex border-b">
-        {[1, 2, 3, 4].map((step) => (
-          <button
-            key={step}
-            onClick={() => goToStep(step)}
-            className={`flex-1 py-3 px-4 text-center relative ${
-              currentStep === step
-                ? "text-primary font-medium"
-                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-            disabled={step > 1 && !canProceed()}
-          >
-            <div className="flex items-center justify-center">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2 ${
-                  currentStep === step
-                    ? "bg-primary text-white"
-                    : step < currentStep
-                      ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
-                      : "bg-gray-100 text-gray-500 dark:bg-gray-800"
-                }`}
-              >
-                {step < currentStep ? "✓" : step}
-              </div>
-              <span className="hidden sm:inline">
-                {step === 1 ? "Rooms" : step === 2 ? "Service Type" : step === 3 ? "Cleanliness" : "Frequency"}
-              </span>
-            </div>
-            {currentStep === step && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-          </button>
-        ))}
-      </div>
-
       {/* Step Content */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -1423,381 +1193,49 @@ export function PricingWizard({
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Step 1: Room Selection */}
-          {currentStep === 1 && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-medium mb-4">Select Your Rooms</h3>
-
-              {/* Home presets */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium mb-2">Quick Select Home Type</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {Object.entries(HOME_PRESETS).map(([key, preset]) => (
-                    <Button
-                      key={key}
-                      variant={selectedPreset === key ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePresetSelect(key)}
-                      className="justify-start"
-                    >
-                      <Home className="mr-2 h-4 w-4" />
-                      {preset.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Room selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(ROOM_TYPES).map(([roomType, room]) => {
-                  const count = rooms[roomType] || 0
-                  const RoomIcon = room.icon
-
-                  return (
-                    <Card key={roomType} className={`overflow-hidden ${count > 0 ? "border-primary/50" : ""}`}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center">
-                            <RoomIcon className="h-5 w-5 mr-2 text-primary" />
-                            <span className="font-medium">{room.label}</span>
-                          </div>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                  <Info className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Standard: ${room.basePrice.standard}/room</p>
-                                <p>Premium: ${room.basePrice.detailing}/room</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-4">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleRoomChange2(roomType, count - 1)}
-                            disabled={count === 0}
-                            className="h-8 w-8"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-
-                          <span className="font-medium text-lg w-8 text-center">{count}</span>
-
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleRoomChange2(roomType, count + 1)}
-                            className="h-8 w-8"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-
-              {!canProceed() && (
-                <p className="text-amber-600 dark:text-amber-400 text-sm mt-4">
-                  Please select at least one room to continue.
-                </p>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 2: Service Type */}
-          {currentStep === 2 && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-medium mb-4">Select Service Type</h3>
-
-              <RadioGroup
-                value={serviceType}
-                onValueChange={(value) => setServiceType(value as "standard" | "detailing")}
-                className="space-y-4"
-              >
-                <div
-                  className={`relative rounded-lg border p-4 ${serviceType === "standard" ? "border-primary bg-primary/5" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                >
-                  <RadioGroupItem value="standard" id="standard" className="absolute right-4 top-4" />
-                  <Label htmlFor="standard" className="flex flex-col cursor-pointer">
-                    <span className="text-lg font-medium">Standard Cleaning</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Our regular cleaning service covers all the basics for a clean home.
-                    </span>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Dusting surfaces</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Vacuuming floors</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Bathroom cleaning</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Kitchen surfaces</span>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-
-                <div
-                  className={`relative rounded-lg border p-4 ${serviceType === "detailing" ? "border-primary bg-primary/5" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                >
-                  <RadioGroupItem value="detailing" id="detailing" className="absolute right-4 top-4" />
-                  <Label htmlFor="detailing" className="flex flex-col cursor-pointer">
-                    <div className="flex items-center">
-                      <span className="text-lg font-medium">Premium Detailing</span>
-                      <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                        +80% cost
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      A thorough deep cleaning service that covers hard-to-reach areas and fixtures.
-                    </span>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Everything in Standard</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Inside appliances</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Deep fixture cleaning</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Hard-to-reach areas</span>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </motion.div>
-          )}
-
-          {/* Step 3: Cleanliness Level */}
-          {currentStep === 3 && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-medium mb-4">Current Cleanliness Level</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                Help us understand the current state of your space so we can allocate the right resources.
-              </p>
-
-              <div className="space-y-8">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">
-                      Cleanliness Level:{" "}
-                      {cleanlinessLevel === 1
-                        ? "Lightly Soiled"
-                        : cleanlinessLevel === 2
-                          ? "Moderately Soiled"
-                          : cleanlinessLevel === 3
-                            ? "Heavily Soiled"
-                            : "Extremely Soiled"}
-                    </span>
-                    {cleanlinessLevel > 1 && (
-                      <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                        +{cleanlinessLevel === 2 ? "30" : cleanlinessLevel === 3 ? "70" : "150"}% surcharge
-                      </span>
-                    )}
-                  </div>
-
-                  <Slider
-                    value={[cleanlinessLevel]}
-                    min={1}
-                    max={4}
-                    step={1}
-                    onValueChange={(value) => setCleanlinessLevel(value[0])}
-                    className="mb-6"
-                  />
-
-                  <div className="grid grid-cols-4 gap-2 text-xs text-center">
-                    <div>Lightly Soiled</div>
-                    <div>Moderately Soiled</div>
-                    <div>Heavily Soiled</div>
-                    <div>Extremely Soiled</div>
-                  </div>
-                </div>
-
-                {cleanlinessLevel >= 3 && serviceType === "standard" && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-                    <strong>Note:</strong> For heavily or extremely soiled conditions, we recommend our Premium
-                    Detailing service. Standard cleaning may not be sufficient.
-                  </div>
-                )}
-
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <h4 className="font-medium mb-2">Cleanliness Level Descriptions</h4>
-                  <ul className="space-y-2 text-sm">
-                    <li>
-                      <strong>Lightly Soiled:</strong> Regular maintenance cleaning, minimal dirt/dust.
-                    </li>
-                    <li>
-                      <strong>Moderately Soiled:</strong> 2-3 weeks without cleaning, visible dust/dirt.
-                    </li>
-                    <li>
-                      <strong>Heavily Soiled:</strong> 1+ months without cleaning, stubborn stains.
-                    </li>
-                    <li>
-                      <strong>Extremely Soiled:</strong> Long-term neglect, requires intensive cleaning.
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 4: Frequency & Options */}
-          {currentStep === 4 && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-medium mb-4">Service Frequency & Options</h3>
-
-              <div className="space-y-6">
-                {/* Frequency selection */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">How often would you like cleaning service?</h4>
-                  <RadioGroup value={frequency} onValueChange={setFrequency} className="grid grid-cols-2 gap-2">
-                    {FREQUENCY_OPTIONS.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`relative rounded-lg border p-3 ${frequency === option.value ? "border-primary bg-primary/5" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                      >
-                        <RadioGroupItem
-                          value={option.value}
-                          id={`frequency-${option.value}`}
-                          className="absolute right-2 top-2"
-                        />
-                        <Label htmlFor={`frequency-${option.value}`} className="flex flex-col cursor-pointer">
-                          <span className="font-medium">{option.label}</span>
-                          {option.discount > 0 && (
-                            <span className="text-xs text-green-600 dark:text-green-400">
-                              {option.discount}% discount
-                            </span>
-                          )}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                {/* Payment frequency */}
-                {frequency !== "one_time" && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
-                    <RadioGroup value={paymentFrequency} onValueChange={setPaymentFrequency} className="space-y-2">
-                      {PAYMENT_OPTIONS.map((option) => (
-                        <div
-                          key={option.value}
-                          className={`relative rounded-lg border p-3 ${paymentFrequency === option.value ? "border-primary bg-primary/5" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                        >
-                          <RadioGroupItem
-                            value={option.value}
-                            id={`payment-${option.value}`}
-                            className="absolute right-2 top-2"
-                          />
-                          <Label htmlFor={`payment-${option.value}`} className="flex flex-col cursor-pointer">
-                            <span className="font-medium">{option.label}</span>
-                            {option.discount > 0 && (
-                              <span className="text-xs text-green-600 dark:text-green-400">
-                                {option.discount}% additional discount
-                              </span>
-                            )}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                )}
-
-                {/* Additional options */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Additional Options</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="video-recording"
-                        checked={allowVideoRecording}
-                        onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="video-recording" className="text-sm font-medium">
-                          Allow Video Recording
-                        </Label>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Allow our cleaners to record the cleaning process for quality assurance and get a $25
-                          discount.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {renderStepContent()}
         </motion.div>
-      </div>
+      </AnimatePresence>
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between p-4 border-t bg-gray-50 dark:bg-gray-800/50">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between items-center p-6 bg-gray-50 dark:bg-gray-800/50">
         <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>
 
-        <div className="flex items-center space-x-2">
-          {currentStep < 4 ? (
-            <Button onClick={nextStep} disabled={!canProceed()}>
-              Next
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={() => {
-                // Final step - we're done
-                // This would typically submit the form or finalize the process
-              }}
-              variant="default"
-            >
-              Complete
-            </Button>
-          )}
-        </div>
+        {currentStep < totalSteps ? (
+          <Button onClick={nextStep} disabled={currentStep === 1 && !hasRooms}>
+            Next
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            variant="default"
+            className="bg-green-600 hover:bg-green-700"
+            disabled={!hasRooms || !isServiceAvailable}
+            onClick={() => {
+              // Track completion for analytics
+              if (typeof window !== "undefined" && window.analytics) {
+                window.analytics.track("Configuration Completed", {
+                  totalPrice,
+                  serviceType,
+                  frequency,
+                  paymentFrequency,
+                  roomCount: Object.values(rooms).reduce((sum, count) => sum + count, 0),
+                  variant: abTestVariant,
+                  timestamp: new Date().toISOString(),
+                })
+              }
+
+              // Scroll to top of page
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }}
+          >
+            <Check className="mr-2 h-4 w-4" />
+            Complete
+          </Button>
+        )}
       </div>
     </div>
   )
