@@ -10,8 +10,6 @@ import UnifiedFooter from "@/components/unified-footer"
 import AccessibilityPanel from "@/components/accessibility-panel"
 import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
-import { TermsEntryManager } from "@/components/terms-entry-manager"
-import { TermsProvider } from "@/lib/terms-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -30,18 +28,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <TermsProvider>
-            <CartProvider>
-              <EnhancedNavigation />
-              <div className="pt-16">{children}</div>
-              <TermsEntryManager />
-              <PersistentBookNowButton />
-              <AccessibilityPanel />
-              <SharePanel />
-              <UnifiedFooter />
-              <Toaster />
-            </CartProvider>
-          </TermsProvider>
+          <CartProvider>
+            <EnhancedNavigation />
+            <div className="pt-16">{children}</div>
+            <PersistentBookNowButton />
+            <AccessibilityPanel />
+            <SharePanel />
+            <UnifiedFooter />
+            <Toaster />
+          </CartProvider>
         </ThemeProvider>
       </body>
     </html>

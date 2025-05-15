@@ -1,33 +1,21 @@
 "use client"
 
-import { SheetTrigger } from "@/components/ui/sheet"
-
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import {
-  ShoppingCart,
-  Trash2,
-  Plus,
-  Minus,
-  MapPin,
-  ExternalLink,
-  CreditCard,
-  Loader2,
-  Info,
-  PhoneCall,
-} from "lucide-react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-import { Separator } from "@/components/ui/separator"
-import PaymentMethodSelector from "./payment-method-selector"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, X, ArrowRight } from "lucide-react"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -101,7 +89,7 @@ export function Cart({ showLabel = false }: CartProps) {
     })
   }
 
-  const handleAddItem = (item) => {
+  const handleAddItem = (item: any) => {
     addItem(item)
     toast({
       title: "Item added",
@@ -169,7 +157,7 @@ export function Cart({ showLabel = false }: CartProps) {
       }
 
       // Format cart items for better readability in spreadsheet
-      const formatCartSummary = (items) => {
+      const formatCartSummary = (items: any[]) => {
         return items.map((item) => `${item.name} (${formatCurrency(item.price)} x ${item.quantity})`).join("; ")
       }
 
@@ -272,366 +260,175 @@ export function Cart({ showLabel = false }: CartProps) {
     }
   }
 
+  // Payment method selection
+  const handlePaymentMethodChange = (method: PaymentMethod) => {
+    setPaymentMethod(method)
+  }
+
+  // Calculate total items and price
+  const totalItems = cart.totalItems
+  const totalPrice = cart.totalPrice
+
   return (
-    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size={showLabel ? "default" : "icon"} className="relative">
+    <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
+          onClick={() => setIsOpen(true)}
+        >
           <ShoppingCart className="h-5 w-5" />
-          {showLabel && <span className="ml-2">Cart</span>}
-          {cart.totalItems > 0 && (
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-              {cart.totalItems}
+          {totalItems > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+              {totalItems}
             </span>
           )}
+          {showLabel && <span className="ml-2">Cart</span>}
         </Button>
-      </SheetTrigger>
-      <SheetContent className="flex flex-col w-full sm:max-w-md md:max-w-lg">
-        <SheetHeader>
-          <SheetTitle className="flex items-center">
-            <ShoppingCart className="mr-2 h-5 w-5" /> Your Cart
-          </SheetTitle>
-        </SheetHeader>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[85vh] overflow-y-auto">
+        <DrawerHeader className="flex items-center justify-between">
+          <DrawerTitle>Your Cart</DrawerTitle>
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
 
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="px-4">
           {cart.items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center py-12">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+            <div className="flex flex-col items-center justify-center py-8">
+              <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
               <p className="text-lg font-medium">Your cart is empty</p>
-              <p className="text-sm text-muted-foreground mt-1">Add items to your cart to see them here</p>
-              <SheetClose asChild>
-                <Button className="mt-6" variant="outline">
-                  Continue Shopping
-                </Button>
-              </SheetClose>
+              <p className="text-sm text-gray-500">Add items to get started</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {checkoutError && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertTitle className="flex items-center">
-                    <Info className="h-4 w-4 mr-2" /> Checkout Error
-                  </AlertTitle>
-                  <AlertDescription className="mt-2">
-                    <p>{checkoutError}</p>
-                    <div className="mt-2 flex items-center">
-                      <p>Please call us at:</p>
-                      <a href="tel:6028000605" className="flex items-center ml-2 text-primary font-medium">
-                        <PhoneCall className="h-4 w-4 mr-1" />
-                        602-800-0605
-                      </a>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {checkoutSuccess && (
-                <Alert className="mb-4 bg-green-50 text-green-800 border-green-100">
-                  <AlertTitle className="flex items-center text-green-800">
-                    <Info className="h-4 w-4 mr-2" /> Processing your order
-                  </AlertTitle>
-                  <AlertDescription className="text-green-700">
-                    <p>You're being redirected to complete your purchase...</p>
-                    <div className="mt-2 flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {cart.items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 bg-white dark:bg-gray-800 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {item.image && (
-                        <div className="h-16 w-16 overflow-hidden rounded-md flex-shrink-0">
-                          <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
+            <>
+              <div className="space-y-4">
+                {cart.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium">{item.name}</h3>
+                      <p className="text-sm text-gray-500">
+                        {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
+                      </p>
+                      {item.metadata?.customer && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          {item.metadata.customer.address}, {item.metadata.customer.city || ""}{" "}
+                          {item.metadata.customer.state || ""} {item.metadata.customer.zipCode || ""}
+                        </p>
                       )}
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
-                        {item.metadata?.customer?.allowVideoRecording && (
-                          <span className="text-xs text-green-600 font-medium">Includes video recording discount</span>
-                        )}
-                        {item.paymentFrequency && item.paymentFrequency !== "per_service" && (
-                          <span className="text-xs text-blue-600 font-medium block">
-                            {(() => {
-                              // Get service frequency from metadata
-                              const serviceFrequency = item.metadata?.frequency || "one_time"
-
-                              // Determine if discount applies
-                              let hasDiscount = false
-                              let discountAmount = ""
-
-                              if (serviceFrequency !== "one_time") {
-                                const servicesPerYear = getServicesPerYearFromFrequency(serviceFrequency)
-
-                                if (item.paymentFrequency === "monthly" && servicesPerYear > 12) {
-                                  hasDiscount = true
-                                  discountAmount = "5%"
-                                } else if (item.paymentFrequency === "yearly" && servicesPerYear > 1) {
-                                  hasDiscount = true
-                                  discountAmount = "15%"
-                                }
-                              }
-
-                              return hasDiscount
-                                ? `${item.paymentFrequency === "monthly" ? "Monthly" : "Yearly"} payment plan (${discountAmount} discount)`
-                                : `${item.paymentFrequency === "monthly" ? "Monthly" : "Yearly"} payment plan`
-                            })()}
-                          </span>
-                        )}
-                      </div>
+                      {item.metadata?.rooms && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Rooms:{" "}
+                          {Array.isArray(item.metadata.rooms) ? item.metadata.rooms.join(", ") : item.metadata.rooms}
+                        </p>
+                      )}
                     </div>
-
                     <div className="flex items-center space-x-2">
-                      <div className="flex items-center border rounded-md">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none"
-                          onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-6 text-center">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive/90"
+                        className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => handleRemoveItem(item.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  {/* Location details accordion */}
-                  {item.metadata?.customer && (
-                    <Accordion type="single" collapsible className="mt-2">
-                      <AccordionItem value="location-details" className="border-none">
-                        <AccordionTrigger className="py-2 text-sm">
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" /> Location Details
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="text-sm space-y-1 pb-2">
-                          <p>
-                            <strong>Address:</strong> {item.metadata.customer.address}
-                          </p>
-                          <p>
-                            <a
-                              href={createGoogleMapsLink(item.metadata.customer.address)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center"
-                            >
-                              <MapPin className="h-3 w-3 mr-1" />
-                              View on Google Maps
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </a>
-                          </p>
-                          <p>
-                            <strong>Contact:</strong> {item.metadata.customer.name} | {item.metadata.customer.phone}
-                          </p>
-                          {item.metadata.customer.specialInstructions && (
-                            <p>
-                              <strong>Notes:</strong> {item.metadata.customer.specialInstructions}
-                            </p>
-                          )}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  )}
+              <div className="mt-6 space-y-4 rounded-lg border bg-gray-50 p-4">
+                <div className="flex justify-between">
+                  <span className="text-sm">Subtotal</span>
+                  <span className="font-medium">{formatCurrency(totalPrice)}</span>
                 </div>
-              ))}
-            </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Tax</span>
+                  <span className="font-medium">Calculated at checkout</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between">
+                    <span className="text-base font-medium">Total</span>
+                    <span className="text-lg font-bold">{formatCurrency(totalPrice)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <p className="mb-2 text-sm font-medium">Payment Method</p>
+                <div className="flex space-x-2">
+                  <Button
+                    variant={paymentMethod === "card" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handlePaymentMethodChange("card")}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Card
+                  </Button>
+                  <Button
+                    variant={paymentMethod === "bank" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handlePaymentMethodChange("bank")}
+                  >
+                    <Bank className="mr-2 h-4 w-4" />
+                    Bank
+                  </Button>
+                  <Button
+                    variant={paymentMethod === "wallet" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handlePaymentMethodChange("wallet")}
+                  >
+                    <Wallet className="mr-2 h-4 w-4" />
+                    Wallet
+                  </Button>
+                </div>
+              </div>
+
+              {checkoutError && (
+                <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+                  <p>{checkoutError}</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {cart.items.length > 0 && (
-          <div className="border-t pt-4 mt-auto">
-            {/* Payment Method Selector */}
-            <div className="my-4">
-              <h3 className="text-sm font-medium mb-2">Payment Method</h3>
-              <PaymentMethodSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
-            </div>
-
-            {/* Video Recording Discount */}
-            {cart.items.some((item) => item.metadata?.customer) && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg my-4">
-                <div className="flex items-start space-x-3">
-                  {(() => {
-                    // Find the first item with customer data to use for discount calculation
-                    const itemsWithCustomer = cart.items.filter((item) => item.metadata?.customer)
-                    const uniqueAddresses = new Set(
-                      itemsWithCustomer.map((item) =>
-                        item.metadata?.customer
-                          ? `${item.metadata.customer.address}, ${item.metadata.customer.city || ""}, ${item.metadata.customer.state || ""} ${item.metadata.customer.zipCode || ""}`.toLowerCase()
-                          : "",
-                      ),
-                    )
-                    const addressCount = uniqueAddresses.size
-
-                    // Get the first item for UI purposes
-                    const firstItemWithCustomer = itemsWithCustomer[0]
-                    const customerData = firstItemWithCustomer?.metadata?.customer
-                    const baseDiscount = 50 // Base discount amount
-
-                    // Calculate video recording discount (10% or $50 * number of addresses, whichever is higher)
-                    const totalPrice = itemsWithCustomer.reduce((sum, item) => sum + item.price, 0)
-                    const percentageDiscount = totalPrice * 0.1
-                    const addressMultiplier = Math.max(1, addressCount)
-                    const videoRecordingDiscount = Math.max(percentageDiscount, baseDiscount * addressMultiplier)
-
-                    // Check if discount already applied for this address
-                    const isDiscountApplied =
-                      customerData && cart.items.some((item) => item.metadata?.customer?.allowVideoRecording)
-
-                    // Check if discount already used for this address in localStorage
-                    const fullAddress = customerData
-                      ? `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
-                      : ""
-                    const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
-                    const isAddressDiscountedPermanently = localStorage.getItem(addressKey) === "permanent"
-                    const isAddressDiscounted = localStorage.getItem(addressKey)
-
-                    return (
-                      <>
-                        <Checkbox
-                          id="allow-recording-cart"
-                          checked={isDiscountApplied}
-                          disabled={isAddressDiscountedPermanently && !isDiscountApplied}
-                          onCheckedChange={(checked) => {
-                            if (!customerData) return
-
-                            // If trying to apply discount but it's already been used permanently for this address
-                            if (checked && isAddressDiscountedPermanently) {
-                              toast({
-                                title: "Discount already applied",
-                                description:
-                                  "Video recording discount has already been used for this address in a previous order.",
-                                variant: "warning",
-                                duration: 3000,
-                              })
-                              return
-                            }
-
-                            // Update all items with customer data to have the same allowVideoRecording value
-                            cart.items.forEach((item) => {
-                              if (item.metadata?.customer) {
-                                const updatedItem = {
-                                  ...item,
-                                  price: checked
-                                    ? item.price - videoRecordingDiscount / itemsWithCustomer.length / item.quantity
-                                    : item.price + videoRecordingDiscount / itemsWithCustomer.length / item.quantity,
-                                  metadata: {
-                                    ...item.metadata,
-                                    customer: {
-                                      ...item.metadata.customer,
-                                      allowVideoRecording: checked === true,
-                                    },
-                                  },
-                                }
-
-                                // Remove and re-add the item to update it
-                                removeItem(item.id)
-                                handleAddItem(updatedItem)
-                              }
-                            })
-
-                            // Store the address in localStorage to prevent future discounts in different orders
-                            if (checked) {
-                              // Just mark it as used but not permanent yet
-                              localStorage.setItem(addressKey, "used")
-                            }
-
-                            toast({
-                              title: checked ? "Discount applied" : "Discount removed",
-                              description: checked
-                                ? `Video recording discount of ${formatCurrency(videoRecordingDiscount)} applied for ${addressCount} address${addressCount > 1 ? "es" : ""}.`
-                                : "Video recording discount has been removed.",
-                              duration: 3000,
-                            })
-                          }}
-                        />
-                        <div>
-                          <div className="flex items-center">
-                            <Label htmlFor="allow-recording-cart" className="font-medium cursor-pointer">
-                              Allow video recording for {formatCurrency(videoRecordingDiscount)} off
-                            </Label>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  We may record cleaning sessions for training and social media purposes. By allowing
-                                  this, you'll receive {formatCurrency(videoRecordingDiscount)} off your order.
-                                  {addressCount > 1 ? ` Discount increased for ${addressCount} addresses.` : ""}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          {isAddressDiscountedPermanently && !isDiscountApplied ? (
-                            <p className="text-xs text-amber-600 mt-1">
-                              Discount already used for this address in a previous order.
-                            </p>
-                          ) : (
-                            <p className="text-xs text-gray-500 mt-1">
-                              We'll record parts of the cleaning process for our social media and training.
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              </div>
-            )}
-
-            <Separator className="my-4" />
-
-            <div className="flex justify-between py-2 font-medium">
-              <span>Total</span>
-              <span>{formatCurrency(cart.totalPrice)}</span>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-4">
-              <Button className="w-full" onClick={handleCheckout} disabled={isCheckingOut}>
-                {isCheckingOut ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Checkout Now
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" className="w-full" onClick={handleClearCart}>
-                Clear Cart
-              </Button>
-            </div>
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        <DrawerFooter className="border-t">
+          <Button onClick={handleCheckout} disabled={cart.items.length === 0 || isCheckingOut} className="w-full">
+            {isCheckingOut ? "Processing..." : "Checkout"} {!isCheckingOut && <ArrowRight className="ml-2 h-4 w-4" />}
+          </Button>
+          {cart.items.length > 0 && (
+            <Button variant="outline" onClick={handleClearCart}>
+              Clear Cart
+            </Button>
+          )}
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }

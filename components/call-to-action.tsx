@@ -39,7 +39,7 @@ export default function CallToAction() {
               className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
               asChild
             >
-              <Link href="/contact">Contact Us</Link>
+              <Link href="/pricing">Contact Us</Link>
             </Button>
           </div>
         </motion.div>

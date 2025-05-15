@@ -50,13 +50,8 @@ export default function MinimalHero() {
   }, [displayText, isTyping, currentTextIndex, fullTexts])
 
   const scrollToBooking = () => {
-    const calculatorSection = document.getElementById("calculator")
-    if (calculatorSection) {
-      calculatorSection.scrollIntoView({ behavior: "smooth" })
-    } else {
-      // If calculator section doesn't exist on this page, navigate to calculator page
-      window.location.href = "/calculator"
-    }
+    // Instead of scrolling or navigating to calculator, navigate to pricing
+    window.location.href = "/pricing"
   }
 
   return (

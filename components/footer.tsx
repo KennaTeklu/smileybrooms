@@ -158,16 +158,10 @@ export default function Footer() {
                   transition={{ duration: 0.5, delay: 0.4 }}
                   className="flex flex-wrap justify-center gap-4 py-4"
                 >
-                  <a
-                    href="/downloads/smiley-brooms-ios.html"
-                    className="text-xs text-gray-500 hover:text-primary transition-colors"
-                  >
+                  <a href="/pricing" className="text-xs text-gray-500 hover:text-primary transition-colors">
                     iOS App
                   </a>
-                  <a
-                    href="/downloads/smiley-brooms-android.html"
-                    className="text-xs text-gray-500 hover:text-primary transition-colors"
-                  >
+                  <a href="/pricing" className="text-xs text-gray-500 hover:text-primary transition-colors">
                     Android App
                   </a>
                 </motion.div>

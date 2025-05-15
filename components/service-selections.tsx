@@ -103,7 +103,9 @@ export default function ServiceSelections() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full">Book Now</Button>
+                  <Button className="w-full" asChild>
+                    <a href="/pricing">Book Now</a>
+                  </Button>
                 </CardFooter>
               </Card>
             </motion.div>

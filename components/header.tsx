@@ -26,10 +26,10 @@ export default function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "sticky top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled || pathname !== "/"
           ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm"
-          : "bg-transparent",
+          : "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md",
       )}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">

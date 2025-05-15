@@ -28,11 +28,11 @@ const footerSections: FooterSection[] = [
   {
     title: "Downloads",
     links: [
-      { label: "iOS App", href: "/downloads/smiley-brooms-ios.html" },
-      { label: "Android App", href: "/downloads/smiley-brooms-android.html" },
-      { label: "macOS App", href: "/downloads/smiley-brooms-macos.html" },
-      { label: "Windows App", href: "/downloads/smiley-brooms-windows.html" },
-      { label: "Linux App", href: "/downloads/smiley-brooms-linux.html" },
+      { label: "iOS App", href: "/pricing" },
+      { label: "Android App", href: "/pricing" },
+      { label: "macOS App", href: "/pricing" },
+      { label: "Windows App", href: "/pricing" },
+      { label: "Linux App", href: "/pricing" },
     ],
   },
   {
