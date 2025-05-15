@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
-import type { AddressData } from "@/components/address-collection-modal"
+import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
@@ -12,6 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from "@/components/ui/drawer"
 import { motion } from "framer-motion"
 import {
   ShoppingCart,
@@ -33,7 +42,6 @@ import {
   Fan,
   Clock,
   FileText,
-  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -439,11 +447,15 @@ export default function PricingPage() {
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [selectedGlobalAddOns, setSelectedGlobalAddOns] = useState<string[]>([])
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   // UI state
+  const [showAddressModal, setShowAddressModal] = useState(false)
+  const [customizeDrawerOpen, setCustomizeDrawerOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<string | null>(null)
   const [priceBreakdown, setPriceBreakdown] = useState<any>({})
-  const { addItem } = useCart()
+
+  const { addItem, cart } = useCart()
   const { toast } = useToast()
 
   // Initialize room customizations
@@ -468,6 +480,7 @@ export default function PricingPage() {
   // Function to open the customization drawer for a specific room
   const openCustomizeDrawer = (roomId: string) => {
     setCurrentRoomToCustomize(roomId)
+    setCustomizeDrawerOpen(true)
   }
 
   // Function to toggle a custom option for the current room
@@ -682,8 +695,92 @@ export default function PricingPage() {
       return
     }
 
-    // Instead of showing the modal, we'll directly use the form data since it's always visible
-    // The form submission will be handled by the form's onSubmit handler
+    setShowAddressModal(true)
+  }
+
+  // Process the address data and add to cart
+  const handleAddressSubmit = (addressData: AddressData) => {
+    // Get the frequency label
+    const frequencyLabel =
+      {
+        weekly: "Weekly Cleaning",
+        biweekly: "Biweekly Cleaning",
+        monthly: "Monthly Cleaning",
+        annual: "Annual Cleaning",
+      }[frequency] || "Cleaning Service"
+
+    // Count total rooms
+    const totalRooms = getTotalRoomCount()
+
+    // Create a descriptive name for the service
+    const serviceTypeLabel = serviceType === "standard" ? "Standard" : "Premium Detailing"
+    const serviceName = `${serviceTypeLabel} ${frequencyLabel} (${totalRooms} rooms)`
+
+    // Get the room types that were selected with their customizations
+    const selectedRoomsList = Object.entries(selectedRooms)
+      .filter(([_, count]) => count > 0)
+      .map(([type, count]) => {
+        const roomType = roomTypes.find((r) => r.id === type)
+        const customization = roomCustomizations[type] || { cleanlinessLevel: 2, selectedOptions: [] }
+
+        // Get selected options for this room
+        const options = roomType?.customOptions
+          .filter((opt) => customization.selectedOptions.includes(opt.id))
+          .map((opt) => opt.name)
+          .join(", ")
+
+        const cleanlinessLabel =
+          cleanlinessLevels.find((c) => c.level === customization.cleanlinessLevel)?.label || "Medium"
+
+        return `${roomType?.name || type} x${count} (${cleanlinessLabel}${options ? `, with: ${options}` : ""})`
+      })
+      .join("; ")
+
+    // Get selected global add-ons
+    const globalAddOnsList = selectedGlobalAddOns
+      .map((id) => globalAddOns.find((a) => a.id === id)?.name || "")
+      .filter(Boolean)
+      .join(", ")
+
+    // Generate a unique ID that includes the address to help with combining similar items
+    const itemId = `custom-cleaning-${addressData.address.replace(/\s+/g, "-").toLowerCase()}-${serviceType}-${frequency}`
+
+    // Add to cart with customer data
+    addItem({
+      id: itemId,
+      name: serviceName,
+      price: calculatedPrice,
+      priceId: "price_custom_cleaning",
+      image: "/home-cleaning.png",
+      quantity: 1,
+      metadata: {
+        rooms: selectedRoomsList,
+        globalAddOns: globalAddOnsList,
+        frequency,
+        serviceType,
+        allowVideo,
+        priceBreakdown: priceBreakdown,
+        customer: {
+          name: addressData.fullName,
+          email: addressData.email,
+          phone: addressData.phone,
+          address: addressData.address,
+          city: addressData.city,
+          state: addressData.state,
+          zipCode: addressData.zipCode,
+          specialInstructions: addressData.specialInstructions,
+          allowVideoRecording: allowVideo,
+          termsAccepted: true,
+          termsAcceptedDate: new Date().toISOString(),
+        },
+      },
+    })
+
+    // Show success message
+    toast({
+      title: "Added to cart!",
+      description: `${serviceName} has been added to your cart.`,
+    })
   }
 
   // Format currency
@@ -691,65 +788,6 @@ export default function PricingPage() {
     return `$${amount.toFixed(2)}`
   }
 
-  const handleAddressSubmit = (data: AddressData) => {
-    // Create cart item
-    const cartItem = {
-      id: `custom-cleaning-${data.address.replace(/\s+/g, "-").toLowerCase()}-${serviceType}-${frequency}`,
-      name: `${serviceType === "standard" ? "Standard" : "Premium Detailing"} ${frequency === "annual" ? "Annual" : frequency === "monthly" ? "Monthly" : frequency === "biweekly" ? "Biweekly" : "Weekly"} Cleaning (${getTotalRoomCount()} rooms)`,
-      price: calculatedPrice,
-      priceId: "price_custom_cleaning",
-      image: "/home-cleaning.png",
-      quantity: 1,
-      metadata: {
-        rooms: Object.entries(selectedRooms)
-          .filter(([_, count]) => count > 0)
-          .map(([type, count]) => {
-            const roomType = roomTypes.find((r) => r.id === type)
-            const customization = roomCustomizations[type] || { cleanlinessLevel: 2, selectedOptions: [] }
-            const options = roomType?.customOptions
-              .filter((opt) => customization.selectedOptions.includes(opt.id))
-              .map((opt) => opt.name)
-              .join(", ")
-            const cleanlinessLabel =
-              cleanlinessLevels.find((c) => c.level === customization.cleanlinessLevel)?.label || "Medium"
-            return `${roomType?.name || type} x${count} (${cleanlinessLabel}${options ? `, with: ${options}` : ""})`
-          })
-          .join("; "),
-        globalAddOns: selectedGlobalAddOns
-          .map((id) => globalAddOns.find((a) => a.id === id)?.name || "")
-          .filter(Boolean)
-          .join(", "),
-        frequency,
-        serviceType,
-        allowVideo,
-        priceBreakdown: priceBreakdown,
-        customer: {
-          name: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zipCode,
-          specialInstructions: data.specialInstructions,
-          allowVideoRecording: allowVideo,
-          termsAccepted: true,
-          termsAcceptedDate: new Date().toISOString(),
-        },
-      },
-    }
-
-    // Add to cart
-    addItem(cartItem)
-
-    // Show success message
-    toast({
-      title: "Added to cart!",
-      description: `${cartItem.name} has been added to your cart.`,
-    })
-  }
-
-  // Replace the entire return statement with this new layout that includes all sections visible at once
   return (
     <div className="flex min-h-screen flex-col">
       <div className="container mx-auto px-4 py-8 flex-1">
@@ -762,530 +800,560 @@ export default function PricingPage() {
           Pricing Calculator
         </motion.h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto">
-          {/* Main Calculator Section - Takes 7 columns on large screens */}
-          <motion.div
-            className="lg:col-span-7"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card className="shadow-lg border-0 overflow-hidden mb-6">
-              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
-                <CardTitle className="text-2xl">Calculate Your Cleaning Price</CardTitle>
-                <CardDescription>Configure the cleaning details for your location</CardDescription>
-              </CardHeader>
-
-              <Tabs
-                defaultValue="standard"
-                value={serviceType}
-                onValueChange={(value) => setServiceType(value as "standard" | "detailing")}
-              >
-                <TabsList className="w-full rounded-none border-b">
-                  <TabsTrigger value="standard" className="flex-1 text-sm md:text-base">
-                    Standard Cleaning
-                  </TabsTrigger>
-                  <TabsTrigger value="detailing" className="flex-1 text-sm md:text-base">
-                    Premium Detailing
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="standard" className="p-6">
-                  <div className="space-y-6">
-                    {/* Room Selection with Customization */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Select & Customize Rooms</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {roomTypes.map((room) => (
-                          <Card
-                            key={room.id}
-                            className={cn(
-                              "border overflow-hidden transition-all",
-                              selectedRooms[room.id] > 0
-                                ? "border-blue-200 dark:border-blue-800"
-                                : "border-gray-200 dark:border-gray-800",
-                              currentRoomToCustomize === room.id && "ring-2 ring-blue-500"
-                            )}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div className="flex items-center">
-                                  <div
-                                    className={cn(
-                                      "p-2 rounded-full mr-3",
-                                      selectedRooms[room.id] > 0
-                                        ? "bg-blue-100 dark:bg-blue-900/30"
-                                        : "bg-gray-100 dark:bg-gray-800",
-                                    )}
-                                  >
-                                    {room.icon}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">{room.name}</p>
-                                    <p className="text-sm text-gray-500">
-                                      ${serviceType === "standard" ? room.standardRate : room.detailingRate} per room
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-                                  <div className="flex items-center space-x-2">
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => decrementRoom(room.id)}
-                                      disabled={selectedRooms[room.id] === 0}
-                                      className="h-8 w-8"
-                                    >
-                                      <Minus className="h-4 w-4" />
-                                    </Button>
-                                    <span className="w-8 text-center font-medium">{selectedRooms[room.id] || 0}</span>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => incrementRoom(room.id)}
-                                      disabled={selectedRooms[room.id] === 10}
-                                      className="h-8 w-8"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-
-                                  <Button
-                                    variant={currentRoomToCustomize === room.id ? "default" : "ghost"}
-                                    size="sm"
-                                    className={cn(
-                                      "gap-1",
-                                      selectedRooms[room.id] === 0 && "opacity-50 cursor-not-allowed",
-                                    )}
-                                    disabled={selectedRooms[room.id] === 0}
-                                    onClick={() => openCustomizeDrawer(room.id)}
-                                  >
-                                    <Settings className="h-4 w-4" />
-                                    <span className="hidden sm:inline">
-                                      {currentRoomToCustomize === room.id ? "Customizing" : "Customize"}
-                                    </span>
-                                    {currentRoomToCustomize === room.id ? (
-                                      <Check className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Show customization summary if room is selected and has customizations */}
-                              {selectedRooms[room.id] > 0 && roomCustomizations[room.id] && (
-                                <div className="mt-3 pt-3 border-t text-sm">
-                                  <div className="flex flex-wrap gap-2">
-                                    {/* Cleanliness level badge */}
-                                    <Badge
-                                      variant="outline"
-                                      className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                                    >
-                                      {cleanlinessLevels.find(
-                                        (c) => c.level === roomCustomizations[room.id]?.cleanlinessLevel,
-                                      )?.label || "Medium"}{" "}
-                                      Cleaning
-                                    </Badge>
-
-                                    {/* Custom options badges */}
-                                    {roomCustomizations[room.id]?.selectedOptions?.map((optionId: string) => {
-                                      const option = room.customOptions.find((opt) => opt.id === optionId)
-                                      if (!option) return null
-                                      return (
-                                        <Badge
-                                          key={optionId}
-                                          variant="outline"
-                                          className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
-                                        >
-                                          {option.name}
-                                        </Badge>
-                                      )
-                                    })}
-
-                                    {/* If no custom options selected */}
-                                    {(!roomCustomizations[room.id]?.selectedOptions ||
-                                      roomCustomizations[room.id]?.selectedOptions.length === 0) && (
-                                      <span className="text-gray-500 text-xs italic">No add-ons selected</span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Global Add-ons */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Global Add-ons</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {globalAddOns.map((addOn) => (
-                          <div
-                            key={addOn.id}
-                            className={cn(
-                              "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all",
-                              selectedGlobalAddOns.includes(addOn.id)
-                                ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                                : "border-gray-200 dark:border-gray-700",
-                            )}
-                            onClick={() => toggleGlobalAddOn(addOn.id)}
-                          >
-                            <div
-                              className={cn(
-                                "rounded-full p-1.5 flex-shrink-0",
-                                selectedGlobalAddOns.includes(addOn.id)
-                                  ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
-                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800",
-                              )}
-                            >
-                              {addOn.icon}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between">
-                                <p className="font-medium">{addOn.name}</p>
-                                <p className="font-medium">${addOn.price}</p>
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Frequency Selection */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Cleaning Frequency</h3>
-                      <Select value={frequency} onValueChange={setFrequency}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {frequencyOptions.map((option) => (
-                            <SelectItem key={option.id} value={option.id}>
-                              {option.label}
-                              <span className="ml-2 text-xs text-green-600">
-                                ({Math.round((1 - option.discountMultiplier) * 100)}% savings)
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-gray-500 mt-2">Regular cleaning schedules receive discounted rates</p>
-                    </div>
-
-                    {/* Video Discount Checkbox */}
-                    <div>
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          id="allow-video"
-                          checked={allowVideo}
-                          onCheckedChange={(checked) => setAllowVideo(checked === true)}
-                        />
-                        <div>
-                          <Label htmlFor="allow-video" className="text-base font-medium cursor-pointer">
-                            Allow Video Recording ($25 Discount)
-                          </Label>
-                          <p className="text-sm text-gray-500 mt-1">
-                            We may record parts of the cleaning process for training and marketing purposes
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="detailing" className="p-6">
-                  <div className="space-y-6">
-                    {/* Room Selection with Customization */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Select & Customize Rooms</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {roomTypes.map((room) => (
-                          <Card
-                            key={room.id}
-                            className={cn(
-                              "border overflow-hidden transition-all",
-                              selectedRooms[room.id] > 0
-                                ? "border-purple-200 dark:border-purple-800"
-                                : "border-gray-200 dark:border-gray-800",
-                              currentRoomToCustomize === room.id && "ring-2 ring-purple-500"
-                            )}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div className="flex items-center">
-                                  <div
-                                    className={cn(
-                                      "p-2 rounded-full mr-3",
-                                      selectedRooms[room.id] > 0
-                                        ? "bg-purple-100 dark:bg-purple-900/30"
-                                        : "bg-gray-100 dark:bg-gray-800",
-                                    )}
-                                  >
-                                    {room.icon}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">{room.name}</p>
-                                    <p className="text-sm text-gray-500">
-                                      ${serviceType === "standard" ? room.standardRate : room.detailingRate} per room
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
-                                  <div className="flex items-center space-x-2">
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => decrementRoom(room.id)}
-                                      disabled={selectedRooms[room.id] === 0}
-                                      className="h-8 w-8"
-                                    >
-                                      <Minus className="h-4 w-4" />
-                                    </Button>
-                                    <span className="w-8 text-center font-medium">{selectedRooms[room.id] || 0}</span>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => incrementRoom(room.id)}
-                                      disabled={selectedRooms[room.id] === 10}
-                                      className="h-8 w-8"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-
-                                  <Button
-                                    variant={currentRoomToCustomize === room.id ? "default" : "ghost"}
-                                    size="sm"
-                                    className={cn(
-                                      "gap-1",
-                                      selectedRooms[room.id] === 0 && "opacity-50 cursor-not-allowed",
-                                    )}
-                                    disabled={selectedRooms[room.id] === 0}
-                                    onClick={() => openCustomizeDrawer(room.id)}
-                                  >
-                                    <Settings className="h-4 w-4" />
-                                    <span className="hidden sm:inline">
-                                      {currentRoomToCustomize === room.id ? "Customizing" : "Customize"}
-                                    </span>
-                                    {currentRoomToCustomize === room.id ? (
-                                      <Check className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Show customization summary if room is selected and has customizations */}
-                              {selectedRooms[room.id] > 0 && roomCustomizations[room.id] && (
-                                <div className="mt-3 pt-3 border-t text-sm">
-                                  <div className="flex flex-wrap gap-2">
-                                    {/* Cleanliness level badge */}
-                                    <Badge
-                                      variant="outline"
-                                      className="bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
-                                    >
-                                      {cleanlinessLevels.find(
-                                        (c) => c.level === roomCustomizations[room.id]?.cleanlinessLevel,
-                                      )?.label || "Medium"}{" "}
-                                      Cleaning
-                                    </Badge>
-
-                                    {/* Custom options badges */}
-                                    {roomCustomizations[room.id]?.selectedOptions?.map((optionId: string) => {
-                                      const option = room.customOptions.find((opt) => opt.id === optionId)
-                                      if (!option) return null
-                                      return (
-                                        <Badge
-                                          key={optionId}
-                                          variant="outline"
-                                          className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
-                                        >
-                                          {option.name}
-                                        </Badge>
-                                      )
-                                    })}
-
-                                    {/* If no custom options selected */}
-                                    {(!roomCustomizations[room.id]?.selectedOptions ||
-                                      roomCustomizations[room.id]?.selectedOptions.length === 0) && (
-                                      <span className="text-gray-500 text-xs italic">No add-ons selected</span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Global Add-ons */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Global Add-ons</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {globalAddOns.map((addOn) => (
-                          <div
-                            key={addOn.id}
-                            className={cn(
-                              "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all",
-                              selectedGlobalAddOns.includes(addOn.id)
-                                ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                                : "border-gray-200 dark:border-gray-700",
-                            )}
-                            onClick={() => toggleGlobalAddOn(addOn.id)}
-                          >
-                            <div
-                              className={cn(
-                                "rounded-full p-1.5 flex-shrink-0",
-                                selectedGlobalAddOns.includes(addOn.id)
-                                  ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
-                                  : "bg-gray-100 text-gray-500 dark:bg-gray-800",
-                              )}
-                            >
-                              {addOn.icon}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between">
-                                <p className="font-medium">{addOn.name}</p>
-                                <p className="font-medium">${addOn.price}</p>
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Frequency Selection */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Cleaning Frequency</h3>
-                      <Select value={frequency} onValueChange={setFrequency}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select frequency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {frequencyOptions.map((option) => (
-                            <SelectItem key={option.id} value={option.id}>
-                              {option.label}
-                              <span className="ml-2 text-xs text-green-600">
-                                ({Math.round((1 - option.discountMultiplier) * 100)}% savings)
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-gray-500 mt-2">Regular cleaning schedules receive discounted rates</p>
-                    </div>
-
-                    {/* Video Discount Checkbox */}
-                    <div>
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          id="allow-video-detailing"
-                          checked={allowVideo}
-                          onCheckedChange={(checked) => setAllowVideo(checked === true)}
-                        />
-                        <div>
-                          <Label htmlFor="allow-video-detailing" className="text-base font-medium cursor-pointer">
-                            Allow Video Recording ($25 Discount)
-                          </Label>
-                          <p className="text-sm text-gray-500 mt-1">
-                            We may record parts of the cleaning process for training and marketing purposes
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </Card>
-
-            {/* Price Summary Card - Now visible on the main page */}
-            <Card
-              className={cn(
-                "shadow-lg border overflow-hidden mb-6",
-                serviceType === "standard"
-                  ? "border-blue-200 dark:border-blue-800"
-                  : "border-purple-200 dark:border-purple-800",
-              )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {/* Main Calculator Section */}
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
             >
-              <CardHeader className={cn(
-                "pb-2",
-                serviceType === "standard"
-                  ? "bg-blue-50 dark:bg-blue-900/20"
-                  : "bg-purple-50 dark:bg-purple-900/20"
-              )}>
-                <CardTitle className="text-xl">Price Summary</CardTitle>
-                <CardDescription>Your estimated cleaning cost</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="flex flex-col gap-3">
-                  {/* Price Display */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Price:</p>
-                      <div className="flex items-baseline">
-                        <span className="text-2xl font-bold">{formatCurrency(calculatedPrice)}</span>
-                        <span className="text-sm text-gray-500 ml-1">
-                          /
-                          {frequency === "annual"
-                            ? "year"
-                            : frequency === "monthly"
-                              ? "month"
-                              : frequency === "biweekly"
-                                ? "2 weeks"
-                                : "week"}
-                        </span>
+              <Card className="shadow-lg border-0 overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+                  <CardTitle className="text-2xl">Calculate Your Cleaning Price</CardTitle>
+                  <CardDescription>Configure the cleaning details for your location</CardDescription>
+                </CardHeader>
+
+                <Tabs
+                  defaultValue="standard"
+                  value={serviceType}
+                  onValueChange={(value) => setServiceType(value as "standard" | "detailing")}
+                >
+                  <TabsList className="w-full rounded-none border-b">
+                    <TabsTrigger value="standard" className="flex-1 text-sm md:text-base">
+                      Standard Cleaning
+                    </TabsTrigger>
+                    <TabsTrigger value="detailing" className="flex-1 text-sm md:text-base">
+                      Premium Detailing
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="standard" className="p-6">
+                    <div className="space-y-6">
+                      {/* Room Selection with Customization */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Select & Customize Rooms</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          {roomTypes.map((room) => (
+                            <Card
+                              key={room.id}
+                              className={cn(
+                                "border overflow-hidden transition-all",
+                                selectedRooms[room.id] > 0
+                                  ? "border-blue-200 dark:border-blue-800"
+                                  : "border-gray-200 dark:border-gray-800",
+                              )}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                  <div className="flex items-center">
+                                    <div
+                                      className={cn(
+                                        "p-2 rounded-full mr-3",
+                                        selectedRooms[room.id] > 0
+                                          ? "bg-blue-100 dark:bg-blue-900/30"
+                                          : "bg-gray-100 dark:bg-gray-800",
+                                      )}
+                                    >
+                                      {room.icon}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{room.name}</p>
+                                      <p className="text-sm text-gray-500">
+                                        ${serviceType === "standard" ? room.standardRate : room.detailingRate} per room
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => decrementRoom(room.id)}
+                                        disabled={selectedRooms[room.id] === 0}
+                                        className="h-8 w-8"
+                                      >
+                                        <Minus className="h-4 w-4" />
+                                      </Button>
+                                      <span className="w-8 text-center font-medium">{selectedRooms[room.id] || 0}</span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => incrementRoom(room.id)}
+                                        disabled={selectedRooms[room.id] === 10}
+                                        className="h-8 w-8"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={cn(
+                                        "gap-1",
+                                        selectedRooms[room.id] === 0 && "opacity-50 cursor-not-allowed",
+                                      )}
+                                      disabled={selectedRooms[room.id] === 0}
+                                      onClick={() => openCustomizeDrawer(room.id)}
+                                    >
+                                      <Settings className="h-4 w-4" />
+                                      <span className="hidden sm:inline">Customize</span>
+                                      <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Show customization summary if room is selected and has customizations */}
+                                {selectedRooms[room.id] > 0 && roomCustomizations[room.id] && (
+                                  <div className="mt-3 pt-3 border-t text-sm">
+                                    <div className="flex flex-wrap gap-2">
+                                      {/* Cleanliness level badge */}
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                      >
+                                        {cleanlinessLevels.find(
+                                          (c) => c.level === roomCustomizations[room.id]?.cleanlinessLevel,
+                                        )?.label || "Medium"}{" "}
+                                        Cleaning
+                                      </Badge>
+
+                                      {/* Custom options badges */}
+                                      {roomCustomizations[room.id]?.selectedOptions?.map((optionId: string) => {
+                                        const option = room.customOptions.find((opt) => opt.id === optionId)
+                                        if (!option) return null
+                                        return (
+                                          <Badge
+                                            key={optionId}
+                                            variant="outline"
+                                            className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
+                                          >
+                                            {option.name}
+                                          </Badge>
+                                        )
+                                      })}
+
+                                      {/* If no custom options selected */}
+                                      {(!roomCustomizations[room.id]?.selectedOptions ||
+                                        roomCustomizations[room.id]?.selectedOptions.length === 0) && (
+                                        <span className="text-gray-500 text-xs italic">No add-ons selected</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Global Add-ons */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Global Add-ons</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {globalAddOns.map((addOn) => (
+                            <div
+                              key={addOn.id}
+                              className={cn(
+                                "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                selectedGlobalAddOns.includes(addOn.id)
+                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                                  : "border-gray-200 dark:border-gray-700",
+                              )}
+                              onClick={() => toggleGlobalAddOn(addOn.id)}
+                            >
+                              <div
+                                className={cn(
+                                  "rounded-full p-1.5 flex-shrink-0",
+                                  selectedGlobalAddOns.includes(addOn.id)
+                                    ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
+                                    : "bg-gray-100 text-gray-500 dark:bg-gray-800",
+                                )}
+                              >
+                                {addOn.icon}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between">
+                                  <p className="font-medium">{addOn.name}</p>
+                                  <p className="font-medium">${addOn.price}</p>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Frequency Selection */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Cleaning Frequency</h3>
+                        <Select value={frequency} onValueChange={setFrequency}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {frequencyOptions.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                                <span className="ml-2 text-xs text-green-600">
+                                  ({Math.round((1 - option.discountMultiplier) * 100)}% savings)
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Regular cleaning schedules receive discounted rates
+                        </p>
+                      </div>
+
+                      {/* Video Discount Checkbox */}
+                      <div>
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            id="allow-video"
+                            checked={allowVideo}
+                            onCheckedChange={(checked) => setAllowVideo(checked === true)}
+                          />
+                          <div>
+                            <Label htmlFor="allow-video" className="text-base font-medium cursor-pointer">
+                              Allow Video Recording ($25 Discount)
+                            </Label>
+                            <p className="text-sm text-gray-500 mt-1">
+                              We may record parts of the cleaning process for training and marketing purposes
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  </TabsContent>
 
-                    {/* Room Count Summary */}
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Selected Rooms:</p>
-                      <p className="font-medium">{getTotalRoomCount()} rooms</p>
-                    </div>
-                  </div>
+                  <TabsContent value="detailing" className="p-6">
+                    <div className="space-y-6">
+                      {/* Room Selection with Customization */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Select & Customize Rooms</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          {roomTypes.map((room) => (
+                            <Card
+                              key={room.id}
+                              className={cn(
+                                "border overflow-hidden transition-all",
+                                selectedRooms[room.id] > 0
+                                  ? "border-purple-200 dark:border-purple-800"
+                                  : "border-gray-200 dark:border-gray-800",
+                              )}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                  <div className="flex items-center">
+                                    <div
+                                      className={cn(
+                                        "p-2 rounded-full mr-3",
+                                        selectedRooms[room.id] > 0
+                                          ? "bg-purple-100 dark:bg-purple-900/30"
+                                          : "bg-gray-100 dark:bg-gray-800",
+                                      )}
+                                    >
+                                      {room.icon}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium">{room.name}</p>
+                                      <p className="text-sm text-gray-500">
+                                        ${serviceType === "standard" ? room.standardRate : room.detailingRate} per room
+                                      </p>
+                                    </div>
+                                  </div>
 
-                  {/* Price Breakdown Accordion */}
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="breakdown" className="border-b-0">
-                      <AccordionTrigger className="py-2 text-sm">
-                        <span>Price Breakdown</span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-0">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Base Price:</span>
-                            <span>{formatCurrency(priceBreakdown.basePrice || 0)}</span>
+                                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                                    <div className="flex items-center space-x-2">
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => decrementRoom(room.id)}
+                                        disabled={selectedRooms[room.id] === 0}
+                                        className="h-8 w-8"
+                                      >
+                                        <Minus className="h-4 w-4" />
+                                      </Button>
+                                      <span className="w-8 text-center font-medium">{selectedRooms[room.id] || 0}</span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => incrementRoom(room.id)}
+                                        disabled={selectedRooms[room.id] === 10}
+                                        className="h-8 w-8"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={cn(
+                                        "gap-1",
+                                        selectedRooms[room.id] === 0 && "opacity-50 cursor-not-allowed",
+                                      )}
+                                      disabled={selectedRooms[room.id] === 0}
+                                      onClick={() => openCustomizeDrawer(room.id)}
+                                    >
+                                      <Settings className="h-4 w-4" />
+                                      <span className="hidden sm:inline">Customize</span>
+                                      <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Show customization summary if room is selected and has customizations */}
+                                {selectedRooms[room.id] > 0 && roomCustomizations[room.id] && (
+                                  <div className="mt-3 pt-3 border-t text-sm">
+                                    <div className="flex flex-wrap gap-2">
+                                      {/* Cleanliness level badge */}
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300"
+                                      >
+                                        {cleanlinessLevels.find(
+                                          (c) => c.level === roomCustomizations[room.id]?.cleanlinessLevel,
+                                        )?.label || "Medium"}{" "}
+                                        Cleaning
+                                      </Badge>
+
+                                      {/* Custom options badges */}
+                                      {roomCustomizations[room.id]?.selectedOptions?.map((optionId: string) => {
+                                        const option = room.customOptions.find((opt) => opt.id === optionId)
+                                        if (!option) return null
+                                        return (
+                                          <Badge
+                                            key={optionId}
+                                            variant="outline"
+                                            className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300"
+                                          >
+                                            {option.name}
+                                          </Badge>
+                                        )
+                                      })}
+
+                                      {/* If no custom options selected */}
+                                      {(!roomCustomizations[room.id]?.selectedOptions ||
+                                        roomCustomizations[room.id]?.selectedOptions.length === 0) && (
+                                        <span className="text-gray-500 text-xs italic">No add-ons selected</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Global Add-ons */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Global Add-ons</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {globalAddOns.map((addOn) => (
+                            <div
+                              key={addOn.id}
+                              className={cn(
+                                "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all",
+                                selectedGlobalAddOns.includes(addOn.id)
+                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                                  : "border-gray-200 dark:border-gray-700",
+                              )}
+                              onClick={() => toggleGlobalAddOn(addOn.id)}
+                            >
+                              <div
+                                className={cn(
+                                  "rounded-full p-1.5 flex-shrink-0",
+                                  selectedGlobalAddOns.includes(addOn.id)
+                                    ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
+                                    : "bg-gray-100 text-gray-500 dark:bg-gray-800",
+                                )}
+                              >
+                                {addOn.icon}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between">
+                                  <p className="font-medium">{addOn.name}</p>
+                                  <p className="font-medium">${addOn.price}</p>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Frequency Selection */}
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Cleaning Frequency</h3>
+                        <Select value={frequency} onValueChange={setFrequency}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {frequencyOptions.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                                <span className="ml-2 text-xs text-green-600">
+                                  ({Math.round((1 - option.discountMultiplier) * 100)}% savings)
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Regular cleaning schedules receive discounted rates
+                        </p>
+                      </div>
+
+                      {/* Video Discount Checkbox */}
+                      <div>
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            id="allow-video"
+                            checked={allowVideo}
+                            onCheckedChange={(checked) => setAllowVideo(checked === true)}
+                          />
+                          <div>
+                            <Label htmlFor="allow-video" className="text-base font-medium cursor-pointer">
+                              Allow Video Recording ($25 Discount)
+                            </Label>
+                            <p className="text-sm text-gray-500 mt-1">
+                              We may record parts of the cleaning process for training and marketing purposes
+                            </p>
                           </div>
-                          {priceBreakdown.customOptions > 0 && (
-                            <div className="flex justify-between">
-                              <span>Room Add-ons:</span>
-                              <span>{formatCurrency(priceBreakdown.customOptions || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </Card>
+            </motion.div>
+          </div>
+
+          {/* Price Breakdown Section */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <Card className="shadow-lg border-0">
+                <CardHeader
+                  className={cn(
+                    "bg-gradient-to-r",
+                    serviceType === "standard"
+                      ? "from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900"
+                      : "from-purple-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900",
+                  )}
+                >
+                  <CardTitle className="text-xl flex items-center">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Price Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {/* Price Breakdown */}
+                  <Accordion type="single" collapsible className="mb-6">
+                    <AccordionItem value="breakdown">
+                      <AccordionTrigger className="py-2">
+                        <span className="text-lg font-medium">Price Breakdown</span>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3 text-sm">
+                          {/* Room prices */}
+                          {Object.entries(priceBreakdown.roomPrices || {}).map(([roomId, details]: [string, any]) => {
+                            const room = roomTypes.find((r) => r.id === roomId)
+                            if (!room || details.count === 0) return null
+
+                            return (
+                              <div key={roomId} className="space-y-1">
+                                <div className="flex justify-between font-medium">
+                                  <span>
+                                    {room.name} ({details.count}x)
+                                  </span>
+                                  <span>{formatCurrency(details.subtotal)}</span>
+                                </div>
+                                <div className="pl-4 text-gray-500">
+                                  <div className="flex justify-between">
+                                    <span>
+                                      Base rate: ${serviceType === "standard" ? room.standardRate : room.detailingRate}{" "}
+                                      × {details.count}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>
+                                      Cleanliness:{" "}
+                                      {cleanlinessLevels.find((c) => c.level === details.cleanlinessLevel)?.label} (
+                                      {details.cleanlinessMultiplier}x)
+                                    </span>
+                                  </div>
+
+                                  {/* Room custom options */}
+                                  {details.customOptions && details.customOptions.length > 0 && (
+                                    <div className="mt-1 pt-1 border-t border-dashed border-gray-200">
+                                      {details.customOptions.map((option: any, index: number) => (
+                                        <div key={index} className="flex justify-between">
+                                          <span>+ {option.name}</span>
+                                          <span>{formatCurrency(option.price)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+
+                          {/* Global add-ons */}
+                          {selectedGlobalAddOns.length > 0 && (
+                            <div className="pt-2 border-t">
+                              <div className="flex justify-between font-medium">
+                                <span>Global Add-ons</span>
+                                <span>{formatCurrency(priceBreakdown.globalAddOns || 0)}</span>
+                              </div>
+                              <div className="pl-4 text-gray-500">
+                                {selectedGlobalAddOns.map((addOnId) => {
+                                  const addOn = globalAddOns.find((a) => a.id === addOnId)
+                                  if (!addOn) return null
+                                  return (
+                                    <div key={addOnId} className="flex justify-between">
+                                      <span>+ {addOn.name}</span>
+                                      <span>{formatCurrency(addOn.price)}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
                             </div>
                           )}
-                          {priceBreakdown.globalAddOns > 0 && (
-                            <div className="flex justify-between">
-                              <span>Global Add-ons:</span>
-                              <span>{formatCurrency(priceBreakdown.globalAddOns || 0)}</span>
-                            </div>
-                          )}
-                          {priceBreakdown.frequencyDiscount > 0 && (
-                            <div className="flex justify-between text-green-600">
-                              <span>Frequency Discount:</span>
-                              <span>-{formatCurrency(priceBreakdown.frequencyDiscount || 0)}</span>
-                            </div>
-                          )}
-                          {priceBreakdown.videoDiscount > 0 && (
-                            <div className="flex justify-between text-green-600">
-                              <span>Video Discount:</span>
-                              <span>-{formatCurrency(priceBreakdown.videoDiscount || 0)}</span>
+
+                          {/* Discounts */}
+                          {(priceBreakdown.frequencyDiscount > 0 || priceBreakdown.videoDiscount > 0) && (
+                            <div className="pt-2 border-t">
+                              <div className="flex justify-between font-medium">
+                                <span>Discounts</span>
+                                <span>
+                                  -
+                                  {formatCurrency(
+                                    (priceBreakdown.frequencyDiscount || 0) + (priceBreakdown.videoDiscount || 0),
+                                  )}
+                                </span>
+                              </div>
+                              <div className="pl-4 text-gray-500">
+                                {priceBreakdown.frequencyDiscount > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>{frequencyOptions.find((f) => f.id === frequency)?.label} discount</span>
+                                    <span>-{formatCurrency(priceBreakdown.frequencyDiscount)}</span>
+                                  </div>
+                                )}
+                                {priceBreakdown.videoDiscount > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>Video recording discount</span>
+                                    <span>-{formatCurrency(priceBreakdown.videoDiscount)}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1293,342 +1361,347 @@ export default function PricingPage() {
                     </AccordionItem>
                   </Accordion>
 
-                  {/* Terms and Add to Cart */}
-                  <div className="pt-2 border-t">
-                    <div className="flex items-start space-x-2 mb-3">
+                  {/* Service Summary */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-lg mb-2">Selected Service</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service Type:</span>
+                        <span className="font-medium">
+                          {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Rooms:</span>
+                        <span className="font-medium">{getTotalRoomCount()} total</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Frequency:</span>
+                        <span className="font-medium">
+                          {frequencyOptions.find((f) => f.id === frequency)?.label || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Add-ons:</span>
+                        <span className="font-medium">
+                          {selectedGlobalAddOns.length} global,{" "}
+                          {Object.values(roomCustomizations).reduce(
+                            (sum, room) => sum + (room.selectedOptions?.length || 0),
+                            0,
+                          )}{" "}
+                          room-specific
+                        </span>
+                      </div>
+                      {allowVideo && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Video Discount:</span>
+                          <span className="font-medium text-green-600">-$25.00</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price Display */}
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-medium">Total Price:</span>
+                      <div className="text-right">
+                        <div className="text-3xl font-bold">
+                          {formatCurrency(calculatedPrice)}
+                          <span className="text-sm font-normal text-gray-500 ml-1">
+                            /
+                            {frequency === "annual"
+                              ? "year"
+                              : frequency === "monthly"
+                                ? "month"
+                                : frequency === "biweekly"
+                                  ? "2 weeks"
+                                  : "week"}
+                          </span>
+                        </div>
+                        {!isServiceAvailable && (
+                          <Badge variant="destructive" className="mt-1">
+                            Service Unavailable
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terms and Conditions */}
+                  <div className="mb-6">
+                    <div className="flex items-start space-x-3">
                       <Checkbox
-                        id="floating-terms-checkbox"
+                        id="terms-checkbox"
                         checked={termsAccepted}
                         onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                        className="mt-1"
                       />
                       <div>
-                        <Label htmlFor="floating-terms-checkbox" className="text-sm cursor-pointer">
-                          I accept the terms and conditions
+                        <Label htmlFor="terms-checkbox" className="text-sm font-medium cursor-pointer">
+                          I accept the{" "}
+                          <Button variant="link" className="h-auto p-0" onClick={() => setShowTermsModal(true)}>
+                            terms and conditions
+                          </Button>
                         </Label>
-                        <p className="text-xs text-gray-500">By checking this box, you agree to our service terms</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={handleAddToCart}
-                      disabled={!isServiceAvailable || getTotalRoomCount() === 0 || !termsAccepted}
-                      className={cn(
-                        "w-full gap-2",
-                        serviceType === "standard"
-                          ? "bg-blue-600 hover:bg-blue-700"
-                          : "bg-purple-600 hover:bg-purple-700",
-                      )}
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      Add to Cart
-                      {!isServiceAvailable && (
-                        <Badge variant="destructive" className="ml-1 text-xs">
-                          Unavailable
-                        </Badge>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Right Side Panels - Takes 5 columns on large screens */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Room Customization Section - Always visible */}
-            {currentRoomToCustomize && (
-              <Card className="shadow-lg border overflow-hidden">
-                <CardHeader className={cn(
-                  "border-b",
-                  serviceType === "standard" ? "bg-blue-50 dark:bg-blue-900/20" : "bg-purple-50 dark:bg-purple-900/20",
-                )}>
-                  <CardTitle className="text-xl flex items-center">
-                    <Settings
-                      className={cn("h-5 w-5 mr-2", serviceType === "standard" ? "text-blue-600" : "text-purple-600")}
-                    />
-                    Customize {getCurrentRoom()?.name || "Room"}
-                  </CardTitle>
-                  <CardDescription>Adjust cleanliness level and add custom services for this room</CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 max-h-[70vh] overflow-y-auto">
-                  {/* Room Summary */}
-                  <div className="mb-6 mt-2 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "p-2 rounded-full",
-                          serviceType === "standard"
-                            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300"
-                            : "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300",
-                        )}
-                      >
-                        {getCurrentRoom()?.icon}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{getCurrentRoom()?.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          ${serviceType === "standard" ? getCurrentRoom()?.standardRate : getCurrentRoom()?.detailingRate}{" "}
-                          per room × {selectedRooms[currentRoomToCustomize]} = $
-                          {(serviceType === "standard" ? getCurrentRoom()?.standardRate : getCurrentRoom()?.detailingRate) *
-                            selectedRooms[currentRoomToCustomize]}
-                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Cleanliness Level */}
-                  <div className="mb-6">
-                    <h3 className="text-base font-medium mb-3 flex items-center">
-                      <span
-                        className={cn(
-                          "inline-flex items-center justify-center rounded-full p-1 mr-2",
-                          serviceType === "standard" ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600",
-                        )}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </span>
-                      Cleanliness Level
-                    </h3>
-                    <div className="px-2">
-                      <Slider
-                        value={[roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel || 2]}
-                        min={1}
-                        max={4}
-                        step={1}
-                        onValueChange={(value) => setRoomCleanlinessLevel(currentRoomToCustomize, value[0])}
-                        className="mb-6"
-                      />
-                      <div className="flex justify-between">
-                        {cleanlinessLevels.map((level) => (
-                          <div
-                            key={level.level}
-                            className={cn(
-                              "text-center flex-1",
-                              roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel === level.level
-                                ? cn("font-medium", serviceType === "standard" ? "text-blue-600" : "text-purple-600")
-                                : "",
-                            )}
-                          >
-                            <div className="text-sm">{level.label}</div>
-                            <div className="text-xs text-gray-500">
-                              {level.level === 4 ? "N/A" : `×${level.multiplier}`}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  {/* Add to Cart Button */}
+                  <Button
+                    onClick={handleAddToCart}
+                    size="lg"
+                    className={cn(
+                      "w-full group relative overflow-hidden text-white py-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300",
+                      serviceType === "standard"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                        : "bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700",
+                    )}
+                    disabled={!isServiceAvailable || getTotalRoomCount() === 0 || !termsAccepted}
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5 inline-block" />
+                    <span className="font-medium">Add to Cart</span>
+                  </Button>
 
-                    {/* Current cleanliness level description */}
-                    <div className="mt-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border">
-                      <p className="text-sm">
-                        <span className="font-medium">
-                          {cleanlinessLevels.find(
-                            (c) => c.level === roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel,
-                          )?.label || "Medium"}
-                          :
-                        </span>{" "}
-                        {
-                          cleanlinessLevels.find(
-                            (c) => c.level === roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel,
-                          )?.description
-                        }
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Price multiplier: ×
-                        {cleanlinessLevels.find(
-                          (c) => c.level === roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel,
-                        )?.multiplier || 1}
+                  {/* Cart Status */}
+                  {cart.items.length > 0 && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-600">
+                        {cart.items.length} item{cart.items.length !== 1 ? "s" : ""} in cart
                       </p>
                     </div>
-
-                    {roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel >= 3 && serviceType === "standard" && (
-                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm rounded-r flex items-start">
-                        <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Warning: High Cleanliness Level</p>
-                          <p>For deep cleaning needs, we recommend our Premium Detailing service.</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel === 4 && (
-                      <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-800 dark:text-red-300 text-sm rounded-r flex items-start">
-                        <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Biohazard Level Cleaning</p>
-                          <p>
-                            This level requires specialized cleaning services. Please contact us directly for a custom
-                            quote.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Included Services */}
-                  <div className="mb-6">
-                    <h3 className="text-base font-medium mb-3 flex items-center">
-                      <span
-                        className={cn(
-                          "inline-flex items-center justify-center rounded-full p-1 mr-2",
-                          serviceType === "standard" ? "bg-green-100 text-green-600" : "bg-green-100 text-green-600",
-                        )}
-                      >
-                        <Check className="h-4 w-4" />
-                      </span>
-                      Included in {serviceType === "standard" ? "Standard" : "Premium"} Service
-                    </h3>
-                    <div className="space-y-2 pl-1 p-3 rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
-                      {getCurrentRoom()?.[serviceType === "standard" ? "standardIncludes" : "detailingIncludes"]?.map(
-                        (item, index) => (
-                          <div key={index} className="flex items-start">
-                            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                            <span className="text-sm">{item}</span>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Custom Options */}
-                  <div className="mb-6">
-                    <h3 className="text-base font-medium mb-3 flex items-center">
-                      <span
-                        className={cn(
-                          "inline-flex items-center justify-center rounded-full p-1 mr-2",
-                          serviceType === "standard" ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600",
-                        )}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </span>
-                      Additional Services
-                      <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({roomCustomizations[currentRoomToCustomize]?.selectedOptions?.length || 0} selected)
-                      </span>
-                    </h3>
-
-                    {/* Selected options summary */}
-                    {roomCustomizations[currentRoomToCustomize]?.selectedOptions?.length > 0 && (
-                      <div className="mb-4 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
-                        <p className="text-sm font-medium mb-2">Selected add-ons:</p>
-                        <div className="space-y-2">
-                          {roomCustomizations[currentRoomToCustomize]?.selectedOptions?.map((optionId: string) => {
-                            const option = getCurrentRoom()?.customOptions.find((opt) => opt.id === optionId)
-                            if (!option) return null
-                            return (
-                              <div key={optionId} className="flex justify-between text-sm">
-                                <span className="flex items-center">
-                                  <Check className="h-3 w-3 text-green-500 mr-1" />
-                                  {option.name}
-                                </span>
-                                <span className="font-medium">${option.price * selectedRooms[currentRoomToCustomize]}</span>
-                              </div>
-                            )
-                          })}
-                          <div className="pt-1 mt-1 border-t border-blue-200 dark:border-blue-800 flex justify-between font-medium">
-                            <span>Total add-ons:</span>
-                            <span>
-                              $
-                              {roomCustomizations[currentRoomToCustomize]?.selectedOptions?.reduce((total, optionId) => {
-                                const option = getCurrentRoom()?.customOptions.find((opt) => opt.id === optionId)
-                                return total + (option ? option.price * selectedRooms[currentRoomToCustomize] : 0)
-                              }, 0)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      {getCurrentRoom()?.customOptions.map((option) => (
-                        <div
-                          key={option.id}
-                          className={cn(
-                            "flex items-start p-3 rounded-lg border cursor-pointer transition-all",
-                            roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id)
-                              ? cn(
-                                  "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20",
-                                  "transform scale-[1.02] shadow-sm",
-                                )
-                              : "border-gray-200 dark:border-gray-700",
-                          )}
-                          onClick={() => toggleCustomOption(option.id)}
-                        >
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center">
-                                <div
-                                  className={cn(
-                                    "w-5 h-5 rounded-full mr-2 flex items-center justify-center",
-                                    roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id)
-                                      ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
-                                      : "bg-gray-100 text-gray-400 dark:bg-gray-800",
-                                  )}
-                                >
-                                  {roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id) ? (
-                                    <Check className="h-3 w-3" />
-                                  ) : (
-                                    <Plus className="h-3 w-3" />
-                                  )}
-                                </div>
-                                <p className="font-medium">{option.name}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium">${option.price}</p>
-                                <p className="text-xs text-gray-500">
-                                  × {selectedRooms[currentRoomToCustomize]} = $
-                                  {option.price * selectedRooms[currentRoomToCustomize]}
-                                </p>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-7">{option.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
-            )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Terms and Conditions Section - Always visible */}
-            <Card className="shadow-lg border overflow-hidden">
-              <CardHeader className="bg-gray-50 dark:bg-gray-800/50 border-b">
-                <CardTitle className="text-xl flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Terms and Conditions
-                </CardTitle>
-                <CardDescription>Please read and accept our terms before proceeding</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 max-h-[40vh] overflow-y-auto">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <h3>Service Agreement</h3>
-                  <p>
-                    By accepting these terms, you agree to the cleaning services as described in your order. Our
-                    professional cleaners will perform the services selected, including any add-ons or special requests
-                    specified during booking.
-                  </p>
+      {/* Terms and Conditions Drawer */}
+      <Drawer open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle className="text-xl flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Terms and Conditions
+            </DrawerTitle>
+            <DrawerDescription>Please read and accept our terms before proceeding</DrawerDescription>
+          </DrawerHeader>
 
-                  <h3>Cancellation Policy</h3>
-                  <p>
-                    Cancellations must be made at least 24 hours before your scheduled service. Late cancellations may be
-                    subject to a fee of up to 50% of the service cost. No-shows will be charged the full service amount.
-                  </p>
+          <div className="px-4 pb-0 overflow-y-auto max-h-[calc(85vh-10rem)]">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <h3>Service Agreement</h3>
+              <p>
+                By accepting these terms, you agree to the cleaning services as described in your order. Our
+                professional cleaners will perform the services selected, including any add-ons or special requests
+                specified during booking.
+              </p>
 
-                  <h3>Payment Terms</h3>
-                  <p>
-                    Payment is processed at the time of booking. For recurring services, you authorize us to charge your
-                    payment method according to the frequency selected. Prices are subject to change with notice.
-                  </p>
+              <h3>Cancellation Policy</h3>
+              <p>
+                Cancellations must be made at least 24 hours before your scheduled service. Late cancellations may be
+                subject to a fee of up to 50% of the service cost. No-shows will be charged the full service amount.
+              </p>
 
-                  <h3>Service Guarantee</h3>
-                  <p>
-                    If you're not satisfied with our service, please notify us within 24 hours, and we'll return to address
-                    any issues at no additional cost. This guarantee applies to standard cleaning tasks only.
-                  </p>
+              <h3>Payment Terms</h3>
+              <p>
+                Payment is processed at the time of booking. For recurring services, you authorize us to charge your
+                payment method according to the frequency selected. Prices are subject to change with notice.
+              </p>
 
-                  <h3>Property Access and Safety</h3>
-                  <p>
-                    You agree to provide safe access to your property at the scheduled time. Our cleaners reserve the right
-                    to refuse service if working conditions are unsafe or if they encounter biohazards not disclosed during\
+              <h3>Service Guarantee</h3>
+              <p>
+                If you're not satisfied with our service, please notify us within 24 hours, and we'll return to address
+                any issues at no additional cost. This guarantee applies to standard cleaning tasks only.
+              </p>
+
+              <h3>Property Access and Safety</h3>
+              <p>
+                You agree to provide safe access to your property at the scheduled time. Our cleaners reserve the right
+                to refuse service if working conditions are unsafe or if they encounter biohazards not disclosed during
+                booking.
+              </p>
+
+              <h3>Liability</h3>
+              <p>
+                While we take utmost care with your property, we are not liable for normal wear and tear, pre-existing
+                damage, or items that are improperly secured. Please secure valuables before our arrival.
+              </p>
+            </div>
+          </div>
+
+          <DrawerFooter>
+            <div className="flex items-start space-x-3 mb-4">
+              <Checkbox
+                id="accept-terms"
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+              />
+              <div>
+                <Label htmlFor="accept-terms" className="text-base font-medium cursor-pointer">
+                  I accept the terms and conditions
+                </Label>
+                <p className="text-sm text-gray-500 mt-1">
+                  By checking this box, you agree to our terms of service and privacy policy
+                </p>
+              </div>
+            </div>
+            <Button onClick={() => setShowTermsModal(false)} disabled={!termsAccepted}>
+              Accept and Continue
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Room Customization Drawer */}
+      <Drawer open={customizeDrawerOpen} onOpenChange={setCustomizeDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle className="text-xl flex items-center">
+              <Settings className="h-5 w-5 mr-2" />
+              Customize {getCurrentRoom()?.name || "Room"}
+            </DrawerTitle>
+            <DrawerDescription>Adjust cleanliness level and add custom services</DrawerDescription>
+          </DrawerHeader>
+
+          {currentRoomToCustomize && (
+            <div className="px-4 pb-0 overflow-y-auto max-h-[calc(85vh-10rem)]">
+              {/* Cleanliness Level */}
+              <div className="mb-6">
+                <h3 className="text-base font-medium mb-3">Cleanliness Level</h3>
+                <div className="px-2">
+                  <Slider
+                    value={[roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel || 2]}
+                    min={1}
+                    max={4}
+                    step={1}
+                    onValueChange={(value) => setRoomCleanlinessLevel(currentRoomToCustomize, value[0])}
+                    className="mb-6"
+                  />
+                  <div className="flex justify-between">
+                    {cleanlinessLevels.map((level) => (
+                      <div
+                        key={level.level}
+                        className={cn(
+                          "text-center flex-1",
+                          roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel === level.level && "font-medium",
+                        )}
+                      >
+                        <div className="text-sm">{level.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {level.level === 4 ? "N/A" : `×${level.multiplier}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel >= 3 && serviceType === "standard" && (
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm rounded-r flex items-start">
+                    <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Warning: High Cleanliness Level</p>
+                      <p>For deep cleaning needs, we recommend our Premium Detailing service.</p>
+                    </div>
+                  </div>
+                )}
+
+                {roomCustomizations[currentRoomToCustomize]?.cleanlinessLevel === 4 && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-800 dark:text-red-300 text-sm rounded-r flex items-start">
+                    <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Biohazard Level Cleaning</p>
+                      <p>
+                        This level requires specialized cleaning services. Please contact us directly for a custom
+                        quote.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Included Services */}
+              <div className="mb-6">
+                <h3 className="text-base font-medium mb-3">
+                  Included in {serviceType === "standard" ? "Standard" : "Premium"} Service
+                </h3>
+                <div className="space-y-2 pl-1">
+                  {getCurrentRoom()?.[serviceType === "standard" ? "standardIncludes" : "detailingIncludes"]?.map(
+                    (item, index) => (
+                      <div key={index} className="flex items-start">
+                        <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                        <span className="text-sm">{item}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {/* Custom Options */}
+              <div className="mb-6">
+                <h3 className="text-base font-medium mb-3">Additional Services</h3>
+                <div className="space-y-3">
+                  {getCurrentRoom()?.customOptions.map((option) => (
+                    <div
+                      key={option.id}
+                      className={cn(
+                        "flex items-start p-3 rounded-lg border cursor-pointer transition-all",
+                        roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id)
+                          ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                          : "border-gray-200 dark:border-gray-700",
+                      )}
+                      onClick={() => toggleCustomOption(option.id)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded-full mr-2 flex items-center justify-center",
+                                roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id)
+                                  ? "bg-green-100 text-green-600 dark:bg-green-800 dark:text-green-300"
+                                  : "bg-gray-100 text-gray-400 dark:bg-gray-800",
+                              )}
+                            >
+                              {roomCustomizations[currentRoomToCustomize]?.selectedOptions?.includes(option.id) ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Plus className="h-3 w-3" />
+                              )}
+                            </div>
+                            <p className="font-medium">{option.name}</p>
+                          </div>
+                          <p className="font-medium">${option.price}</p>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-7">{option.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <Button onClick={() => setCustomizeDrawerOpen(false)}>Save Customization</Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Address Collection Modal */}
+      <AddressCollectionModal
+        isOpen={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onSubmit={handleAddressSubmit}
+        calculatedPrice={calculatedPrice}
+      />
+    </div>
+  )
+}
