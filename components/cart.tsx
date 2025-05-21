@@ -77,7 +77,9 @@ export function Cart({ showLabel = false }: CartProps) {
   }
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
-    updateQuantity(id, quantity)
+    // Ensure quantity is a valid number and at least 1
+    const validQuantity = Math.max(1, isNaN(quantity) ? 1 : Math.floor(quantity))
+    updateQuantity(id, validQuantity)
   }
 
   const handleClearCart = () => {
@@ -114,6 +116,15 @@ export function Cart({ showLabel = false }: CartProps) {
     setCheckoutSuccess(false)
 
     try {
+      // Validate cart items before proceeding
+      const invalidItems = cart.items.filter(
+        (item) => !item.id || !item.name || typeof item.price !== "number" || item.price <= 0,
+      )
+
+      if (invalidItems.length > 0) {
+        throw new Error("Some items in your cart are invalid. Please try removing and adding them again.")
+      }
+
       // Separate regular items from custom cleaning items
       const regularItems = cart.items.filter(
         (item) => item.priceId !== "price_custom_cleaning" && item.priceId !== "price_custom_service",
@@ -248,10 +259,14 @@ export function Cart({ showLabel = false }: CartProps) {
       }
     } catch (error) {
       console.error("Error during checkout:", error)
-      setCheckoutError("An error occurred during checkout. Please try again or call us for assistance.")
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "An error occurred during checkout. Please try again or call us for assistance.",
+      )
       toast({
         title: "Checkout failed",
-        description: "An error occurred during checkout. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred during checkout. Please try again.",
         variant: "destructive",
         duration: 5000,
       })

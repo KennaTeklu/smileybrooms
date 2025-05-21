@@ -145,19 +145,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load cart from localStorage on initial render
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      const parsedCart = JSON.parse(savedCart) as CartState
-      parsedCart.items.forEach((item) => {
-        dispatch({ type: "ADD_ITEM", payload: item })
-      })
+    try {
+      const savedCart = localStorage.getItem("cart")
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart) as CartState
+        parsedCart.items.forEach((item) => {
+          dispatch({ type: "ADD_ITEM", payload: item })
+        })
+      }
+    } catch (error) {
+      console.error("Error loading cart from localStorage:", error)
+      // Reset to initial state if there's an error
+      dispatch({ type: "CLEAR_CART" })
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart))
-  }, [cart])
+    try {
+      localStorage.setItem("cart", JSON.stringify(cart))
+    } catch (error) {
+      console.error("Error saving cart to localStorage:", error)
+      // Notify user of the error
+      if (toast) {
+        toast({
+          title: "Error saving cart",
+          description: "There was an error saving your cart. Please try again.",
+          variant: "destructive",
+        })
+      }
+    }
+  }, [cart, toast])
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     dispatch({
