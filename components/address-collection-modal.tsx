@@ -18,6 +18,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MapPin, CreditCard, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { US_STATES } from "@/lib/location-data"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export interface AddressData {
   fullName: string
@@ -87,7 +89,7 @@ export default function AddressCollectionModal({
     if (!formData.phone.trim()) newErrors.phone = "Phone is required"
     if (!formData.address.trim()) newErrors.address = "Address is required"
     if (!formData.city.trim()) newErrors.city = "City is required"
-    if (!formData.state.trim()) newErrors.state = "State is required"
+    if (!formData.state) newErrors.state = "State is required"
     if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
 
     setErrors(newErrors)
@@ -214,13 +216,35 @@ export default function AddressCollectionModal({
 
                 <div>
                   <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    name="state"
+                  <Select
                     value={formData.state}
-                    onChange={handleChange}
-                    className={errors.state ? "border-red-500" : ""}
-                  />
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: value,
+                      }))
+
+                      // Clear error when field is edited
+                      if (errors.state) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev }
+                          delete newErrors.state
+                          return newErrors
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {US_STATES.map((state) => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
                 </div>
               </div>

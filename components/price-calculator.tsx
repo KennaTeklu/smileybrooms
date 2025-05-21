@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,6 +13,8 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { Home, Calendar, Sparkles } from "lucide-react"
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
+import { cn } from "@/lib/utils"
+import { Minus, Plus } from "lucide-react"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -59,6 +63,144 @@ const cleanlinessMultipliers = [
   { level: 4, multiplier: 1.5, label: "Very Dirty" },
   { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
 ]
+
+interface RoomConfiguratorProps {
+  selectedRooms: Record<string, number>
+  setSelectedRooms: (rooms: Record<string, number>) => void
+  serviceType: "standard" | "detailing"
+}
+
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
+  const incrementRoom = (roomId: string) => {
+    setSelectedRooms((prev) => ({
+      ...prev,
+      [roomId]: (prev[roomId] || 0) + 1,
+    }))
+  }
+
+  const decrementRoom = (roomId: string) => {
+    if (selectedRooms[roomId] > 0) {
+      setSelectedRooms((prev) => ({
+        ...prev,
+        [roomId]: prev[roomId] - 1,
+      }))
+    }
+  }
+
+  return (
+    <>
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        {roomTypes
+          .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                    )}
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {roomTypes
+          .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                    )}
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="mt-4 pt-4 border-t">
+        <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+          <Plus className="h-4 w-4" /> Request Custom Space
+        </Button>
+      </div>
+    </>
+  )
+}
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
   // State for selected rooms
@@ -207,31 +349,11 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <div className="space-y-4">
-                {roomTypes.map((room) => (
-                  <div key={room.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{room.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">${room.basePrice} per room</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => decrementRoom(room.id)}
-                        disabled={selectedRooms[room.id] === 0}
-                        className="h-8 w-8"
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center">{selectedRooms[room.id] || 0}</span>
-                      <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-8 w-8">
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <RoomConfigurator
+                selectedRooms={selectedRooms}
+                setSelectedRooms={setSelectedRooms}
+                serviceType={serviceType}
+              />
             </CardContent>
           </Card>
 
@@ -320,38 +442,18 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
 
           {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900">
+          <Card className="border-2 border-purple-100 dark:border-purple-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-blue-600" />
+                <Home className="h-5 w-5 mr-2 text-purple-600" />
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <div className="space-y-4">
-                {roomTypes.map((room) => (
-                  <div key={room.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{room.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">${room.basePrice} per room</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => decrementRoom(room.id)}
-                        disabled={selectedRooms[room.id] === 0}
-                        className="h-8 w-8"
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center">{selectedRooms[room.id] || 0}</span>
-                      <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-8 w-8">
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <RoomConfigurator
+                selectedRooms={selectedRooms}
+                setSelectedRooms={setSelectedRooms}
+                serviceType={serviceType}
+              />
             </CardContent>
           </Card>
 

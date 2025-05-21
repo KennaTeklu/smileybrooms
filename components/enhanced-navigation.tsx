@@ -73,14 +73,15 @@ export default function EnhancedNavigation() {
           ))}
 
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="ml-2"
+            className="ml-2 rounded-full w-9 h-9 p-0 relative overflow-hidden transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 hover:bg-gray-100 dark:hover:bg-gray-700"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
+            <Sun className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
+            <Moon className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
           </Button>
 
           <CartButton />
@@ -89,14 +90,15 @@ export default function EnhancedNavigation() {
         {/* Mobile Navigation */}
         <div className="flex items-center md:hidden">
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="mr-2"
+            className="mr-2 rounded-full w-9 h-9 p-0 relative overflow-hidden transition-all duration-300 border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 hover:bg-gray-100 dark:hover:bg-gray-700"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
+            <Sun className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
+            <Moon className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
           </Button>
 
           <CartButton />

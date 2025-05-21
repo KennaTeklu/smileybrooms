@@ -10,6 +10,10 @@ import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import StickyCartButton from "@/components/sticky-cart-button"
+import EmailFormData from "@/components/email-form-data"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Mail } from "lucide-react"
 
 type CalculatedService = {
   rooms: Record<string, number>
@@ -31,9 +35,11 @@ export default function CalculatorPage() {
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showStickyButton, setShowStickyButton] = useState(true)
+  const [formDataForEmail, setFormDataForEmail] = useState<Record<string, any> | null>(null)
 
   const { addItem } = useCart()
   const { toast } = useToast()
+  const router = useRouter()
 
   // Check if terms have been accepted
   useEffect(() => {
@@ -127,6 +133,30 @@ export default function CalculatorPage() {
       source: "Calculator Form",
     }
 
+    // Prepare data for email
+    const emailData = {
+      ...waitlistData,
+      rooms: selectedRoomsList,
+      frequency: calculatedService.frequency,
+      serviceType: calculatedService.serviceType,
+      isRecurring: calculatedService.isRecurring,
+      recurringInterval: calculatedService.recurringInterval,
+      price: finalPrice,
+      customer: {
+        name: addressData.fullName,
+        email: addressData.email,
+        phone: addressData.phone,
+        address: addressData.address,
+        city: addressData.city,
+        state: addressData.state,
+        zipCode: addressData.zipCode,
+        specialInstructions: addressData.specialInstructions,
+        allowVideoRecording: addressData.allowVideoRecording,
+        googleMapsLink: googleMapsLink,
+      },
+    }
+    setFormDataForEmail(emailData)
+
     // Submit to waitlist API (using the Google Sheets script URL)
     const scriptURL =
       "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
@@ -174,10 +204,27 @@ export default function CalculatorPage() {
       },
     })
 
+    // Store data for email summary page
+    localStorage.setItem("serviceFormData", JSON.stringify(emailData))
+
     // Show success message
     toast({
       title: "Added to cart!",
       description: `${serviceName} has been added to your cart.`,
+    })
+
+    // Ask if they want to email the details
+    toast({
+      title: "Send service details via email?",
+      description: (
+        <div className="mt-2">
+          <Button onClick={() => router.push("/email-summary")} variant="outline" className="w-full">
+            <Mail className="mr-2 h-4 w-4" />
+            Email Service Details
+          </Button>
+        </div>
+      ),
+      duration: 10000,
     })
 
     // Reset calculator
@@ -240,6 +287,19 @@ export default function CalculatorPage() {
 
       {/* Accessibility Toolbar */}
       <AccessibilityToolbar />
+
+      {/* Email Form Data Button */}
+      {formDataForEmail && (
+        <div className="fixed bottom-24 right-4 z-50">
+          <EmailFormData
+            formData={formDataForEmail}
+            variant="default"
+            size="lg"
+            className="shadow-lg"
+            onSuccess={() => setFormDataForEmail(null)}
+          />
+        </div>
+      )}
 
       <Footer />
     </div>
