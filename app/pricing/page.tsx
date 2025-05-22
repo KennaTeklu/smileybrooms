@@ -8,7 +8,7 @@ import { RoomConfigurator } from "@/components/room-configurator"
 import { ServiceSummaryCard } from "@/components/service-summary-card"
 import { FrequencySelector } from "@/components/frequency-selector"
 import { CleanlinessSlider } from "@/components/cleanliness-slider"
-import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { Sparkles, Home, Clock, Shield } from "lucide-react"
 
 interface RoomConfig {
