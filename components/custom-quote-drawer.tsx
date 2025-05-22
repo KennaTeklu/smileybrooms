@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,8 +26,19 @@ import {
   Hammer,
   Trash2,
   Leaf,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface CustomQuoteDrawerProps {
   open: boolean
@@ -97,14 +108,149 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
     }
   }
 
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [formattedMessage, setFormattedMessage] = useState("")
+  const [copied, setCopied] = useState(false)
+  const messageRef = useRef<HTMLDivElement>(null)
+
+  const formatFormData = () => {
+    // Format property type
+    const propertyTypeLabels = {
+      residential: "Residential",
+      commercial: "Commercial",
+      industrial: "Industrial",
+    }
+
+    // Format service type
+    const serviceTypeLabels = {
+      standard: "Standard Cleaning",
+      deep: "Deep Cleaning",
+      move: "Move In/Out Cleaning",
+      specialty: "Specialty Services",
+    }
+
+    // Format urgency level
+    const urgencyLabels = {
+      emergency: "Emergency - Need service immediately",
+      urgent: "Urgent - Need service within 24 hours",
+      standard: "Standard - Within the next few days",
+      flexible: "Flexible - Anytime in the next 2 weeks",
+    }
+
+    // Format contact preference
+    const contactPrefLabels = {
+      email: "Email",
+      phone: "Phone",
+      text: "Text Message",
+    }
+
+    // Format damage extent
+    const damageExtentLabels = {
+      minor: "Minor - Small area affected",
+      moderate: "Moderate - Multiple areas affected",
+      severe: "Severe - Extensive damage",
+      critical: "Critical - Entire property affected",
+    }
+
+    // Format preferred time
+    const timeLabels = {
+      morning: "Morning (8AM - 12PM)",
+      afternoon: "Afternoon (12PM - 4PM)",
+      evening: "Evening (4PM - 8PM)",
+    }
+
+    // Collect selected services
+    const selectedServices = []
+    if (formData.emergencyResponse) selectedServices.push("Emergency Response")
+    if (formData.waterDamage) selectedServices.push("Water Damage")
+    if (formData.moldRemediation) selectedServices.push("Mold Remediation")
+    if (formData.fireSmokeDamage) selectedServices.push("Fire/Smoke Damage")
+    if (formData.commercialCleaning) selectedServices.push("Commercial Cleaning")
+    if (formData.constructionCleanup) selectedServices.push("Construction Cleanup")
+    if (formData.moveInOut) selectedServices.push("Move In/Out")
+    if (formData.deepCleaning) selectedServices.push("Deep Cleaning")
+
+    // Format the message
+    return `
+CUSTOM QUOTE REQUEST
+
+CONTACT INFORMATION
+------------------
+Name: ${formData.name}
+Email: ${formData.email}
+Phone: ${formData.phone}
+Address: ${formData.address}
+City: ${formData.city}
+State: ${formData.state}
+ZIP: ${formData.zip}
+
+PROPERTY DETAILS
+---------------
+Property Type: ${propertyTypeLabels[formData.propertyType as keyof typeof propertyTypeLabels] || formData.propertyType}
+Square Footage: ${formData.squareFootage || "Not specified"}
+Number of Rooms: ${formData.rooms || "Not specified"}
+Number of Bathrooms: ${formData.bathrooms || "Not specified"}
+
+SERVICE DETAILS
+--------------
+Primary Service: ${serviceTypeLabels[formData.serviceType as keyof typeof serviceTypeLabels] || formData.serviceType}
+Additional Services: ${selectedServices.length > 0 ? selectedServices.join(", ") : "None selected"}
+
+${
+  formData.emergencyResponse
+    ? `
+EMERGENCY DETAILS
+----------------
+Damage Extent: ${damageExtentLabels[formData.damageExtent as keyof typeof damageExtentLabels] || formData.damageExtent}
+Time of Incident: ${formData.timeOfIncident || "Not specified"}
+Insurance Provider: ${formData.insuranceProvider || "Not specified"}
+Policy Number: ${formData.policyNumber || "Not specified"}
+`
+    : ""
+}
+
+SCHEDULING PREFERENCES
+--------------------
+Preferred Date: ${formData.preferredDate || "Not specified"}
+Preferred Time: ${formData.preferredTime ? timeLabels[formData.preferredTime as keyof typeof timeLabels] || formData.preferredTime : "Not specified"}
+Flexible Timing: ${formData.flexibleTiming ? "Yes" : "No"}
+Urgency Level: ${urgencyLabels[formData.urgencyLevel as keyof typeof urgencyLabels] || formData.urgencyLevel}
+
+ADDITIONAL INFORMATION
+--------------------
+Special Requests: ${formData.specialRequests || "None provided"}
+How They Heard About Us: ${formData.howDidYouHear || "Not specified"}
+Preferred Contact Method: ${contactPrefLabels[formData.contactPreference as keyof typeof contactPrefLabels] || formData.contactPreference}
+
+This request was submitted through the SmileBrooms website on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}.
+`.trim()
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Process form submission
-    console.log("Form submitted:", formData)
-    // Close the drawer
+
+    // Format the data into a readable message
+    const message = formatFormData()
+    setFormattedMessage(message)
+
+    // Show confirmation dialog
+    setShowConfirmation(true)
+  }
+
+  const handleCopyToClipboard = () => {
+    if (messageRef.current) {
+      const text = messageRef.current.innerText
+      navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleSendEmail = () => {
+    const subject = `Custom Quote Request - ${formData.name}`
+    const mailtoLink = `mailto:custom@smileybrooms.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(formattedMessage)}`
+    window.open(mailtoLink, "_blank")
     onOpenChange(false)
-    // Show success message
-    alert("Your custom quote request has been submitted. We'll contact you shortly!")
   }
 
   const nextStep = () => {
@@ -680,6 +826,44 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
       </div>
     </>
   )
+
+  if (showConfirmation) {
+    return (
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Your Custom Quote Request
+            </DialogTitle>
+            <DialogDescription>
+              Your request has been prepared. You can send it directly to our team or copy the details.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 mb-6">
+            <div
+              className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md border text-sm font-mono whitespace-pre-wrap max-h-[300px] overflow-y-auto"
+              ref={messageRef}
+            >
+              {formattedMessage}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={handleCopyToClipboard}>
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copied!" : "Copy to Clipboard"}
+            </Button>
+            <Button className="flex items-center gap-2" onClick={handleSendEmail}>
+              <Mail className="h-4 w-4" />
+              Send Email to custom@smileybrooms.com
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   return isDesktop ? (
     <Sheet open={open} onOpenChange={onOpenChange}>
