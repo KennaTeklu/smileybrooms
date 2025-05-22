@@ -14,6 +14,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { EnhancedCartProvider } from "@/lib/enhanced-cart-context"
 import { useEffect } from "react"
 import { detectAndFixScrollIssues, resetIOSOverscroll } from "@/lib/scroll-utils"
+import { PersistentViewCart } from "@/components/persistent-view-cart"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -59,6 +60,7 @@ export default function ClientLayout({
               <UnifiedHeader />
               <main className="pt-16 scrollable-container">{children}</main>
               <PersistentBookNowButton />
+              <PersistentViewCart />
               <AccessibilityPanel />
               <SharePanel />
               <UnifiedFooter />
