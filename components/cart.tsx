@@ -197,4 +197,54 @@ export function Cart({ showLabel = false }: CartProps) {
 
         // Submit to waitlist API (using Google Sheets)
         const scriptURL =
-          \"https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz
+          "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+        fetch(scriptURL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(waitlistData),
+        }).catch((error) => {
+          console.error("Error submitting to waitlist:", error)
+        })
+      }
+
+      // Simulate a successful checkout
+      setTimeout(() => {
+        setIsCheckingOut(false)
+        setCheckoutSuccess(true)
+        toast({
+          title: "Order placed!",
+          description: "Your order has been successfully placed.",
+        })
+        handleClearCart() // Clear the cart after successful checkout
+      }, 2000)
+    } catch (error: any) {
+      setIsCheckingOut(false)
+      setCheckoutError(error.message || "An error occurred during checkout.")
+      toast({
+        title: "Checkout failed",
+        description: error.message || "An error occurred during checkout.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    }
+  }
+
+  return (
+    <div>
+      {/* Cart UI - simplified for brevity */}
+      {showLabel && <p>Cart Items: {cart.totalItems}</p>}
+      <button onClick={() => handleAddItem({ id: "test-item", name: "Test Item", price: 10, quantity: 1 })}>
+        Add Test Item
+      </button>
+      <button onClick={handleCheckout} disabled={isCheckingOut}>
+        {isCheckingOut ? "Checking Out..." : "Checkout"}
+      </button>
+      {checkoutError && <p className="text-red-500">Error: {checkoutError}</p>}
+      {checkoutSuccess && <p className="text-green-500">Checkout Successful!</p>}
+    </div>
+  )
+}
