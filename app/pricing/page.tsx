@@ -8,15 +8,11 @@ import { Contact, Home, Building2, Settings } from "lucide-react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
 import { Separator } from "@/components/ui/separator"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { SpecialtyServicesPortal } from "@/components/specialty-services-portal"
 import { getMatrixServices } from "@/lib/matrix-services"
 import { BookingTimeline } from "@/components/booking-timeline"
 import { ConfigurationManager } from "@/components/configuration-manager"
-import { CheckoutPreview } from "@/components/checkout-preview"
 import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
-import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
@@ -399,18 +395,18 @@ export default function PricingPage() {
                 <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
                   <Contact className="h-5 w-5" />
                 </span>
-                CUSTOM SPACES
+                CUSTOM SPACES & SPECIALTY SERVICES
               </CardTitle>
-              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
+              <CardDescription>Need specialty services or have unique spaces? Request a custom quote</CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
                 <div className="text-4xl mb-4">{roomIcons.other}</div>
-                <h3 className="font-medium text-xl mb-2">Other Space</h3>
+                <h3 className="font-medium text-xl mb-2">Specialty Services</h3>
                 <p className="text-gray-500 mb-4 text-center max-w-md">
-                  Have a unique space that needs cleaning? Contact us for a custom quote.
+                  Need carpet cleaning, water damage restoration, or other specialty services? Request a custom quote for our full range of specialty services.
                 </p>
-                {/* Replace the regular button with our RequestQuoteButton component */}
+                {/* Use the RequestQuoteButton component */}
                 <RequestQuoteButton showIcon={true} />
               </div>
             </CardContent>
@@ -561,63 +557,4 @@ export default function PricingPage() {
                       selectedTime={selectedTime}
                     />
 
-                    <CheckoutPreview
-                      totalPrice={calculateTotalPrice()}
-                      serviceSummary={getServiceSummary()}
-                      selectedDate={selectedDate}
-                      selectedTime={selectedTime}
-                    />
-                  </div>
-
-                  <CleaningTeamSelector onTeamSelect={setSelectedTeam} selectedTeam={selectedTeam} />
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-6">SPECIALTY SERVICES</h2>
-            <SpecialtyServicesPortal />
-          </div>
-
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="implementation-notes">
-              <AccordionTrigger className="font-bold text-gray-500">IMPLEMENTATION NOTES</AccordionTrigger>
-              <AccordionContent>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>
-                    <strong>TIER STACKING:</strong> Combine multiple tiers per room for customized cleaning
-                  </li>
-                  <li>
-                    <strong>SERVICE INHERITANCE:</strong> Higher tiers include all lower-tier services
-                  </li>
-                  <li>
-                    <strong>CUSTOM PRESETS:</strong> Save frequent configurations for future use
-                  </li>
-                  <li>
-                    <strong>AUTO-UPSELL:</strong> System suggests common add-ons based on your selections
-                  </li>
-                  <li>
-                    <strong>SAFETY LOCKS:</strong> Prevents incompatible service combinations
-                  </li>
-                </ol>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-
-        <TabsContent value="detailing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Commercial Services</CardTitle>
-              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Content for commercial services will be implemented in future rounds.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  )
-}
+                    \

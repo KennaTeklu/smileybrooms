@@ -26,13 +26,542 @@ import {
   Hammer,
   Trash2,
   Leaf,
+  Wind,
+  Sofa,
+  Paintbrush,
+  Car,
+  Warehouse,
+  Scissors,
+  TreesIcon as Tree,
+  MicIcon as Microphone,
+  TreesIcon as Tree,
+  BoltIcon as BoltOff,
+  VolumeIcon as Vial,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  WormIcon as Virus,
+  BugIcon as Bacteria,
+  BadgeCheckIcon as VerifiedCheck,
+  AnchorIcon as VerifiedIconAlt,
+  WarehouseIcon as WarehouseBuilding,
+  TreesIcon as Tree,
+  GlobeIcon as GlobeSearch,
+  CompassIcon as CompassIconAlt,
+  RouterIcon as RoutingIcon,
+  SignpostIcon as RoadSign,
+  BikeIcon as Scooter,
+  SkullIcon as Skateboard,
+  RocketIcon as RocketIconAlt,
+  SpaceIcon as Planet,
+  SignalIcon as SignalIconAlt,
+  WifiIcon as WifiIconAlt,
+  WifiOffIcon as WifiOffIconAlt,
+  LaptopIcon as LaptopIconAlt,
+  PrinterIcon as PrinterIconAlt,
+  VoicemailIcon as Fax,
+  ScanIcon as Scanner,
+  MicIcon as Microphone,
+  MicIcon as Microphone,
+  HeadphonesIcon as HeadphonesIconAlt,
+  SpeakerIcon as SpeakerIconAlt,
+  MicOffIcon as Mute,
+  BellIcon as Bullhorn,
+  AirplayIcon as Broadcast,
+  TreesIcon as Tree,
+  InboxIcon as InboxIconAlt,
+  VoicemailIcon as VoiceMail,
+  SparklesIcon as SparklesIconAlt,
+  ZapIcon as ZapIconAlt,
+  BoltIcon as BoltOff,
+  ZapIcon as ZapIconAlt,
+  WifiIcon as WifiIconAlt,
+  SignalIcon as SignalIconAlt,
+  StethoscopeIcon as StethoscopeIconAlt,
+  VolumeIcon as Vial,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  MicroscopeIcon as MicroscopeIconAlt,
+  WormIcon as Virus,
+  BugIcon as Bacteria,
+  ShieldCheckIcon as ShieldCheckIconAlt,
+  ScanIcon as ScanIconAlt,
+  BadgeCheckIcon as VerifiedCheck,
+  AnchorIcon as VerifiedIconAlt,
+  HomeIcon as HomeIconAlt,
+  BuildingIcon as BuildingIconAlt,
+  WarehouseIcon as WarehouseBuilding,
+  TreesIcon as Tree,
+  AnchorIcon as WavesIconAlt,
+  GlobeIcon as GlobeSearch,
+  CompassIcon as CompassIconAlt,
+  RouterIcon as RoutingIcon,
+  SignpostIcon as RoadSign,
+  CarIcon as CarIconAlt,
+  TruckIcon as TruckIconAlt,
+  TractorIcon as TractorIconAlt,
+  BikeIcon as Scooter,
+  SkullIcon as Skateboard,
+  RocketIcon as RocketIconAlt,
+  SpaceIcon as Planet,
+  WifiOffIcon as WifiOffIconAlt,
+  TvIcon as TvIconAlt,
+  LaptopIcon as LaptopIconAlt,
+  PrinterIcon as PrinterIconAlt,
+  VoicemailIcon as Fax,
+  ScanIcon as Scanner,
+  MicIcon as Microphone,
+  MicIcon as Microphone,
+  HeadphonesIcon as HeadphonesIconAlt,
+  SpeakerIcon as SpeakerIconAlt,
+  MicOffIcon as Mute,
+  BellIcon as Bullhorn,
+  AirplayIcon as Broadcast,
+  KeyIcon as KeyIconAlt,
+  LockIcon as LockIconAlt,
+  ScanIcon as ScanIconAlt,
+  VideoIcon as VideoIconAlt,
+  VolumeIcon as VolumeIconAlt,
+  Volume2Icon as Volume2IconAlt,
+  KeyIcon as KeyIconAlt,
+  LockIcon as LockIconAlt,
+  TreesIcon as Tree,
+  InboxIcon as InboxIconAlt,
+  VoicemailIcon as VoiceMail,
+  CloudDrizzleIcon as CloudDrizzleIconAlt,
+  CloudFogIcon as CloudFogIconAlt,
+  CloudHailIcon as CloudHailIconAlt,
+  CloudLightningIcon as CloudLightningIconAlt,
+  MoonIcon as MoonIconAlt,
+  CloudOffIcon as CloudOffIconAlt,
+  CloudRainIcon as CloudRainIconAlt,
+  CloudSnowIcon as CloudSnowIconAlt,
+  SunIcon as SunIconAlt,
+  SunIcon as SunIconAlt,
+  SunsetIcon as SunriseIconAlt,
+  SunsetIcon as SunsetIconAlt,
+  MoonIcon as MoonIconAlt,
+  MoonStarIcon as MoonStarIconAlt,
+  StarIcon as StarIconAlt,
+  StarIcon as StarsIconAlt,
+  SparkleIcon as SparkleIconAlt,
+  SparklesIcon as SparklesIconAlt,
+  ZapIcon as ZapIconAlt,
+  ZapOffIcon as ZapOffIconAlt,
+  BoltIcon as BoltIconAlt,
+  BoltIcon as BoltOff,
+  PowerIcon as PowerIconAlt,
+  PowerOffIcon as PowerOffIconAlt,
+  PlugIcon as PlugIconAlt,
+  ZapIcon as ZapIconAlt,
+  BatteryIcon as BatteryIconAlt,
+  BatteryChargingIcon as BatteryChargingIconAlt,
+  BatteryFullIcon as BatteryFullIconAlt,
+  BatteryMediumIcon as BatteryMediumIconAlt,
+  BatteryLowIcon as BatteryLowIconAlt,
+  BatteryWarningIcon as BatteryWarningIconAlt,
+  WifiIcon as WifiIconAlt,
+  SignalIcon as SignalIconAlt,
+  SignalHighIcon as SignalHighIconAlt,
+  SignalMediumIcon as SignalMediumIconAlt,
+  SignalLowIcon as SignalLowIconAlt,
+  SignalZeroIcon as SignalZeroIconAlt,
+  ActivityIcon as ActivityIconAlt,
+  SquareActivityIcon as ActivitySquareIconAlt,
+  HeartPulseIcon as HeartPulseIconAlt,
+  StethoscopeIcon as StethoscopeIconAlt,
+  PillIcon as PillIconAlt,
+  SyringeIcon as SyringeIconAlt,
+  VolumeIcon as Vial,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  FlaskRoundIcon as Flask,
+  MicroscopeIcon as MicroscopeIconAlt,
+  DnaIcon as DnaIconAlt,
+  WormIcon as Virus,
+  BugIcon as Bacteria,
+  BugIcon as BugIconAlt,
+  BugOffIcon as BugOffIconAlt,
+  ShieldIcon as ShieldIconAlt,
+  ShieldAlertIcon as ShieldAlertIconAlt,
+  ShieldCheckIcon as ShieldCheckIconAlt,
+  ShieldXIcon as ShieldCloseIconAlt,
+  ShieldOffIcon as ShieldOffIconAlt,
+  ShieldQuestionIcon as ShieldQuestionIconAlt,
+  LockIcon as LockIconAlt,
+  LockOpenIcon as LockOpenIconAlt,
+  LockOpenIcon as UnlockIconAlt,
+  KeyIcon as KeyIconAlt,
+  KeyRoundIcon as KeyRoundIconAlt,
+  KeySquareIcon as KeySquareIconAlt,
+  FingerprintIcon as FingerprintIconAlt,
+  ScanIcon as ScanIconAlt,
+  ScanFaceIcon as ScanFaceIconAlt,
+  ScanLineIcon as ScanLineIconAlt,
+  ScanSearchIcon as ScanSearchIconAlt,
+  ScanTextIcon as ScanTextIconAlt,
+  QrCodeIcon as QrCodeIconAlt,
+  BarcodeIcon as BarcodeIconAlt,
+  BadgeCheckIcon as VerifiedCheck,
+  AnchorIcon as VerifiedIconAlt,
+  BadgeIcon as BadgeCheckIconAlt,
+  BadgeAlertIcon as BadgeAlertIconAlt,
+  BadgeHelpIcon as BadgeHelpIconAlt,
+  BadgeInfoIcon as BadgeInfoIconAlt,
+  BadgeMinusIcon as BadgeMinusIconAlt,
+  BadgePlusIcon as BadgePlusIconAlt,
+  BadgeXIcon as BadgeXIconAlt,
+  AwardIcon as AwardIconAlt,
+  TrophyIcon as TrophyIconAlt,
+  MedalIcon as MedalIconAlt,
+  CrownIcon as CrownIconAlt,
+  DiamondIcon as DiamondIconAlt,
+  GemIcon as GemIconAlt,
+  CoinsIcon as CoinsIconAlt,
+  BanknoteIcon as BanknoteIconAlt,
+  ReceiptIcon as ReceiptIconAlt,
+  CodeIcon as CreditCardIconAlt,
+  WalletIcon as WalletIconAlt,
+  LandmarkIcon as LandmarkIconAlt,
+  Building2Icon as Building2IconAlt,
+  FactoryIcon as FactoryIconAlt,
+  HomeIcon as HomeIconAlt,
+  StoreIcon as StoreIconAlt,
+  SchoolIcon as SchoolIconAlt,
+  HospitalIcon as HospitalIconAlt,
+  ChurchIcon as ChurchIconAlt,
+  BuildingIcon as BuildingIconAlt,
+  WarehouseIcon as WarehouseBuilding,
+  CastleIcon as CastleIconAlt,
+  TentIcon as TentIconAlt,
+  TreesIcon as Tree,
+  MountainIcon as MountainIconAlt,
+  MountainSnowIcon as MountainSnowIconAlt,
+  AnchorIcon as WavesIconAlt,
+  MapIcon as MapIconAlt,
+  MapPinIcon as MapPinIconAlt,
+  MapPinnedIcon as MapPinnedIconAlt,
+  NavigationIcon as NavigationIconAlt,
+  NavigationOffIcon as NavigationOffIconAlt,
+  GlobeIcon as GlobeIconAlt,
+  GlobeIcon as GlobeSearch,
+  CompassIcon as CompassIconAlt,
+  RouteIcon as RouteIconAlt,
+  RouterIcon as RoutingIcon,
+  FootprintsIcon as FootprintsIconAlt,
+  MilestoneIcon as MilestoneIconAlt,
+  SignpostIcon as RoadSign,
+  TrafficConeIcon as TrafficConeIconAlt,
+  CarIcon as CarIconAlt,
+  BusIcon as BusIconAlt,
+  TruckIcon as TruckIconAlt,
+  TractorIcon as TractorIconAlt,
+  TrainTrackIcon as TrainIconAlt,
+  TypeIcon as PlaneIconAlt,
+  PlaneTakeoffIcon as PlaneTakeoffIconAlt,
+  PlaneLandingIcon as PlaneLandingIconAlt,
+  ShipIcon as ShipIconAlt,
+  SailboatIcon as SailboatIconAlt,
+  AnchorIcon as AnchorIconAlt,
+  TypeIcon as BikeIconAlt,
+  BikeIcon as Scooter,
+  SkullIcon as Skateboard,
+  RocketIcon as RocketIconAlt,
+  SatelliteIcon as SatelliteIconAlt,
+  SatelliteDishIcon as SatelliteDishIconAlt,
+  OrbitIcon as OrbitIconAlt,
+  SpaceIcon as Planet,
+  TelescopeIcon as TelescopeIconAlt,
+  RadarIcon as RadarIconAlt,
+  AntennaIcon as AntennaIconAlt,
+  WifiOffIcon as WifiOffIconAlt,
+  BluetoothIcon as BluetoothIconAlt,
+  BluetoothConnectedIcon as BluetoothConnectedIconAlt,
+  BluetoothOffIcon as BluetoothOffIconAlt,
+  BluetoothSearchingIcon as BluetoothSearchingIconAlt,
+  CastIcon as CastIconAlt,
+  AirplayIcon as AirplayIconAlt,
+  MonitorIcon as MonitorIconAlt,
+  TvIcon as TvIconAlt,
+  LaptopIcon as LaptopIconAlt,
+  ComputerIcon as ComputerIconAlt,
+  ServerIcon as ServerIconAlt,
+  ServerCrashIcon as ServerCrashIconAlt,
+  ServerOffIcon as ServerOffIconAlt,
+  PrinterIcon as PrinterIconAlt,
+  VoicemailIcon as Fax,
+  ScanIcon as Scanner,
+  WebcamIcon as WebcamIconAlt,
+  CameraIcon as CameraIconAlt,
+  CameraOffIcon as CameraOffIconAlt,
+  VideoIcon as VideoIconAlt,
+  VideoOffIcon as VideoOffIconAlt,
+  MicIcon as Microphone,
+  MicIcon as Microphone,
+  MusicIcon as MusicIconAlt,
+  Music2Icon as Music2IconAlt,
+  Music3Icon as Music3IconAlt,
+  Music4Icon as Music4IconAlt,
+  HeadphonesIcon as HeadphonesIconAlt,
+  RadioReceiverIcon as RadioIconAlt,
+  RadioReceiverIcon as RadioReceiverIconAlt,
+  SpeakerIcon as SpeakerIconAlt,
+  VolumeIcon as VolumeIconAlt,
+  Volume1Icon as Volume1IconAlt,
+  Volume2Icon as Volume2IconAlt,
+  VolumeXIcon as VolumeXIconAlt,
+  MicOffIcon as Mute,
+  MegaphoneIcon as MegaphoneIconAlt,
+  BellIcon as Bullhorn,
+  PodcastIcon as PodcastIconAlt,
+  AirplayIcon as Broadcast,
+  RssIcon as RssIconAlt,
+  NewspaperIcon as NewspaperIconAlt,
+  BookIcon as BookIconAlt,
+  BookOpenIcon as BookOpenIconAlt,
+  BookOpenCheckIcon as BookOpenCheckIconAlt,
+  BookOpenTextIcon as BookOpenTextIconAlt,
+  BookmarkIcon as BookmarkIconAlt,
+  BookmarkCheckIcon as BookmarkCheckIconAlt,
+  BookmarkMinusIcon as BookmarkMinusIconAlt,
+  BookmarkPlusIcon as BookmarkPlusIconAlt,
+  BookmarkXIcon as BookmarkXIconAlt,
+  LibraryIcon as LibraryIconAlt,
+  AlbumIcon as AlbumIconAlt,
+  FileIcon as FileIconAlt,
+  FileArchiveIcon as FileArchiveIconAlt,
+  FileAudioIcon as FileAudioIconAlt,
+  FileAudio2Icon as FileAudio2IconAlt,
+  FileBadgeIcon as FileBadgeIconAlt,
+  FileBadge2Icon as FileBadge2IconAlt,
+  FileBarChartIcon as FileBarChartIconAlt,
+  FileBarChart2Icon as FileBarChart2IconAlt,
+  FileBoxIcon as FileBoxIconAlt,
+  FileCheckIcon as FileCheckIconAlt,
+  FileCheck2Icon as FileCheck2IconAlt,
+  FileClockIcon as FileClockIconAlt,
+  FileCodeIcon as FileCodeIconAlt,
+  FileCode2Icon as FileCode2IconAlt,
+  FileCogIcon as FileCogIconAlt,
+  FileCogIcon as FileCog2IconAlt,
+  FileDiffIcon as FileDiffIconAlt,
+  FileDigitIcon as FileDigitIconAlt,
+  FileDownIcon as FileDownIconAlt,
+  FilePenIcon as FileEditIconAlt,
+  FileHeartIcon as FileHeartIconAlt,
+  FileImageIcon as FileImageIconAlt,
+  FileInputIcon as FileInputIconAlt,
+  FileJsonIcon as FileJsonIconAlt,
+  FileJson2Icon as FileJson2IconAlt,
+  KeyIcon as KeyIconAlt,
+  FileKey2Icon as FileKey2IconAlt,
+  FileLineChartIcon as FileLineChartIconAlt,
+  LockIcon as LockIconAlt,
+  FileLock2Icon as FileLock2IconAlt,
+  FileMinusIcon as FileMinusIconAlt,
+  FileMinus2Icon as FileMinus2IconAlt,
+  FileOutputIcon as FileOutputIconAlt,
+  FilePieChartIcon as FilePieChartIconAlt,
+  FilePlusIcon as FilePlusIconAlt,
+  FilePlus2Icon as FilePlus2IconAlt,
+  FileQuestionIcon as FileQuestionIconAlt,
+  ScanIcon as ScanIconAlt,
+  FileSearchIcon as FileSearchIconAlt,
+  FilePenLineIcon as FileSignatureIconAlt,
+  FileSpreadsheetIcon as FileSpreadsheetIconAlt,
+  FileStackIcon as FileStackIconAlt,
+  FilePlus2Icon as FileSymlinkIconAlt,
+  FileTerminalIcon as FileTerminalIconAlt,
+  FileTextIcon as FileTextIconAlt,
+  FileTypeIcon as FileTypeIconAlt,
+  FileType2Icon as FileType2IconAlt,
+  FileUpIcon as FileUpIconAlt,
+  VideoIcon as VideoIconAlt,
+  FileVideo2Icon as FileVideo2IconAlt,
+  VolumeIcon as VolumeIconAlt,
+  Volume2Icon as Volume2IconAlt,
+  FileWarningIcon as FileWarningIconAlt,
+  FileXIcon as FileXIconAlt,
+  FileX2Icon as FileX2IconAlt,
+  FilesIcon as FilesIconAlt,
+  FolderIcon as FolderIconAlt,
+  FolderArchiveIcon as FolderArchiveIconAlt,
+  FolderCheckIcon as FolderCheckIconAlt,
+  FolderClockIcon as FolderClockIconAlt,
+  FolderClosedIcon as FolderClosedIconAlt,
+  FolderCogIcon as FolderCogIconAlt,
+  FolderDotIcon as FolderDotIconAlt,
+  FolderDownIcon as FolderDownIconAlt,
+  FolderPenIcon as FolderEditIconAlt,
+  FolderGitIcon as FolderGitIconAlt,
+  FolderGit2Icon as FolderGit2IconAlt,
+  FolderHeartIcon as FolderHeartIconAlt,
+  FolderInputIcon as FolderInputIconAlt,
+  KeyIcon as KeyIconAlt,
+  LockIcon as LockIconAlt,
+  FolderMinusIcon as FolderMinusIconAlt,
+  FolderOpenIcon as FolderOpenIconAlt,
+  FolderOutputIcon as FolderOutputIconAlt,
+  FolderPlusIcon as FolderPlusIconAlt,
+  FolderSearchIcon as FolderSearchIconAlt,
+  FolderSearch2Icon as FolderSearch2IconAlt,
+  FolderSymlinkIcon as FolderSymlinkIconAlt,
+  FolderSyncIcon as FolderSyncIconAlt,
+  TreesIcon as Tree,
+  FolderUpIcon as FolderUpIconAlt,
+  FolderXIcon as FolderXIconAlt,
+  FoldersIcon as FoldersIconAlt,
+  InboxIcon as InboxIconAlt,
+  MailIcon as MailIconAlt,
+  MailCheckIcon as MailCheckIconAlt,
+  MailMinusIcon as MailMinusIconAlt,
+  MailOpenIcon as MailOpenIconAlt,
+  MailPlusIcon as MailPlusIconAlt,
+  MailQuestionIcon as MailQuestionIconAlt,
+  MailSearchIcon as MailSearchIconAlt,
+  MailWarningIcon as MailWarningIconAlt,
+  MailXIcon as MailXIconAlt,
+  MessageCircleIcon as MessageCircleIconAlt,
+  MessageSquareIcon as MessageSquareIconAlt,
+  MessageSquareDashedIcon as MessageSquareDashedIconAlt,
+  MessageSquarePlusIcon as MessageSquarePlusIconAlt,
+  MessagesSquareIcon as MessagesSquareIconAlt,
+  PhoneIcon as PhoneIconAlt,
+  PhoneCallIcon as PhoneCallIconAlt,
+  PhoneForwardedIcon as PhoneForwardedIconAlt,
+  PhoneIncomingIcon as PhoneIncomingIconAlt,
+  PhoneMissedIcon as PhoneMissedIconAlt,
+  PhoneOffIcon as PhoneOffIconAlt,
+  PhoneOutgoingIcon as PhoneOutgoingIconAlt,
+  VoicemailIcon as VoiceMail,
+  SendIcon as SendIconAlt,
+  ShareIcon as ShareIconAlt,
+  Share2Icon as Share2IconAlt,
+  ForwardIcon as ForwardIconAlt,
+  ReplyIcon as ReplyIconAlt,
+  ReplyAllIcon as ReplyAllIconAlt,
+  Redo2Icon as RedoIconAlt,
+  UndoIcon as UndoIconAlt,
+  ArrowDown01Icon as Undo2IconAlt,
+  DownloadIcon as DownloadIconAlt,
+  CloudDownloadIcon as DownloadCloudIconAlt,
+  UploadIcon as UploadIconAlt,
+  CloudUploadIcon as UploadCloudIconAlt,
+  CloudIcon as CloudIconAlt,
+  CloudCogIcon as CloudCogIconAlt,
+  CloudDrizzleIcon as CloudDrizzleIconAlt,
+  CloudFogIcon as CloudFogIconAlt,
+  CloudHailIcon as CloudHailIconAlt,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CustomQuoteDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
+
+// Define specialty service categories and services
+const specialtyServices = [
+  {
+    id: "carpet-upholstery",
+    name: "Carpet & Upholstery",
+    icon: <Sofa className="h-5 w-5 text-purple-500" />,
+    services: [
+      { id: "carpet-deep-clean", name: "Carpet Deep Cleaning", price: 120 },
+      { id: "upholstery-clean", name: "Upholstery Cleaning", price: 95 },
+      { id: "stain-removal", name: "Stain Removal Treatment", price: 75 },
+      { id: "carpet-protection", name: "Carpet Protection Treatment", price: 85 },
+      { id: "area-rug-cleaning", name: "Area Rug Cleaning", price: 110 },
+    ],
+  },
+  {
+    id: "restoration",
+    name: "Restoration Services",
+    icon: <Droplets className="h-5 w-5 text-blue-500" />,
+    services: [
+      { id: "water-damage", name: "Water Damage Restoration", price: 350 },
+      { id: "mold-remediation", name: "Mold Remediation", price: 450 },
+      { id: "fire-smoke", name: "Fire & Smoke Damage", price: 500 },
+      { id: "odor-removal", name: "Odor Removal", price: 200 },
+      { id: "sewage-cleanup", name: "Sewage Cleanup", price: 550 },
+    ],
+  },
+  {
+    id: "specialized-cleaning",
+    name: "Specialized Cleaning",
+    icon: <Sparkles className="h-5 w-5 text-amber-500" />,
+    services: [
+      { id: "post-construction", name: "Post-Construction Cleanup", price: 300 },
+      { id: "move-in-out", name: "Move In/Out Cleaning", price: 250 },
+      { id: "hoarder-cleanup", name: "Hoarder Cleanup", price: 600 },
+      { id: "crime-scene", name: "Crime Scene Cleanup", price: 800 },
+      { id: "biohazard", name: "Biohazard Cleanup", price: 750 },
+    ],
+  },
+  {
+    id: "commercial",
+    name: "Commercial Services",
+    icon: <Building className="h-5 w-5 text-gray-500" />,
+    services: [
+      { id: "office-cleaning", name: "Office Cleaning", price: 180 },
+      { id: "medical-facility", name: "Medical Facility Sanitization", price: 350 },
+      { id: "restaurant-kitchen", name: "Restaurant & Kitchen Cleaning", price: 400 },
+      { id: "retail-space", name: "Retail Space Cleaning", price: 220 },
+      { id: "warehouse-cleaning", name: "Warehouse Cleaning", price: 500 },
+    ],
+  },
+  {
+    id: "outdoor",
+    name: "Outdoor Cleaning",
+    icon: <Wind className="h-5 w-5 text-green-500" />,
+    services: [
+      { id: "pressure-washing", name: "Pressure Washing", price: 150 },
+      { id: "deck-patio", name: "Deck & Patio Cleaning", price: 180 },
+      { id: "gutter-cleaning", name: "Gutter Cleaning", price: 120 },
+      { id: "exterior-house", name: "Exterior House Washing", price: 250 },
+      { id: "driveway-cleaning", name: "Driveway & Sidewalk Cleaning", price: 140 },
+    ],
+  },
+  {
+    id: "specialty-surfaces",
+    name: "Specialty Surfaces",
+    icon: <Paintbrush className="h-5 w-5 text-red-500" />,
+    services: [
+      { id: "hardwood-floor", name: "Hardwood Floor Cleaning", price: 130 },
+      { id: "tile-grout", name: "Tile & Grout Cleaning", price: 140 },
+      { id: "natural-stone", name: "Natural Stone Cleaning", price: 160 },
+      { id: "marble-polishing", name: "Marble Polishing", price: 200 },
+      { id: "concrete-cleaning", name: "Concrete Cleaning & Sealing", price: 180 },
+    ],
+  },
+  {
+    id: "vehicle",
+    name: "Vehicle Cleaning",
+    icon: <Car className="h-5 w-5 text-blue-600" />,
+    services: [
+      { id: "auto-detailing", name: "Auto Detailing", price: 150 },
+      { id: "rv-cleaning", name: "RV Cleaning", price: 250 },
+      { id: "boat-cleaning", name: "Boat Cleaning", price: 300 },
+      { id: "fleet-washing", name: "Fleet Washing", price: 400 },
+      { id: "aircraft-cleaning", name: "Aircraft Cleaning", price: 800 },
+    ],
+  },
+  {
+    id: "industrial",
+    name: "Industrial Cleaning",
+    icon: <Warehouse className="h-5 w-5 text-gray-600" />,
+    services: [
+      { id: "factory-cleaning", name: "Factory Cleaning", price: 600 },
+      { id: "equipment-cleaning", name: "Equipment Cleaning", price: 350 },
+      { id: "industrial-floor", name: "Industrial Floor Cleaning", price: 450 },
+      { id: "high-ceiling", name: "High Ceiling & Wall Cleaning", price: 500 },
+      { id: "industrial-kitchen", name: "Industrial Kitchen Cleaning", price: 550 },
+    ],
+  },
+]
 
 export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps) {
   const [formData, setFormData] = useState({
@@ -79,13 +608,17 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
     howDidYouHear: "",
     contactPreference: "email",
     agreeToTerms: false,
+
+    // Specialty Services
+    selectedSpecialtyServices: [] as string[],
   })
 
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const [step, setStep] = useState(1)
   const [showEmergencyFields, setShowEmergencyFields] = useState(false)
+  const [activeSpecialtyTab, setActiveSpecialtyTab] = useState("carpet-upholstery")
 
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: string | boolean | string[]) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -95,6 +628,24 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
     if (field === "emergencyResponse") {
       setShowEmergencyFields(value as boolean)
     }
+  }
+
+  const handleSpecialtyServiceToggle = (serviceId: string) => {
+    setFormData((prev) => {
+      const currentServices = [...prev.selectedSpecialtyServices]
+      const serviceIndex = currentServices.indexOf(serviceId)
+
+      if (serviceIndex >= 0) {
+        currentServices.splice(serviceIndex, 1)
+      } else {
+        currentServices.push(serviceId)
+      }
+
+      return {
+        ...prev,
+        selectedSpecialtyServices: currentServices,
+      }
+    })
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -493,6 +1044,112 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-medium flex items-center gap-2">
+              <Scissors className="h-5 w-5 text-primary" />
+              Specialty Services
+            </h3>
+            <div className="grid gap-4">
+              <p className="text-sm text-gray-500">
+                Select from our comprehensive range of specialty cleaning and restoration services to customize your
+                quote.
+              </p>
+
+              <Tabs value={activeSpecialtyTab} onValueChange={setActiveSpecialtyTab} className="w-full">
+                <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-4">
+                  {specialtyServices.slice(0, 4).map((category) => (
+                    <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-1">
+                      {category.icon}
+                      <span className="hidden md:inline">{category.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <TabsList className="grid grid-cols-2 md:grid-cols-4">
+                  {specialtyServices.slice(4).map((category) => (
+                    <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-1">
+                      {category.icon}
+                      <span className="hidden md:inline">{category.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {specialtyServices.map((category) => (
+                  <TabsContent key={category.id} value={category.id} className="mt-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {category.icon}
+                          {category.name}
+                        </CardTitle>
+                        <CardDescription>Select the services you need</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-2">
+                          {category.services.map((service) => (
+                            <div
+                              key={service.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                                formData.selectedSpecialtyServices.includes(service.id)
+                                  ? "bg-primary/10 border-primary"
+                                  : "hover:bg-gray-50 dark:hover:bg-gray-800/10"
+                              }`}
+                              onClick={() => handleSpecialtyServiceToggle(service.id)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={service.id}
+                                  checked={formData.selectedSpecialtyServices.includes(service.id)}
+                                  onCheckedChange={() => handleSpecialtyServiceToggle(service.id)}
+                                />
+                                <Label htmlFor={service.id} className="cursor-pointer">
+                                  {service.name}
+                                </Label>
+                              </div>
+                              <span className="font-medium">${service.price}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                ))}
+              </Tabs>
+
+              {formData.selectedSpecialtyServices.length > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/20 rounded-lg">
+                  <h4 className="font-medium mb-2">Selected Services ({formData.selectedSpecialtyServices.length})</h4>
+                  <div className="space-y-2">
+                    {formData.selectedSpecialtyServices.map((serviceId) => {
+                      const categoryWithService = specialtyServices.find((category) =>
+                        category.services.some((service) => service.id === serviceId),
+                      )
+                      const service = categoryWithService?.services.find((service) => service.id === serviceId)
+
+                      return service ? (
+                        <div key={serviceId} className="flex items-center justify-between">
+                          <span className="text-sm">{service.name}</span>
+                          <span className="text-sm font-medium">${service.price}</span>
+                        </div>
+                      ) : null
+                    })}
+                    <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+                      <span className="font-medium">Estimated Total:</span>
+                      <span className="font-bold">
+                        $
+                        {specialtyServices
+                          .flatMap((category) => category.services)
+                          .filter((service) => formData.selectedSpecialtyServices.includes(service.id))
+                          .reduce((sum, service) => sum + service.price, 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      case 5:
+        return (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
               Scheduling & Preferences
             </h3>
@@ -614,7 +1271,7 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
   const renderStepIndicator = () => {
     return (
       <div className="flex justify-between items-center mb-6 px-2">
-        {[1, 2, 3, 4].map((stepNumber) => (
+        {[1, 2, 3, 4, 5].map((stepNumber) => (
           <div
             key={stepNumber}
             className={`flex flex-col items-center ${
@@ -639,7 +1296,9 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
                   ? "Property"
                   : stepNumber === 3
                     ? "Services"
-                    : "Schedule"}
+                    : stepNumber === 4
+                      ? "Specialty"
+                      : "Schedule"}
             </span>
           </div>
         ))}
@@ -666,7 +1325,7 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
               <div></div>
             )}
 
-            {step < 4 ? (
+            {step < 5 ? (
               <Button type="button" onClick={nextStep}>
                 Next
               </Button>
