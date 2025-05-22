@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, MinusCircle, Contact, CheckCircle2 } from "lucide-react"
+import { PlusCircle, MinusCircle, Contact, CheckCircle2, Settings } from "lucide-react"
 import { RoomConfigurator } from "@/components/room-configurator"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
@@ -25,6 +25,7 @@ import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
+import { RoomCustomizationDrawer } from "@/components/room-customization-drawer"
 
 interface RoomCount {
   [key: string]: number
@@ -68,6 +69,9 @@ export default function PricingPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | undefined>(undefined)
   const [showRoomVisualization, setShowRoomVisualization] = useState(false)
   const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
+
+  // State for bedroom customization drawer
+  const [isBedroomCustomizing, setIsBedroomCustomizing] = useState(false)
 
   // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
@@ -125,6 +129,12 @@ export default function PricingPage() {
       }
       return [...prev, config]
     })
+  }
+
+  // Handle bedroom configuration save
+  const handleBedroomConfigSave = (config: RoomConfig) => {
+    handleRoomConfigChange(config)
+    setIsBedroomCustomizing(false)
   }
 
   // Handle matrix selection changes
@@ -327,6 +337,19 @@ export default function PricingPage() {
     return tiers
   }
 
+  // Get bedroom configuration
+  const getBedroomConfig = () => {
+    return (
+      roomConfigurations.find((config) => config.roomName === "bedroom") || {
+        roomName: "bedroom",
+        selectedTier: getRoomTiers("bedroom")[0].name,
+        selectedAddOns: [],
+        selectedReductions: [],
+        totalPrice: getRoomTiers("bedroom")[0].price,
+      }
+    )
+  }
+
   // Update service fee based on total rooms
   useEffect(() => {
     const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
@@ -391,6 +414,19 @@ export default function PricingPage() {
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
+
+                      {/* Add customize button specifically for bedroom */}
+                      {roomType === "bedroom" && roomCounts[roomType] > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full text-xs bg-blue-50 hover:bg-blue-100 border-blue-200"
+                          onClick={() => setIsBedroomCustomizing(true)}
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Customize
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -706,6 +742,22 @@ export default function PricingPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Bedroom Customization Drawer */}
+      {roomCounts.bedroom > 0 && (
+        <RoomCustomizationDrawer
+          open={isBedroomCustomizing}
+          onOpenChange={setIsBedroomCustomizing}
+          roomName="Bedroom"
+          roomIcon={roomIcons.bedroom}
+          baseTier={getRoomTiers("bedroom")[0]}
+          tiers={getRoomTiers("bedroom")}
+          addOns={getRoomAddOns("bedroom")}
+          reductions={getRoomReductions("bedroom")}
+          initialConfig={getBedroomConfig()}
+          onSave={handleBedroomConfigSave}
+        />
+      )}
     </div>
   )
 }
