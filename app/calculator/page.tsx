@@ -9,7 +9,6 @@ import AddressCollectionModal, { type AddressData } from "@/components/address-c
 import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
-import StickyCartButton from "@/components/sticky-cart-button"
 import EmailFormData from "@/components/email-form-data"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -239,14 +238,16 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky Add to Cart Button */}
+      {/* Sticky Cart Button */}
       {calculatedService && calculatedService.totalPrice > 0 && (
-        <StickyCartButton
-          totalPrice={calculatedService.totalPrice}
-          isServiceAvailable={calculatedService.isServiceAvailable}
-          onAddToCart={handleAddToCart}
-          visible={showStickyButton}
-        />
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
+          <div className="flex items-center justify-between">
+            <div className="text-lg font-bold">${calculatedService.totalPrice.toFixed(2)}</div>
+            <Button onClick={handleAddToCart} disabled={!calculatedService.isServiceAvailable}>
+              {calculatedService.isServiceAvailable ? "Add to Cart" : "Service Unavailable"}
+            </Button>
+          </div>
+        </div>
       )}
 
       <div className="container mx-auto px-4 py-8 flex-1">

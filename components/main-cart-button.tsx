@@ -15,7 +15,7 @@ interface CartButtonProps {
   size?: "default" | "sm" | "lg" | "icon"
 }
 
-function CartButton({ className, variant = "outline", size = "default" }: CartButtonProps) {
+export default function CartButton({ className, variant = "outline", size = "default" }: CartButtonProps) {
   const { cart } = useCart()
   const [isClient, setIsClient] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -59,6 +59,3 @@ function CartButton({ className, variant = "outline", size = "default" }: CartBu
     </Sheet>
   )
 }
-
-import CartButtonComponent from "@/components/main-cart-button"
-export default CartButtonComponent
