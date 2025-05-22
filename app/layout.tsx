@@ -1,20 +1,31 @@
 import type React from "react"
 import type { Metadata } from "next"
-import ClientLayout from "./clientLayout"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { ScrollFixer } from "@/components/scroll-fixer"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "smileybrooms - Professional Cleaning Services",
-  description: "Professional cleaning services for homes and offices with a smile.",
+  title: "SmileBrooms - Professional Cleaning Services",
+  description: "Book professional cleaning services for your home or office.",
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
-  return <ClientLayout children={children} />
+}>) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ScrollFixer />
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  )
 }
-
-
-import './globals.css'
