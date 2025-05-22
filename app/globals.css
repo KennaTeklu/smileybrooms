@@ -77,6 +77,53 @@
   }
 }
 
+/* 13. Ensure body is always scrollable */
+html,
+body {
+  height: 100%;
+  overflow-y: auto !important;
+  position: relative !important;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 14. Fix for iOS Safari scroll issues */
+@supports (-webkit-touch-callout: none) {
+  body {
+    /* iOS specific fix to ensure scrolling works */
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Prevent scroll blocking on iOS */
+  body[data-scroll-lock="true"] {
+    position: fixed;
+    width: 100%;
+  }
+}
+
+/* 15. Ensure scrollable containers work properly */
+.scrollable-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  max-height: 100vh;
+}
+
+/* 16. Prevent scroll lock when modals are open */
+body:has(dialog[open]),
+body:has(.modal-open) {
+  overflow: auto !important;
+  position: static !important;
+}
+
+/* 17. Ensure main content is always scrollable */
+main {
+  overflow-y: auto;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
 /* Dyslexia friendly font */
 .dyslexic-font {
   font-family: "Open Sans", "Comic Sans MS", sans-serif;
@@ -365,4 +412,28 @@ body.terms-locked {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+}
+
+/* 18. Ensure sheet content doesn't block scrolling */
+.sheet-content {
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 19. Prevent body scroll lock when sheet is open */
+body:has(.sheet-open) {
+  overflow: auto !important;
+  position: static !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+/* 20. Ensure content behind sheet remains scrollable */
+.sheet-backdrop {
+  pointer-events: none;
+}
+.sheet-backdrop > * {
+  pointer-events: auto;
 }

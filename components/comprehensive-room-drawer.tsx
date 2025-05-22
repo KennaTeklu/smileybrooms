@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,6 +19,15 @@ import { ServiceMap } from "@/components/service-map"
 import { getServiceMap } from "@/lib/service-maps"
 import { RoomVisualization } from "@/components/room-visualization"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
+import {
+  enableBodyScroll,
+  ensureScrollableHeight,
+  forceEnableScrolling,
+  preventScrollChaining,
+  resetIOSOverscroll,
+  maintainScrollPosition,
+} from "@/lib/scroll-utils"
+import { usePreventScrollLock, useEnsureMainContentScrolls } from "@/hooks/use-scroll-lock"
 
 export interface RoomTier {
   name: string
@@ -86,6 +95,14 @@ export function ComprehensiveRoomDrawer({
   // State for expanded service maps
   const [expandedServiceMap, setExpandedServiceMap] = useState<string | null>(null)
 
+  // Refs for scroll management
+  const contentRef = useRef<HTMLDivElement>(null)
+  const scrollRestoreFn = useRef<() => void | null>(null)
+
+  // Use custom hooks for scroll management
+  usePreventScrollLock(open)
+  useEnsureMainContentScrolls()
+
   // Calculate total price whenever selections change
   useEffect(() => {
     // Get base price from selected tier
@@ -108,6 +125,40 @@ export function ComprehensiveRoomDrawer({
 
     setTotalPrice(calculatedPrice)
   }, [selectedTier, selectedAddOns, selectedReductions, tiers, addOns, reductions, baseTier.price])
+
+  // Ensure scrolling works properly when drawer opens/closes
+  useEffect(() => {
+    if (open) {
+      // Save scroll position to restore later
+      scrollRestoreFn.current = maintainScrollPosition()
+
+      // Reset iOS overscroll behavior
+      resetIOSOverscroll()
+
+      // Ensure content is scrollable
+      if (contentRef.current) {
+        forceEnableScrolling(contentRef.current)
+        ensureScrollableHeight(contentRef.current)
+        preventScrollChaining(contentRef.current)
+      }
+    } else {
+      // Restore scroll position when drawer closes
+      if (scrollRestoreFn.current) {
+        scrollRestoreFn.current()
+      }
+
+      // Ensure body scroll is enabled
+      enableBodyScroll()
+    }
+
+    // Cleanup function
+    return () => {
+      enableBodyScroll()
+      if (scrollRestoreFn.current) {
+        scrollRestoreFn.current()
+      }
+    }
+  }, [open])
 
   // Handle tier selection
   const handleTierChange = (value: string) => {
@@ -440,7 +491,10 @@ export function ComprehensiveRoomDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 flex flex-col">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 flex flex-col scrollable-container"
+      >
         <SheetHeader className="p-6 border-b">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{roomIcon}</span>
@@ -448,7 +502,9 @@ export function ComprehensiveRoomDrawer({
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-6 overflow-auto">{content}</ScrollArea>
+        <ScrollArea className="flex-1 p-6 overflow-auto" ref={contentRef}>
+          {content}
+        </ScrollArea>
 
         <SheetFooter className="border-t p-6 flex-col items-stretch gap-4">
           {priceSummary}
