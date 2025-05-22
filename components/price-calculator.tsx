@@ -850,37 +850,42 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         </TabsContent>
       </Tabs>
 
-      {/* Price Summary */}
-      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-medium">Estimated Price</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {serviceType === "standard" ? "Residential Services" : "Commercial Services"}
-              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
-            </p>
+      {/* Price Summary - Always visible and prominent */}
+      <div className="mt-8 sticky bottom-0 bg-white border-t shadow-lg p-4 z-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+              <h3 className="text-lg font-medium">Estimated Price</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {serviceType === "standard" ? "Residential Services" : "Commercial Services"}
+                {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+              </p>
+            </div>
+            <div className="text-center md:text-right">
+              <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {frequency !== "one_time" ? "Recurring" : "One-time"} service
+              </p>
+            </div>
+            {onAddToCart && (
+              <Button
+                onClick={onAddToCart}
+                disabled={!hasSelectedRooms() || !isServiceAvailable}
+                size="lg"
+                className="w-full md:w-auto px-8 py-6 text-lg"
+              >
+                Book Now
+              </Button>
+            )}
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {frequency !== "one_time" ? "Recurring" : "One-time"} service
-            </p>
-          </div>
+
+          {!isServiceAvailable && (
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
+              For extremely dirty conditions, we recommend our Commercial Services. Please contact us for a custom
+              quote.
+            </div>
+          )}
         </div>
-
-        {!isServiceAvailable && (
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-            For extremely dirty conditions, we recommend our Commercial Services. Please contact us for a custom quote.
-          </div>
-        )}
-
-        {onAddToCart && (
-          <div className="mt-4">
-            <Button onClick={onAddToCart} disabled={!hasSelectedRooms() || !isServiceAvailable} className="w-full">
-              Add to Cart
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -237,14 +237,42 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky Add to Cart Button */}
+      {/* Sticky Book Now Button */}
       {calculatedService && calculatedService.totalPrice > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
-          <div className="flex items-center justify-between">
-            <div className="text-lg font-bold">${calculatedService.totalPrice.toFixed(2)}</div>
-            <Button onClick={handleAddToCart} disabled={!calculatedService.isServiceAvailable}>
-              {calculatedService.isServiceAvailable ? "Add to Cart" : "Service Unavailable"}
-            </Button>
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-4 px-4 sm:px-6 lg:px-8 z-50 shadow-lg">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <div className="text-xl font-bold">${calculatedService.totalPrice.toFixed(2)}</div>
+                <p className="text-sm text-gray-500">
+                  {calculatedService.frequency !== "one_time" ? "Recurring" : "One-time"} service
+                </p>
+              </div>
+
+              <div className="flex-1 hidden sm:block">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {Object.entries(calculatedService.rooms)
+                    .filter(([_, count]) => count > 0)
+                    .map(([type, count]) => (
+                      <span
+                        key={type}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                      >
+                        {type.replace(/_/g, " ")} x{count}
+                      </span>
+                    ))}
+                </div>
+              </div>
+
+              <Button
+                onClick={handleAddToCart}
+                disabled={!calculatedService.isServiceAvailable}
+                size="lg"
+                className="w-full sm:w-auto px-8 py-6 text-lg"
+              >
+                {calculatedService.isServiceAvailable ? "Book Now" : "Service Unavailable"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -6,19 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Contact, Home, Building2, Settings } from "lucide-react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
-import { PriceBreakdown } from "@/components/price-breakdown"
-import { Separator } from "@/components/ui/separator"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { getMatrixServices } from "@/lib/matrix-services"
-import { BookingTimeline } from "@/components/booking-timeline"
 import { ConfigurationManager } from "@/components/configuration-manager"
-import { CheckoutPreview } from "@/components/checkout-preview"
 import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
-import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
+import { ServiceSummaryCard } from "@/components/service-summary-card"
 
 interface RoomCount {
   [key: string]: number
@@ -478,13 +474,8 @@ export default function PricingPage() {
                     </Card>
                   </div>
 
-                  <div className="space-y-6">
-                    <FrequencySelector
-                      onFrequencyChange={handleFrequencyChange}
-                      selectedFrequency={selectedFrequency}
-                    />
-
-                    <PriceBreakdown
+                  <div>
+                    <ServiceSummaryCard
                       basePrice={calculateBasePrice()}
                       tierUpgrades={calculateTierUpgrades()}
                       addOns={calculateAddOns()}
@@ -492,85 +483,40 @@ export default function PricingPage() {
                       serviceFee={serviceFee}
                       frequencyDiscount={frequencyDiscount}
                       totalPrice={calculateTotalPrice()}
+                      onBookNow={() => setShowCheckoutPreview(true)}
                     />
 
-                    <CleaningTimeEstimator
-                      roomCounts={roomCounts}
-                      selectedTiers={getSelectedTiers()}
-                      totalAddOns={calculateAddOns().length}
-                    />
+                    <div className="mt-4">
+                      <FrequencySelector
+                        onFrequencyChange={handleFrequencyChange}
+                        selectedFrequency={selectedFrequency}
+                      />
+                    </div>
 
-                    <Card className="shadow-sm">
-                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
-                        <CardTitle className="flex items-center justify-between">
-                          <span>Service Summary</span>
-                          <Button onClick={() => setShowCheckoutPreview(true)}>Book Now</Button>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">Total Rooms:</span>
-                            <span>{Object.values(roomCounts).reduce((sum, count) => sum + count, 0)}</span>
-                          </div>
-                          <Separator />
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">Estimated Duration:</span>
-                            <span>
-                              {Math.max(
-                                2,
-                                Math.ceil(Object.values(roomCounts).reduce((sum, count) => sum + count, 0) * 0.75),
-                              )}{" "}
-                              hours
-                            </span>
-                          </div>
-                          <Separator />
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">Next Available:</span>
-                            <span>Tomorrow, 9:00 AM</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div className="mt-4">
+                      <CleaningTimeEstimator
+                        roomCounts={roomCounts}
+                        selectedTiers={getSelectedTiers()}
+                        totalAddOns={calculateAddOns().length}
+                      />
+                    </div>
 
-                    <ConfigurationManager
-                      currentConfig={{
-                        rooms: roomConfigurations.map((config) => ({
-                          type: roomDisplayNames[config.roomName],
-                          count: roomCounts[config.roomName],
-                          tier: config.selectedTier,
-                        })),
-                        totalPrice: calculateTotalPrice(),
-                      }}
-                      onLoadConfig={handleLoadConfig}
-                    />
+                    <div className="mt-4">
+                      <ConfigurationManager
+                        currentConfig={{
+                          rooms: roomConfigurations.map((config) => ({
+                            type: roomDisplayNames[config.roomName],
+                            count: roomCounts[config.roomName],
+                            tier: config.selectedTier,
+                          })),
+                          totalPrice: calculateTotalPrice(),
+                        }}
+                        onLoadConfig={handleLoadConfig}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {showCheckoutPreview && (
-                <div className="mt-8">
-                  <h2 className="text-2xl font-bold mb-6">BOOKING DETAILS</h2>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <BookingTimeline
-                      onDateSelected={setSelectedDate}
-                      onTimeSelected={setSelectedTime}
-                      selectedDate={selectedDate}
-                      selectedTime={selectedTime}
-                    />
-
-                    <CheckoutPreview
-                      totalPrice={calculateTotalPrice()}
-                      serviceSummary={getServiceSummary()}
-                      selectedDate={selectedDate}
-                      selectedTime={selectedTime}
-                    />
-                  </div>
-
-                  <CleaningTeamSelector onTeamSelect={setSelectedTeam} selectedTeam={selectedTeam} />
-                </div>
-              )}
             </>
           )}
 
