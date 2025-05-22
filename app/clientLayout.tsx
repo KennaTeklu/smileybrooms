@@ -57,7 +57,7 @@ export default function ClientLayout({
           <EnhancedCartProvider>
             <CartProvider>
               <EnhancedNavigation />
-              <main className="pt-16 scrollable-container">{children}</main>
+              <main className="pt-20 scrollable-container">{children}</main>
               <PersistentBookNowButton />
               <AccessibilityPanel />
               <SharePanel />

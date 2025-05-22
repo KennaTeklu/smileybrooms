@@ -26,9 +26,9 @@ export default function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 left-0 right-0 z-50 transition-all duration-300",
+        "fixed top-0 left-0 right-0 z-[100] transition-all duration-300",
         isScrolled || pathname !== "/"
-          ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm"
+          ? "bg-white/95 dark:bg-gray-950/95 backdrop-blur-md shadow-sm"
           : "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md",
       )}
     >

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Contact, CheckCircle2, Settings, Home, Building2 } from "lucide-react"
+import { Contact, Home, Building2, Settings } from "lucide-react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
 import { Separator } from "@/components/ui/separator"
@@ -17,8 +17,8 @@ import { CheckoutPreview } from "@/components/checkout-preview"
 import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
-import { CompactRoomSelector } from "@/components/compact-room-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { RoomCategory } from "@/components/room-category"
 
 interface RoomCount {
   [key: string]: number
@@ -350,7 +350,7 @@ export default function PricingPage() {
   }, [roomCounts])
 
   return (
-    <div className="container mx-auto py-10 px-4">
+    <div className="container mx-auto py-10 px-4 mt-16">
       <h1 className="text-4xl font-bold text-center mb-2">Pricing Calculator</h1>
       <p className="text-center text-gray-500 mb-10">Customize your cleaning service to fit your needs and budget</p>
 
@@ -367,79 +367,52 @@ export default function PricingPage() {
         </TabsList>
 
         <TabsContent value="standard" className="space-y-8">
-          <Card>
-            <CardHeader className="bg-blue-50 dark:bg-blue-900/20">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <span className="text-blue-600 dark:text-blue-400">
-                  <CheckCircle2 className="h-6 w-6" />
-                </span>
-                CORE ROOMS
-              </CardTitle>
-              <CardDescription>Select the rooms you want cleaned in your home</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                {coreRooms.map((roomType) => (
-                  <CompactRoomSelector
-                    key={roomType}
-                    roomId={roomType}
-                    roomName={roomDisplayNames[roomType]}
-                    roomIcon={<span className="text-xl">{roomIcons[roomType]}</span>}
-                    basePrice={getRoomTiers(roomType)[0].price}
-                    count={roomCounts[roomType] || 0}
-                    onCountChange={handleRoomCountChange}
-                    baseTier={getRoomTiers(roomType)[0]}
-                    tiers={getRoomTiers(roomType)}
-                    addOns={getRoomAddOns(roomType)}
-                    reductions={getRoomReductions(roomType)}
-                    onConfigChange={handleRoomConfigChange}
-                    initialConfig={getRoomConfig(roomType)}
-                  />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Core Rooms Category */}
+          <RoomCategory
+            title="CORE ROOMS"
+            description="Select the rooms you want cleaned in your home"
+            rooms={coreRooms}
+            roomCounts={roomCounts}
+            onRoomCountChange={handleRoomCountChange}
+            onRoomConfigChange={handleRoomConfigChange}
+            getRoomConfig={getRoomConfig}
+            variant="primary"
+          />
 
-          <Card>
-            <CardHeader className="bg-gray-50 dark:bg-gray-900/20">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400">
-                  <CheckCircle2 className="h-6 w-6" />
-                </span>
-                ADDITIONAL SPACES
-              </CardTitle>
-              <CardDescription>Select any additional areas that need cleaning</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {additionalSpaces.map((roomType) => (
-                  <CompactRoomSelector
-                    key={roomType}
-                    roomId={roomType}
-                    roomName={roomDisplayNames[roomType]}
-                    roomIcon={<span className="text-xl">{roomIcons[roomType]}</span>}
-                    basePrice={getRoomTiers(roomType)[0].price}
-                    count={roomCounts[roomType] || 0}
-                    onCountChange={handleRoomCountChange}
-                    baseTier={getRoomTiers(roomType)[0]}
-                    tiers={getRoomTiers(roomType)}
-                    addOns={getRoomAddOns(roomType)}
-                    reductions={getRoomReductions(roomType)}
-                    onConfigChange={handleRoomConfigChange}
-                    initialConfig={getRoomConfig(roomType)}
-                  />
-                ))}
+          {/* Additional Spaces Category */}
+          <RoomCategory
+            title="ADDITIONAL SPACES"
+            description="Select any additional areas that need cleaning"
+            rooms={additionalSpaces}
+            roomCounts={roomCounts}
+            onRoomCountChange={handleRoomCountChange}
+            onRoomConfigChange={handleRoomConfigChange}
+            getRoomConfig={getRoomConfig}
+            variant="secondary"
+          />
 
-                <Card className="border border-dashed border-gray-300">
-                  <CardContent className="p-4 flex flex-col items-center text-center justify-center h-full">
-                    <div className="text-3xl mb-2">{roomIcons.other}</div>
-                    <h3 className="font-medium mb-2">Other Space</h3>
-                    <Button variant="outline" className="mt-2 flex items-center gap-1">
-                      <Contact className="h-4 w-4" />
-                      Request Custom
-                    </Button>
-                  </CardContent>
-                </Card>
+          {/* Custom Space Card */}
+          <Card className="shadow-sm">
+            <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
+                  <Contact className="h-5 w-5" />
+                </span>
+                CUSTOM SPACES
+              </CardTitle>
+              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <div className="text-4xl mb-4">{roomIcons.other}</div>
+                <h3 className="font-medium text-xl mb-2">Other Space</h3>
+                <p className="text-gray-500 mb-4 text-center max-w-md">
+                  Have a unique space that needs cleaning? Contact us for a custom quote.
+                </p>
+                <Button className="flex items-center gap-2">
+                  <Contact className="h-4 w-4" />
+                  Request Custom Quote
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -453,8 +426,8 @@ export default function PricingPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
-                    <Card>
-                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20">
+                    <Card className="shadow-sm">
+                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
                         <CardTitle>Selected Rooms</CardTitle>
                       </CardHeader>
                       <CardContent className="pt-6">
@@ -465,9 +438,12 @@ export default function PricingPage() {
                               if (!config) return null
 
                               return (
-                                <div key={roomType} className="flex justify-between items-center">
+                                <div
+                                  key={roomType}
+                                  className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/10 transition-colors"
+                                >
                                   <div className="flex items-center">
-                                    <div className="p-2 rounded-full mr-2 bg-blue-100 dark:bg-blue-900/30">
+                                    <div className="p-2 rounded-full mr-3 bg-blue-100 dark:bg-blue-900/30">
                                       <span className="text-xl">{roomIcons[roomType]}</span>
                                     </div>
                                     <div>
@@ -526,8 +502,8 @@ export default function PricingPage() {
                       totalAddOns={calculateAddOns().length}
                     />
 
-                    <Card>
-                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20">
+                    <Card className="shadow-sm">
+                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
                         <CardTitle className="flex items-center justify-between">
                           <span>Service Summary</span>
                           <Button onClick={() => setShowCheckoutPreview(true)}>Book Now</Button>

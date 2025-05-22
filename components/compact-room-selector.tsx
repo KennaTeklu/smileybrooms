@@ -76,36 +76,39 @@ export function CompactRoomSelector({
     <>
       <Card
         className={cn(
-          "border transition-all",
+          "border transition-all overflow-hidden",
           count > 0
             ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
             : "border-gray-200 dark:border-gray-800",
           hasCustomizations && count > 0 ? "border-green-300 dark:border-green-800" : "",
         )}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div
-                className={cn(
-                  "p-2 rounded-full mr-2",
-                  count > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
-                )}
-              >
-                {roomIcon}
-              </div>
-              <div>
-                <p className="font-medium">{roomName}</p>
-                <p className="text-xs text-gray-500">
-                  ${currentConfig.totalPrice.toFixed(2)} per room
-                  {hasCustomizations && <span className="ml-1 text-green-600">(Customized)</span>}
-                </p>
-              </div>
+        <CardContent className="p-0">
+          {/* Room header with icon and name */}
+          <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center">
+            <div
+              className={cn(
+                "p-2 rounded-full mr-2",
+                count > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+              )}
+            >
+              {roomIcon}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{roomName}</p>
+              <p className="text-xs text-gray-500 truncate">
+                ${currentConfig.totalPrice.toFixed(2)} per room
+                {hasCustomizations && <span className="ml-1 text-green-600">(Customized)</span>}
+              </p>
+            </div>
+          </div>
 
-            {/* Counter and customize button in a vertical layout */}
-            <div className="flex flex-col items-end">
-              <div className="flex items-center space-x-2 mb-2">
+          {/* Counter and customize buttons */}
+          <div className="p-3 flex flex-col gap-2">
+            {/* Counter with plus/minus buttons */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Quantity:</span>
+              <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="icon"
@@ -116,7 +119,7 @@ export function CompactRoomSelector({
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
-                <span className="w-6 text-center">{count}</span>
+                <span className="w-6 text-center font-medium">{count}</span>
                 <Button
                   variant="outline"
                   size="icon"
@@ -127,25 +130,31 @@ export function CompactRoomSelector({
                   <Plus className="h-3 w-3" />
                 </Button>
               </div>
-
-              {/* Customize button directly under the counter */}
-              {count > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs px-3 py-1 h-7 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 flex items-center"
-                  onClick={() => setIsCustomizing(true)}
-                >
-                  <Settings className="h-3 w-3 mr-1" />
-                  Customize
-                  <ChevronRight className="h-3 w-3 ml-1" />
-                </Button>
-              )}
             </div>
+
+            {/* Customize button */}
+            <Button
+              variant="outline"
+              size="sm"
+              id={`customize-${roomId}`}
+              className={cn(
+                "w-full text-xs h-8 flex items-center justify-center gap-1",
+                count > 0
+                  ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                  : "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => count > 0 && setIsCustomizing(true)}
+              disabled={count === 0}
+            >
+              <Settings className="h-3 w-3" />
+              Customize
+              <ChevronRight className="h-3 w-3" />
+            </Button>
           </div>
 
+          {/* Customization badges */}
           {hasCustomizations && count > 0 && (
-            <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="px-3 pb-3 pt-0">
               <div className="flex flex-wrap gap-1">
                 {currentConfig.selectedTier !== baseTier.name && (
                   <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20">
