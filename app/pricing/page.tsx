@@ -221,10 +221,20 @@ export default function PricingPage() {
         const baseTier = tiers[0]
         const selectedTier = tiers.find((tier) => tier.name === config.selectedTier)
 
+        // Get the multiplier based on the tier
+        let multiplier = 1
+        if (selectedTier?.name === "ADVANCED CLEAN") multiplier = 3
+        if (selectedTier?.name === "PREMIUM CLEAN") multiplier = 9
+
+        // Calculate the price difference correctly
+        const baseTierPrice = config.baseTierPrice || baseTier.price
+        const upgradeCost = (selectedTier?.price || 0) - baseTierPrice
+
         return {
           roomName: roomDisplayNames[config.roomName] || config.roomName,
           tierName: config.selectedTier,
-          price: (selectedTier?.price || 0) - baseTier.price,
+          price: upgradeCost,
+          multiplier: multiplier,
         }
       })
   }

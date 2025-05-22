@@ -14,6 +14,7 @@ interface TierUpgrade {
   roomName: string
   tierName: string
   price: number
+  multiplier?: number
 }
 
 interface AddOn {
@@ -92,6 +93,7 @@ export function ServiceSummaryCard({
           type: upgrade.roomName,
           count: 1,
           tier: upgrade.tierName,
+          multiplier: upgrade.multiplier || 1,
         })),
         addOns,
         reductions,
@@ -142,6 +144,7 @@ export function ServiceSummaryCard({
                 <div key={index} className="flex justify-between text-sm pl-4">
                   <span>
                     {upgrade.roomName} ({upgrade.tierName})
+                    {upgrade.multiplier && upgrade.multiplier > 1 && ` (${upgrade.multiplier}x)`}
                   </span>
                   <span>+{formatCurrency(upgrade.price)}</span>
                 </div>

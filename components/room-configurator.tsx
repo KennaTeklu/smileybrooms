@@ -14,6 +14,7 @@ export interface RoomTier {
   description: string
   price: number
   features: string[]
+  multiplier?: number // Add multiplier for clarity
 }
 
 export interface RoomAddOn {
@@ -45,6 +46,7 @@ export interface RoomConfiguration {
   selectedAddOns: string[]
   selectedReductions: string[]
   totalPrice: number
+  baseTierPrice?: number // Add base tier price for reference
 }
 
 export function RoomConfigurator({
@@ -64,7 +66,11 @@ export function RoomConfigurator({
   // Calculate the total price based on selections
   const calculateTotalPrice = () => {
     // Get base tier price
-    const tierPrice = tiers.find((tier) => tier.name === selectedTier)?.price || baseTier.price
+    const baseTierPrice = baseTier.price
+
+    // Get selected tier price
+    const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
+    const tierPrice = selectedTierObj ? selectedTierObj.price : baseTierPrice
 
     // Add all selected add-ons
     const addOnsTotal = selectedAddOns.reduce((total, addOnId) => {
@@ -78,18 +84,22 @@ export function RoomConfigurator({
       return total + (reduction?.discount || 0)
     }, 0)
 
-    return tierPrice + addOnsTotal - reductionsTotal
+    return {
+      totalPrice: tierPrice + addOnsTotal - reductionsTotal,
+      baseTierPrice: baseTierPrice,
+    }
   }
 
   // Update parent component when configuration changes
   const updateConfiguration = () => {
-    const totalPrice = calculateTotalPrice()
+    const { totalPrice, baseTierPrice } = calculateTotalPrice()
     onConfigChange({
       roomName,
       selectedTier,
       selectedAddOns,
       selectedReductions,
       totalPrice,
+      baseTierPrice,
     })
   }
 
@@ -123,6 +133,9 @@ export function RoomConfigurator({
     setTimeout(updateConfiguration, 0)
   }
 
+  // Calculate price for display
+  const { totalPrice } = calculateTotalPrice()
+
   return (
     <Card className="w-full mb-6 border-2 border-blue-100">
       <CardHeader className="bg-blue-50">
@@ -132,7 +145,7 @@ export function RoomConfigurator({
             <CardTitle>{roomName}</CardTitle>
           </div>
           <Badge variant="outline" className="bg-white">
-            ${calculateTotalPrice().toFixed(2)}
+            ${totalPrice.toFixed(2)}
           </Badge>
         </div>
         <CardDescription>Customize your cleaning options for this room</CardDescription>
@@ -142,35 +155,41 @@ export function RoomConfigurator({
           <div>
             <h3 className="text-lg font-semibold mb-3">TIER OPTIONS</h3>
             <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-3">
-              {tiers.map((tier, index) => (
-                <div
-                  key={tier.name}
-                  className={`p-4 rounded-lg border ${selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
-                >
-                  <div className="flex items-start">
-                    <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                    <div className="ml-3 w-full">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
-                          {tier.name}
-                        </Label>
-                        <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
-                          {index === 0 ? "Basic" : index === 1 ? "3x Basic" : "9x Basic"}
-                        </Badge>
+              {tiers.map((tier, index) => {
+                // Calculate multiplier for display
+                const multiplier = tier.multiplier || (index === 0 ? 1 : index === 1 ? 3 : 9)
+                const multiplierText = index === 0 ? "Basic" : `${multiplier}x Basic`
+
+                return (
+                  <div
+                    key={tier.name}
+                    className={`p-4 rounded-lg border ${selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                  >
+                    <div className="flex items-start">
+                      <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                      <div className="ml-3 w-full">
+                        <div className="flex justify-between items-center">
+                          <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
+                            {tier.name}
+                          </Label>
+                          <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
+                            {multiplierText}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
+                        <ul className="mt-2 space-y-1">
+                          {tier.features.map((feature, i) => (
+                            <li key={i} className="text-sm flex items-start">
+                              <span className="text-green-500 mr-2">✓</span>
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
-                      <ul className="mt-2 space-y-1">
-                        {tier.features.map((feature, i) => (
-                          <li key={i} className="text-sm flex items-start">
-                            <span className="text-green-500 mr-2">✓</span>
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </RadioGroup>
           </div>
 
@@ -232,7 +251,7 @@ export function RoomConfigurator({
               </Button>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Room Total</p>
-                <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
+                <p className="text-xl font-bold">${totalPrice.toFixed(2)}</p>
               </div>
             </div>
           </div>
