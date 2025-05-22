@@ -1,9 +1,10 @@
-import MinimalHero from "@/components/minimal-hero"
+import UnifiedCartButton from "@/components/unified-cart-button"
 
 export default function Home() {
   return (
-    <>
-      <MinimalHero />
-    </>
+    <main>
+      <h1>Welcome to the Store</h1>
+      <UnifiedCartButton />
+    </main>
   )
 }
