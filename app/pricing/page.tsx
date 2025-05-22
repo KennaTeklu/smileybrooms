@@ -16,6 +16,7 @@ import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { ServiceSummaryCard } from "@/components/service-summary-card"
 import { useToast } from "@/components/ui/use-toast"
+import { useCart } from "@/lib/cart-context"
 
 interface RoomCount {
   [key: string]: number
@@ -26,11 +27,16 @@ interface RoomConfig {
   selectedTier: string
   selectedAddOns: string[]
   selectedReductions: string[]
+  basePrice: number
+  tierUpgradePrice: number
+  addOnsPrice: number
+  reductionsPrice: number
   totalPrice: number
 }
 
 export default function PricingPage() {
   const { toast } = useToast()
+  const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
   const [roomCounts, setRoomCounts] = useState<RoomCount>({
     bedroom: 0,
@@ -75,12 +81,18 @@ export default function PricingPage() {
     // If incrementing and this is a new room, add default configuration
     if (count > 0 && (roomCounts[roomType] || 0) === 0) {
       const tiers = getRoomTiers(roomType)
+      const baseTier = tiers[0]
+
       const newConfig: RoomConfig = {
         roomName: roomType,
-        selectedTier: tiers[0].name,
+        selectedTier: baseTier.name,
         selectedAddOns: [],
         selectedReductions: [],
-        totalPrice: tiers[0].price,
+        basePrice: baseTier.price,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: baseTier.price,
       }
 
       setRoomConfigurations((prev) => [...prev, newConfig])
@@ -127,6 +139,10 @@ export default function PricingPage() {
         selectedTier: getRoomTiers(roomType)[0].name,
         selectedAddOns: [],
         selectedReductions: [],
+        basePrice: getRoomTiers(roomType)[0].price,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
         totalPrice: getRoomTiers(roomType)[0].price,
       }
     )
@@ -176,6 +192,7 @@ export default function PricingPage() {
         newRoomCounts[roomType] = room.count
 
         const tiers = getRoomTiers(roomType)
+        const baseTier = tiers[0]
         const selectedTier = tiers.find((tier) => tier.name === room.tier)
 
         if (selectedTier) {
@@ -184,6 +201,10 @@ export default function PricingPage() {
             selectedTier: selectedTier.name,
             selectedAddOns: [],
             selectedReductions: [],
+            basePrice: baseTier.price,
+            tierUpgradePrice: selectedTier.price - baseTier.price,
+            addOnsPrice: 0,
+            reductionsPrice: 0,
             totalPrice: selectedTier.price,
           })
         }
@@ -201,12 +222,12 @@ export default function PricingPage() {
     }
   }
 
-  // Calculate base price (sum of all Quick Clean prices)
+  // Calculate base price (sum of all Essential Clean prices)
   const calculateBasePrice = () => {
     return Object.entries(roomCounts).reduce((total, [roomType, count]) => {
       if (count > 0) {
         const config = getRoomConfig(roomType)
-        return total + config.totalPrice * count
+        return total + config.basePrice * count
       }
       return total
     }, 0)
@@ -215,10 +236,9 @@ export default function PricingPage() {
   // Calculate tier upgrades
   const calculateTierUpgrades = () => {
     return roomConfigurations
-      .filter((config) => config.selectedTier !== "ESSENTIAL CLEAN")
+      .filter((config) => config.tierUpgradePrice > 0)
       .map((config) => {
         const tiers = getRoomTiers(config.roomName)
-        const baseTier = tiers[0]
         const selectedTier = tiers.find((tier) => tier.name === config.selectedTier)
 
         // Get the multiplier based on the tier
@@ -226,14 +246,10 @@ export default function PricingPage() {
         if (selectedTier?.name === "ADVANCED CLEAN") multiplier = 3
         if (selectedTier?.name === "PREMIUM CLEAN") multiplier = 9
 
-        // Calculate the price difference correctly
-        const baseTierPrice = config.baseTierPrice || baseTier.price
-        const upgradeCost = (selectedTier?.price || 0) - baseTierPrice
-
         return {
           roomName: roomDisplayNames[config.roomName] || config.roomName,
           tierName: config.selectedTier,
-          price: upgradeCost,
+          price: config.tierUpgradePrice * (roomCounts[config.roomName] || 1), // Multiply by room count
           multiplier: multiplier,
         }
       })
@@ -242,26 +258,32 @@ export default function PricingPage() {
   // Calculate add-ons
   const calculateAddOns = () => {
     const configAddOns = roomConfigurations.flatMap((config) => {
+      const count = roomCounts[config.roomName] || 1
+
+      if (config.addOnsPrice === 0) return []
+
       const addOns = getRoomAddOns(config.roomName)
       return config.selectedAddOns.map((addOnId) => {
         const addOn = addOns.find((a) => a.id === addOnId)
         return {
           roomName: roomDisplayNames[config.roomName] || config.roomName,
           name: addOn?.name || "Unknown Add-on",
-          price: addOn?.price || 0,
+          price: (addOn?.price || 0) * count,
         }
       })
     })
 
     // Add matrix add-ons
     const matrixAddOns = Object.entries(matrixSelections).flatMap(([roomType, selection]) => {
+      const count = roomCounts[roomType] || 1
       const { add } = getMatrixServices(roomType)
+
       return selection.addServices.map((serviceId) => {
         const service = add.find((s) => s.id === serviceId)
         return {
           roomName: roomDisplayNames[roomType] || roomType,
           name: service?.name || "Unknown Service",
-          price: service?.price || 0,
+          price: (service?.price || 0) * count,
         }
       })
     })
@@ -272,26 +294,32 @@ export default function PricingPage() {
   // Calculate reductions
   const calculateReductions = () => {
     const configReductions = roomConfigurations.flatMap((config) => {
+      const count = roomCounts[config.roomName] || 1
+
+      if (config.reductionsPrice === 0) return []
+
       const reductions = getRoomReductions(config.roomName)
       return config.selectedReductions.map((reductionId) => {
         const reduction = reductions.find((r) => r.id === reductionId)
         return {
           roomName: roomDisplayNames[config.roomName] || config.roomName,
           name: reduction?.name || "Unknown Reduction",
-          discount: reduction?.discount || 0,
+          discount: (reduction?.discount || 0) * count,
         }
       })
     })
 
     // Add matrix reductions
     const matrixReductions = Object.entries(matrixSelections).flatMap(([roomType, selection]) => {
+      const count = roomCounts[roomType] || 1
       const { remove } = getMatrixServices(roomType)
+
       return selection.removeServices.map((serviceId) => {
         const service = remove.find((s) => s.id === serviceId)
         return {
           roomName: roomDisplayNames[roomType] || roomType,
           name: service?.name || "Unknown Service",
-          discount: service?.price || 0,
+          discount: (service?.price || 0) * count,
         }
       })
     })
@@ -301,13 +329,17 @@ export default function PricingPage() {
 
   // Calculate total price
   const calculateTotalPrice = () => {
-    const basePrice = calculateBasePrice()
-    const tierUpgradesTotal = calculateTierUpgrades().reduce((sum, item) => sum + item.price, 0)
-    const addOnsTotal = calculateAddOns().reduce((sum, item) => sum + item.price, 0)
-    const reductionsTotal = calculateReductions().reduce((sum, item) => sum + item.discount, 0)
+    // Sum up all room totals (which already include tier upgrades, add-ons, and reductions)
+    const roomsTotal = Object.entries(roomCounts).reduce((total, [roomType, count]) => {
+      if (count > 0) {
+        const config = getRoomConfig(roomType)
+        return total + config.totalPrice * count
+      }
+      return total
+    }, 0)
 
-    // Calculate subtotal before frequency discount
-    const subtotal = basePrice + tierUpgradesTotal + addOnsTotal - reductionsTotal + serviceFee
+    // Add service fee
+    const subtotal = roomsTotal + serviceFee
 
     // Apply frequency discount
     const discountAmount = subtotal * (frequencyDiscount / 100)
@@ -347,8 +379,36 @@ export default function PricingPage() {
 
   // Handle adding to cart
   const handleAddToCart = () => {
-    // In a real implementation, this would add the current configuration to the cart
-    // For now, we'll just show a toast notification
+    // Create a cart item with all the details
+    const cartItem = {
+      id: `cleaning-service-${Date.now()}`,
+      name: "Cleaning Service",
+      price: calculateTotalPrice(),
+      quantity: 1,
+      type: "service",
+      details: {
+        rooms: roomConfigurations.map((config) => ({
+          type: roomDisplayNames[config.roomName] || config.roomName,
+          count: roomCounts[config.roomName] || 1,
+          tier: config.selectedTier,
+          basePrice: config.basePrice,
+          tierUpgradePrice: config.tierUpgradePrice,
+          addOnsPrice: config.addOnsPrice,
+          reductionsPrice: config.reductionsPrice,
+          totalPrice: config.totalPrice,
+        })),
+        addOns: calculateAddOns(),
+        reductions: calculateReductions(),
+        serviceFee,
+        frequencyDiscount,
+        frequency: selectedFrequency,
+      },
+    }
+
+    // Add to cart
+    addItem(cartItem)
+
+    // Show toast notification
     toast({
       title: "Added to cart",
       description: "Your cleaning service has been added to the cart",

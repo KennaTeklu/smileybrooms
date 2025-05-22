@@ -8,7 +8,6 @@ import { formatCurrency } from "@/lib/utils"
 import { ShoppingCart, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { useCart } from "@/lib/cart-context"
 
 interface TierUpgrade {
   roomName: string
@@ -60,16 +59,12 @@ export function ServiceSummaryCard({
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
-  // Use the cart context
-  const { addItem } = useCart()
-
   // Calculate subtotal before discount
-  const subtotal =
-    basePrice +
-    tierUpgrades.reduce((sum, item) => sum + item.price, 0) +
-    addOns.reduce((sum, item) => sum + item.price, 0) -
-    reductions.reduce((sum, item) => sum + item.discount, 0) +
-    serviceFee
+  const tierUpgradesTotal = tierUpgrades.reduce((sum, item) => sum + item.price, 0)
+  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0)
+  const reductionsTotal = reductions.reduce((sum, item) => sum + item.discount, 0)
+
+  const subtotal = basePrice + tierUpgradesTotal + addOnsTotal - reductionsTotal + serviceFee
 
   // Calculate discount amount
   const discountAmount = subtotal * (frequencyDiscount / 100)
@@ -81,42 +76,9 @@ export function ServiceSummaryCard({
 
     setIsLoading(true)
 
-    // Create a cart item
-    const cartItem = {
-      id: `service-${Date.now()}`,
-      name: serviceName,
-      price: totalPrice,
-      quantity: 1,
-      type: "service",
-      details: {
-        rooms: tierUpgrades.map((upgrade) => ({
-          type: upgrade.roomName,
-          count: 1,
-          tier: upgrade.tierName,
-          multiplier: upgrade.multiplier || 1,
-        })),
-        addOns,
-        reductions,
-        frequency,
-        serviceFee,
-        frequencyDiscount,
-      },
-    }
-
-    // Add the item to the cart
-    addItem(cartItem)
-
-    // Call the onAddToCart callback if provided
     if (onAddToCart) {
       onAddToCart()
     }
-
-    // Show success notification
-    toast({
-      title: "Added to cart",
-      description: `${serviceName} has been added to your cart`,
-      duration: 3000,
-    })
 
     setIsLoading(false)
   }
@@ -133,7 +95,7 @@ export function ServiceSummaryCard({
       <CardContent className="pt-6 space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span>Base Price</span>
+            <span>Base Price (Essential Clean)</span>
             <span>{formatCurrency(basePrice)}</span>
           </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -14,7 +14,7 @@ export interface RoomTier {
   description: string
   price: number
   features: string[]
-  multiplier?: number // Add multiplier for clarity
+  multiplier?: number
 }
 
 export interface RoomAddOn {
@@ -45,8 +45,11 @@ export interface RoomConfiguration {
   selectedTier: string
   selectedAddOns: string[]
   selectedReductions: string[]
-  totalPrice: number
-  baseTierPrice?: number // Add base tier price for reference
+  basePrice: number // Essential Clean price
+  tierUpgradePrice: number // Additional cost for tier upgrade
+  addOnsPrice: number // Total cost of add-ons
+  reductionsPrice: number // Total savings from reductions
+  totalPrice: number // Final price for this room
 }
 
 export function RoomConfigurator({
@@ -63,50 +66,62 @@ export function RoomConfigurator({
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig?.selectedReductions || [])
 
-  // Calculate the total price based on selections
-  const calculateTotalPrice = () => {
-    // Get base tier price
-    const baseTierPrice = baseTier.price
+  // Calculate the price components
+  const calculatePrices = () => {
+    // Base price is always the Essential Clean price
+    const basePrice = baseTier.price
 
-    // Get selected tier price
+    // Get selected tier
     const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
-    const tierPrice = selectedTierObj ? selectedTierObj.price : baseTierPrice
 
-    // Add all selected add-ons
-    const addOnsTotal = selectedAddOns.reduce((total, addOnId) => {
+    // Calculate tier upgrade price (difference between selected tier and base tier)
+    const tierUpgradePrice = selectedTierObj && selectedTier !== baseTier.name ? selectedTierObj.price - basePrice : 0
+
+    // Calculate add-ons price
+    const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
       const addOn = addOns.find((a) => a.id === addOnId)
       return total + (addOn?.price || 0)
     }, 0)
 
-    // Subtract all selected reductions
-    const reductionsTotal = selectedReductions.reduce((total, reductionId) => {
+    // Calculate reductions price
+    const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
       const reduction = reductions.find((r) => r.id === reductionId)
       return total + (reduction?.discount || 0)
     }, 0)
 
+    // Calculate total price
+    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice - reductionsPrice
+
     return {
-      totalPrice: tierPrice + addOnsTotal - reductionsTotal,
-      baseTierPrice: baseTierPrice,
+      basePrice,
+      tierUpgradePrice,
+      addOnsPrice,
+      reductionsPrice,
+      totalPrice,
     }
   }
 
   // Update parent component when configuration changes
   const updateConfiguration = () => {
-    const { totalPrice, baseTierPrice } = calculateTotalPrice()
+    const prices = calculatePrices()
+
     onConfigChange({
       roomName,
       selectedTier,
       selectedAddOns,
       selectedReductions,
-      totalPrice,
-      baseTierPrice,
+      ...prices,
     })
   }
+
+  // Update configuration when selections change
+  useEffect(() => {
+    updateConfiguration()
+  }, [selectedTier, selectedAddOns, selectedReductions])
 
   // Handle tier selection
   const handleTierChange = (tier: string) => {
     setSelectedTier(tier)
-    setTimeout(updateConfiguration, 0)
   }
 
   // Handle add-on selection
@@ -118,7 +133,6 @@ export function RoomConfigurator({
         return prev.filter((id) => id !== addOnId)
       }
     })
-    setTimeout(updateConfiguration, 0)
   }
 
   // Handle reduction selection
@@ -130,11 +144,10 @@ export function RoomConfigurator({
         return prev.filter((id) => id !== reductionId)
       }
     })
-    setTimeout(updateConfiguration, 0)
   }
 
-  // Calculate price for display
-  const { totalPrice } = calculateTotalPrice()
+  // Calculate prices for display
+  const { totalPrice } = calculatePrices()
 
   return (
     <Card className="w-full mb-6 border-2 border-blue-100">
@@ -172,9 +185,12 @@ export function RoomConfigurator({
                           <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
                             {tier.name}
                           </Label>
-                          <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
-                            {multiplierText}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">${tier.price.toFixed(2)}</span>
+                            <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
+                              {multiplierText}
+                            </Badge>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
                         <ul className="mt-2 space-y-1">
