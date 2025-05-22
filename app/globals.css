@@ -6,11 +6,22 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Header visibility fix */
+/* Ensure website header is always visible */
 header {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 50 !important;
+}
+
+/* Ensure main content doesn't overlap with header */
+main {
+  padding-top: 4rem !important;
+  min-height: 100vh;
 }
 
 @layer utilities {
