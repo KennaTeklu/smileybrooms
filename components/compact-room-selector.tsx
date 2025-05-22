@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Settings } from "lucide-react"
 import { Minus, Plus } from "lucide-react"
@@ -132,7 +132,20 @@ export function CompactRoomSelector({
             </div>
           </div>
 
-          {hasCustomizations && (
+          {/* Only show the customize button when the room is selected (count > 0) */}
+          {count > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-1 text-xs mt-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+              onClick={() => setIsCustomizing(true)}
+            >
+              <Settings className="h-3 w-3 mr-1" />
+              Customize
+            </Button>
+          )}
+
+          {hasCustomizations && count > 0 && (
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex flex-wrap gap-1">
                 {currentConfig.selectedTier !== baseTier.name && (
@@ -154,19 +167,6 @@ export function CompactRoomSelector({
             </div>
           )}
         </CardContent>
-
-        {/* Moved the customize button to a CardFooter for better visibility */}
-        <CardFooter className="p-4 pt-0">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full flex items-center justify-center gap-1 text-xs"
-            onClick={() => setIsCustomizing(true)}
-          >
-            <Settings className="h-3 w-3" />
-            Customize
-          </Button>
-        </CardFooter>
       </Card>
 
       <RoomCustomizationDrawer
