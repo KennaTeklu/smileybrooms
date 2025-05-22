@@ -5,7 +5,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import EnhancedNavigation from "@/components/enhanced-navigation"
+import Header from "@/components/header"
 import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
 import UnifiedFooter from "@/components/unified-footer"
 import AccessibilityPanel from "@/components/accessibility-panel"
@@ -56,8 +56,8 @@ export default function ClientLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <EnhancedCartProvider>
             <CartProvider>
-              <EnhancedNavigation />
-              <main className="pt-20 scrollable-container">{children}</main>
+              <Header />
+              <main className="pt-16 scrollable-container">{children}</main>
               <PersistentBookNowButton />
               <AccessibilityPanel />
               <SharePanel />
