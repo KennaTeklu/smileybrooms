@@ -6,8 +6,17 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, ShoppingBag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { CartSummary } from "@/components/cart-summary"
+import { CartProvider } from "@/lib/cart-context"
 
 export default function CartPage() {
+  return (
+    <CartProvider>
+      <CartPageContent />
+    </CartProvider>
+  )
+}
+
+function CartPageContent() {
   const { cart } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
