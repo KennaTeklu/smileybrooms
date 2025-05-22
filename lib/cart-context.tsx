@@ -1,140 +1,187 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useToast } from "@/components/ui/use-toast"
+import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
+import { AddedToCartNotification } from "@/components/added-to-cart-notification"
 
 // Define the cart item type
-export interface CartItem {
+export type CartItem = {
   id: string
   name: string
   price: number
   quantity: number
-  image?: string
-  type?: string
-  details?: Record<string, any>
+  // Add other properties as needed
 }
 
 // Define the cart context type
-interface CartContextType {
+type CartContextType = {
   cart: {
     items: CartItem[]
+    totalItems: number
+    totalPrice: number
   }
-  addItem: (item: CartItem) => void
-  removeItem: (itemId: string) => void
-  updateItemQuantity: (itemId: string, quantity: number) => void
+  addToCart: (item: CartItem) => void
+  removeFromCart: (itemId: string) => void
+  updateQuantity: (itemId: string, quantity: number) => void
   clearCart: () => void
-  getCartTotal: () => number
-  getItemCount: () => number
 }
 
 // Create the cart context
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-// Create a provider component
-export function CartProvider({ children }: { children: ReactNode }) {
-  // Initialize cart state
-  const [cart, setCart] = useState<{ items: CartItem[] }>({ items: [] })
-  const { toast } = useToast()
+// Create the cart provider component
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  // State for the cart
+  const [cart, setCart] = useState<{
+    items: CartItem[]
+    totalItems: number
+    totalPrice: number
+  }>({
+    items: [],
+    totalItems: 0,
+    totalPrice: 0,
+  })
 
-  // Load cart from localStorage on component mount
+  // State for the notification
+  const [notification, setNotification] = useState<{
+    isVisible: boolean
+    itemName: string
+  }>({
+    isVisible: false,
+    itemName: "",
+  })
+
+  // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart")
-      if (savedCart) {
+    const savedCart = localStorage.getItem("cart")
+    if (savedCart) {
+      try {
         setCart(JSON.parse(savedCart))
+      } catch (error) {
+        console.error("Failed to parse cart from localStorage:", error)
       }
-    } catch (error) {
-      console.error("Failed to load cart from localStorage:", error)
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Failed to save cart to localStorage:", error)
-    }
+    localStorage.setItem("cart", JSON.stringify(cart))
   }, [cart])
 
   // Add an item to the cart
-  const addItem = (item: CartItem) => {
+  const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
-      // Check if the item already exists in the cart
-      const existingItemIndex = prevCart.items.findIndex((i) => i.id === item.id)
+      // Check if the item is already in the cart
+      const existingItemIndex = prevCart.items.findIndex((cartItem) => cartItem.id === item.id)
+
+      let updatedItems: CartItem[]
 
       if (existingItemIndex >= 0) {
-        // Update the existing item
-        const updatedItems = [...prevCart.items]
+        // If the item is already in the cart, update its quantity
+        updatedItems = [...prevCart.items]
         updatedItems[existingItemIndex] = {
           ...updatedItems[existingItemIndex],
           quantity: updatedItems[existingItemIndex].quantity + item.quantity,
         }
-        return { ...prevCart, items: updatedItems }
       } else {
-        // Add the new item
-        return { ...prevCart, items: [...prevCart.items, item] }
+        // If the item is not in the cart, add it
+        updatedItems = [...prevCart.items, item]
+      }
+
+      // Calculate the new total items and price
+      const newTotalItems = updatedItems.reduce((total, item) => total + item.quantity, 0)
+      const newTotalPrice = updatedItems.reduce((total, item) => total + item.price * item.quantity, 0)
+
+      // Show notification
+      setNotification({
+        isVisible: true,
+        itemName: item.name,
+      })
+
+      return {
+        items: updatedItems,
+        totalItems: newTotalItems,
+        totalPrice: newTotalPrice,
       }
     })
-
-    // Show toast notification
-    if (toast) {
-      toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart`,
-        duration: 3000,
-      })
-    }
   }
 
   // Remove an item from the cart
-  const removeItem = (itemId: string) => {
-    setCart((prevCart) => ({
-      ...prevCart,
-      items: prevCart.items.filter((item) => item.id !== itemId),
-    }))
+  const removeFromCart = (itemId: string) => {
+    setCart((prevCart) => {
+      // Filter out the item to remove
+      const updatedItems = prevCart.items.filter((item) => item.id !== itemId)
+
+      // Calculate the new total items and price
+      const newTotalItems = updatedItems.reduce((total, item) => total + item.quantity, 0)
+      const newTotalPrice = updatedItems.reduce((total, item) => total + item.price * item.quantity, 0)
+
+      return {
+        items: updatedItems,
+        totalItems: newTotalItems,
+        totalPrice: newTotalPrice,
+      }
+    })
   }
 
   // Update the quantity of an item in the cart
-  const updateItemQuantity = (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(itemId)
-      return
-    }
+  const updateQuantity = (itemId: string, quantity: number) => {
+    setCart((prevCart) => {
+      // Find the item to update
+      const updatedItems = prevCart.items.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, quantity }
+        }
+        return item
+      })
 
-    setCart((prevCart) => ({
-      ...prevCart,
-      items: prevCart.items.map((item) => (item.id === itemId ? { ...item, quantity } : item)),
-    }))
+      // Calculate the new total items and price
+      const newTotalItems = updatedItems.reduce((total, item) => total + item.quantity, 0)
+      const newTotalPrice = updatedItems.reduce((total, item) => total + item.price * item.quantity, 0)
+
+      return {
+        items: updatedItems,
+        totalItems: newTotalItems,
+        totalPrice: newTotalPrice,
+      }
+    })
   }
 
   // Clear the cart
   const clearCart = () => {
-    setCart({ items: [] })
+    setCart({
+      items: [],
+      totalItems: 0,
+      totalPrice: 0,
+    })
   }
 
-  // Calculate the total price of all items in the cart
-  const getCartTotal = () => {
-    return cart.items.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0)
+  // Close the notification
+  const closeNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      isVisible: false,
+    }))
   }
 
-  // Get the total number of items in the cart
-  const getItemCount = () => {
-    return cart.items.reduce((count, item) => count + (item.quantity || 1), 0)
-  }
-
-  // Create the context value
-  const contextValue: CartContextType = {
-    cart,
-    addItem,
-    removeItem,
-    updateItemQuantity,
-    clearCart,
-    getCartTotal,
-    getItemCount,
-  }
-
-  return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+      }}
+    >
+      {children}
+      <AddedToCartNotification
+        isVisible={notification.isVisible}
+        itemName={notification.itemName}
+        onClose={closeNotification}
+      />
+    </CartContext.Provider>
+  )
 }
 
 // Create a hook to use the cart context
