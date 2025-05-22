@@ -90,7 +90,7 @@ export function CompactRoomSelector({
         )}
       >
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div
                 className={cn(
@@ -108,45 +108,49 @@ export function CompactRoomSelector({
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={decrementCount}
-                disabled={count === 0}
-                className="h-7 w-7"
-                aria-label={`Decrease ${roomName} count`}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-6 text-center">{count}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={incrementCount}
-                className="h-7 w-7"
-                aria-label={`Increase ${roomName} count`}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
+
+            {/* Counter and customize button in a vertical layout */}
+            <div className="flex flex-col items-center">
+              <div className="flex items-center space-x-2 mb-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={decrementCount}
+                  disabled={count === 0}
+                  className="h-7 w-7"
+                  aria-label={`Decrease ${roomName} count`}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="w-6 text-center">{count}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={incrementCount}
+                  className="h-7 w-7"
+                  aria-label={`Increase ${roomName} count`}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+
+              {/* Customize button directly under the counter */}
+              {count > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs px-2 py-1 h-6 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                  onClick={() => setIsCustomizing(true)}
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  Customize
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Only show the customize button when the room is selected (count > 0) */}
-          {count > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full flex items-center justify-center gap-1 text-xs mt-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-              onClick={() => setIsCustomizing(true)}
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Customize
-            </Button>
-          )}
-
           {hasCustomizations && count > 0 && (
-            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex flex-wrap gap-1">
                 {currentConfig.selectedTier !== baseTier.name && (
                   <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20">
