@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { useDeviceDetection } from "@/hooks/use-device-detection"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import {
   ClipboardList,
@@ -93,6 +94,7 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
   })
 
   const isDesktop = useMediaQuery("(min-width: 768px)")
+  const { isMobile } = useDeviceDetection()
   const [step, setStep] = useState(1)
   const [showEmergencyFields, setShowEmergencyFields] = useState(false)
 
@@ -248,8 +250,20 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
 
   const handleSendEmail = () => {
     const subject = `Custom Quote Request - ${formData.name}`
-    const mailtoLink = `mailto:custom@smileybrooms.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(formattedMessage)}`
-    window.open(mailtoLink, "_blank")
+    const encodedSubject = encodeURIComponent(subject)
+    const encodedBody = encodeURIComponent(formattedMessage)
+
+    if (isMobile) {
+      // For mobile devices, use mailto: which should open the default mail app (Gmail if set as default)
+      const mailtoLink = `mailto:custom@smileybrooms.com?subject=${encodedSubject}&body=${encodedBody}`
+      window.location.href = mailtoLink
+    } else {
+      // For desktop, open Gmail in a new tab
+      const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=custom@smileybrooms.com&su=${encodedSubject}&body=${encodedBody}`
+      window.open(gmailLink, "_blank")
+    }
+
+    // Close the drawer after sending
     onOpenChange(false)
   }
 
