@@ -27,17 +27,17 @@ export interface RoomReduction {
 export const defaultTiers: Record<string, RoomTier[]> = {
   bedroom: [
     {
-      name: "QUICK CLEAN",
+      name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for lightly used rooms",
       price: 25.0,
       features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
     },
     {
-      name: "DEEP CLEAN",
+      name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular maintenance",
       price: 25.0 * 3, // 3x the Quick Clean price
       features: [
-        "Includes Quick Clean",
+        "Includes Essential Clean",
         "Under-bed extended reach",
         "Closet organization (visible items)",
         "Baseboard spotlight",
@@ -46,11 +46,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       ],
     },
     {
-      name: "PREMIUM",
+      name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for maximum freshness",
       price: 25.0 * 9, // 9x the Quick Clean price
       features: [
-        "Includes Deep Clean",
+        "Includes Advanced Clean",
         "Mattress deep vacuum & flip",
         "Light fixture interior cleaning",
         "Aroma mist treatment",
@@ -67,17 +67,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
   bathroom: [
     {
-      name: "QUICK CLEAN",
+      name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for guest bathrooms",
       price: 30.0,
       features: ["Sink and counter wipe-down", "Toilet exterior cleaning", "Mirror cleaning"],
     },
     {
-      name: "DEEP CLEAN",
+      name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular bathrooms",
       price: 30.0 * 3, // 3x the Quick Clean price
       features: [
-        "Includes Quick Clean",
+        "Includes Essential Clean",
         "Shower/tub scrubbing",
         "Toilet deep clean (interior/exterior)",
         "Floor detailed mopping",
@@ -86,11 +86,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       ],
     },
     {
-      name: "PREMIUM",
+      name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for master bathrooms",
       price: 30.0 * 9, // 9x the Quick Clean price
       features: [
-        "Includes Deep Clean",
+        "Includes Advanced Clean",
         "Grout detailed cleaning",
         "Cabinet interior organization",
         "Fixture polishing",
@@ -107,17 +107,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
   kitchen: [
     {
-      name: "QUICK CLEAN",
+      name: "ESSENTIAL CLEAN",
       description: "Surface cleaning for lightly used kitchens",
       price: 35.0,
       features: ["Countertop cleaning", "Sink washing", "Stovetop wipe-down"],
     },
     {
-      name: "DEEP CLEAN",
+      name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular kitchens",
       price: 35.0 * 3, // 3x the Quick Clean price
       features: [
-        "Includes Quick Clean",
+        "Includes Essential Clean",
         "Appliance exterior cleaning",
         "Cabinet fronts wiping",
         "Floor detailed mopping",
@@ -126,11 +126,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       ],
     },
     {
-      name: "PREMIUM",
+      name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for gourmet kitchens",
       price: 35.0 * 9, // 9x the Quick Clean price
       features: [
-        "Includes Deep Clean",
+        "Includes Advanced Clean",
         "Refrigerator interior organization",
         "Oven deep cleaning",
         "Cabinet interior organization (1-2 cabinets)",
@@ -147,17 +147,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
   livingRoom: [
     {
-      name: "QUICK CLEAN",
+      name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for living spaces",
       price: 30.0,
       features: ["Surface dusting", "Floor vacuum", "Coffee table cleaning"],
     },
     {
-      name: "DEEP CLEAN",
+      name: "ADVANCED CLEAN",
       description: "Thorough cleaning for family rooms",
       price: 30.0 * 3, // 3x the Quick Clean price
       features: [
-        "Includes Quick Clean",
+        "Includes Essential Clean",
         "Furniture vacuuming",
         "Under furniture cleaning",
         "Baseboard dusting",
@@ -166,11 +166,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       ],
     },
     {
-      name: "PREMIUM",
+      name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for entertainment areas",
       price: 30.0 * 9, // 9x the Quick Clean price
       features: [
-        "Includes Deep Clean",
+        "Includes Advanced Clean",
         "Upholstery spot treatment",
         "Ceiling fan detailed cleaning",
         "Window sill detailing",
@@ -187,17 +187,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
   default: [
     {
-      name: "QUICK CLEAN",
+      name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for all spaces",
       price: 25.0,
       features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
     },
     {
-      name: "DEEP CLEAN",
+      name: "ADVANCED CLEAN",
       description: "Thorough cleaning for all spaces",
       price: 25.0 * 3, // 3x the Quick Clean price
       features: [
-        "Includes Quick Clean",
+        "Includes Essential Clean",
         "Detailed dusting",
         "Floor detailed cleaning",
         "Baseboard attention",
@@ -206,11 +206,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       ],
     },
     {
-      name: "PREMIUM",
+      name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for all spaces",
       price: 25.0 * 9, // 9x the Quick Clean price
       features: [
-        "Includes Deep Clean",
+        "Includes Advanced Clean",
         "Specialty surface treatment",
         "Detail work on fixtures",
         "Hard-to-reach areas",

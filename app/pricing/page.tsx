@@ -207,7 +207,7 @@ export default function PricingPage() {
   // Calculate tier upgrades
   const calculateTierUpgrades = () => {
     return roomConfigurations
-      .filter((config) => config.selectedTier !== "QUICK CLEAN")
+      .filter((config) => config.selectedTier !== "ESSENTIAL CLEAN")
       .map((config) => {
         const tiers = getRoomTiers(config.roomName)
         const baseTier = tiers[0]
@@ -346,8 +346,8 @@ export default function PricingPage() {
 
       <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger value="standard">Standard Cleaning</TabsTrigger>
-          <TabsTrigger value="detailing">Deep Detailing</TabsTrigger>
+          <TabsTrigger value="standard">Residential Services</TabsTrigger>
+          <TabsTrigger value="detailing">Commercial Services</TabsTrigger>
         </TabsList>
 
         <TabsContent value="standard" className="space-y-8">
@@ -488,7 +488,8 @@ export default function PricingPage() {
                     <RoomVisualization
                       roomType={roomDisplayNames[selectedRoomForMap]}
                       selectedTier={
-                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier || "QUICK CLEAN"
+                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
+                        "ESSENTIAL CLEAN"
                       }
                       selectedAddOns={roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedAddOns}
                     />
@@ -500,7 +501,8 @@ export default function PricingPage() {
                     <CleaningChecklist
                       roomType={roomDisplayNames[selectedRoomForMap]}
                       selectedTier={
-                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier || "QUICK CLEAN"
+                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
+                        "ESSENTIAL CLEAN"
                       }
                     />
                   </div>
@@ -525,7 +527,7 @@ export default function PricingPage() {
                         <CustomizationMatrix
                           roomName={roomDisplayNames[roomType]}
                           selectedTier={
-                            roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "QUICK CLEAN"
+                            roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "ESSENTIAL CLEAN"
                           }
                           addServices={getMatrixServices(roomType).add}
                           removeServices={getMatrixServices(roomType).remove}
@@ -695,11 +697,11 @@ export default function PricingPage() {
         <TabsContent value="detailing">
           <Card>
             <CardHeader>
-              <CardTitle>Deep Detailing Services</CardTitle>
-              <CardDescription>Our premium deep detailing services for thorough cleaning</CardDescription>
+              <CardTitle>Commercial Services</CardTitle>
+              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Content for deep detailing services will be implemented in future rounds.</p>
+              <p>Content for commercial services will be implemented in future rounds.</p>
             </CardContent>
           </Card>
         </TabsContent>

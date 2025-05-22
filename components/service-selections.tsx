@@ -13,18 +13,18 @@ export default function ServiceSelections() {
 
   const services = [
     {
-      name: "Standard Cleaning",
+      name: "Essential Clean",
       price: 99,
       description: "Perfect for regular maintenance cleaning",
       features: ["Dusting all surfaces", "Vacuuming floors", "Kitchen cleaning", "Bathroom sanitizing"],
       popular: false,
     },
     {
-      name: "Deep Cleaning",
+      name: "Advanced Clean",
       price: 199,
       description: "Thorough cleaning for neglected spaces",
       features: [
-        "Everything in Standard",
+        "Everything in Essential Clean",
         "Inside cabinet cleaning",
         "Baseboards and trim",
         "Window sills and tracks",
@@ -33,11 +33,11 @@ export default function ServiceSelections() {
       popular: true,
     },
     {
-      name: "Move-In/Out",
+      name: "Premium Clean",
       price: 299,
       description: "Complete cleaning for moving transitions",
       features: [
-        "Everything in Deep Cleaning",
+        "Everything in Advanced Clean",
         "Inside oven and fridge",
         "Inside all drawers",
         "Closet cleaning",
