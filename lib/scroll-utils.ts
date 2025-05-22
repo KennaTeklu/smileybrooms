@@ -221,3 +221,53 @@ export function applyAllScrollFixes() {
   fixScrollOnPageLoad()
   startPeriodicScrollCheck()
 }
+
+// Add the missing detectAndFixScrollIssues function
+export function detectAndFixScrollIssues() {
+  // Check if body scroll is locked
+  const isBodyScrollLocked =
+    document.body.style.overflow === "hidden" || document.documentElement.style.overflow === "hidden"
+
+  // Check for iOS specific issues
+  const hasIOSIssues =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) && document.documentElement.style.WebkitOverflowScrolling !== "touch"
+
+  // Check for Android specific issues
+  const hasAndroidIssues =
+    /Android/.test(navigator.userAgent) && document.documentElement.style.overscrollBehavior !== "none"
+
+  // Apply fixes based on detected issues
+  if (isBodyScrollLocked) {
+    enableBodyScroll()
+  }
+
+  if (hasIOSIssues) {
+    fixScrollOnIOS()
+  }
+
+  if (hasAndroidIssues) {
+    fixScrollOnAndroid()
+  }
+
+  // Check for drawer scroll issues
+  const drawers = document.querySelectorAll(".scrollable-container, [data-room-drawer]")
+  drawers.forEach((drawer) => {
+    if (drawer instanceof HTMLElement) {
+      const hasScrollIssue = drawer.style.overflow !== "auto" || drawer.scrollHeight <= drawer.clientHeight
+
+      if (hasScrollIssue) {
+        forceEnableScrolling(drawer)
+        ensureScrollableHeight(drawer)
+        preventScrollChaining(drawer)
+      }
+    }
+  })
+
+  // Return a summary of fixed issues
+  return {
+    fixedBodyScroll: isBodyScrollLocked,
+    fixedIOSIssues: hasIOSIssues,
+    fixedAndroidIssues: hasAndroidIssues,
+    fixedDrawers: drawers.length,
+  }
+}
