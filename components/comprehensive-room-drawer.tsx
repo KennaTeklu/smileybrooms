@@ -4,8 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,7 +13,6 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 import { ServiceMap } from "@/components/service-map"
@@ -88,15 +86,6 @@ export function ComprehensiveRoomDrawer({
   // State for expanded service maps
   const [expandedServiceMap, setExpandedServiceMap] = useState<string | null>(null)
 
-  // Check if we're on mobile
-  const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [isMounted, setIsMounted] = useState(false)
-
-  // Handle initial mount to prevent hydration mismatch
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
   // Calculate total price whenever selections change
   useEffect(() => {
     // Get base price from selected tier
@@ -167,7 +156,7 @@ export function ComprehensiveRoomDrawer({
     return "premium"
   }
 
-  // Content for both drawer and dialog
+  // Content for the drawer
   const content = (
     <Tabs defaultValue="cleaning-level" value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-4">
@@ -449,51 +438,19 @@ export function ComprehensiveRoomDrawer({
     </div>
   )
 
-  // Render either a drawer or dialog based on screen size
-  if (!isMounted) return null
-
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader className="pb-4 border-b">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{roomIcon}</span>
-              <DialogTitle className="text-xl">Customize {roomName}</DialogTitle>
-            </div>
-          </DialogHeader>
-
-          <ScrollArea className="flex-1 px-1 py-4 overflow-auto" style={{ maxHeight: "calc(90vh - 12rem)" }}>
-            {content}
-          </ScrollArea>
-
-          <DialogFooter className="flex justify-between items-center border-t pt-4 mt-4">
-            {priceSummary}
-            <div className="flex gap-2 ml-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave}>Save Changes</Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh] flex flex-col">
-        <DrawerHeader className="border-b">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 flex flex-col">
+        <SheetHeader className="p-6 border-b">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{roomIcon}</span>
-            <DrawerTitle className="text-xl">Customize {roomName}</DrawerTitle>
+            <SheetTitle className="text-xl">Customize {roomName}</SheetTitle>
           </div>
-        </DrawerHeader>
+        </SheetHeader>
 
-        <ScrollArea className="flex-1 px-4 py-4 max-h-[calc(90vh-12rem)]">{content}</ScrollArea>
+        <ScrollArea className="flex-1 p-6 overflow-auto">{content}</ScrollArea>
 
-        <DrawerFooter className="border-t pt-4">
+        <SheetFooter className="border-t p-6 flex-col items-stretch gap-4">
           {priceSummary}
           <div className="flex gap-2 w-full mt-4">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
@@ -503,8 +460,8 @@ export function ComprehensiveRoomDrawer({
               Save Changes
             </Button>
           </div>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }
