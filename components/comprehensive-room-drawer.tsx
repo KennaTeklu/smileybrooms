@@ -90,6 +90,12 @@ export function ComprehensiveRoomDrawer({
 
   // Check if we're on mobile
   const isDesktop = useMediaQuery("(min-width: 768px)")
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Handle initial mount to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Calculate total price whenever selections change
   useEffect(() => {
@@ -164,7 +170,7 @@ export function ComprehensiveRoomDrawer({
   // Content for both drawer and dialog
   const content = (
     <Tabs defaultValue="cleaning-level" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid grid-cols-4 mb-4">
+      <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-4">
         <TabsTrigger value="cleaning-level">Cleaning Level</TabsTrigger>
         <TabsTrigger value="customize">Customize</TabsTrigger>
         <TabsTrigger value="visualize">Visualize</TabsTrigger>
@@ -180,7 +186,7 @@ export function ComprehensiveRoomDrawer({
             <div key={tier.name} className="relative">
               <div
                 className={cn(
-                  "border rounded-lg p-4 transition-all",
+                  "border rounded-lg p-3 sm:p-4 transition-all",
                   selectedTier === tier.name
                     ? "border-blue-500 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
                     : "border-gray-200 dark:border-gray-800",
@@ -189,7 +195,7 @@ export function ComprehensiveRoomDrawer({
                 <div className="flex items-start">
                   <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
                   <div className="ml-3 flex-1">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                       <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
                         {tier.name}
                       </Label>
@@ -229,7 +235,7 @@ export function ComprehensiveRoomDrawer({
 
                 {/* Key Features */}
                 <div className="mt-2 pl-8">
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                     {tier.features.slice(0, 4).map((feature, i) => (
                       <li key={i} className="text-xs flex items-start">
                         <Check className="text-green-500 h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
@@ -242,13 +248,15 @@ export function ComprehensiveRoomDrawer({
 
               {/* Expandable Service Map */}
               {expandedServiceMap === tier.name && (
-                <div className="mt-2 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="mt-2 border rounded-lg p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50">
                   <h4 className="text-sm font-medium mb-2">Services Included in {tier.name}</h4>
-                  <ServiceMap
-                    roomName={roomName}
-                    categories={getServiceMap(roomType)}
-                    highlightTier={getTierHighlight(tier.name)}
-                  />
+                  <div className="overflow-auto">
+                    <ServiceMap
+                      roomName={roomName}
+                      categories={getServiceMap(roomType)}
+                      highlightTier={getTierHighlight(tier.name)}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -442,6 +450,8 @@ export function ComprehensiveRoomDrawer({
   )
 
   // Render either a drawer or dialog based on screen size
+  if (!isMounted) return null
+
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -453,7 +463,9 @@ export function ComprehensiveRoomDrawer({
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-1 py-4 max-h-[calc(90vh-12rem)]">{content}</ScrollArea>
+          <ScrollArea className="flex-1 px-1 py-4 overflow-auto" style={{ maxHeight: "calc(90vh - 12rem)" }}>
+            {content}
+          </ScrollArea>
 
           <DialogFooter className="flex justify-between items-center border-t pt-4 mt-4">
             {priceSummary}

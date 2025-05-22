@@ -126,7 +126,13 @@ export default function PricingPage() {
 
   // Open room customization drawer
   const openRoomCustomization = (roomType: string) => {
-    setCustomizingRoom(roomType)
+    // First close any open drawer to prevent UI issues
+    setCustomizingRoom(null)
+
+    // Use setTimeout to ensure the previous drawer is fully closed
+    setTimeout(() => {
+      setCustomizingRoom(roomType)
+    }, 100)
   }
 
   // Handle room customization save
