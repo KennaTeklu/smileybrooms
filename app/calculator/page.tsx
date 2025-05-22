@@ -33,7 +33,6 @@ export default function CalculatorPage() {
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [showStickyButton, setShowStickyButton] = useState(true)
   const [formDataForEmail, setFormDataForEmail] = useState<Record<string, any> | null>(null)
 
   const { addItem } = useCart()
@@ -238,7 +237,7 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky Cart Button */}
+      {/* Sticky Add to Cart Button */}
       {calculatedService && calculatedService.totalPrice > 0 && (
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
           <div className="flex items-center justify-between">

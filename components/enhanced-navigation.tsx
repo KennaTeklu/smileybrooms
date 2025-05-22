@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
-import CartButton from "./cart-button"
+import SingleCartButton from "./single-cart-button"
 
 // Define navigation items with their paths and icons
 const navigationItems = [
@@ -84,7 +84,7 @@ export default function EnhancedNavigation() {
             <Moon className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
           </Button>
 
-          <CartButton />
+          <SingleCartButton />
         </nav>
 
         {/* Mobile Navigation */}
@@ -101,7 +101,7 @@ export default function EnhancedNavigation() {
             <Moon className="h-4 w-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
           </Button>
 
-          <CartButton />
+          <SingleCartButton />
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>

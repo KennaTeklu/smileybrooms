@@ -1,11 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
 import { Sheet, SheetTrigger } from "@/components/ui/sheet"
 import { Cart } from "@/components/cart"
 
@@ -15,7 +15,7 @@ interface CartButtonProps {
   size?: "default" | "sm" | "lg" | "icon"
 }
 
-function CartButton({ className, variant = "outline", size = "default" }: CartButtonProps) {
+export default function SingleCartButton({ className, variant = "outline", size = "default" }: CartButtonProps) {
   const { cart } = useCart()
   const [isClient, setIsClient] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -59,6 +59,3 @@ function CartButton({ className, variant = "outline", size = "default" }: CartBu
     </Sheet>
   )
 }
-
-import CartButtonComponent from "@/components/main-cart-button"
-export default CartButtonComponent
