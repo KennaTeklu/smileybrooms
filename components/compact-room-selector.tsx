@@ -132,10 +132,11 @@ export function CompactRoomSelector({
             </div>
           </div>
 
+          {/* This is the customize button that was missing or not visible */}
           <Button
             variant="outline"
             size="sm"
-            className="w-full flex items-center justify-center gap-1 text-xs"
+            className="w-full flex items-center justify-center gap-1 text-xs mt-2"
             onClick={() => setIsCustomizing(true)}
           >
             <Settings className="h-3 w-3" />

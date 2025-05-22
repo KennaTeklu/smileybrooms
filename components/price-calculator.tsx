@@ -187,6 +187,70 @@ const sampleRoomTiers = {
       ],
     },
   ],
+  dining_room: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of main surfaces",
+      price: 44.99,
+      features: ["Dusting surfaces", "Vacuuming/mopping floors", "Table and chairs", "Emptying trash"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning including hard-to-reach areas",
+      price: 79.99,
+      features: [
+        "Everything in Essential Clean",
+        "Under furniture cleaning",
+        "Baseboards",
+        "Window sills",
+        "Light fixtures",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete top-to-bottom cleaning",
+      price: 119.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Furniture deep cleaning",
+        "Wall spot cleaning",
+        "Ceiling fans",
+        "China cabinet/hutch",
+      ],
+    },
+  ],
+  home_office: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of main surfaces",
+      price: 49.99,
+      features: ["Dusting surfaces", "Vacuuming floors", "Desk organization", "Emptying trash"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning including hard-to-reach areas",
+      price: 89.99,
+      features: [
+        "Everything in Essential Clean",
+        "Under furniture cleaning",
+        "Baseboards",
+        "Window sills",
+        "Light fixtures",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete top-to-bottom cleaning",
+      price: 129.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Furniture deep cleaning",
+        "Wall spot cleaning",
+        "Ceiling fans",
+        "Electronics dusting",
+      ],
+    },
+  ],
 }
 
 const sampleAddOns = {
@@ -234,6 +298,28 @@ const sampleAddOns = {
     },
     { id: "decor", name: "Decor Detailing", price: 30, description: "Detailed cleaning of decorative items" },
   ],
+  dining_room: [
+    { id: "table_polish", name: "Table Polishing", price: 25, description: "Premium wood polish for dining table" },
+    { id: "chair_clean", name: "Chair Deep Clean", price: 35, description: "Detailed cleaning of all chair surfaces" },
+    { id: "china", name: "China Cabinet", price: 40, description: "Cleaning inside and outside of china cabinet" },
+    { id: "chandelier", name: "Chandelier Cleaning", price: 45, description: "Detailed cleaning of light fixtures" },
+  ],
+  home_office: [
+    {
+      id: "desk_org",
+      name: "Desk Organization",
+      price: 30,
+      description: "Organize and clean desk surface and drawers",
+    },
+    {
+      id: "electronics",
+      name: "Electronics Cleaning",
+      price: 25,
+      description: "Careful cleaning of computer and peripherals",
+    },
+    { id: "bookshelf", name: "Bookshelf Detailing", price: 35, description: "Dust and organize bookshelves" },
+    { id: "filing", name: "Filing Cabinet", price: 20, description: "Clean exterior of filing cabinets" },
+  ],
 }
 
 const sampleReductions = {
@@ -267,21 +353,49 @@ const sampleReductions = {
     { id: "no_vacuum", name: "No Vacuuming", discount: 15, description: "Skip vacuuming of floors and rugs" },
     { id: "no_straighten", name: "No Straightening", discount: 5, description: "Skip straightening items and pillows" },
   ],
+  dining_room: [
+    { id: "no_table", name: "No Table", discount: 10, description: "Skip cleaning the dining table and chairs" },
+    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the dining room floor" },
+    { id: "no_decor", name: "No Decor", discount: 5, description: "Skip cleaning decorative items" },
+  ],
+  home_office: [
+    { id: "no_desk", name: "No Desk", discount: 10, description: "Skip cleaning the desk and work surfaces" },
+    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the office floor" },
+    {
+      id: "no_dusting",
+      name: "No Dusting",
+      discount: 10,
+      description: "Skip dusting of surfaces and decorative items",
+    },
+  ],
 }
 
 // Helper function to get room data for any room type
 const getRoomData = (roomId: string) => {
-  // Default to bedroom if the specific room type isn't found
-  const defaultRoomType = "bedroom"
+  // Map room IDs to keys in our sample data
+  const roomTypeMap: Record<string, string> = {
+    bedroom: "bedroom",
+    bathroom: "bathroom",
+    kitchen: "kitchen",
+    living_room: "living_room",
+    dining_room: "dining_room",
+    home_office: "home_office",
+    laundry_room: "bedroom", // Fallback to bedroom data
+    entryway: "living_room", // Fallback to living room data
+    hallway: "living_room", // Fallback to living room data
+    stairs: "living_room", // Fallback to living room data
+  }
+
+  const roomType = roomTypeMap[roomId] || "bedroom" // Default to bedroom if not found
 
   // Get tiers
-  const tiers = sampleRoomTiers[roomId as keyof typeof sampleRoomTiers] || sampleRoomTiers[defaultRoomType]
+  const tiers = sampleRoomTiers[roomType as keyof typeof sampleRoomTiers] || sampleRoomTiers.bedroom
 
   // Get add-ons
-  const addOns = sampleAddOns[roomId as keyof typeof sampleAddOns] || sampleAddOns[defaultRoomType]
+  const addOns = sampleAddOns[roomType as keyof typeof sampleAddOns] || sampleAddOns.bedroom
 
   // Get reductions
-  const reductions = sampleReductions[roomId as keyof typeof sampleReductions] || sampleReductions[defaultRoomType]
+  const reductions = sampleReductions[roomType as keyof typeof sampleReductions] || sampleReductions.bedroom
 
   return {
     tiers,
