@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Info, DollarSign, Clock, Sparkles, Settings } from "lucide-react"
 import { ServiceMap } from "@/components/service-map"
 import { getServiceMap } from "@/lib/service-maps"
 import { RoomVisualization } from "@/components/room-visualization"
@@ -91,6 +91,7 @@ export function ComprehensiveRoomDrawer({
   const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig.selectedReductions || [])
   const [totalPrice, setTotalPrice] = useState(initialConfig.totalPrice || baseTier.price)
   const [activeTab, setActiveTab] = useState("cleaning-level")
+  const [specialRequirements, setSpecialRequirements] = useState("")
 
   // State for expanded service maps
   const [expandedServiceMap, setExpandedServiceMap] = useState<string | null>(null)
@@ -141,6 +142,9 @@ export function ComprehensiveRoomDrawer({
         ensureScrollableHeight(contentRef.current)
         preventScrollChaining(contentRef.current)
       }
+
+      // Add class to body to indicate drawer is open
+      document.body.classList.add("drawer-open")
     } else {
       // Restore scroll position when drawer closes
       if (scrollRestoreFn.current) {
@@ -149,6 +153,9 @@ export function ComprehensiveRoomDrawer({
 
       // Ensure body scroll is enabled
       enableBodyScroll()
+
+      // Remove class from body
+      document.body.classList.remove("drawer-open")
     }
 
     // Cleanup function
@@ -157,6 +164,7 @@ export function ComprehensiveRoomDrawer({
       if (scrollRestoreFn.current) {
         scrollRestoreFn.current()
       }
+      document.body.classList.remove("drawer-open")
     }
   }, [open])
 
@@ -207,26 +215,48 @@ export function ComprehensiveRoomDrawer({
     return "premium"
   }
 
+  // Get tier icon based on name
+  const getTierIcon = (tierName: string) => {
+    if (tierName.toLowerCase().includes("premium")) return <Sparkles className="h-4 w-4 text-red-500" />
+    if (tierName.toLowerCase().includes("deep")) return <Clock className="h-4 w-4 text-purple-500" />
+    return <DollarSign className="h-4 w-4 text-green-500" />
+  }
+
   // Content for the drawer
   const content = (
     <Tabs defaultValue="cleaning-level" value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-4">
-        <TabsTrigger value="cleaning-level">Cleaning Level</TabsTrigger>
-        <TabsTrigger value="customize">Customize</TabsTrigger>
-        <TabsTrigger value="visualize">Visualize</TabsTrigger>
-        <TabsTrigger value="checklist">Checklist</TabsTrigger>
+      <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-6 sticky top-0 bg-background z-10">
+        <TabsTrigger value="cleaning-level" className="flex items-center gap-1">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Cleaning Level</span>
+        </TabsTrigger>
+        <TabsTrigger value="customize" className="flex items-center gap-1">
+          <Settings className="h-3.5 w-3.5" />
+          <span>Customize</span>
+        </TabsTrigger>
+        <TabsTrigger value="visualize" className="flex items-center gap-1">
+          <Info className="h-3.5 w-3.5" />
+          <span>Visualize</span>
+        </TabsTrigger>
+        <TabsTrigger value="checklist" className="flex items-center gap-1">
+          <Check className="h-3.5 w-3.5" />
+          <span>Checklist</span>
+        </TabsTrigger>
       </TabsList>
 
       {/* Cleaning Level Tab */}
       <TabsContent value="cleaning-level" className="space-y-4">
-        <div className="text-sm text-gray-500 mb-2">Select your preferred cleaning level for {roomName}</div>
+        <div className="text-sm text-gray-500 mb-4 bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
+          Select your preferred cleaning level for {roomName}. Higher tiers include all services from lower tiers plus
+          additional services.
+        </div>
 
         <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-4">
           {tiers.map((tier) => (
             <div key={tier.name} className="relative">
               <div
                 className={cn(
-                  "border rounded-lg p-3 sm:p-4 transition-all",
+                  "border rounded-lg p-4 transition-all",
                   selectedTier === tier.name
                     ? "border-blue-500 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
                     : "border-gray-200 dark:border-gray-800",
@@ -236,7 +266,8 @@ export function ComprehensiveRoomDrawer({
                   <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
                   <div className="ml-3 flex-1">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                      <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
+                      <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base flex items-center gap-1">
+                        {getTierIcon(tier.name)}
                         {tier.name}
                       </Label>
                       <Badge
@@ -247,6 +278,7 @@ export function ComprehensiveRoomDrawer({
                               ? "secondary"
                               : "default"
                         }
+                        className="px-2 py-1"
                       >
                         ${tier.price.toFixed(2)}
                       </Badge>
@@ -288,7 +320,7 @@ export function ComprehensiveRoomDrawer({
 
               {/* Expandable Service Map */}
               {expandedServiceMap === tier.name && (
-                <div className="mt-2 border rounded-lg p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="mt-2 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
                   <h4 className="text-sm font-medium mb-2">Services Included in {tier.name}</h4>
                   <div className="overflow-auto">
                     <ServiceMap
@@ -309,13 +341,16 @@ export function ComprehensiveRoomDrawer({
         {/* Add-ons Section */}
         {addOns.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-3">Add-on Services</h3>
+            <h3 className="text-lg font-medium mb-3 flex items-center gap-1">
+              <Sparkles className="h-4 w-4 text-green-500" />
+              Add-on Services
+            </h3>
             <div className="space-y-3">
               {addOns.map((addOn) => (
                 <div
                   key={addOn.id}
                   className={cn(
-                    "border rounded-lg p-3 transition-all",
+                    "border rounded-lg p-4 transition-all",
                     selectedAddOns.includes(addOn.id)
                       ? "border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-900/20"
                       : "border-gray-200 dark:border-gray-800",
@@ -349,13 +384,16 @@ export function ComprehensiveRoomDrawer({
         {/* Reductions Section */}
         {reductions.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-3">Skip Services (Save Money)</h3>
+            <h3 className="text-lg font-medium mb-3 flex items-center gap-1">
+              <DollarSign className="h-4 w-4 text-red-500" />
+              Skip Services (Save Money)
+            </h3>
             <div className="space-y-3">
               {reductions.map((reduction) => (
                 <div
                   key={reduction.id}
                   className={cn(
-                    "border rounded-lg p-3 transition-all",
+                    "border rounded-lg p-4 transition-all",
                     selectedReductions.includes(reduction.id)
                       ? "border-red-500 bg-red-50 dark:border-red-700 dark:bg-red-900/20"
                       : "border-gray-200 dark:border-gray-800",
@@ -391,10 +429,15 @@ export function ComprehensiveRoomDrawer({
 
         {/* Special Requirements */}
         <div>
-          <h3 className="text-lg font-medium mb-3">Special Requirements</h3>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-1">
+            <Info className="h-4 w-4 text-blue-500" />
+            Special Requirements
+          </h3>
           <textarea
             className="w-full p-3 border rounded-md h-24 text-sm"
             placeholder={`E.g., Pay special attention to the ceiling fan in the ${roomName.toLowerCase()}, don't move the desk, etc.`}
+            value={specialRequirements}
+            onChange={(e) => setSpecialRequirements(e.target.value)}
           />
         </div>
       </TabsContent>
@@ -402,7 +445,7 @@ export function ComprehensiveRoomDrawer({
       {/* Visualize Tab */}
       <TabsContent value="visualize">
         <div className="space-y-4">
-          <div className="text-sm text-gray-500 mb-2">
+          <div className="text-sm text-gray-500 mb-4 bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
             See how your {roomName.toLowerCase()} will look with your selected cleaning level
           </div>
           <RoomVisualization roomType={roomType} selectedTier={selectedTier} selectedAddOns={selectedAddOns} />
@@ -412,7 +455,7 @@ export function ComprehensiveRoomDrawer({
       {/* Checklist Tab */}
       <TabsContent value="checklist">
         <div className="space-y-4">
-          <div className="text-sm text-gray-500 mb-2">
+          <div className="text-sm text-gray-500 mb-4 bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
             Detailed checklist of tasks included in your {roomName.toLowerCase()} cleaning
           </div>
           <CleaningChecklist roomType={roomName} selectedTier={selectedTier} />
@@ -427,7 +470,10 @@ export function ComprehensiveRoomDrawer({
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="price-breakdown" className="border-b-0">
           <AccordionTrigger className="py-2">
-            <span className="text-sm font-medium">Price Breakdown</span>
+            <span className="text-sm font-medium flex items-center gap-1">
+              <DollarSign className="h-4 w-4" />
+              Price Breakdown
+            </span>
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-1 text-sm">
@@ -495,7 +541,7 @@ export function ComprehensiveRoomDrawer({
         side="right"
         className="w-full sm:max-w-md md:max-w-lg lg:max-w-xl p-0 flex flex-col scrollable-container"
       >
-        <SheetHeader className="p-6 border-b">
+        <SheetHeader className="p-6 border-b sticky top-0 z-20 bg-background">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{roomIcon}</span>
             <SheetTitle className="text-xl">Customize {roomName}</SheetTitle>
@@ -506,7 +552,7 @@ export function ComprehensiveRoomDrawer({
           {content}
         </ScrollArea>
 
-        <SheetFooter className="border-t p-6 flex-col items-stretch gap-4">
+        <SheetFooter className="border-t p-6 flex-col items-stretch gap-4 sticky bottom-0 z-20 bg-background">
           {priceSummary}
           <div className="flex gap-2 w-full mt-4">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>

@@ -6,16 +6,10 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Settings } from "lucide-react"
-import { Minus, Plus } from "lucide-react"
+import { Settings, Minus, Plus, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-  RoomCustomizationDrawer,
-  type RoomConfiguration,
-  type RoomTier,
-  type RoomAddOn,
-  type RoomReduction,
-} from "./room-customization-drawer"
+import type { RoomConfiguration, RoomTier, RoomAddOn, RoomReduction } from "./room-customization-drawer"
+import { ComprehensiveRoomDrawer } from "./comprehensive-room-drawer"
 
 interface CompactRoomSelectorProps {
   roomId: string
@@ -110,8 +104,8 @@ export function CompactRoomSelector({
             </div>
 
             {/* Counter and customize button in a vertical layout */}
-            <div className="flex flex-col items-center">
-              <div className="flex items-center space-x-2 mb-1">
+            <div className="flex flex-col items-end">
+              <div className="flex items-center space-x-2 mb-2">
                 <Button
                   variant="outline"
                   size="icon"
@@ -139,11 +133,12 @@ export function CompactRoomSelector({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs px-2 py-1 h-6 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                  className="text-xs px-3 py-1 h-7 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/10 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 flex items-center"
                   onClick={() => setIsCustomizing(true)}
                 >
                   <Settings className="h-3 w-3 mr-1" />
                   Customize
+                  <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               )}
             </div>
@@ -173,9 +168,10 @@ export function CompactRoomSelector({
         </CardContent>
       </Card>
 
-      <RoomCustomizationDrawer
+      <ComprehensiveRoomDrawer
         open={isCustomizing}
         onOpenChange={setIsCustomizing}
+        roomType={roomId}
         roomName={roomName}
         roomIcon={roomIcon}
         baseTier={baseTier}
