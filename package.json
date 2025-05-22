@@ -60,7 +60,6 @@
     "react-dom": "^19",
     "react-hook-form": "latest",
     "react-intersection-observer": "latest",
-    "react-number-format": "latest",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",

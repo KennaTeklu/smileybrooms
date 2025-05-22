@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useToast } from "@/components/ui/use-toast"
-import { PatternFormat } from "react-number-format"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowRight } from "lucide-react"
 
@@ -142,22 +141,13 @@ export function CheckoutForm({ onSubmit, isLoading = false }: CheckoutFormProps)
             <FormField
               control={form.control}
               name="phone"
-              render={({ field: { onChange, value, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>
                     Phone Number <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <PatternFormat
-                      format="(###) ###-####"
-                      customInput={Input}
-                      onValueChange={(values) => {
-                        onChange(values.value)
-                      }}
-                      value={value}
-                      placeholder="(555) 123-4567"
-                      {...field}
-                    />
+                    <Input placeholder="(555) 123-4567" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -217,23 +207,13 @@ export function CheckoutForm({ onSubmit, isLoading = false }: CheckoutFormProps)
             <FormField
               control={form.control}
               name="zipCode"
-              render={({ field: { onChange, value, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>
                     ZIP Code <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <PatternFormat
-                      format="#####-####"
-                      mask="_"
-                      customInput={Input}
-                      onValueChange={(values) => {
-                        onChange(values.value)
-                      }}
-                      value={value}
-                      placeholder="12345"
-                      {...field}
-                    />
+                    <Input placeholder="12345" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
