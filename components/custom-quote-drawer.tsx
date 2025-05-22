@@ -30,6 +30,7 @@ import {
   Mail,
   Copy,
   Check,
+  Info,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -45,6 +46,13 @@ interface CustomQuoteDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
+
+// Required field indicator component
+const RequiredIndicator = () => (
+  <span className="text-red-500 ml-0.5" aria-hidden="true">
+    *
+  </span>
+)
 
 export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps) {
   const [formData, setFormData] = useState({
@@ -93,6 +101,9 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
     agreeToTerms: false,
   })
 
+  // Track validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const { isMobile } = useDeviceDetection()
   const [step, setStep] = useState(1)
@@ -103,6 +114,15 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
       ...prev,
       [field]: value,
     }))
+
+    // Clear error for this field when it's changed
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
 
     // Show emergency fields if emergency response is selected
     if (field === "emergencyResponse") {
@@ -228,8 +248,100 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
 `.trim()
   }
 
+  // Validate the current step
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: Record<string, string> = {}
+    let isValid = true
+
+    switch (currentStep) {
+      case 1: // Contact Information
+        if (!formData.name.trim()) {
+          newErrors.name = "Name is required"
+          isValid = false
+        }
+
+        if (!formData.email.trim()) {
+          newErrors.email = "Email is required"
+          isValid = false
+        } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+          newErrors.email = "Please enter a valid email address"
+          isValid = false
+        }
+
+        if (!formData.phone.trim()) {
+          newErrors.phone = "Phone number is required"
+          isValid = false
+        }
+
+        if (!formData.address.trim()) {
+          newErrors.address = "Address is required"
+          isValid = false
+        }
+
+        if (!formData.city.trim()) {
+          newErrors.city = "City is required"
+          isValid = false
+        }
+
+        if (!formData.state) {
+          newErrors.state = "State is required"
+          isValid = false
+        }
+
+        if (!formData.zip.trim()) {
+          newErrors.zip = "ZIP code is required"
+          isValid = false
+        }
+        break
+
+      case 3: // Service Details
+        if (formData.emergencyResponse) {
+          if (!formData.damageExtent) {
+            newErrors.damageExtent = "Please select the extent of damage"
+            isValid = false
+          }
+        }
+        break
+
+      case 4: // Scheduling & Preferences
+        if (!formData.urgencyLevel) {
+          newErrors.urgencyLevel = "Please select an urgency level"
+          isValid = false
+        }
+
+        if (!formData.contactPreference) {
+          newErrors.contactPreference = "Please select a contact preference"
+          isValid = false
+        }
+
+        if (!formData.agreeToTerms) {
+          newErrors.agreeToTerms = "You must agree to the terms and conditions"
+          isValid = false
+        }
+        break
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate all steps before submission
+    const step1Valid = validateStep(1)
+    const step3Valid = validateStep(3)
+    const step4Valid = validateStep(4)
+
+    if (!step1Valid) {
+      setStep(1)
+      return
+    } else if (!step3Valid) {
+      setStep(3)
+      return
+    } else if (!step4Valid) {
+      return
+    }
 
     // Format the data into a readable message
     const message = formatFormData()
@@ -268,7 +380,10 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
   }
 
   const nextStep = () => {
-    setStep(step + 1)
+    // Validate current step before proceeding
+    if (validateStep(step)) {
+      setStep(step + 1)
+    }
   }
 
   const prevStep = () => {
@@ -286,82 +401,163 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
             </h3>
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="flex items-center">
+                  Full Name
+                  <RequiredIndicator />
+                </Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   placeholder="John Doe"
+                  className={errors.name ? "border-red-500" : ""}
                   required
                 />
+                {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="flex items-center">
+                  Email Address
+                  <RequiredIndicator />
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   placeholder="john@example.com"
+                  className={errors.email ? "border-red-500" : ""}
                   required
                 />
+                {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="flex items-center">
+                  Phone Number
+                  <RequiredIndicator />
+                </Label>
                 <Input
                   id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
                   placeholder="(123) 456-7890"
+                  className={errors.phone ? "border-red-500" : ""}
                   required
                 />
+                {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
+                <Label htmlFor="address" className="flex items-center">
+                  Street Address
+                  <RequiredIndicator />
+                </Label>
                 <Input
                   id="address"
                   value={formData.address}
                   onChange={(e) => handleChange("address", e.target.value)}
                   placeholder="123 Main St"
+                  className={errors.address ? "border-red-500" : ""}
                   required
                 />
+                {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city" className="flex items-center">
+                    City
+                    <RequiredIndicator />
+                  </Label>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => handleChange("city", e.target.value)}
                     placeholder="City"
+                    className={errors.city ? "border-red-500" : ""}
                     required
                   />
+                  {errors.city && <p className="text-sm text-red-500">{errors.city}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
+                  <Label htmlFor="state" className="flex items-center">
+                    State
+                    <RequiredIndicator />
+                  </Label>
                   <Select value={formData.state} onValueChange={(value) => handleChange("state", value)}>
-                    <SelectTrigger id="state">
+                    <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="AL">Alabama</SelectItem>
                       <SelectItem value="AK">Alaska</SelectItem>
                       <SelectItem value="AZ">Arizona</SelectItem>
-                      {/* Add other states */}
+                      <SelectItem value="AR">Arkansas</SelectItem>
+                      <SelectItem value="CA">California</SelectItem>
+                      <SelectItem value="CO">Colorado</SelectItem>
+                      <SelectItem value="CT">Connecticut</SelectItem>
+                      <SelectItem value="DE">Delaware</SelectItem>
+                      <SelectItem value="FL">Florida</SelectItem>
+                      <SelectItem value="GA">Georgia</SelectItem>
+                      <SelectItem value="HI">Hawaii</SelectItem>
+                      <SelectItem value="ID">Idaho</SelectItem>
+                      <SelectItem value="IL">Illinois</SelectItem>
+                      <SelectItem value="IN">Indiana</SelectItem>
+                      <SelectItem value="IA">Iowa</SelectItem>
+                      <SelectItem value="KS">Kansas</SelectItem>
+                      <SelectItem value="KY">Kentucky</SelectItem>
+                      <SelectItem value="LA">Louisiana</SelectItem>
+                      <SelectItem value="ME">Maine</SelectItem>
+                      <SelectItem value="MD">Maryland</SelectItem>
+                      <SelectItem value="MA">Massachusetts</SelectItem>
+                      <SelectItem value="MI">Michigan</SelectItem>
+                      <SelectItem value="MN">Minnesota</SelectItem>
+                      <SelectItem value="MS">Mississippi</SelectItem>
+                      <SelectItem value="MO">Missouri</SelectItem>
+                      <SelectItem value="MT">Montana</SelectItem>
+                      <SelectItem value="NE">Nebraska</SelectItem>
+                      <SelectItem value="NV">Nevada</SelectItem>
+                      <SelectItem value="NH">New Hampshire</SelectItem>
+                      <SelectItem value="NJ">New Jersey</SelectItem>
+                      <SelectItem value="NM">New Mexico</SelectItem>
+                      <SelectItem value="NY">New York</SelectItem>
+                      <SelectItem value="NC">North Carolina</SelectItem>
+                      <SelectItem value="ND">North Dakota</SelectItem>
+                      <SelectItem value="OH">Ohio</SelectItem>
+                      <SelectItem value="OK">Oklahoma</SelectItem>
+                      <SelectItem value="OR">Oregon</SelectItem>
+                      <SelectItem value="PA">Pennsylvania</SelectItem>
+                      <SelectItem value="RI">Rhode Island</SelectItem>
+                      <SelectItem value="SC">South Carolina</SelectItem>
+                      <SelectItem value="SD">South Dakota</SelectItem>
+                      <SelectItem value="TN">Tennessee</SelectItem>
+                      <SelectItem value="TX">Texas</SelectItem>
+                      <SelectItem value="UT">Utah</SelectItem>
+                      <SelectItem value="VT">Vermont</SelectItem>
+                      <SelectItem value="VA">Virginia</SelectItem>
+                      <SelectItem value="WA">Washington</SelectItem>
+                      <SelectItem value="WV">West Virginia</SelectItem>
+                      <SelectItem value="WI">Wisconsin</SelectItem>
+                      <SelectItem value="WY">Wyoming</SelectItem>
+                      <SelectItem value="DC">District of Columbia</SelectItem>
                     </SelectContent>
                   </Select>
+                  {errors.state && <p className="text-sm text-red-500">{errors.state}</p>}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="zip">ZIP Code</Label>
+                <Label htmlFor="zip" className="flex items-center">
+                  ZIP Code
+                  <RequiredIndicator />
+                </Label>
                 <Input
                   id="zip"
                   value={formData.zip}
                   onChange={(e) => handleChange("zip", e.target.value)}
                   placeholder="12345"
+                  className={errors.zip ? "border-red-500" : ""}
                   required
                 />
+                {errors.zip && <p className="text-sm text-red-500">{errors.zip}</p>}
               </div>
             </div>
           </div>
@@ -375,7 +571,10 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
             </h3>
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label>Property Type</Label>
+                <Label className="flex items-center">
+                  Property Type
+                  <RequiredIndicator />
+                </Label>
                 <RadioGroup
                   value={formData.propertyType}
                   onValueChange={(value) => handleChange("propertyType", value)}
@@ -445,7 +644,10 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
             </h3>
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label>Primary Service Type</Label>
+                <Label className="flex items-center">
+                  Primary Service Type
+                  <RequiredIndicator />
+                </Label>
                 <RadioGroup
                   value={formData.serviceType}
                   onValueChange={(value) => handleChange("serviceType", value)}
@@ -587,12 +789,15 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                   </h4>
 
                   <div className="space-y-2">
-                    <Label htmlFor="damageExtent">Extent of Damage</Label>
+                    <Label htmlFor="damageExtent" className="flex items-center">
+                      Extent of Damage
+                      <RequiredIndicator />
+                    </Label>
                     <Select
                       value={formData.damageExtent}
                       onValueChange={(value) => handleChange("damageExtent", value)}
                     >
-                      <SelectTrigger id="damageExtent">
+                      <SelectTrigger id="damageExtent" className={errors.damageExtent ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select damage extent" />
                       </SelectTrigger>
                       <SelectContent>
@@ -602,6 +807,7 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                         <SelectItem value="critical">Critical - Entire property affected</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.damageExtent && <p className="text-sm text-red-500">{errors.damageExtent}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -694,9 +900,12 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="urgencyLevel">Urgency Level</Label>
+                <Label htmlFor="urgencyLevel" className="flex items-center">
+                  Urgency Level
+                  <RequiredIndicator />
+                </Label>
                 <Select value={formData.urgencyLevel} onValueChange={(value) => handleChange("urgencyLevel", value)}>
-                  <SelectTrigger id="urgencyLevel">
+                  <SelectTrigger id="urgencyLevel" className={errors.urgencyLevel ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select urgency level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -706,10 +915,14 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                     <SelectItem value="flexible">Flexible - Anytime in the next 2 weeks</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.urgencyLevel && <p className="text-sm text-red-500">{errors.urgencyLevel}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>How would you prefer to be contacted?</Label>
+                <Label className="flex items-center">
+                  How would you prefer to be contacted?
+                  <RequiredIndicator />
+                </Label>
                 <RadioGroup
                   value={formData.contactPreference}
                   onValueChange={(value) => handleChange("contactPreference", value)}
@@ -734,6 +947,7 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                     </Label>
                   </div>
                 </RadioGroup>
+                {errors.contactPreference && <p className="text-sm text-red-500">{errors.contactPreference}</p>}
               </div>
 
               <div className="space-y-2">
@@ -757,12 +971,15 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                   id="terms"
                   checked={formData.agreeToTerms}
                   onCheckedChange={(checked) => handleChange("agreeToTerms", checked === true)}
+                  className={errors.agreeToTerms ? "border-red-500 data-[state=checked]:bg-red-500" : ""}
                   required
                 />
-                <Label htmlFor="terms" className="text-sm">
+                <Label htmlFor="terms" className="text-sm flex items-center">
                   I agree to the terms and conditions and privacy policy
+                  <RequiredIndicator />
                 </Label>
               </div>
+              {errors.agreeToTerms && <p className="text-sm text-red-500">{errors.agreeToTerms}</p>}
             </div>
           </div>
         )
@@ -813,7 +1030,14 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
         <form onSubmit={handleSubmit} className="space-y-6">
           {renderStepIndicator()}
 
-          <ScrollArea className={isDesktop ? "h-[calc(100vh-280px)]" : "h-[calc(100vh-260px)]"} type="always">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md mb-4 flex items-start gap-2 text-sm">
+            <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <p className="text-blue-700 dark:text-blue-300">
+              Fields marked with a <span className="text-red-500">*</span> are required.
+            </p>
+          </div>
+
+          <ScrollArea className={isDesktop ? "h-[calc(100vh-340px)]" : "h-[calc(100vh-320px)]"} type="always">
             <div className="space-y-6 pr-4">{renderStepContent()}</div>
           </ScrollArea>
 
