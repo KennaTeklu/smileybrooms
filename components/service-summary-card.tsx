@@ -5,8 +5,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
-import { ShoppingCart, ArrowRight } from "lucide-react"
+import { ShoppingCart, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
 
 interface TierUpgrade {
   roomName: string
@@ -34,8 +35,9 @@ interface ServiceSummaryCardProps {
   serviceFee: number
   frequencyDiscount: number
   totalPrice: number
-  onBookNow: () => void
+  onAddToCart: () => void
   hasItems: boolean
+  serviceName?: string
 }
 
 export function ServiceSummaryCard({
@@ -46,10 +48,12 @@ export function ServiceSummaryCard({
   serviceFee,
   frequencyDiscount,
   totalPrice,
-  onBookNow,
+  onAddToCart,
   hasItems,
+  serviceName = "Service",
 }: ServiceSummaryCardProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
   // Calculate subtotal before discount
@@ -63,12 +67,22 @@ export function ServiceSummaryCard({
   // Calculate discount amount
   const discountAmount = subtotal * (frequencyDiscount / 100)
 
-  const handleBookNow = () => {
+  const handleAddToCart = () => {
     if (!hasItems) {
       return
     }
     setIsLoading(true)
-    onBookNow()
+
+    // Call the provided onAddToCart function
+    onAddToCart()
+
+    // Show success notification
+    toast({
+      title: "Added to cart",
+      description: `${serviceName} has been added to your cart`,
+      duration: 3000,
+    })
+
     setIsLoading(false)
   }
 
@@ -151,9 +165,9 @@ export function ServiceSummaryCard({
         </div>
       </CardContent>
       <CardFooter className="flex flex-col space-y-2">
-        <Button className="w-full py-6 text-lg" size="lg" onClick={handleBookNow} disabled={isLoading || !hasItems}>
-          {isLoading ? "Processing..." : hasItems ? "Book Now" : "No Services Selected"}
-          {!isLoading && hasItems && <ArrowRight className="ml-2 h-4 w-4" />}
+        <Button className="w-full py-6 text-lg" size="lg" onClick={handleAddToCart} disabled={isLoading || !hasItems}>
+          {isLoading ? "Adding..." : hasItems ? "Add to Cart" : "No Services Selected"}
+          {!isLoading && hasItems && <Plus className="ml-2 h-4 w-4" />}
         </Button>
         {hasItems && (
           <Button variant="outline" className="w-full" onClick={handleViewCart}>
