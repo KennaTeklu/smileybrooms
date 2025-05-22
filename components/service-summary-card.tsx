@@ -43,15 +43,15 @@ interface ServiceSummaryCardProps {
 }
 
 export function ServiceSummaryCard({
-  basePrice,
-  tierUpgrades,
-  addOns,
-  reductions,
-  serviceFee,
-  frequencyDiscount,
-  totalPrice,
+  basePrice = 0,
+  tierUpgrades = [],
+  addOns = [],
+  reductions = [],
+  serviceFee = 0,
+  frequencyDiscount = 0,
+  totalPrice = 0,
   onAddToCart,
-  hasItems,
+  hasItems = false,
   serviceName = "Cleaning Service",
   frequency = "one_time",
 }: ServiceSummaryCardProps) {
@@ -59,15 +59,15 @@ export function ServiceSummaryCard({
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
-  // Calculate subtotal before discount
-  const tierUpgradesTotal = tierUpgrades.reduce((sum, item) => sum + item.price, 0)
-  const addOnsTotal = addOns.reduce((sum, item) => sum + item.price, 0)
-  const reductionsTotal = reductions.reduce((sum, item) => sum + item.discount, 0)
+  // Calculate subtotal before discount using the passed values
+  const tierUpgradesTotal = tierUpgrades.reduce((sum, item) => sum + (item.price || 0), 0)
+  const addOnsTotal = addOns.reduce((sum, item) => sum + (item.price || 0), 0)
+  const reductionsTotal = reductions.reduce((sum, item) => sum + (item.discount || 0), 0)
 
-  const subtotal = basePrice + tierUpgradesTotal + addOnsTotal - reductionsTotal + serviceFee
+  const subtotal = (basePrice || 0) + tierUpgradesTotal + addOnsTotal - reductionsTotal + (serviceFee || 0)
 
   // Calculate discount amount
-  const discountAmount = subtotal * (frequencyDiscount / 100)
+  const discountAmount = subtotal * ((frequencyDiscount || 0) / 100)
 
   const handleAddToCart = () => {
     if (!hasItems) {
@@ -94,10 +94,12 @@ export function ServiceSummaryCard({
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
         <div className="space-y-2">
-          <div className="flex justify-between">
-            <span>Base Price (Essential Clean)</span>
-            <span>{formatCurrency(basePrice)}</span>
-          </div>
+          {basePrice > 0 && (
+            <div className="flex justify-between">
+              <span>Base Price (Essential Clean)</span>
+              <span>{formatCurrency(basePrice)}</span>
+            </div>
+          )}
 
           {tierUpgrades.length > 0 && (
             <>
@@ -108,7 +110,7 @@ export function ServiceSummaryCard({
                     {upgrade.roomName} ({upgrade.tierName})
                     {upgrade.multiplier && upgrade.multiplier > 1 && ` (${upgrade.multiplier}x)`}
                   </span>
-                  <span>+{formatCurrency(upgrade.price)}</span>
+                  <span>+{formatCurrency(upgrade.price || 0)}</span>
                 </div>
               ))}
             </>
@@ -122,7 +124,7 @@ export function ServiceSummaryCard({
                   <span>
                     {addon.roomName} ({addon.name})
                   </span>
-                  <span>+{formatCurrency(addon.price)}</span>
+                  <span>+{formatCurrency(addon.price || 0)}</span>
                 </div>
               ))}
             </>
@@ -136,16 +138,18 @@ export function ServiceSummaryCard({
                   <span>
                     {reduction.roomName} (No {reduction.name})
                   </span>
-                  <span>-{formatCurrency(reduction.discount)}</span>
+                  <span>-{formatCurrency(reduction.discount || 0)}</span>
                 </div>
               ))}
             </>
           )}
 
-          <div className="flex justify-between">
-            <span>Service Fee</span>
-            <span>{formatCurrency(serviceFee)}</span>
-          </div>
+          {serviceFee > 0 && (
+            <div className="flex justify-between">
+              <span>Service Fee</span>
+              <span>{formatCurrency(serviceFee)}</span>
+            </div>
+          )}
 
           {frequencyDiscount > 0 && (
             <div className="flex justify-between text-green-600">
@@ -159,7 +163,7 @@ export function ServiceSummaryCard({
 
         <div className="flex justify-between font-bold text-lg">
           <span>Total</span>
-          <span>{formatCurrency(totalPrice)}</span>
+          <span>{formatCurrency(totalPrice || 0)}</span>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col space-y-2">
