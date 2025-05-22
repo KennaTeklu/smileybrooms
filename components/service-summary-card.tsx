@@ -8,6 +8,8 @@ import { formatCurrency } from "@/lib/utils"
 import { ShoppingCart, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ChevronDown, ChevronUp, CheckCircle } from "lucide-react"
 
 interface TierUpgrade {
   roomName: string
@@ -58,6 +60,7 @@ export function ServiceSummaryCard({
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [isIncludedOpen, setIsIncludedOpen] = useState(false)
 
   // Calculate subtotal before discount using the passed values
   const tierUpgradesTotal = tierUpgrades.reduce((sum, item) => sum + (item.price || 0), 0)
@@ -158,6 +161,52 @@ export function ServiceSummaryCard({
             </div>
           )}
         </div>
+
+        {hasItems && (
+          <div className="mt-4">
+            <Collapsible open={isIncludedOpen} onOpenChange={setIsIncludedOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm font-medium text-left bg-gray-50 dark:bg-gray-800/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  What's Included
+                </span>
+                {isIncludedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Essential cleaning services for selected rooms</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Professional cleaning supplies and equipment</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Trained and insured cleaning professionals</span>
+                  </div>
+                  {tierUpgrades.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                      <span>Enhanced cleaning services for upgraded tiers</span>
+                    </div>
+                  )}
+                  {addOns.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                      <span>Additional services as selected</span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Quality guarantee and customer support</span>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
 
         <Separator />
 
