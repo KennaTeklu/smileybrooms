@@ -137,7 +137,6 @@ export function CompactRoomSelector({
             size="sm"
             className="w-full flex items-center justify-center gap-1 text-xs"
             onClick={() => setIsCustomizing(true)}
-            disabled={count === 0}
           >
             <Settings className="h-3 w-3" />
             Customize

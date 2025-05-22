@@ -123,6 +123,70 @@ const sampleRoomTiers = {
       ],
     },
   ],
+  kitchen: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of main surfaces",
+      price: 59.99,
+      features: ["Countertops", "Sink", "Stovetop", "Floor sweeping/mopping"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning of all surfaces",
+      price: 99.99,
+      features: [
+        "Everything in Essential Clean",
+        "Inside microwave",
+        "Cabinet exteriors",
+        "Appliance exteriors",
+        "Detailed fixtures",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete deep cleaning",
+      price: 149.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Inside refrigerator",
+        "Inside oven",
+        "Cabinet interiors",
+        "Detailed appliance cleaning",
+      ],
+    },
+  ],
+  living_room: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of main surfaces",
+      price: 49.99,
+      features: ["Dusting surfaces", "Vacuuming floors", "Straightening items", "Emptying trash"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning including hard-to-reach areas",
+      price: 89.99,
+      features: [
+        "Everything in Essential Clean",
+        "Under furniture cleaning",
+        "Baseboards",
+        "Window sills",
+        "Light fixtures",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete top-to-bottom cleaning",
+      price: 129.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Furniture deep cleaning",
+        "Wall spot cleaning",
+        "Ceiling fans",
+        "Detailed decor cleaning",
+      ],
+    },
+  ],
 }
 
 const sampleAddOns = {
@@ -153,6 +217,23 @@ const sampleAddOns = {
     { id: "mold", name: "Mold Treatment", price: 40, description: "Mold and mildew removal and prevention" },
     { id: "cabinet_org", name: "Cabinet Organization", price: 35, description: "Clean and organize bathroom cabinets" },
   ],
+  kitchen: [
+    { id: "fridge", name: "Refrigerator Cleaning", price: 35, description: "Complete interior and exterior cleaning" },
+    { id: "oven", name: "Oven Cleaning", price: 40, description: "Deep cleaning of oven interior and racks" },
+    { id: "cabinets", name: "Cabinet Detailing", price: 45, description: "Interior and exterior cabinet cleaning" },
+    { id: "pantry", name: "Pantry Organization", price: 30, description: "Clean and organize pantry shelves" },
+  ],
+  living_room: [
+    { id: "upholstery", name: "Upholstery Cleaning", price: 50, description: "Deep clean of sofas and chairs" },
+    { id: "carpet", name: "Carpet Treatment", price: 45, description: "Deep carpet cleaning and stain removal" },
+    {
+      id: "electronics",
+      name: "Electronics Cleaning",
+      price: 25,
+      description: "Careful cleaning of TV and electronics",
+    },
+    { id: "decor", name: "Decor Detailing", price: 30, description: "Detailed cleaning of decorative items" },
+  ],
 }
 
 const sampleReductions = {
@@ -171,6 +252,43 @@ const sampleReductions = {
     { id: "no_floor", name: "No Floor", discount: 10, description: "Skip cleaning the bathroom floor" },
     { id: "no_mirror", name: "No Mirrors", discount: 5, description: "Skip cleaning mirrors and glass surfaces" },
   ],
+  kitchen: [
+    { id: "no_appliances", name: "No Appliances", discount: 20, description: "Skip cleaning appliance exteriors" },
+    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the kitchen floor" },
+    { id: "no_cabinets", name: "No Cabinets", discount: 10, description: "Skip cleaning cabinet exteriors" },
+  ],
+  living_room: [
+    {
+      id: "no_dusting",
+      name: "No Dusting",
+      discount: 10,
+      description: "Skip dusting of surfaces and decorative items",
+    },
+    { id: "no_vacuum", name: "No Vacuuming", discount: 15, description: "Skip vacuuming of floors and rugs" },
+    { id: "no_straighten", name: "No Straightening", discount: 5, description: "Skip straightening items and pillows" },
+  ],
+}
+
+// Helper function to get room data for any room type
+const getRoomData = (roomId: string) => {
+  // Default to bedroom if the specific room type isn't found
+  const defaultRoomType = "bedroom"
+
+  // Get tiers
+  const tiers = sampleRoomTiers[roomId as keyof typeof sampleRoomTiers] || sampleRoomTiers[defaultRoomType]
+
+  // Get add-ons
+  const addOns = sampleAddOns[roomId as keyof typeof sampleAddOns] || sampleAddOns[defaultRoomType]
+
+  // Get reductions
+  const reductions = sampleReductions[roomId as keyof typeof sampleReductions] || sampleReductions[defaultRoomType]
+
+  return {
+    tiers,
+    addOns,
+    reductions,
+    baseTier: tiers[0],
+  }
 }
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
@@ -193,7 +311,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
   const [totalPrice, setTotalPrice] = useState(0)
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
 
   // Media query for responsive design
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -290,31 +407,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     return Object.values(selectedRooms).some((count) => count > 0)
   }
 
-  // Function to toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
-  }
-
-  // Check if a section is expanded
-  const isSectionExpanded = (section: string) => {
-    return expandedSections.includes(section)
-  }
-
-  // Get room tiers for a specific room type
-  const getRoomTiers = (roomId: string) => {
-    return sampleRoomTiers[roomId as keyof typeof sampleRoomTiers] || sampleRoomTiers.bedroom
-  }
-
-  // Get room add-ons for a specific room type
-  const getRoomAddOns = (roomId: string) => {
-    return sampleAddOns[roomId as keyof typeof sampleAddOns] || sampleAddOns.bedroom
-  }
-
-  // Get room reductions for a specific room type
-  const getRoomReductions = (roomId: string) => {
-    return sampleReductions[roomId as keyof typeof sampleReductions] || sampleReductions.bedroom
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto">
       <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
@@ -350,23 +442,26 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 {roomTypes
                   .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => (
-                    <CompactRoomSelector
-                      key={room.id}
-                      roomId={room.id}
-                      roomName={room.name}
-                      roomIcon={room.icon}
-                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                      count={selectedRooms[room.id] || 0}
-                      onCountChange={handleRoomCountChange}
-                      baseTier={getRoomTiers(room.id)[0]}
-                      tiers={getRoomTiers(room.id)}
-                      addOns={getRoomAddOns(room.id)}
-                      reductions={getRoomReductions(room.id)}
-                      onConfigChange={handleRoomConfigChange}
-                      initialConfig={roomConfigurations[room.id]}
-                    />
-                  ))}
+                  .map((room) => {
+                    const roomData = getRoomData(room.id)
+                    return (
+                      <CompactRoomSelector
+                        key={room.id}
+                        roomId={room.id}
+                        roomName={room.name}
+                        roomIcon={room.icon}
+                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                        count={selectedRooms[room.id] || 0}
+                        onCountChange={handleRoomCountChange}
+                        baseTier={roomData.baseTier}
+                        tiers={roomData.tiers}
+                        addOns={roomData.addOns}
+                        reductions={roomData.reductions}
+                        onConfigChange={handleRoomConfigChange}
+                        initialConfig={roomConfigurations[room.id]}
+                      />
+                    )
+                  })}
               </div>
 
               <div className="border-b pb-2 mb-4">
@@ -376,23 +471,26 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {roomTypes
                   .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => (
-                    <CompactRoomSelector
-                      key={room.id}
-                      roomId={room.id}
-                      roomName={room.name}
-                      roomIcon={room.icon}
-                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                      count={selectedRooms[room.id] || 0}
-                      onCountChange={handleRoomCountChange}
-                      baseTier={getRoomTiers(room.id)[0]}
-                      tiers={getRoomTiers(room.id)}
-                      addOns={getRoomAddOns(room.id)}
-                      reductions={getRoomReductions(room.id)}
-                      onConfigChange={handleRoomConfigChange}
-                      initialConfig={roomConfigurations[room.id]}
-                    />
-                  ))}
+                  .map((room) => {
+                    const roomData = getRoomData(room.id)
+                    return (
+                      <CompactRoomSelector
+                        key={room.id}
+                        roomId={room.id}
+                        roomName={room.name}
+                        roomIcon={room.icon}
+                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                        count={selectedRooms[room.id] || 0}
+                        onCountChange={handleRoomCountChange}
+                        baseTier={roomData.baseTier}
+                        tiers={roomData.tiers}
+                        addOns={roomData.addOns}
+                        reductions={roomData.reductions}
+                        onConfigChange={handleRoomConfigChange}
+                        initialConfig={roomConfigurations[room.id]}
+                      />
+                    )
+                  })}
               </div>
 
               <div className="mt-4 pt-4 border-t">
@@ -502,23 +600,26 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 {roomTypes
                   .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => (
-                    <CompactRoomSelector
-                      key={room.id}
-                      roomId={room.id}
-                      roomName={room.name}
-                      roomIcon={room.icon}
-                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                      count={selectedRooms[room.id] || 0}
-                      onCountChange={handleRoomCountChange}
-                      baseTier={getRoomTiers(room.id)[0]}
-                      tiers={getRoomTiers(room.id)}
-                      addOns={getRoomAddOns(room.id)}
-                      reductions={getRoomReductions(room.id)}
-                      onConfigChange={handleRoomConfigChange}
-                      initialConfig={roomConfigurations[room.id]}
-                    />
-                  ))}
+                  .map((room) => {
+                    const roomData = getRoomData(room.id)
+                    return (
+                      <CompactRoomSelector
+                        key={room.id}
+                        roomId={room.id}
+                        roomName={room.name}
+                        roomIcon={room.icon}
+                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                        count={selectedRooms[room.id] || 0}
+                        onCountChange={handleRoomCountChange}
+                        baseTier={roomData.baseTier}
+                        tiers={roomData.tiers}
+                        addOns={roomData.addOns}
+                        reductions={roomData.reductions}
+                        onConfigChange={handleRoomConfigChange}
+                        initialConfig={roomConfigurations[room.id]}
+                      />
+                    )
+                  })}
               </div>
 
               <div className="border-b pb-2 mb-4">
@@ -528,23 +629,26 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {roomTypes
                   .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => (
-                    <CompactRoomSelector
-                      key={room.id}
-                      roomId={room.id}
-                      roomName={room.name}
-                      roomIcon={room.icon}
-                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                      count={selectedRooms[room.id] || 0}
-                      onCountChange={handleRoomCountChange}
-                      baseTier={getRoomTiers(room.id)[0]}
-                      tiers={getRoomTiers(room.id)}
-                      addOns={getRoomAddOns(room.id)}
-                      reductions={getRoomReductions(room.id)}
-                      onConfigChange={handleRoomConfigChange}
-                      initialConfig={roomConfigurations[room.id]}
-                    />
-                  ))}
+                  .map((room) => {
+                    const roomData = getRoomData(room.id)
+                    return (
+                      <CompactRoomSelector
+                        key={room.id}
+                        roomId={room.id}
+                        roomName={room.name}
+                        roomIcon={room.icon}
+                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                        count={selectedRooms[room.id] || 0}
+                        onCountChange={handleRoomCountChange}
+                        baseTier={roomData.baseTier}
+                        tiers={roomData.tiers}
+                        addOns={roomData.addOns}
+                        reductions={roomData.reductions}
+                        onConfigChange={handleRoomConfigChange}
+                        initialConfig={roomConfigurations[room.id]}
+                      />
+                    )
+                  })}
               </div>
 
               <div className="mt-4 pt-4 border-t">

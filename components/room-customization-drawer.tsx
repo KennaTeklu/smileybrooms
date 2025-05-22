@@ -6,7 +6,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -305,9 +304,9 @@ export function RoomCustomizationDrawer({
                 <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
               </div>
               <div className="flex gap-2">
-                <DrawerClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DrawerClose>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
                 <Button onClick={handleSave}>Apply Changes</Button>
               </div>
             </div>
