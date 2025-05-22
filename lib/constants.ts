@@ -25,3 +25,31 @@ export const ROOM_CONFIG = {
   },
   serviceFee: 50,
 }
+
+export const TIER_PRICES = {
+  essential: 0,
+  advanced: 15,
+  premium: 30,
+}
+
+export const ADD_ON_PRICES = {
+  inside_fridge: 25,
+  inside_oven: 20,
+  inside_cabinets: 30,
+  garage_organization: 50,
+  basement_cleaning: 40,
+  attic_cleaning: 35,
+}
+
+export const REDUCTION_PRICES = {
+  bring_own_supplies: -10,
+  eco_friendly_discount: -5,
+  senior_discount: -15,
+  student_discount: -10,
+}
+
+export const SERVICE_AREAS = ["Downtown", "Midtown", "Uptown", "Suburbs", "Metro Area"]
+
+export const PAYMENT_METHODS = ["credit_card", "debit_card", "paypal", "apple_pay", "google_pay"] as const
+
+export const BOOKING_STATUSES = ["pending", "confirmed", "in_progress", "completed", "cancelled"] as const

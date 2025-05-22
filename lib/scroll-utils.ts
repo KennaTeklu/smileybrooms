@@ -1,273 +1,180 @@
-/**
- * Utility functions for managing scroll behavior
- */
-
-// 1. Enable body scroll
-export function enableBodyScroll() {
-  document.body.style.overflow = "auto"
-  document.body.style.position = "relative"
-  document.body.style.height = "auto"
-  document.body.style.width = "auto"
-  document.documentElement.style.overflow = "auto"
-}
-
-// 2. Prevent body scroll lock
-export function preventBodyScrollLock() {
-  const scrollY = window.scrollY
-
-  // Store the current scroll position
-  document.body.style.top = `-${scrollY}px`
-
-  // Function to restore scroll position
-  return () => {
-    document.body.style.top = ""
-    window.scrollTo(0, scrollY)
+export function lockScroll() {
+  if (typeof window !== "undefined") {
+    document.body.style.overflow = "hidden"
+    document.body.style.paddingRight = getScrollbarWidth() + "px"
   }
 }
 
-// 3. Force enable scrolling on an element
-export function forceEnableScrolling(element: HTMLElement) {
-  element.style.overflow = "auto"
-  element.style.WebkitOverflowScrolling = "touch"
-  element.style.overscrollBehavior = "contain"
-}
-
-// 4. Reset iOS overscroll behavior
-export function resetIOSOverscroll() {
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-    document.documentElement.style.WebkitOverflowScrolling = "touch"
+export function unlockScroll() {
+  if (typeof window !== "undefined") {
+    document.body.style.overflow = ""
+    document.body.style.paddingRight = ""
   }
 }
 
-// 5. Ensure scrollable height
-export function ensureScrollableHeight(element: HTMLElement) {
-  // Make sure the element has a proper height for scrolling
-  if (element.scrollHeight <= element.clientHeight) {
-    element.style.minHeight = "100%"
-  }
+export function getScrollbarWidth(): number {
+  if (typeof window === "undefined") return 0
+
+  const outer = document.createElement("div")
+  outer.style.visibility = "hidden"
+  outer.style.overflow = "scroll"
+  outer.style.msOverflowStyle = "scrollbar"
+  document.body.appendChild(outer)
+
+  const inner = document.createElement("div")
+  outer.appendChild(inner)
+
+  const scrollbarWidth = outer.offsetWidth - inner.offsetWidth
+  outer.parentNode?.removeChild(outer)
+
+  return scrollbarWidth
 }
 
-// 6. Fix Android overscroll
-export function fixAndroidOverscroll() {
-  if (/Android/.test(navigator.userAgent)) {
-    document.documentElement.style.overscrollBehavior = "none"
-    document.body.style.overscrollBehavior = "none"
+export function smoothScrollTo(element: HTMLElement, offset = 0) {
+  if (typeof window === "undefined") return
 
-    // Restore after a short delay
-    setTimeout(() => {
-      document.documentElement.style.overscrollBehavior = "auto"
-      document.body.style.overscrollBehavior = "auto"
-    }, 300)
-  }
+  const elementPosition = element.offsetTop
+  const offsetPosition = elementPosition - offset
+
+  window.scrollTo({
+    top: offsetPosition,
+    behavior: "smooth",
+  })
 }
 
-// 7. Prevent scroll chaining
-export function preventScrollChaining(element: HTMLElement) {
-  element.addEventListener(
-    "touchmove",
-    (e) => {
-      // Check if the element is at the top or bottom
-      if (
-        (element.scrollTop === 0 && e.touches[0].clientY > 0) ||
-        (element.scrollHeight - element.scrollTop === element.clientHeight && e.touches[0].clientY < 0)
-      ) {
-        e.preventDefault()
-      }
-    },
-    { passive: false },
+export function isElementInViewport(element: HTMLElement): boolean {
+  if (typeof window === "undefined") return false
+
+  const rect = element.getBoundingClientRect()
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
   )
 }
 
-// 8. Ensure keyboard scrollable
-export function ensureKeyboardScrollable(element: HTMLElement) {
-  element.tabIndex = 0
-  element.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown") {
-      element.scrollTop += 40
-      e.preventDefault()
-    } else if (e.key === "ArrowUp") {
-      element.scrollTop -= 40
-      e.preventDefault()
-    }
-  })
-}
+export function getScrollPosition(): { x: number; y: number } {
+  if (typeof window === "undefined") return { x: 0, y: 0 }
 
-// 9. Maintain scroll position
-export function maintainScrollPosition() {
-  const scrollY = window.scrollY
-
-  // Return a function to restore the scroll position
-  return () => {
-    window.scrollTo(0, scrollY)
-  }
-}
-
-// 10. Ensure all drawers are scrollable
-export function ensureAllDrawersScrollable() {
-  const drawers = document.querySelectorAll(".scrollable-container")
-  drawers.forEach((drawer) => {
-    if (drawer instanceof HTMLElement) {
-      forceEnableScrolling(drawer)
-      ensureScrollableHeight(drawer)
-      preventScrollChaining(drawer)
-    }
-  })
-}
-
-// 11. Fix scroll on all rooms
-export function fixScrollOnAllRooms() {
-  // Apply scroll fixes to all room drawers
-  document.querySelectorAll("[data-room-drawer]").forEach((drawer) => {
-    if (drawer instanceof HTMLElement) {
-      forceEnableScrolling(drawer)
-      ensureScrollableHeight(drawer)
-      preventScrollChaining(drawer)
-    }
-  })
-}
-
-// 12. Ensure main content scrolls
-export function ensureMainContentScrolls() {
-  const main = document.querySelector("main")
-  if (main instanceof HTMLElement) {
-    forceEnableScrolling(main)
-  }
-}
-
-// 13. Fix scroll on iOS
-export function fixScrollOnIOS() {
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-    document.documentElement.style.height = "100%"
-    document.body.style.height = "100%"
-    document.documentElement.style.WebkitOverflowScrolling = "touch"
-    document.body.style.WebkitOverflowScrolling = "touch"
-  }
-}
-
-// 14. Fix scroll on Android
-export function fixScrollOnAndroid() {
-  if (/Android/.test(navigator.userAgent)) {
-    document.documentElement.style.height = "100%"
-    document.body.style.height = "100%"
-    document.documentElement.style.overscrollBehavior = "none"
-    document.body.style.overscrollBehavior = "none"
-  }
-}
-
-// 15. Ensure scroll works on all browsers
-export function ensureScrollWorksOnAllBrowsers() {
-  // Apply fixes for different browsers
-  fixScrollOnIOS()
-  fixScrollOnAndroid()
-
-  // General fixes
-  document.documentElement.style.overflow = "auto"
-  document.body.style.overflow = "auto"
-  document.documentElement.style.height = "auto"
-  document.body.style.height = "auto"
-}
-
-// 16. Periodic scroll check
-export function startPeriodicScrollCheck() {
-  // Check every second if scrolling is disabled and re-enable it
-  const interval = setInterval(() => {
-    if (document.body.style.overflow === "hidden") {
-      enableBodyScroll()
-    }
-  }, 1000)
-
-  // Return a function to stop the interval
-  return () => clearInterval(interval)
-}
-
-// 17. Fix scroll on window resize
-export function fixScrollOnWindowResize() {
-  window.addEventListener("resize", () => {
-    enableBodyScroll()
-    ensureAllDrawersScrollable()
-    fixScrollOnAllRooms()
-  })
-}
-
-// 18. Fix scroll on orientation change
-export function fixScrollOnOrientationChange() {
-  window.addEventListener("orientationchange", () => {
-    setTimeout(() => {
-      enableBodyScroll()
-      ensureAllDrawersScrollable()
-      fixScrollOnAllRooms()
-    }, 300)
-  })
-}
-
-// 19. Fix scroll on page load
-export function fixScrollOnPageLoad() {
-  window.addEventListener("load", () => {
-    enableBodyScroll()
-    ensureAllDrawersScrollable()
-    fixScrollOnAllRooms()
-    ensureScrollWorksOnAllBrowsers()
-  })
-}
-
-// 20. Apply all scroll fixes
-export function applyAllScrollFixes() {
-  enableBodyScroll()
-  ensureAllDrawersScrollable()
-  fixScrollOnAllRooms()
-  ensureScrollWorksOnAllBrowsers()
-  fixScrollOnWindowResize()
-  fixScrollOnOrientationChange()
-  fixScrollOnPageLoad()
-  startPeriodicScrollCheck()
-}
-
-// Add the missing detectAndFixScrollIssues function
-export function detectAndFixScrollIssues() {
-  // Check if body scroll is locked
-  const isBodyScrollLocked =
-    document.body.style.overflow === "hidden" || document.documentElement.style.overflow === "hidden"
-
-  // Check for iOS specific issues
-  const hasIOSIssues =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && document.documentElement.style.WebkitOverflowScrolling !== "touch"
-
-  // Check for Android specific issues
-  const hasAndroidIssues =
-    /Android/.test(navigator.userAgent) && document.documentElement.style.overscrollBehavior !== "none"
-
-  // Apply fixes based on detected issues
-  if (isBodyScrollLocked) {
-    enableBodyScroll()
-  }
-
-  if (hasIOSIssues) {
-    fixScrollOnIOS()
-  }
-
-  if (hasAndroidIssues) {
-    fixScrollOnAndroid()
-  }
-
-  // Check for drawer scroll issues
-  const drawers = document.querySelectorAll(".scrollable-container, [data-room-drawer]")
-  drawers.forEach((drawer) => {
-    if (drawer instanceof HTMLElement) {
-      const hasScrollIssue = drawer.style.overflow !== "auto" || drawer.scrollHeight <= drawer.clientHeight
-
-      if (hasScrollIssue) {
-        forceEnableScrolling(drawer)
-        ensureScrollableHeight(drawer)
-        preventScrollChaining(drawer)
-      }
-    }
-  })
-
-  // Return a summary of fixed issues
   return {
-    fixedBodyScroll: isBodyScrollLocked,
-    fixedIOSIssues: hasIOSIssues,
-    fixedAndroidIssues: hasAndroidIssues,
-    fixedDrawers: drawers.length,
+    x: window.pageXOffset || document.documentElement.scrollLeft,
+    y: window.pageYOffset || document.documentElement.scrollTop,
+  }
+}
+
+export function setScrollPosition(x: number, y: number) {
+  if (typeof window === "undefined") return
+
+  window.scrollTo(x, y)
+}
+
+export function detectAndFixScrollIssues(): {
+  fixed: string[]
+  issues: string[]
+} {
+  const fixed: string[] = []
+  const issues: string[] = []
+
+  if (typeof window === "undefined") {
+    return { fixed, issues }
+  }
+
+  try {
+    // Check if body scroll is locked
+    const bodyStyle = window.getComputedStyle(document.body)
+    if (bodyStyle.overflow === "hidden") {
+      document.body.style.overflow = ""
+      fixed.push("Unlocked body scroll")
+    }
+
+    // Check for iOS scroll issues
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    if (isIOS) {
+      // Fix iOS momentum scrolling
+      document.body.style.webkitOverflowScrolling = "touch"
+      fixed.push("Applied iOS momentum scrolling fix")
+
+      // Fix iOS scroll bounce
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (e.target === document.body) {
+            e.preventDefault()
+          }
+        },
+        { passive: false },
+      )
+      fixed.push("Applied iOS scroll bounce fix")
+    }
+
+    // Check for Android scroll issues
+    const isAndroid = /Android/.test(navigator.userAgent)
+    if (isAndroid) {
+      // Fix Android scroll performance
+      document.body.style.transform = "translateZ(0)"
+      fixed.push("Applied Android scroll performance fix")
+    }
+
+    // Check for scrollable containers without proper overflow
+    const scrollableElements = document.querySelectorAll("[data-scrollable]")
+    scrollableElements.forEach((element) => {
+      const style = window.getComputedStyle(element as HTMLElement)
+      if (style.overflow === "visible") {
+        ;(element as HTMLElement).style.overflow = "auto"
+        fixed.push(`Fixed overflow for scrollable element: ${element.tagName}`)
+      }
+    })
+
+    // Check for elements with scroll but no scrollbar
+    const elementsWithScroll = document.querySelectorAll("*")
+    elementsWithScroll.forEach((element) => {
+      const el = element as HTMLElement
+      if (el.scrollHeight > el.clientHeight && el.scrollWidth === el.clientWidth) {
+        const style = window.getComputedStyle(el)
+        if (style.overflowY === "hidden") {
+          issues.push(`Element has scrollable content but hidden overflow: ${el.tagName}`)
+        }
+      }
+    })
+
+    // Fix common scroll restoration issues
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual"
+      fixed.push("Set scroll restoration to manual")
+    }
+
+    // Check for conflicting scroll event listeners
+    const scrollEvents = (window as any)._scrollEventListeners || []
+    if (scrollEvents.length > 10) {
+      issues.push(`High number of scroll event listeners detected: ${scrollEvents.length}`)
+    }
+  } catch (error) {
+    issues.push(`Error during scroll issue detection: ${error}`)
+  }
+
+  return { fixed, issues }
+}
+
+export function debounceScroll(func: Function, wait = 16) {
+  let timeout: NodeJS.Timeout
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+  }
+}
+
+export function throttleScroll(func: Function, limit = 16) {
+  let inThrottle: boolean
+  return function executedFunction(...args: any[]) {
+    if (!inThrottle) {
+      func.apply(this, args)
+      inThrottle = true
+      setTimeout(() => (inThrottle = false), limit)
+    }
   }
 }

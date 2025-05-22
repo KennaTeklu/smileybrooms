@@ -1,143 +1,229 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useToast } from "@/components/ui/use-toast"
+import type React from "react"
+import { createContext, useContext, useReducer, useEffect } from "react"
 
-// Define the cart item type
 export interface CartItem {
   id: string
   name: string
   price: number
   quantity: number
-  image?: string
-  type?: string
-  details?: Record<string, any>
+  type: "service" | "room" | "addon" | "reduction"
+  details?: {
+    rooms?: Record<string, any>
+    frequency?: string
+    tier?: string
+    addOns?: string[]
+    reductions?: string[]
+    totalRooms?: number
+    basePrice?: number
+    tierUpgrade?: number
+    addOnPrice?: number
+    reductionPrice?: number
+    frequencyMultiplier?: number
+    serviceFee?: number
+  }
 }
 
-// Define the cart context type
-interface CartContextType {
-  cart: {
-    items: CartItem[]
+interface CartState {
+  items: CartItem[]
+  isOpen: boolean
+  lastAddedItem?: CartItem
+}
+
+type CartAction =
+  | { type: "ADD_ITEM"; payload: CartItem }
+  | { type: "REMOVE_ITEM"; payload: string }
+  | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
+  | { type: "CLEAR_CART" }
+  | { type: "TOGGLE_CART" }
+  | { type: "OPEN_CART" }
+  | { type: "CLOSE_CART" }
+  | { type: "SET_LAST_ADDED"; payload: CartItem }
+
+const cartReducer = (state: CartState, action: CartAction): CartState => {
+  switch (action.type) {
+    case "ADD_ITEM":
+      const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
+      if (existingItemIndex > -1) {
+        const updatedItems = [...state.items]
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + action.payload.quantity,
+          price: action.payload.price, // Update with new price
+        }
+        return {
+          ...state,
+          items: updatedItems,
+          lastAddedItem: action.payload,
+        }
+      }
+      return {
+        ...state,
+        items: [...state.items, action.payload],
+        lastAddedItem: action.payload,
+      }
+
+    case "REMOVE_ITEM":
+      return {
+        ...state,
+        items: state.items.filter((item) => item.id !== action.payload),
+      }
+
+    case "UPDATE_QUANTITY":
+      return {
+        ...state,
+        items: state.items
+          .map((item) =>
+            item.id === action.payload.id ? { ...item, quantity: Math.max(0, action.payload.quantity) } : item,
+          )
+          .filter((item) => item.quantity > 0),
+      }
+
+    case "CLEAR_CART":
+      return {
+        ...state,
+        items: [],
+      }
+
+    case "TOGGLE_CART":
+      return {
+        ...state,
+        isOpen: !state.isOpen,
+      }
+
+    case "OPEN_CART":
+      return {
+        ...state,
+        isOpen: true,
+      }
+
+    case "CLOSE_CART":
+      return {
+        ...state,
+        isOpen: false,
+      }
+
+    case "SET_LAST_ADDED":
+      return {
+        ...state,
+        lastAddedItem: action.payload,
+      }
+
+    default:
+      return state
   }
+}
+
+interface CartContextType {
+  items: CartItem[]
+  isOpen: boolean
+  lastAddedItem?: CartItem
   addItem: (item: CartItem) => void
-  removeItem: (itemId: string) => void
-  updateItemQuantity: (itemId: string, quantity: number) => void
+  removeItem: (id: string) => void
+  updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
+  toggleCart: () => void
+  openCart: () => void
+  closeCart: () => void
   getCartTotal: () => number
   getItemCount: () => number
+  setLastAddedItem: (item: CartItem) => void
 }
 
-// Create the cart context
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-// Create a provider component
-export function CartProvider({ children }: { children: ReactNode }) {
-  // Initialize cart state
-  const [cart, setCart] = useState<{ items: CartItem[] }>({ items: [] })
-  const { toast } = useToast()
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(cartReducer, {
+    items: [],
+    isOpen: false,
+  })
 
-  // Load cart from localStorage on component mount
+  // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart")
-      if (savedCart) {
-        setCart(JSON.parse(savedCart))
+    const savedCart = localStorage.getItem("smiley-brooms-cart")
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart)
+        parsedCart.items?.forEach((item: CartItem) => {
+          dispatch({ type: "ADD_ITEM", payload: item })
+        })
+      } catch (error) {
+        console.error("Error loading cart from localStorage:", error)
       }
-    } catch (error) {
-      console.error("Failed to load cart from localStorage:", error)
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Failed to save cart to localStorage:", error)
-    }
-  }, [cart])
+    localStorage.setItem(
+      "smiley-brooms-cart",
+      JSON.stringify({
+        items: state.items,
+        timestamp: Date.now(),
+      }),
+    )
+  }, [state.items])
 
-  // Add an item to the cart
   const addItem = (item: CartItem) => {
-    setCart((prevCart) => {
-      // Check if the item already exists in the cart
-      const existingItemIndex = prevCart.items.findIndex((i) => i.id === item.id)
-
-      if (existingItemIndex >= 0) {
-        // Update the existing item
-        const updatedItems = [...prevCart.items]
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + item.quantity,
-        }
-        return { ...prevCart, items: updatedItems }
-      } else {
-        // Add the new item
-        return { ...prevCart, items: [...prevCart.items, item] }
-      }
-    })
-
-    // Show toast notification
-    if (toast) {
-      toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart`,
-        duration: 3000,
-      })
-    }
+    dispatch({ type: "ADD_ITEM", payload: item })
   }
 
-  // Remove an item from the cart
-  const removeItem = (itemId: string) => {
-    setCart((prevCart) => ({
-      ...prevCart,
-      items: prevCart.items.filter((item) => item.id !== itemId),
-    }))
+  const removeItem = (id: string) => {
+    dispatch({ type: "REMOVE_ITEM", payload: id })
   }
 
-  // Update the quantity of an item in the cart
-  const updateItemQuantity = (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(itemId)
-      return
-    }
-
-    setCart((prevCart) => ({
-      ...prevCart,
-      items: prevCart.items.map((item) => (item.id === itemId ? { ...item, quantity } : item)),
-    }))
+  const updateQuantity = (id: string, quantity: number) => {
+    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
   }
 
-  // Clear the cart
   const clearCart = () => {
-    setCart({ items: [] })
+    dispatch({ type: "CLEAR_CART" })
   }
 
-  // Calculate the total price of all items in the cart
+  const toggleCart = () => {
+    dispatch({ type: "TOGGLE_CART" })
+  }
+
+  const openCart = () => {
+    dispatch({ type: "OPEN_CART" })
+  }
+
+  const closeCart = () => {
+    dispatch({ type: "CLOSE_CART" })
+  }
+
   const getCartTotal = () => {
-    return cart.items.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0)
+    return state.items.reduce((total, item) => total + item.price * item.quantity, 0)
   }
 
-  // Get the total number of items in the cart
   const getItemCount = () => {
-    return cart.items.reduce((count, item) => count + (item.quantity || 1), 0)
+    return state.items.reduce((count, item) => count + item.quantity, 0)
   }
 
-  // Create the context value
-  const contextValue: CartContextType = {
-    cart,
+  const setLastAddedItem = (item: CartItem) => {
+    dispatch({ type: "SET_LAST_ADDED", payload: item })
+  }
+
+  const value: CartContextType = {
+    items: state.items,
+    isOpen: state.isOpen,
+    lastAddedItem: state.lastAddedItem,
     addItem,
     removeItem,
-    updateItemQuantity,
+    updateQuantity,
     clearCart,
+    toggleCart,
+    openCart,
+    closeCart,
     getCartTotal,
     getItemCount,
+    setLastAddedItem,
   }
 
-  return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 
-// Create a hook to use the cart context
 export function useCart() {
   const context = useContext(CartContext)
   if (context === undefined) {

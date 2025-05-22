@@ -19,6 +19,212 @@ export interface RoomReduction {
   discount: number
 }
 
+export interface TierFeatures {
+  name: string
+  description: string
+  features: string[]
+  price: number
+  popular?: boolean
+}
+
+export const TIER_FEATURES: Record<string, TierFeatures> = {
+  essential: {
+    name: "Essential Clean",
+    description: "Basic cleaning for everyday maintenance",
+    features: [
+      "Dusting surfaces",
+      "Vacuuming carpets",
+      "Mopping floors",
+      "Basic bathroom cleaning",
+      "Kitchen counter cleaning",
+      "Trash removal",
+    ],
+    price: 0,
+  },
+  advanced: {
+    name: "Advanced Clean",
+    description: "Deep cleaning with attention to detail",
+    features: [
+      "Everything in Essential",
+      "Deep vacuum with attachments",
+      "Detailed bathroom scrubbing",
+      "Kitchen appliance exterior cleaning",
+      "Baseboards and window sills",
+      "Light fixture dusting",
+      "Mirror and glass cleaning",
+    ],
+    price: 15,
+    popular: true,
+  },
+  premium: {
+    name: "Premium Clean",
+    description: "Complete top-to-bottom cleaning service",
+    features: [
+      "Everything in Advanced",
+      "Inside microwave cleaning",
+      "Cabinet front cleaning",
+      "Detailed shower/tub scrubbing",
+      "Ceiling fan cleaning",
+      "Switch plate and outlet cleaning",
+      "Detailed furniture dusting",
+      "Floor edge cleaning",
+    ],
+    price: 30,
+  },
+}
+
+export const ADD_ON_FEATURES: Record<string, TierFeatures> = {
+  inside_fridge: {
+    name: "Inside Fridge Cleaning",
+    description: "Deep clean inside your refrigerator",
+    features: [
+      "Remove all items safely",
+      "Clean shelves and drawers",
+      "Sanitize interior surfaces",
+      "Clean door seals and handles",
+      "Organize items back neatly",
+    ],
+    price: 25,
+  },
+  inside_oven: {
+    name: "Inside Oven Cleaning",
+    description: "Professional oven interior cleaning",
+    features: [
+      "Remove oven racks",
+      "Clean interior surfaces",
+      "Scrub away grease and grime",
+      "Clean oven door and glass",
+      "Replace racks when clean",
+    ],
+    price: 20,
+  },
+  inside_cabinets: {
+    name: "Inside Cabinet Cleaning",
+    description: "Clean inside kitchen and bathroom cabinets",
+    features: [
+      "Empty cabinets safely",
+      "Wipe down interior surfaces",
+      "Clean shelves and organizers",
+      "Sanitize cabinet interiors",
+      "Reorganize items neatly",
+    ],
+    price: 30,
+  },
+  garage_organization: {
+    name: "Garage Organization",
+    description: "Complete garage cleaning and organization",
+    features: [
+      "Sweep and clean floors",
+      "Organize tools and equipment",
+      "Clean storage areas",
+      "Remove cobwebs",
+      "Basic decluttering",
+    ],
+    price: 50,
+  },
+  basement_cleaning: {
+    name: "Basement Cleaning",
+    description: "Thorough basement cleaning service",
+    features: [
+      "Sweep and mop floors",
+      "Dust surfaces and storage",
+      "Clean light fixtures",
+      "Remove cobwebs",
+      "Basic organization",
+    ],
+    price: 40,
+  },
+  attic_cleaning: {
+    name: "Attic Cleaning",
+    description: "Professional attic cleaning and maintenance",
+    features: [
+      "Remove dust and debris",
+      "Clean accessible surfaces",
+      "Organize storage items",
+      "Check for pest issues",
+      "Basic maintenance inspection",
+    ],
+    price: 35,
+  },
+}
+
+export const REDUCTION_FEATURES: Record<string, TierFeatures> = {
+  bring_own_supplies: {
+    name: "Bring Own Supplies",
+    description: "Provide your own cleaning supplies",
+    features: ["Use your preferred products", "Eco-friendly option", "Cost savings", "Custom cleaning solutions"],
+    price: -10,
+  },
+  eco_friendly_discount: {
+    name: "Eco-Friendly Discount",
+    description: "Choose environmentally friendly cleaning",
+    features: [
+      "Green cleaning products",
+      "Biodegradable solutions",
+      "Non-toxic formulas",
+      "Environmentally responsible",
+    ],
+    price: -5,
+  },
+  senior_discount: {
+    name: "Senior Discount",
+    description: "Special pricing for seniors (65+)",
+    features: ["15% discount on services", "Priority scheduling", "Gentle cleaning approach", "Respectful service"],
+    price: -15,
+  },
+  student_discount: {
+    name: "Student Discount",
+    description: "Special pricing for students",
+    features: [
+      "10% discount on services",
+      "Flexible scheduling",
+      "Budget-friendly option",
+      "Valid student ID required",
+    ],
+    price: -10,
+  },
+}
+
+export function getTierFeatures(tier: string): TierFeatures | null {
+  return TIER_FEATURES[tier] || null
+}
+
+export function getAddOnFeatures(addOn: string): TierFeatures | null {
+  return ADD_ON_FEATURES[addOn] || null
+}
+
+export function getReductionFeatures(reduction: string): TierFeatures | null {
+  return REDUCTION_FEATURES[reduction] || null
+}
+
+export function getAllIncludedFeatures(tier: string, addOns: string[] = [], reductions: string[] = []): string[] {
+  const features: string[] = []
+
+  // Add tier features
+  const tierFeatures = getTierFeatures(tier)
+  if (tierFeatures) {
+    features.push(...tierFeatures.features)
+  }
+
+  // Add add-on features
+  addOns.forEach((addOn) => {
+    const addOnFeatures = getAddOnFeatures(addOn)
+    if (addOnFeatures) {
+      features.push(...addOnFeatures.features)
+    }
+  })
+
+  // Add reduction features
+  reductions.forEach((reduction) => {
+    const reductionFeatures = getReductionFeatures(reduction)
+    if (reductionFeatures) {
+      features.push(...reductionFeatures.features)
+    }
+  })
+
+  return [...new Set(features)] // Remove duplicates
+}
+
 // Update the pricing structure for tiers to use multipliers instead of fixed prices
 
 // For the defaultTiers object, update each room type's tier pricing to use multipliers

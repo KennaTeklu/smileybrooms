@@ -1,632 +1,256 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Contact, Home, Building2, Settings } from "lucide-react"
-import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { ConfigurationManager } from "@/components/configuration-manager"
-import { FrequencySelector } from "@/components/frequency-selector"
-import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { RoomCategory } from "@/components/room-category"
-import { RequestQuoteButton } from "@/components/request-quote-button"
-import { ServiceSummaryCard } from "@/components/service-summary-card"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useCallback, useMemo } from "react"
 import { useCart } from "@/lib/cart-context"
-
-interface RoomCount {
-  [key: string]: number
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { RoomConfigurator } from "@/components/room-configurator"
+import { ServiceSummaryCard } from "@/components/service-summary-card"
+import { FrequencySelector } from "@/components/frequency-selector"
+import { CleanlinessSlider } from "@/components/cleanliness-slider"
+import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
+import { Sparkles, Home, Clock, Shield } from "lucide-react"
 
 interface RoomConfig {
-  roomName: string
-  selectedTier: string
-  selectedAddOns: string[]
-  selectedReductions: string[]
+  id: string
+  name: string
+  tier: string
+  addOns: string[]
+  reductions: string[]
   basePrice: number
-  tierUpgradePrice: number
-  addOnsPrice: number
-  reductionsPrice: number
+  tierUpgrade: number
+  addOnPrice: number
+  reductionPrice: number
   totalPrice: number
 }
 
 export default function PricingPage() {
-  const { toast } = useToast()
-  const { addItem } = useCart()
-  const [activeTab, setActiveTab] = useState("standard")
-  const [roomCounts, setRoomCounts] = useState<RoomCount>({
-    bedroom: 0,
-    bathroom: 0,
-    kitchen: 0,
-    livingRoom: 0,
-    diningRoom: 0,
-    homeOffice: 0,
-    laundryRoom: 0,
-    entryway: 0,
-    hallway: 0,
-    stairs: 0,
-  })
-
+  const { addItem, setLastAddedItem } = useCart()
   const [roomConfigurations, setRoomConfigurations] = useState<RoomConfig[]>([])
-  const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
-  const [serviceFee, setServiceFee] = useState(25) // Default service fee
-  const [matrixSelections, setMatrixSelections] = useState<
-    Record<string, { addServices: string[]; removeServices: string[] }>
-  >({})
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined)
-  const [showComparisonTable, setShowComparisonTable] = useState(false)
-  const [showCheckoutPreview, setShowCheckoutPreview] = useState(false)
-  const [selectedFrequency, setSelectedFrequency] = useState("one_time")
-  const [frequencyDiscount, setFrequencyDiscount] = useState(0)
-  const [selectedTeam, setSelectedTeam] = useState<string | undefined>(undefined)
-  const [showRoomVisualization, setShowRoomVisualization] = useState(false)
-  const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
+  const [frequency, setFrequency] = useState("weekly")
+  const [cleanliness, setCleanliness] = useState(50)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Core rooms and additional spaces categorization
-  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
-  const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
+  const handleRoomConfigurationChange = useCallback((configs: RoomConfig[]) => {
+    setRoomConfigurations(configs)
+  }, [])
 
-  // Handle room count changes
-  const handleRoomCountChange = (roomType: string, count: number) => {
-    setRoomCounts((prev) => {
-      const newCount = Math.max(0, count)
-      return { ...prev, [roomType]: newCount }
-    })
-
-    // If incrementing and this is a new room, add default configuration
-    if (count > 0 && (roomCounts[roomType] || 0) === 0) {
-      const tiers = getRoomTiers(roomType)
-      const baseTier = tiers[0]
-
-      const newConfig: RoomConfig = {
-        roomName: roomType,
-        selectedTier: baseTier.name,
-        selectedAddOns: [],
-        selectedReductions: [],
-        basePrice: baseTier.price,
-        tierUpgradePrice: 0,
-        addOnsPrice: 0,
-        reductionsPrice: 0,
-        totalPrice: baseTier.price,
-      }
-
-      setRoomConfigurations((prev) => [...prev, newConfig])
-
-      // Set this as the selected room for the service map if none is selected
-      if (!selectedRoomForMap) {
-        setSelectedRoomForMap(roomType)
-      }
-    }
-
-    // If decrementing to zero, remove configuration
-    if (count === 0 && (roomCounts[roomType] || 0) > 0) {
-      setRoomConfigurations((prev) => prev.filter((config) => config.roomName !== roomType))
-
-      // If this was the selected room for the service map, select another one
-      if (selectedRoomForMap === roomType) {
-        const activeRooms = Object.entries(roomCounts)
-          .filter(([key, count]) => key !== roomType && count > 0)
-          .map(([key]) => key)
-
-        setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
-      }
-    }
-  }
-
-  // Handle room configuration changes
-  const handleRoomConfigChange = (roomId: string, config: RoomConfig) => {
-    setRoomConfigurations((prev) => {
-      const index = prev.findIndex((c) => c.roomName === roomId)
-      if (index >= 0) {
-        const newConfigs = [...prev]
-        newConfigs[index] = config
-        return newConfigs
-      }
-      return [...prev, config]
-    })
-  }
-
-  // Get room configuration
-  const getRoomConfig = (roomType: string): RoomConfig => {
-    return (
-      roomConfigurations.find((config) => config.roomName === roomType) || {
-        roomName: roomType,
-        selectedTier: getRoomTiers(roomType)[0].name,
-        selectedAddOns: [],
-        selectedReductions: [],
-        basePrice: getRoomTiers(roomType)[0].price,
-        tierUpgradePrice: 0,
-        addOnsPrice: 0,
-        reductionsPrice: 0,
-        totalPrice: getRoomTiers(roomType)[0].price,
-      }
+  const getCalculatedTotals = useMemo(() => {
+    const totals = roomConfigurations.reduce(
+      (acc, config) => ({
+        basePrice: acc.basePrice + (config.basePrice || 0),
+        tierUpgrade: acc.tierUpgrade + (config.tierUpgrade || 0),
+        addOnPrice: acc.addOnPrice + (config.addOnPrice || 0),
+        reductionPrice: acc.reductionPrice + (config.reductionPrice || 0),
+        totalPrice: acc.totalPrice + (config.totalPrice || 0),
+      }),
+      { basePrice: 0, tierUpgrade: 0, addOnPrice: 0, reductionPrice: 0, totalPrice: 0 },
     )
-  }
 
-  // Handle matrix selection changes
-  const handleMatrixSelectionChange = (
-    roomType: string,
-    selection: { addServices: string[]; removeServices: string[] },
-  ) => {
-    setMatrixSelections((prev) => ({
-      ...prev,
-      [roomType]: selection,
-    }))
-  }
-
-  // Handle frequency selection
-  const handleFrequencyChange = (frequency: string, discount: number) => {
-    setSelectedFrequency(frequency)
-    setFrequencyDiscount(discount)
-  }
-
-  // Handle saved configuration loading
-  const handleLoadConfig = (config: any) => {
-    // Reset current configurations
-    setRoomCounts({
-      bedroom: 0,
-      bathroom: 0,
-      kitchen: 0,
-      livingRoom: 0,
-      diningRoom: 0,
-      homeOffice: 0,
-      laundryRoom: 0,
-      entryway: 0,
-      hallway: 0,
-      stairs: 0,
-    })
-    setRoomConfigurations([])
-
-    // Load the saved configuration
-    const newRoomCounts: RoomCount = { ...roomCounts }
-    const newRoomConfigs: RoomConfig[] = []
-
-    config.rooms.forEach((room: any) => {
-      const roomType = Object.entries(roomDisplayNames).find(([_, name]) => name === room.type)?.[0] || ""
-      if (roomType) {
-        newRoomCounts[roomType] = room.count
-
-        const tiers = getRoomTiers(roomType)
-        const baseTier = tiers[0]
-        const selectedTier = tiers.find((tier) => tier.name === room.tier)
-
-        if (selectedTier) {
-          newRoomConfigs.push({
-            roomName: roomType,
-            selectedTier: selectedTier.name,
-            selectedAddOns: [],
-            selectedReductions: [],
-            basePrice: baseTier.price,
-            tierUpgradePrice: selectedTier.price - baseTier.price,
-            addOnsPrice: 0,
-            reductionsPrice: 0,
-            totalPrice: selectedTier.price,
-          })
-        }
-      }
-    })
-
-    setRoomCounts(newRoomCounts)
-    setRoomConfigurations(newRoomConfigs)
-
-    // Set the first active room as the selected room for the map
-    const firstActiveRoom = Object.entries(newRoomCounts).find(([_, count]) => count > 0)?.[0]
-
-    if (firstActiveRoom) {
-      setSelectedRoomForMap(firstActiveRoom)
+    const serviceFee = 50
+    const frequencyMultipliers: Record<string, number> = {
+      one_time: 2.17,
+      weekly: 1.0,
+      biweekly: 1.2,
+      monthly: 1.54,
+      semi_annual: 1.92,
+      annually: 2.56,
+      vip_daily: 7.5,
     }
-  }
 
-  // Use precalculated values from room configurations
-  const getCalculatedTotals = () => {
-    let totalBasePrice = 0
-    let totalTierUpgrades = 0
-    let totalAddOns = 0
-    let totalReductions = 0
-    let totalRoomsPrice = 0
-
-    const tierUpgradeDetails: Array<{
-      roomName: string
-      tierName: string
-      price: number
-      multiplier?: number
-    }> = []
-
-    const addOnDetails: Array<{
-      roomName: string
-      name: string
-      price: number
-    }> = []
-
-    const reductionDetails: Array<{
-      roomName: string
-      name: string
-      discount: number
-    }> = []
-
-    Object.entries(roomCounts).forEach(([roomType, count]) => {
-      if (count > 0) {
-        const config = getRoomConfig(roomType)
-        const roomDisplayName = roomDisplayNames[roomType] || roomType
-
-        // Add to totals (multiply by room count)
-        totalBasePrice += (config.basePrice || 0) * count
-        totalTierUpgrades += (config.tierUpgradePrice || 0) * count
-        totalAddOns += (config.addOnsPrice || 0) * count
-        totalReductions += (config.reductionsPrice || 0) * count
-        totalRoomsPrice += (config.totalPrice || 0) * count
-
-        // Add tier upgrade details if there's an upgrade
-        if (config.tierUpgradePrice > 0) {
-          const tiers = getRoomTiers(roomType)
-          const selectedTier = tiers.find((tier) => tier.name === config.selectedTier)
-          let multiplier = 1
-          if (selectedTier?.name === "ADVANCED CLEAN") multiplier = 3
-          if (selectedTier?.name === "PREMIUM CLEAN") multiplier = 9
-
-          tierUpgradeDetails.push({
-            roomName: roomDisplayName,
-            tierName: config.selectedTier,
-            price: config.tierUpgradePrice * count,
-            multiplier: multiplier,
-          })
-        }
-
-        // Add add-on details if there are add-ons
-        if (config.selectedAddOns.length > 0) {
-          const addOns = getRoomAddOns(roomType)
-          config.selectedAddOns.forEach((addOnId) => {
-            const addOn = addOns.find((a) => a.id === addOnId)
-            if (addOn) {
-              addOnDetails.push({
-                roomName: roomDisplayName,
-                name: addOn.name,
-                price: addOn.price * count,
-              })
-            }
-          })
-        }
-
-        // Add reduction details if there are reductions
-        if (config.selectedReductions.length > 0) {
-          const reductions = getRoomReductions(roomType)
-          config.selectedReductions.forEach((reductionId) => {
-            const reduction = reductions.find((r) => r.id === reductionId)
-            if (reduction) {
-              reductionDetails.push({
-                roomName: roomDisplayName,
-                name: reduction.name,
-                discount: reduction.discount * count,
-              })
-            }
-          })
-        }
-      }
-    })
-
-    // Calculate final total
-    const subtotal = totalRoomsPrice + serviceFee
-    const discountAmount = subtotal * (frequencyDiscount / 100)
-    const finalTotal = subtotal - discountAmount
+    const frequencyMultiplier = frequencyMultipliers[frequency] || 1.0
+    const subtotal = totals.totalPrice * frequencyMultiplier
+    const finalTotal = subtotal + serviceFee
 
     return {
-      basePrice: totalBasePrice,
-      tierUpgrades: tierUpgradeDetails,
-      addOns: addOnDetails,
-      reductions: reductionDetails,
+      ...totals,
       serviceFee,
-      frequencyDiscount,
-      totalPrice: finalTotal,
+      frequencyMultiplier,
+      subtotal,
+      finalTotal,
+    }
+  }, [roomConfigurations, frequency])
+
+  const handleAddToCart = async () => {
+    if (roomConfigurations.length === 0) return
+
+    setIsLoading(true)
+
+    try {
+      const cartItem = {
+        id: `service-${Date.now()}`,
+        name: `Cleaning Service (${roomConfigurations.length} rooms)`,
+        price: getCalculatedTotals.finalTotal,
+        quantity: 1,
+        type: "service" as const,
+        details: {
+          rooms: roomConfigurations.reduce(
+            (acc, config) => {
+              acc[config.id] = {
+                name: config.name,
+                tier: config.tier,
+                addOns: config.addOns,
+                reductions: config.reductions,
+                price: config.totalPrice,
+              }
+              return acc
+            },
+            {} as Record<string, any>,
+          ),
+          frequency,
+          totalRooms: roomConfigurations.length,
+          basePrice: getCalculatedTotals.basePrice,
+          tierUpgrade: getCalculatedTotals.tierUpgrade,
+          addOnPrice: getCalculatedTotals.addOnPrice,
+          reductionPrice: getCalculatedTotals.reductionPrice,
+          frequencyMultiplier: getCalculatedTotals.frequencyMultiplier,
+          serviceFee: getCalculatedTotals.serviceFee,
+        },
+      }
+
+      addItem(cartItem)
+      setLastAddedItem(cartItem)
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
-
-  // Get active room configurations
-  const getActiveRoomConfigs = () => {
-    return Object.entries(roomCounts)
-      .filter(([_, count]) => count > 0)
-      .map(([roomType]) => roomType)
-  }
-
-  // Get service summary for checkout preview
-  const getServiceSummary = () => {
-    return {
-      rooms: roomConfigurations.map((config) => ({
-        type: roomDisplayNames[config.roomName] || config.roomName,
-        count: roomCounts[config.roomName] || 0,
-        tier: config.selectedTier,
-      })),
-      serviceFee,
-    }
-  }
-
-  // Get selected tiers for all rooms
-  const getSelectedTiers = () => {
-    const tiers: Record<string, string> = {}
-    roomConfigurations.forEach((config) => {
-      tiers[config.roomName] = config.selectedTier
-    })
-    return tiers
-  }
-
-  // Handle adding to cart
-  const handleAddToCart = () => {
-    const calculatedTotals = getCalculatedTotals()
-
-    // Create a cart item with all the details
-    const cartItem = {
-      id: `cleaning-service-${Date.now()}`,
-      name: "Cleaning Service",
-      price: calculatedTotals.totalPrice,
-      quantity: 1,
-      type: "service",
-      details: {
-        rooms: roomConfigurations.map((config) => ({
-          type: roomDisplayNames[config.roomName] || config.roomName,
-          count: roomCounts[config.roomName] || 1,
-          tier: config.selectedTier,
-          basePrice: config.basePrice,
-          tierUpgradePrice: config.tierUpgradePrice,
-          addOnsPrice: config.addOnsPrice,
-          reductionsPrice: config.reductionsPrice,
-          totalPrice: config.totalPrice,
-        })),
-        serviceFee,
-        frequencyDiscount,
-        frequency: selectedFrequency,
-      },
-    }
-
-    // Add to cart
-    addItem(cartItem)
-
-    // Show toast notification
-    toast({
-      title: "Added to cart",
-      description: "Your cleaning service has been added to the cart",
-      duration: 3000,
-    })
-  }
-
-  // Update service fee based on total rooms
-  useEffect(() => {
-    const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
-    if (totalRooms <= 2) {
-      setServiceFee(25)
-    } else if (totalRooms <= 5) {
-      setServiceFee(35)
-    } else {
-      setServiceFee(45)
-    }
-  }, [roomCounts])
-
-  // Get calculated totals for display
-  const calculatedTotals = getCalculatedTotals()
 
   return (
-    <div className="container mx-auto py-10 px-4 mt-16">
-      <h1 className="text-4xl font-bold text-center mb-2">Pricing Calculator</h1>
-      <p className="text-center text-gray-500 mb-10">Customize your cleaning service to fit your needs and budget</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-4">
+            <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
+              <Sparkles className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Customize Your Cleaning Service</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Select your rooms, choose your cleaning level, and get an instant quote for your perfect cleaning service.
+          </p>
+        </div>
 
-      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8">
-          <TabsTrigger value="standard" className="flex items-center gap-2">
-            <Home className="h-4 w-4" />
-            <span>Residential Services</span>
-          </TabsTrigger>
-          <TabsTrigger value="detailing" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            <span>Commercial Services</span>
-          </TabsTrigger>
-        </TabsList>
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <Home className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Room-by-Room Customization</h3>
+              <p className="text-sm text-gray-600">Choose different cleaning levels for each room</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <Clock className="h-8 w-8 text-green-600 mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Flexible Scheduling</h3>
+              <p className="text-sm text-gray-600">Weekly, bi-weekly, monthly, or one-time cleaning</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <Shield className="h-8 w-8 text-purple-600 mx-auto mb-3" />
+              <h3 className="font-semibold mb-2">Quality Guarantee</h3>
+              <p className="text-sm text-gray-600">100% satisfaction guaranteed or we'll make it right</p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <TabsContent value="standard" className="space-y-8">
-          {/* Core Rooms Category */}
-          <RoomCategory
-            title="CORE ROOMS"
-            description="Select the rooms you want cleaned in your home"
-            rooms={coreRooms}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
-            variant="primary"
-          />
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Configuration Panel */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Frequency Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Cleaning Frequency
+                </CardTitle>
+                <CardDescription>How often would you like your cleaning service?</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FrequencySelector value={frequency} onChange={setFrequency} />
+              </CardContent>
+            </Card>
 
-          {/* Additional Spaces Category */}
-          <RoomCategory
-            title="ADDITIONAL SPACES"
-            description="Select any additional areas that need cleaning"
-            rooms={additionalSpaces}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
-            variant="secondary"
-          />
+            {/* Cleanliness Level */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Current Cleanliness Level
+                </CardTitle>
+                <CardDescription>
+                  Help us understand your starting point for better service recommendations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CleanlinessSlider value={cleanliness} onChange={setCleanliness} />
+              </CardContent>
+            </Card>
 
-          {/* Custom Space Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
-                  <Contact className="h-5 w-5" />
-                </span>
-                CUSTOM SPACES
-              </CardTitle>
-              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                <div className="text-4xl mb-4">{roomIcons.other}</div>
-                <h3 className="font-medium text-xl mb-2">Other Space</h3>
-                <p className="text-gray-500 mb-4 text-center max-w-md">
-                  Have a unique space that needs cleaning? Contact us for a custom quote.
-                </p>
-                {/* Replace the regular button with our RequestQuoteButton component */}
-                <RequestQuoteButton showIcon={true} />
+            {/* Room Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Room Configuration
+                </CardTitle>
+                <CardDescription>Add rooms and customize the cleaning level for each</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RoomConfigurator
+                  onConfigurationChange={handleRoomConfigurationChange}
+                  frequency={frequency}
+                  cleanliness={cleanliness}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Summary Panel */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <ServiceSummaryCard
+                roomConfigurations={roomConfigurations}
+                frequency={frequency}
+                basePrice={getCalculatedTotals.basePrice}
+                tierUpgrade={getCalculatedTotals.tierUpgrade}
+                addOnPrice={getCalculatedTotals.addOnPrice}
+                reductionPrice={getCalculatedTotals.reductionPrice}
+                serviceFee={getCalculatedTotals.serviceFee}
+                frequencyMultiplier={getCalculatedTotals.frequencyMultiplier}
+                subtotal={getCalculatedTotals.subtotal}
+                total={getCalculatedTotals.finalTotal}
+                onAddToCart={handleAddToCart}
+                isLoading={isLoading}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-12 text-center">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="pt-6">
+              <h3 className="text-2xl font-bold mb-4">Ready to Get Started?</h3>
+              <p className="text-gray-600 mb-6">
+                Configure your rooms above and add your custom cleaning service to cart
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Badge variant="secondary">Professional Team</Badge>
+                <Badge variant="secondary">Eco-Friendly Products</Badge>
+                <Badge variant="secondary">Insured & Bonded</Badge>
+                <Badge variant="secondary">Satisfaction Guaranteed</Badge>
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          {getActiveRoomConfigs().length > 0 && (
-            <>
-              <div className="mt-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">PRICE SUMMARY</h2>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <Card className="shadow-sm">
-                      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
-                        <CardTitle>Selected Rooms</CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-6">
-                        <ScrollArea className="h-[400px] pr-4">
-                          <div className="space-y-4">
-                            {getActiveRoomConfigs().map((roomType) => {
-                              const config = roomConfigurations.find((c) => c.roomName === roomType)
-                              if (!config) return null
-
-                              return (
-                                <div
-                                  key={roomType}
-                                  className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/10 transition-colors"
-                                >
-                                  <div className="flex items-center">
-                                    <div className="p-2 rounded-full mr-3 bg-blue-100 dark:bg-blue-900/30">
-                                      <span className="text-xl">{roomIcons[roomType]}</span>
-                                    </div>
-                                    <div>
-                                      <p className="font-medium">
-                                        {roomDisplayNames[roomType]} ({roomCounts[roomType]})
-                                      </p>
-                                      <p className="text-sm text-gray-500">{config.selectedTier}</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="font-medium">${(config.totalPrice || 0).toFixed(2)}</p>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-xs text-blue-600 hover:text-blue-800 p-0 h-6 flex items-center gap-1"
-                                      onClick={() => {
-                                        // Open the drawer for this room
-                                        const roomSelector = document.getElementById(`customize-${roomType}`)
-                                        if (roomSelector) {
-                                          roomSelector.click()
-                                        }
-                                      }}
-                                    >
-                                      <Settings className="h-3 w-3" />
-                                      Edit
-                                    </Button>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div>
-                    <ServiceSummaryCard
-                      basePrice={calculatedTotals.basePrice}
-                      tierUpgrades={calculatedTotals.tierUpgrades}
-                      addOns={calculatedTotals.addOns}
-                      reductions={calculatedTotals.reductions}
-                      serviceFee={calculatedTotals.serviceFee}
-                      frequencyDiscount={calculatedTotals.frequencyDiscount}
-                      totalPrice={calculatedTotals.totalPrice}
-                      onAddToCart={handleAddToCart}
-                      hasItems={getActiveRoomConfigs().length > 0}
-                      serviceName="Cleaning Service"
-                      roomConfigurations={roomConfigurations.map((config) => ({
-                        roomName: config.roomName,
-                        selectedTier: config.selectedTier,
-                        selectedAddOns: config.selectedAddOns,
-                        selectedReductions: config.selectedReductions,
-                      }))}
-                    />
-
-                    <div className="mt-4">
-                      <FrequencySelector
-                        onFrequencyChange={handleFrequencyChange}
-                        selectedFrequency={selectedFrequency}
-                      />
-                    </div>
-
-                    <div className="mt-4">
-                      <CleaningTimeEstimator
-                        roomCounts={roomCounts}
-                        selectedTiers={getSelectedTiers()}
-                        totalAddOns={calculatedTotals.addOns.length}
-                      />
-                    </div>
-
-                    <div className="mt-4">
-                      <ConfigurationManager
-                        currentConfig={{
-                          rooms: roomConfigurations.map((config) => ({
-                            type: roomDisplayNames[config.roomName],
-                            count: roomCounts[config.roomName],
-                            tier: config.selectedTier,
-                          })),
-                          totalPrice: calculatedTotals.totalPrice,
-                        }}
-                        onLoadConfig={handleLoadConfig}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="implementation-notes">
-              <AccordionTrigger className="font-bold text-gray-500">IMPLEMENTATION NOTES</AccordionTrigger>
-              <AccordionContent>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>
-                    <strong>TIER STACKING:</strong> Combine multiple tiers per room for customized cleaning
-                  </li>
-                  <li>
-                    <strong>SERVICE INHERITANCE:</strong> Higher tiers include all lower-tier services
-                  </li>
-                  <li>
-                    <strong>CUSTOM PRESETS:</strong> Save frequent configurations for future use
-                  </li>
-                  <li>
-                    <strong>AUTO-UPSELL:</strong> System suggests common add-ons based on your selections
-                  </li>
-                  <li>
-                    <strong>SAFETY LOCKS:</strong> Prevents incompatible service combinations
-                  </li>
-                </ol>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-
-        <TabsContent value="detailing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Commercial Services</CardTitle>
-              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Content for commercial services will be implemented in future rounds.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <AccessibilityToolbar />
     </div>
   )
 }

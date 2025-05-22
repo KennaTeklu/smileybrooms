@@ -1,334 +1,320 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { formatCurrency } from "@/lib/utils"
-import { ShoppingCart, Plus } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, ChevronUp, CheckCircle } from "lucide-react"
+import { ShoppingCart, CheckCircle, ChevronDown, ChevronUp, Sparkles } from "lucide-react"
+import { useState, useMemo } from "react"
+import { TIER_FEATURES, ADD_ON_FEATURES, REDUCTION_FEATURES } from "@/lib/room-tiers"
 
-interface TierUpgrade {
-  roomName: string
-  tierName: string
-  price: number
-  multiplier?: number
-}
-
-interface AddOn {
-  roomName: string
+interface RoomConfig {
+  id: string
   name: string
-  price: number
-}
-
-interface Reduction {
-  roomName: string
-  name: string
-  discount: number
+  tier: string
+  addOns: string[]
+  reductions: string[]
+  basePrice: number
+  tierUpgrade: number
+  addOnPrice: number
+  reductionPrice: number
+  totalPrice: number
 }
 
 interface ServiceSummaryCardProps {
-  basePrice: number
-  tierUpgrades: TierUpgrade[]
-  addOns: AddOn[]
-  reductions: Reduction[]
-  serviceFee: number
-  frequencyDiscount: number
-  totalPrice: number
-  onAddToCart?: () => void
-  hasItems: boolean
-  serviceName?: string
+  roomConfigurations?: RoomConfig[]
   frequency?: string
-  roomConfigurations?: Array<{
-    roomName: string
-    selectedTier: string
-    selectedAddOns: string[]
-    selectedReductions: string[]
-  }>
+  basePrice?: number
+  tierUpgrade?: number
+  addOnPrice?: number
+  reductionPrice?: number
+  serviceFee?: number
+  frequencyMultiplier?: number
+  subtotal?: number
+  total?: number
+  onAddToCart?: () => void
+  isLoading?: boolean
 }
 
 export function ServiceSummaryCard({
-  basePrice = 0,
-  tierUpgrades = [],
-  addOns = [],
-  reductions = [],
-  serviceFee = 0,
-  frequencyDiscount = 0,
-  totalPrice = 0,
-  onAddToCart,
-  hasItems = false,
-  serviceName = "Cleaning Service",
-  frequency = "one_time",
   roomConfigurations = [],
+  frequency = "weekly",
+  basePrice = 0,
+  tierUpgrade = 0,
+  addOnPrice = 0,
+  reductionPrice = 0,
+  serviceFee = 0,
+  frequencyMultiplier = 1,
+  subtotal = 0,
+  total = 0,
+  onAddToCart,
+  isLoading = false,
 }: ServiceSummaryCardProps) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
   const [isIncludedOpen, setIsIncludedOpen] = useState(false)
 
-  // Calculate subtotal before discount using the passed values
-  const tierUpgradesTotal = tierUpgrades.reduce((sum, item) => sum + (item.price || 0), 0)
-  const addOnsTotal = addOns.reduce((sum, item) => sum + (item.price || 0), 0)
-  const reductionsTotal = reductions.reduce((sum, item) => sum + (item.discount || 0), 0)
+  const includedServices = useMemo(() => {
+    const services = new Set<string>()
+    const roomServices: Array<{ room: string; tier: string; features: string[] }> = []
 
-  const subtotal = (basePrice || 0) + tierUpgradesTotal + addOnsTotal - reductionsTotal + (serviceFee || 0)
+    // Determine highest tier selected
+    const tiers = roomConfigurations.map((config) => config.tier)
+    const hasEssential = tiers.includes("essential")
+    const hasAdvanced = tiers.includes("advanced")
+    const hasPremium = tiers.includes("premium")
 
-  // Calculate discount amount
-  const discountAmount = subtotal * ((frequencyDiscount || 0) / 100)
+    // Add general services based on highest tier
+    if (hasEssential || hasAdvanced || hasPremium) {
+      services.add("Professional cleaning team")
+      services.add("All basic cleaning supplies included")
+      services.add("Dusting and surface cleaning")
+      services.add("Vacuuming and floor care")
+      services.add("Trash removal")
+    }
 
-  // Get what's included based on selected tiers
-  const getWhatsIncluded = () => {
-    const inclusions: string[] = []
-    const tierLevels = new Set<string>()
+    if (hasAdvanced || hasPremium) {
+      services.add("Deep cleaning with attention to detail")
+      services.add("Bathroom deep scrubbing")
+      services.add("Kitchen appliance exterior cleaning")
+      services.add("Baseboards and window sills")
+      services.add("Mirror and glass cleaning")
+    }
 
-    // Collect all tier levels selected
+    if (hasPremium) {
+      services.add("Complete top-to-bottom service")
+      services.add("Inside microwave cleaning")
+      services.add("Cabinet front cleaning")
+      services.add("Ceiling fan cleaning")
+      services.add("Detailed furniture dusting")
+    }
+
+    // Add room-specific services
     roomConfigurations.forEach((config) => {
-      tierLevels.add(config.selectedTier)
-    })
-
-    // Essential Clean inclusions (always included if any rooms selected)
-    if (hasItems) {
-      inclusions.push("Dusting of visible surfaces")
-      inclusions.push("Vacuuming and mopping floors")
-      inclusions.push("Emptying trash bins")
-      inclusions.push("Basic surface cleaning")
-      inclusions.push("Professional cleaning supplies")
-    }
-
-    // Advanced Clean inclusions
-    if (tierLevels.has("ADVANCED CLEAN")) {
-      inclusions.push("Deep cleaning of hard-to-reach areas")
-      inclusions.push("Detailed baseboards and window sills")
-      inclusions.push("Light fixture cleaning")
-      inclusions.push("Under furniture cleaning")
-      inclusions.push("Cabinet exterior cleaning")
-    }
-
-    // Premium Clean inclusions
-    if (tierLevels.has("PREMIUM CLEAN")) {
-      inclusions.push("Complete top-to-bottom cleaning")
-      inclusions.push("Inside closets and storage areas")
-      inclusions.push("Behind and under all furniture")
-      inclusions.push("Wall spot cleaning and marks removal")
-      inclusions.push("Ceiling fan detailed cleaning")
-      inclusions.push("Interior cabinet organization")
-    }
-
-    // Add-on specific inclusions
-    if (addOns.length > 0) {
-      inclusions.push("Specialized add-on services as selected")
-    }
-
-    // Service guarantees (always included)
-    if (hasItems) {
-      inclusions.push("Trained and insured cleaning professionals")
-      inclusions.push("Quality guarantee and satisfaction promise")
-      inclusions.push("Customer support and service coordination")
-    }
-
-    return inclusions
-  }
-
-  // Get tier-specific room details
-  const getTierDetails = () => {
-    const details: Array<{ roomName: string; tier: string; features: string[] }> = []
-
-    roomConfigurations.forEach((config) => {
-      const features: string[] = []
-
-      switch (config.selectedTier) {
-        case "ESSENTIAL CLEAN":
-          features.push("Basic surface cleaning", "Floor care", "Trash removal")
-          break
-        case "ADVANCED CLEAN":
-          features.push("Everything in Essential", "Deep cleaning", "Hard-to-reach areas", "Detailed surfaces")
-          break
-        case "PREMIUM CLEAN":
-          features.push("Everything in Advanced", "Complete deep clean", "Interior spaces", "Wall cleaning")
-          break
+      const tierFeatures = TIER_FEATURES[config.tier]
+      if (tierFeatures) {
+        roomServices.push({
+          room: config.name,
+          tier: tierFeatures.name,
+          features: tierFeatures.features,
+        })
       }
-
-      details.push({
-        roomName: config.roomName,
-        tier: config.selectedTier,
-        features,
-      })
     })
 
-    return details
-  }
+    // Add add-on services
+    const allAddOns = roomConfigurations.flatMap((config) => config.addOns)
+    const uniqueAddOns = [...new Set(allAddOns)]
+    uniqueAddOns.forEach((addOn) => {
+      const addOnFeatures = ADD_ON_FEATURES[addOn]
+      if (addOnFeatures) {
+        services.add(addOnFeatures.name)
+      }
+    })
 
-  const handleAddToCart = () => {
-    if (!hasItems) {
-      return
+    // Add reduction services
+    const allReductions = roomConfigurations.flatMap((config) => config.reductions)
+    const uniqueReductions = [...new Set(allReductions)]
+    uniqueReductions.forEach((reduction) => {
+      const reductionFeatures = REDUCTION_FEATURES[reduction]
+      if (reductionFeatures) {
+        services.add(reductionFeatures.name)
+      }
+    })
+
+    return {
+      generalServices: Array.from(services),
+      roomServices,
+      totalCount: services.size + roomServices.reduce((acc, room) => acc + room.features.length, 0),
     }
+  }, [roomConfigurations])
 
-    setIsLoading(true)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount || 0)
+  }
 
-    if (onAddToCart) {
-      onAddToCart()
+  const formatFrequency = (freq: string) => {
+    const frequencies: Record<string, string> = {
+      one_time: "One-time",
+      weekly: "Weekly",
+      biweekly: "Bi-weekly",
+      monthly: "Monthly",
+      semi_annual: "Semi-annual",
+      annually: "Annual",
+      vip_daily: "VIP Daily",
     }
-
-    setIsLoading(false)
+    return frequencies[freq] || freq
   }
 
-  const handleViewCart = () => {
-    router.push("/cart")
-  }
-
-  const whatsIncluded = getWhatsIncluded()
-  const tierDetails = getTierDetails()
+  const hasRooms = roomConfigurations.length > 0
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
-        <CardTitle>Service Summary</CardTitle>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5" />
+          Service Summary
+        </CardTitle>
+        <CardDescription>
+          {hasRooms
+            ? `${roomConfigurations.length} room${roomConfigurations.length !== 1 ? "s" : ""} • ${formatFrequency(frequency)}`
+            : "Configure your service above"}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6 space-y-4">
-        <div className="space-y-2">
-          {basePrice > 0 && (
-            <div className="flex justify-between">
-              <span>Base Price (Essential Clean)</span>
-              <span>{formatCurrency(basePrice)}</span>
-            </div>
-          )}
 
-          {tierUpgrades.length > 0 && (
-            <>
-              <div className="text-sm font-medium mt-2">Tier Upgrades:</div>
-              {tierUpgrades.map((upgrade, index) => (
-                <div key={index} className="flex justify-between text-sm pl-4">
-                  <span>
-                    {upgrade.roomName} ({upgrade.tierName})
-                    {upgrade.multiplier && upgrade.multiplier > 1 && ` (${upgrade.multiplier}x)`}
-                  </span>
-                  <span>+{formatCurrency(upgrade.price || 0)}</span>
+      <CardContent className="space-y-4">
+        {hasRooms ? (
+          <>
+            {/* Room List */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">Selected Rooms</h4>
+              {roomConfigurations.map((config) => (
+                <div key={config.id} className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize">{config.name.replace(/_/g, " ")}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {TIER_FEATURES[config.tier]?.name || config.tier}
+                    </Badge>
+                  </div>
+                  <span className="font-medium">{formatCurrency(config.totalPrice || 0)}</span>
                 </div>
               ))}
-            </>
-          )}
-
-          {addOns.length > 0 && (
-            <>
-              <div className="text-sm font-medium mt-2">Add-ons:</div>
-              {addOns.map((addon, index) => (
-                <div key={index} className="flex justify-between text-sm pl-4">
-                  <span>
-                    {addon.roomName} ({addon.name})
-                  </span>
-                  <span>+{formatCurrency(addon.price || 0)}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-          {reductions.length > 0 && (
-            <>
-              <div className="text-sm font-medium mt-2">Reductions:</div>
-              {reductions.map((reduction, index) => (
-                <div key={index} className="flex justify-between text-sm pl-4">
-                  <span>
-                    {reduction.roomName} (No {reduction.name})
-                  </span>
-                  <span>-{formatCurrency(reduction.discount || 0)}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-          {serviceFee > 0 && (
-            <div className="flex justify-between">
-              <span>Service Fee</span>
-              <span>{formatCurrency(serviceFee)}</span>
             </div>
-          )}
 
-          {frequencyDiscount > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span>Frequency Discount ({frequencyDiscount}%)</span>
-              <span>-{formatCurrency(discountAmount)}</span>
-            </div>
-          )}
-        </div>
+            <Separator />
 
-        {hasItems && (
-          <div className="mt-4">
+            {/* What's Included */}
             <Collapsible open={isIncludedOpen} onOpenChange={setIsIncludedOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm font-medium text-left bg-gray-50 dark:bg-gray-800/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors">
-                <span className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  What's Included ({whatsIncluded.length} services)
-                </span>
+              <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
+                <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">
+                  What's Included ({includedServices.totalCount} services)
+                </h4>
                 {isIncludedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <div className="space-y-4">
-                  {/* General Inclusions */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Service Inclusions:</div>
+              <CollapsibleContent className="space-y-3 mt-3">
+                {/* General Services */}
+                {includedServices.generalServices.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                      General Service Inclusions
+                    </h5>
                     <div className="space-y-1">
-                      {whatsIncluded.map((inclusion, index) => (
-                        <div key={index} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span>{inclusion}</span>
+                      {includedServices.generalServices.map((service, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs">
+                          <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                          <span>{service}</span>
                         </div>
                       ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Room-Specific Details */}
-                  {tierDetails.length > 0 && (
+                {/* Room-Specific Services */}
+                {includedServices.roomServices.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                      Room-Specific Services
+                    </h5>
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Room-Specific Services:
-                      </div>
-                      <div className="space-y-2">
-                        {tierDetails.map((detail, index) => (
-                          <div key={index} className="pl-2 border-l-2 border-gray-200 dark:border-gray-700">
-                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 capitalize">
-                              {detail.roomName.replace(/([A-Z])/g, " $1").trim()} - {detail.tier}
-                            </div>
-                            <div className="space-y-1 mt-1">
-                              {detail.features.map((feature, featureIndex) => (
-                                <div
-                                  key={featureIndex}
-                                  className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-500"
-                                >
-                                  <CheckCircle className="h-2.5 w-2.5 text-green-400 mt-0.5 flex-shrink-0" />
-                                  <span>{feature}</span>
-                                </div>
-                              ))}
-                            </div>
+                      {includedServices.roomServices.map((roomService, index) => (
+                        <div key={index} className="border-l-2 border-blue-200 pl-3">
+                          <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            {roomService.room.replace(/_/g, " ")} - {roomService.tier}
                           </div>
-                        ))}
-                      </div>
+                          <div className="space-y-1">
+                            {roomService.features.slice(0, 3).map((feature, featureIndex) => (
+                              <div key={featureIndex} className="flex items-center gap-2 text-xs">
+                                <CheckCircle className="h-2.5 w-2.5 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-600 dark:text-gray-400">{feature}</span>
+                              </div>
+                            ))}
+                            {roomService.features.length > 3 && (
+                              <div className="text-xs text-gray-500 dark:text-gray-500 ml-4">
+                                +{roomService.features.length - 3} more services
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </CollapsibleContent>
             </Collapsible>
+
+            <Separator />
+
+            {/* Price Breakdown */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">Price Breakdown</h4>
+
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Base Price ({roomConfigurations.length} rooms)</span>
+                  <span>{formatCurrency(basePrice)}</span>
+                </div>
+
+                {tierUpgrade > 0 && (
+                  <div className="flex justify-between">
+                    <span>Tier Upgrades</span>
+                    <span>+{formatCurrency(tierUpgrade)}</span>
+                  </div>
+                )}
+
+                {addOnPrice > 0 && (
+                  <div className="flex justify-between">
+                    <span>Add-on Services</span>
+                    <span>+{formatCurrency(addOnPrice)}</span>
+                  </div>
+                )}
+
+                {reductionPrice < 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discounts</span>
+                    <span>{formatCurrency(reductionPrice)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span>Frequency ({formatFrequency(frequency)})</span>
+                  <span>×{frequencyMultiplier}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Service Fee</span>
+                  <span>+{formatCurrency(serviceFee)}</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Total */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(total)}</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Price includes all selected services and fees</p>
+            </div>
+
+            {/* Add to Cart Button */}
+            <Button onClick={onAddToCart} disabled={isLoading || !hasRooms} className="w-full" size="lg">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              {isLoading ? "Adding..." : "Add to Cart"}
+            </Button>
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="font-medium text-gray-900 dark:text-white mb-2">No rooms selected</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Add rooms above to see your service summary and pricing
+            </p>
           </div>
         )}
-
-        <Separator />
-
-        <div className="flex justify-between font-bold text-lg">
-          <span>Total</span>
-          <span>{formatCurrency(totalPrice || 0)}</span>
-        </div>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        <Button className="w-full py-6 text-lg" size="lg" onClick={handleAddToCart} disabled={isLoading || !hasItems}>
-          {isLoading ? "Adding..." : hasItems ? "Add to Cart" : "No Services Selected"}
-          {!isLoading && hasItems && <Plus className="ml-2 h-4 w-4" />}
-        </Button>
-        <Button variant="outline" className="w-full" onClick={handleViewCart}>
-          <ShoppingCart className="mr-2 h-4 w-4" /> View Cart
-        </Button>
-      </CardFooter>
     </Card>
   )
 }
