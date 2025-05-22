@@ -46,11 +46,11 @@ export function PersistentViewCart() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
+          initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
+          exit={{ y: 20, opacity: 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50"
+          className="fixed bottom-4 right-[calc(1rem+15rem)] z-50"
         >
           <button
             onClick={() => router.push("/cart")}

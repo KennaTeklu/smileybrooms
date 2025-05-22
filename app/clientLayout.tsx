@@ -64,7 +64,7 @@ export default function ClientLayout({
               <AccessibilityPanel />
               <SharePanel />
               <UnifiedFooter />
-              <Toaster />
+              <Toaster position="bottom-right" />
               <ScrollFixer />
             </CartProvider>
           </EnhancedCartProvider>
