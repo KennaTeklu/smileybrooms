@@ -1,124 +1,160 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 
-type AccessibilityPreferences = {
-  highContrast: boolean
-  largeText: boolean
+interface AccessibilityContextType {
+  fontSize: number
+  setFontSize: (size: number) => void
+  contrast: number
+  setContrast: (contrast: number) => void
   reducedMotion: boolean
+  setReducedMotion: (enabled: boolean) => void
+  highContrast: boolean
+  setHighContrast: (enabled: boolean) => void
   screenReader: boolean
-  voiceControl: boolean
-  keyboardOnly: boolean
+  setScreenReader: (enabled: boolean) => void
+  cursorSize: number
+  setCursorSize: (size: number) => void
+  resetAll: () => void
 }
 
-type AccessibilityContextType = {
-  preferences: AccessibilityPreferences
-  updatePreference: <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => void
-  resetPreferences: () => void
-  announceToScreenReader: (message: string, assertive?: boolean) => void
-}
-
-const defaultPreferences: AccessibilityPreferences = {
-  highContrast: false,
-  largeText: false,
+const defaultContext: AccessibilityContextType = {
+  fontSize: 100,
+  setFontSize: () => {},
+  contrast: 100,
+  setContrast: () => {},
   reducedMotion: false,
+  setReducedMotion: () => {},
+  highContrast: false,
+  setHighContrast: () => {},
   screenReader: false,
-  voiceControl: false,
-  keyboardOnly: false,
+  setScreenReader: () => {},
+  cursorSize: 16,
+  setCursorSize: () => {},
+  resetAll: () => {},
 }
 
-const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
+const AccessibilityContext = createContext<AccessibilityContextType>(defaultContext)
 
-export function AccessibilityProvider({ children }: { children: ReactNode }) {
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
-  const [announcement, setAnnouncement] = useState("")
-  const [isAssertive, setIsAssertive] = useState(false)
+export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
+  const [fontSize, setFontSizeState] = useState(100)
+  const [contrast, setContrastState] = useState(100)
+  const [reducedMotion, setReducedMotionState] = useState(false)
+  const [highContrast, setHighContrastState] = useState(false)
+  const [screenReader, setScreenReaderState] = useState(false)
+  const [cursorSize, setCursorSizeState] = useState(16)
 
-  // Load preferences from localStorage on initial render
+  // Load settings from localStorage on mount
   useEffect(() => {
     try {
-      const savedPreferences = localStorage.getItem("accessibility-preferences")
-      if (savedPreferences) {
-        setPreferences(JSON.parse(savedPreferences))
-      } else {
-        // Check for system preferences
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          updatePreference("reducedMotion", true)
-        }
-        if (window.matchMedia("(prefers-contrast: more)").matches) {
-          updatePreference("highContrast", true)
-        }
+      const savedSettings = localStorage.getItem("accessibility-settings")
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings)
+        setFontSizeState(settings.fontSize || 100)
+        setContrastState(settings.contrast || 100)
+        setReducedMotionState(settings.reducedMotion || false)
+        setHighContrastState(settings.highContrast || false)
+        setScreenReaderState(settings.screenReader || false)
+        setCursorSizeState(settings.cursorSize || 16)
       }
     } catch (error) {
-      console.error("Error loading accessibility preferences:", error)
+      console.error("Error loading accessibility settings:", error)
     }
   }, [])
 
-  // Save preferences to localStorage whenever they change
+  // Apply settings to document
   useEffect(() => {
+    document.documentElement.style.setProperty("--font-size-multiplier", `${fontSize / 100}`)
+    document.documentElement.style.setProperty("--contrast-multiplier", `${contrast / 100}`)
+    document.documentElement.style.setProperty("--cursor-size", `${cursorSize}px`)
+
+    if (reducedMotion) {
+      document.documentElement.classList.add("reduced-motion")
+    } else {
+      document.documentElement.classList.remove("reduced-motion")
+    }
+
+    if (highContrast) {
+      document.documentElement.classList.add("high-contrast")
+    } else {
+      document.documentElement.classList.remove("high-contrast")
+    }
+
+    // Save settings to localStorage
     try {
-      localStorage.setItem("accessibility-preferences", JSON.stringify(preferences))
-
-      // Apply preferences to document
-      document.documentElement.classList.toggle("high-contrast", preferences.highContrast)
-      document.documentElement.classList.toggle("large-text", preferences.largeText)
-      document.documentElement.classList.toggle("reduced-motion", preferences.reducedMotion)
-      document.documentElement.classList.toggle("screen-reader", preferences.screenReader)
-      document.documentElement.classList.toggle("voice-control", preferences.voiceControl)
-      document.documentElement.classList.toggle("keyboard-only", preferences.keyboardOnly)
+      localStorage.setItem(
+        "accessibility-settings",
+        JSON.stringify({
+          fontSize,
+          contrast,
+          reducedMotion,
+          highContrast,
+          screenReader,
+          cursorSize,
+        }),
+      )
     } catch (error) {
-      console.error("Error saving accessibility preferences:", error)
+      console.error("Error saving accessibility settings:", error)
     }
-  }, [preferences])
+  }, [fontSize, contrast, reducedMotion, highContrast, screenReader, cursorSize])
 
-  // Clear announcement after it's been read
-  useEffect(() => {
-    if (announcement) {
-      const timer = setTimeout(() => {
-        setAnnouncement("")
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [announcement])
-
-  const updatePreference = <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => {
-    setPreferences((prev) => {
-      const newPreferences = { ...prev, [key]: value }
-      return newPreferences
-    })
+  const setFontSize = (size: number) => {
+    setFontSizeState(size)
   }
 
-  const resetPreferences = () => {
-    setPreferences(defaultPreferences)
+  const setContrast = (value: number) => {
+    setContrastState(value)
   }
 
-  const announceToScreenReader = (message: string, assertive = false) => {
-    setAnnouncement(message)
-    setIsAssertive(assertive)
+  const setReducedMotion = (enabled: boolean) => {
+    setReducedMotionState(enabled)
+  }
+
+  const setHighContrast = (enabled: boolean) => {
+    setHighContrastState(enabled)
+  }
+
+  const setScreenReader = (enabled: boolean) => {
+    setScreenReaderState(enabled)
+  }
+
+  const setCursorSize = (size: number) => {
+    setCursorSizeState(size)
+  }
+
+  const resetAll = () => {
+    setFontSizeState(100)
+    setContrastState(100)
+    setReducedMotionState(false)
+    setHighContrastState(false)
+    setScreenReaderState(false)
+    setCursorSizeState(16)
   }
 
   return (
     <AccessibilityContext.Provider
       value={{
-        preferences,
-        updatePreference,
-        resetPreferences,
-        announceToScreenReader,
+        fontSize,
+        setFontSize,
+        contrast,
+        setContrast,
+        reducedMotion,
+        setReducedMotion,
+        highContrast,
+        setHighContrast,
+        screenReader,
+        setScreenReader,
+        cursorSize,
+        setCursorSize,
+        resetAll,
       }}
     >
       {children}
-      {/* Visually hidden announcement for screen readers */}
-      <div aria-live={isAssertive ? "assertive" : "polite"} className="sr-only" role="status" aria-atomic="true">
-        {announcement}
-      </div>
     </AccessibilityContext.Provider>
   )
 }
 
-export const useAccessibility = () => {
-  const context = useContext(AccessibilityContext)
-  if (context === undefined) {
-    throw new Error("useAccessibility must be used within an AccessibilityProvider")
-  }
-  return context
-}
+export const useAccessibility = () => useContext(AccessibilityContext)
+
+export default AccessibilityContext
