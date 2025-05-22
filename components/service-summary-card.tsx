@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils"
 import { ShoppingCart, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { useCart } from "@/lib/cart-context"
 
 interface TierUpgrade {
   roomName: string
@@ -35,9 +36,10 @@ interface ServiceSummaryCardProps {
   serviceFee: number
   frequencyDiscount: number
   totalPrice: number
-  onAddToCart: () => void
+  onAddToCart?: () => void
   hasItems: boolean
   serviceName?: string
+  frequency?: string
 }
 
 export function ServiceSummaryCard({
@@ -50,11 +52,15 @@ export function ServiceSummaryCard({
   totalPrice,
   onAddToCart,
   hasItems,
-  serviceName = "Service",
+  serviceName = "Cleaning Service",
+  frequency = "one_time",
 }: ServiceSummaryCardProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+
+  // Use the cart context
+  const { addItem } = useCart()
 
   // Calculate subtotal before discount
   const subtotal =
@@ -71,10 +77,37 @@ export function ServiceSummaryCard({
     if (!hasItems) {
       return
     }
+
     setIsLoading(true)
 
-    // Call the provided onAddToCart function
-    onAddToCart()
+    // Create a cart item
+    const cartItem = {
+      id: `service-${Date.now()}`,
+      name: serviceName,
+      price: totalPrice,
+      quantity: 1,
+      type: "service",
+      details: {
+        rooms: tierUpgrades.map((upgrade) => ({
+          type: upgrade.roomName,
+          count: 1,
+          tier: upgrade.tierName,
+        })),
+        addOns,
+        reductions,
+        frequency,
+        serviceFee,
+        frequencyDiscount,
+      },
+    }
+
+    // Add the item to the cart
+    addItem(cartItem)
+
+    // Call the onAddToCart callback if provided
+    if (onAddToCart) {
+      onAddToCart()
+    }
 
     // Show success notification
     toast({
@@ -169,11 +202,9 @@ export function ServiceSummaryCard({
           {isLoading ? "Adding..." : hasItems ? "Add to Cart" : "No Services Selected"}
           {!isLoading && hasItems && <Plus className="ml-2 h-4 w-4" />}
         </Button>
-        {hasItems && (
-          <Button variant="outline" className="w-full" onClick={handleViewCart}>
-            <ShoppingCart className="mr-2 h-4 w-4" /> View Cart
-          </Button>
-        )}
+        <Button variant="outline" className="w-full" onClick={handleViewCart}>
+          <ShoppingCart className="mr-2 h-4 w-4" /> View Cart
+        </Button>
       </CardFooter>
     </Card>
   )

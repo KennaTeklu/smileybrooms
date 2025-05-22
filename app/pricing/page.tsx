@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { ServiceSummaryCard } from "@/components/service-summary-card"
+import { useToast } from "@/components/ui/use-toast"
 
 interface RoomCount {
   [key: string]: number
@@ -29,6 +30,7 @@ interface RoomConfig {
 }
 
 export default function PricingPage() {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("standard")
   const [roomCounts, setRoomCounts] = useState<RoomCount>({
     bedroom: 0,
@@ -333,6 +335,17 @@ export default function PricingPage() {
     return tiers
   }
 
+  // Handle adding to cart
+  const handleAddToCart = () => {
+    // In a real implementation, this would add the current configuration to the cart
+    // For now, we'll just show a toast notification
+    toast({
+      title: "Added to cart",
+      description: "Your cleaning service has been added to the cart",
+      duration: 3000,
+    })
+  }
+
   // Update service fee based on total rooms
   useEffect(() => {
     const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
@@ -483,8 +496,9 @@ export default function PricingPage() {
                       serviceFee={serviceFee}
                       frequencyDiscount={frequencyDiscount}
                       totalPrice={calculateTotalPrice()}
-                      onBookNow={() => setShowCheckoutPreview(true)}
+                      onAddToCart={handleAddToCart}
                       hasItems={getActiveRoomConfigs().length > 0}
+                      serviceName="Cleaning Service"
                     />
 
                     <div className="mt-4">
