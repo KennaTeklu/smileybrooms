@@ -547,6 +547,12 @@ export default function PricingPage() {
                       onAddToCart={handleAddToCart}
                       hasItems={getActiveRoomConfigs().length > 0}
                       serviceName="Cleaning Service"
+                      roomConfigurations={roomConfigurations.map((config) => ({
+                        roomName: config.roomName,
+                        selectedTier: config.selectedTier,
+                        selectedAddOns: config.selectedAddOns,
+                        selectedReductions: config.selectedReductions,
+                      }))}
                     />
 
                     <div className="mt-4">

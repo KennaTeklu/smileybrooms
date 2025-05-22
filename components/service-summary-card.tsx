@@ -42,6 +42,12 @@ interface ServiceSummaryCardProps {
   hasItems: boolean
   serviceName?: string
   frequency?: string
+  roomConfigurations?: Array<{
+    roomName: string
+    selectedTier: string
+    selectedAddOns: string[]
+    selectedReductions: string[]
+  }>
 }
 
 export function ServiceSummaryCard({
@@ -56,6 +62,7 @@ export function ServiceSummaryCard({
   hasItems = false,
   serviceName = "Cleaning Service",
   frequency = "one_time",
+  roomConfigurations = [],
 }: ServiceSummaryCardProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -71,6 +78,88 @@ export function ServiceSummaryCard({
 
   // Calculate discount amount
   const discountAmount = subtotal * ((frequencyDiscount || 0) / 100)
+
+  // Get what's included based on selected tiers
+  const getWhatsIncluded = () => {
+    const inclusions: string[] = []
+    const tierLevels = new Set<string>()
+
+    // Collect all tier levels selected
+    roomConfigurations.forEach((config) => {
+      tierLevels.add(config.selectedTier)
+    })
+
+    // Essential Clean inclusions (always included if any rooms selected)
+    if (hasItems) {
+      inclusions.push("Dusting of visible surfaces")
+      inclusions.push("Vacuuming and mopping floors")
+      inclusions.push("Emptying trash bins")
+      inclusions.push("Basic surface cleaning")
+      inclusions.push("Professional cleaning supplies")
+    }
+
+    // Advanced Clean inclusions
+    if (tierLevels.has("ADVANCED CLEAN")) {
+      inclusions.push("Deep cleaning of hard-to-reach areas")
+      inclusions.push("Detailed baseboards and window sills")
+      inclusions.push("Light fixture cleaning")
+      inclusions.push("Under furniture cleaning")
+      inclusions.push("Cabinet exterior cleaning")
+    }
+
+    // Premium Clean inclusions
+    if (tierLevels.has("PREMIUM CLEAN")) {
+      inclusions.push("Complete top-to-bottom cleaning")
+      inclusions.push("Inside closets and storage areas")
+      inclusions.push("Behind and under all furniture")
+      inclusions.push("Wall spot cleaning and marks removal")
+      inclusions.push("Ceiling fan detailed cleaning")
+      inclusions.push("Interior cabinet organization")
+    }
+
+    // Add-on specific inclusions
+    if (addOns.length > 0) {
+      inclusions.push("Specialized add-on services as selected")
+    }
+
+    // Service guarantees (always included)
+    if (hasItems) {
+      inclusions.push("Trained and insured cleaning professionals")
+      inclusions.push("Quality guarantee and satisfaction promise")
+      inclusions.push("Customer support and service coordination")
+    }
+
+    return inclusions
+  }
+
+  // Get tier-specific room details
+  const getTierDetails = () => {
+    const details: Array<{ roomName: string; tier: string; features: string[] }> = []
+
+    roomConfigurations.forEach((config) => {
+      const features: string[] = []
+
+      switch (config.selectedTier) {
+        case "ESSENTIAL CLEAN":
+          features.push("Basic surface cleaning", "Floor care", "Trash removal")
+          break
+        case "ADVANCED CLEAN":
+          features.push("Everything in Essential", "Deep cleaning", "Hard-to-reach areas", "Detailed surfaces")
+          break
+        case "PREMIUM CLEAN":
+          features.push("Everything in Advanced", "Complete deep clean", "Interior spaces", "Wall cleaning")
+          break
+      }
+
+      details.push({
+        roomName: config.roomName,
+        tier: config.selectedTier,
+        features,
+      })
+    })
+
+    return details
+  }
 
   const handleAddToCart = () => {
     if (!hasItems) {
@@ -89,6 +178,9 @@ export function ServiceSummaryCard({
   const handleViewCart = () => {
     router.push("/cart")
   }
+
+  const whatsIncluded = getWhatsIncluded()
+  const tierDetails = getTierDetails()
 
   return (
     <Card className="shadow-md">
@@ -168,40 +260,53 @@ export function ServiceSummaryCard({
               <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm font-medium text-left bg-gray-50 dark:bg-gray-800/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors">
                 <span className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  What's Included
+                  What's Included ({whatsIncluded.length} services)
                 </span>
                 {isIncludedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-3">
-                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Essential cleaning services for selected rooms</span>
+                <div className="space-y-4">
+                  {/* General Inclusions */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Service Inclusions:</div>
+                    <div className="space-y-1">
+                      {whatsIncluded.map((inclusion, index) => (
+                        <div key={index} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>{inclusion}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Professional cleaning supplies and equipment</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Trained and insured cleaning professionals</span>
-                  </div>
-                  {tierUpgrades.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Enhanced cleaning services for upgraded tiers</span>
+
+                  {/* Room-Specific Details */}
+                  {tierDetails.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Room-Specific Services:
+                      </div>
+                      <div className="space-y-2">
+                        {tierDetails.map((detail, index) => (
+                          <div key={index} className="pl-2 border-l-2 border-gray-200 dark:border-gray-700">
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 capitalize">
+                              {detail.roomName.replace(/([A-Z])/g, " $1").trim()} - {detail.tier}
+                            </div>
+                            <div className="space-y-1 mt-1">
+                              {detail.features.map((feature, featureIndex) => (
+                                <div
+                                  key={featureIndex}
+                                  className="flex items-start gap-2 text-xs text-gray-500 dark:text-gray-500"
+                                >
+                                  <CheckCircle className="h-2.5 w-2.5 text-green-400 mt-0.5 flex-shrink-0" />
+                                  <span>{feature}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {addOns.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Additional services as selected</span>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>Quality guarantee and customer support</span>
-                  </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
