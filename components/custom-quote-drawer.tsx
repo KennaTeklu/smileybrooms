@@ -31,6 +31,7 @@ import {
   Copy,
   Check,
   Info,
+  ShoppingCart,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -41,6 +42,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
 
 interface CustomQuoteDrawerProps {
   open: boolean
@@ -55,6 +58,8 @@ const RequiredIndicator = () => (
 )
 
 export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps) {
+  const router = useRouter()
+  const { addItem } = useCart()
   const [formData, setFormData] = useState({
     // Contact Information
     name: "",
@@ -108,6 +113,7 @@ export function CustomQuoteDrawer({ open, onOpenChange }: CustomQuoteDrawerProps
   const { isMobile } = useDeviceDetection()
   const [step, setStep] = useState(1)
   const [showEmergencyFields, setShowEmergencyFields] = useState(false)
+  const [showAddToCartConfirmation, setShowAddToCartConfirmation] = useState(false)
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -377,6 +383,98 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
 
     // Close the drawer after sending
     onOpenChange(false)
+  }
+
+  const handleAddToCart = () => {
+    // Calculate a price based on the services selected
+    let basePrice = 150 // Base price for standard service
+
+    // Adjust price based on service type
+    if (formData.serviceType === "deep") basePrice = 250
+    if (formData.serviceType === "move") basePrice = 300
+    if (formData.serviceType === "specialty") basePrice = 350
+
+    // Add additional costs for special services
+    if (formData.emergencyResponse) basePrice += 100
+    if (formData.waterDamage) basePrice += 150
+    if (formData.moldRemediation) basePrice += 200
+    if (formData.fireSmokeDamage) basePrice += 250
+    if (formData.commercialCleaning) basePrice += 100
+    if (formData.constructionCleanup) basePrice += 150
+    if (formData.moveInOut) basePrice += 100
+    if (formData.deepCleaning) basePrice += 75
+
+    // Adjust for property size if provided
+    if (formData.squareFootage) {
+      const sqft = Number.parseInt(formData.squareFootage)
+      if (!isNaN(sqft) && sqft > 0) {
+        // Add $0.10 per square foot over 1000
+        if (sqft > 1000) {
+          basePrice += (sqft - 1000) * 0.1
+        }
+      }
+    }
+
+    // Get service name
+    const serviceTypeLabels: Record<string, string> = {
+      standard: "Standard Cleaning",
+      deep: "Deep Cleaning",
+      move: "Move In/Out Cleaning",
+      specialty: "Specialty Services",
+    }
+
+    // Collect selected services
+    const selectedServices = []
+    if (formData.emergencyResponse) selectedServices.push("Emergency Response")
+    if (formData.waterDamage) selectedServices.push("Water Damage")
+    if (formData.moldRemediation) selectedServices.push("Mold Remediation")
+    if (formData.fireSmokeDamage) selectedServices.push("Fire/Smoke Damage")
+    if (formData.commercialCleaning) selectedServices.push("Commercial Cleaning")
+    if (formData.constructionCleanup) selectedServices.push("Construction Cleanup")
+    if (formData.moveInOut) selectedServices.push("Move In/Out")
+    if (formData.deepCleaning) selectedServices.push("Deep Cleaning")
+
+    // Create a descriptive name
+    const serviceName = `Custom ${serviceTypeLabels[formData.serviceType] || "Cleaning"} Service`
+
+    // Add to cart
+    addItem({
+      id: `custom-service-${Date.now()}`,
+      name: serviceName,
+      price: basePrice,
+      priceId: "price_custom_service",
+      quantity: 1,
+      metadata: {
+        customer: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zip,
+          specialInstructions: formData.specialRequests,
+        },
+        propertyType: formData.propertyType,
+        squareFootage: formData.squareFootage,
+        rooms: formData.rooms,
+        bathrooms: formData.bathrooms,
+        serviceType: formData.serviceType,
+        selectedServices: selectedServices,
+        urgencyLevel: formData.urgencyLevel,
+        preferredDate: formData.preferredDate,
+        preferredTime: formData.preferredTime,
+        flexibleTiming: formData.flexibleTiming,
+      },
+    })
+
+    // Show confirmation
+    setShowAddToCartConfirmation(true)
+  }
+
+  const handleGoToCheckout = () => {
+    onOpenChange(false)
+    router.push("/checkout")
   }
 
   const nextStep = () => {
@@ -892,7 +990,7 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                 <Checkbox
                   id="flexibleTiming"
                   checked={formData.flexibleTiming}
-                  onCheckedChange={(checked) => handleChange("flexibleTiming", checked === true)}
+                  onChange={(checked) => handleChange("flexibleTiming", checked === true)}
                 />
                 <Label htmlFor="flexibleTiming" className="cursor-pointer">
                   I'm flexible with timing
@@ -970,7 +1068,7 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                 <Checkbox
                   id="terms"
                   checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => handleChange("agreeToTerms", checked === true)}
+                  onChange={(checked) => handleChange("agreeToTerms", checked === true)}
                   className={errors.agreeToTerms ? "border-red-500 data-[state=checked]:bg-red-500" : ""}
                   required
                 />
@@ -1055,15 +1153,55 @@ This request was submitted through the SmileBrooms website on ${new Date().toLoc
                 Next
               </Button>
             ) : (
-              <Button type="submit" disabled={!formData.agreeToTerms}>
-                Submit Request
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button type="button" variant="outline" className="flex-1" onClick={handleAddToCart}>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Add to Cart
+                </Button>
+                <Button type="submit" className="flex-1" disabled={!formData.agreeToTerms}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Request
+                </Button>
+              </div>
             )}
           </div>
         </form>
       </div>
     </>
   )
+
+  if (showAddToCartConfirmation) {
+    return (
+      <Dialog open={showAddToCartConfirmation} onOpenChange={setShowAddToCartConfirmation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              Added to Cart
+            </DialogTitle>
+            <DialogDescription>Your custom service has been added to your cart successfully.</DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="mb-4">What would you like to do next?</p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddToCartConfirmation(false)
+                onOpenChange(false)
+              }}
+            >
+              Continue Shopping
+            </Button>
+            <Button onClick={handleGoToCheckout}>Go to Checkout</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   if (showConfirmation) {
     return (
