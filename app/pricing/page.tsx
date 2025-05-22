@@ -19,6 +19,7 @@ import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { RoomCategory } from "@/components/room-category"
+import { RequestQuoteButton } from "@/components/request-quote-button"
 
 interface RoomCount {
   [key: string]: number
@@ -409,10 +410,8 @@ export default function PricingPage() {
                 <p className="text-gray-500 mb-4 text-center max-w-md">
                   Have a unique space that needs cleaning? Contact us for a custom quote.
                 </p>
-                <Button className="flex items-center gap-2">
-                  <Contact className="h-4 w-4" />
-                  Request Custom Quote
-                </Button>
+                {/* Replace the regular button with our RequestQuoteButton component */}
+                <RequestQuoteButton showIcon={true} />
               </div>
             </CardContent>
           </Card>
