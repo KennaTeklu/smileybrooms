@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, MinusCircle, Contact, CheckCircle2, Settings } from "lucide-react"
+import { PlusCircle, MinusCircle, Contact, CheckCircle2, Settings, ChevronUp } from "lucide-react"
 import { RoomConfigurator } from "@/components/room-configurator"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
@@ -25,7 +25,11 @@ import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
-import { RoomCustomizationDrawer } from "@/components/room-customization-drawer"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface RoomCount {
   [key: string]: number
@@ -70,12 +74,32 @@ export default function PricingPage() {
   const [showRoomVisualization, setShowRoomVisualization] = useState(false)
   const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
-  // State for bedroom customization drawer
+  // State for bedroom customization
   const [isBedroomCustomizing, setIsBedroomCustomizing] = useState(false)
+  const [bedroomTier, setBedroomTier] = useState<string>("")
+  const [bedroomAddOns, setBedroomAddOns] = useState<string[]>([])
+  const [bedroomReductions, setBedroomReductions] = useState<string[]>([])
 
   // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
   const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
+
+  // Initialize bedroom configuration when count changes from 0 to 1
+  useEffect(() => {
+    if (roomCounts.bedroom === 1) {
+      const bedroomConfig = roomConfigurations.find((config) => config.roomName === "bedroom")
+      if (bedroomConfig) {
+        setBedroomTier(bedroomConfig.selectedTier)
+        setBedroomAddOns(bedroomConfig.selectedAddOns)
+        setBedroomReductions(bedroomConfig.selectedReductions)
+      } else {
+        const tiers = getRoomTiers("bedroom")
+        setBedroomTier(tiers[0].name)
+        setBedroomAddOns([])
+        setBedroomReductions([])
+      }
+    }
+  }, [roomCounts.bedroom, roomConfigurations])
 
   // Handle room count changes
   const handleRoomCountChange = (roomType: string, increment: boolean) => {
@@ -115,6 +139,11 @@ export default function PricingPage() {
 
         setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
       }
+
+      // Reset customization state if bedroom is removed
+      if (roomType === "bedroom") {
+        setIsBedroomCustomizing(false)
+      }
     }
   }
 
@@ -132,9 +161,56 @@ export default function PricingPage() {
   }
 
   // Handle bedroom configuration save
-  const handleBedroomConfigSave = (config: RoomConfig) => {
-    handleRoomConfigChange(config)
+  const handleBedroomConfigSave = () => {
+    // Calculate the total price for bedroom
+    const tierPrice = getRoomTiers("bedroom").find((tier) => tier.name === bedroomTier)?.price || 0
+
+    // Add all selected add-ons
+    const addOnsTotal = bedroomAddOns.reduce((total, addOnId) => {
+      const addOn = getRoomAddOns("bedroom").find((a) => a.id === addOnId)
+      return total + (addOn?.price || 0)
+    }, 0)
+
+    // Subtract all selected reductions
+    const reductionsTotal = bedroomReductions.reduce((total, reductionId) => {
+      const reduction = getRoomReductions("bedroom").find((r) => r.id === reductionId)
+      return total + (reduction?.discount || 0)
+    }, 0)
+
+    const totalPrice = tierPrice + addOnsTotal - reductionsTotal
+
+    handleRoomConfigChange({
+      roomName: "bedroom",
+      selectedTier: bedroomTier,
+      selectedAddOns: bedroomAddOns,
+      selectedReductions: bedroomReductions,
+      totalPrice,
+    })
+
     setIsBedroomCustomizing(false)
+  }
+
+  // Handle bedroom tier change
+  const handleBedroomTierChange = (tier: string) => {
+    setBedroomTier(tier)
+  }
+
+  // Handle bedroom add-on change
+  const handleBedroomAddOnChange = (addOnId: string, checked: boolean) => {
+    if (checked) {
+      setBedroomAddOns((prev) => [...prev, addOnId])
+    } else {
+      setBedroomAddOns((prev) => prev.filter((id) => id !== addOnId))
+    }
+  }
+
+  // Handle bedroom reduction change
+  const handleBedroomReductionChange = (reductionId: string, checked: boolean) => {
+    if (checked) {
+      setBedroomReductions((prev) => [...prev, reductionId])
+    } else {
+      setBedroomReductions((prev) => prev.filter((id) => id !== reductionId))
+    }
   }
 
   // Handle matrix selection changes
@@ -337,17 +413,24 @@ export default function PricingPage() {
     return tiers
   }
 
-  // Get bedroom configuration
-  const getBedroomConfig = () => {
-    return (
-      roomConfigurations.find((config) => config.roomName === "bedroom") || {
-        roomName: "bedroom",
-        selectedTier: getRoomTiers("bedroom")[0].name,
-        selectedAddOns: [],
-        selectedReductions: [],
-        totalPrice: getRoomTiers("bedroom")[0].price,
-      }
-    )
+  // Calculate bedroom total price
+  const calculateBedroomTotalPrice = () => {
+    // Get base price from selected tier
+    const tierPrice = getRoomTiers("bedroom").find((tier) => tier.name === bedroomTier)?.price || 0
+
+    // Add all selected add-ons
+    const addOnsTotal = bedroomAddOns.reduce((total, addOnId) => {
+      const addOn = getRoomAddOns("bedroom").find((a) => a.id === addOnId)
+      return total + (addOn?.price || 0)
+    }, 0)
+
+    // Subtract all selected reductions
+    const reductionsTotal = bedroomReductions.reduce((total, reductionId) => {
+      const reduction = getRoomReductions("bedroom").find((r) => r.id === reductionId)
+      return total + (reduction?.discount || 0)
+    }, 0)
+
+    return tierPrice + addOnsTotal - reductionsTotal
   }
 
   // Update service fee based on total rooms
@@ -385,51 +468,270 @@ export default function PricingPage() {
               <CardDescription>Select the rooms you want cleaned in your home</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {coreRooms.map((roomType) => (
-                  <Card
-                    key={roomType}
-                    className={`border ${roomCounts[roomType] > 0 ? "border-blue-500" : "border-gray-200"}`}
-                  >
-                    <CardContent className="p-4 flex flex-col items-center text-center">
-                      <div className="text-3xl mb-2">{roomIcons[roomType]}</div>
-                      <h3 className="font-medium mb-2">{roomDisplayNames[roomType]}</h3>
-                      <div className="flex items-center gap-3 mt-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleRoomCountChange(roomType, false)}
-                          disabled={roomCounts[roomType] <= 0}
-                          className="h-8 w-8"
-                        >
-                          <MinusCircle className="h-4 w-4" />
-                        </Button>
-                        <span className="font-medium text-lg">{roomCounts[roomType] || 0}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleRoomCountChange(roomType, true)}
-                          className="h-8 w-8"
-                        >
-                          <PlusCircle className="h-4 w-4" />
-                        </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {/* Bedroom Card with Inline Configuration */}
+                <div className="col-span-1 md:col-span-3 lg:col-span-6">
+                  <Card className={`border ${roomCounts.bedroom > 0 ? "border-blue-500" : "border-gray-200"}`}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl">{roomIcons.bedroom}</div>
+                          <div>
+                            <h3 className="font-medium">{roomDisplayNames.bedroom}</h3>
+                            {roomCounts.bedroom > 0 &&
+                              roomConfigurations.find((c) => c.roomName === "bedroom")?.selectedTier && (
+                                <p className="text-sm text-gray-500">
+                                  {roomConfigurations.find((c) => c.roomName === "bedroom")?.selectedTier}
+                                </p>
+                              )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRoomCountChange("bedroom", false)}
+                            disabled={roomCounts.bedroom <= 0}
+                            className="h-8 w-8"
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                          <span className="font-medium text-lg">{roomCounts.bedroom || 0}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRoomCountChange("bedroom", true)}
+                            className="h-8 w-8"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
-                      {/* Add customize button specifically for bedroom */}
-                      {roomType === "bedroom" && roomCounts[roomType] > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 w-full text-xs bg-blue-50 hover:bg-blue-100 border-blue-200"
-                          onClick={() => setIsBedroomCustomizing(true)}
-                        >
-                          <Settings className="h-3 w-3 mr-1" />
-                          Customize
-                        </Button>
+                      {/* Customize button */}
+                      {roomCounts.bedroom > 0 && (
+                        <div className="mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-xs bg-blue-50 hover:bg-blue-100 border-blue-200"
+                            onClick={() => setIsBedroomCustomizing(!isBedroomCustomizing)}
+                          >
+                            {isBedroomCustomizing ? (
+                              <>
+                                <ChevronUp className="h-3 w-3 mr-1" />
+                                Hide Customization
+                              </>
+                            ) : (
+                              <>
+                                <Settings className="h-3 w-3 mr-1" />
+                                Customize
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </CardContent>
+
+                    {/* Inline Bedroom Configuration */}
+                    {isBedroomCustomizing && roomCounts.bedroom > 0 && (
+                      <div className="border-t">
+                        <div className="p-4 bg-gray-50">
+                          <div className="mb-4">
+                            <h3 className="text-lg font-medium mb-3">Select Cleaning Level</h3>
+                            <RadioGroup
+                              value={bedroomTier}
+                              onValueChange={handleBedroomTierChange}
+                              className="space-y-3"
+                            >
+                              {getRoomTiers("bedroom").map((tier) => (
+                                <div
+                                  key={tier.name}
+                                  className={cn(
+                                    "border rounded-lg p-3 transition-all",
+                                    bedroomTier === tier.name
+                                      ? "border-blue-500 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
+                                      : "border-gray-200 dark:border-gray-800",
+                                  )}
+                                >
+                                  <div className="flex items-start space-x-3">
+                                    <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                                    <div className="flex-1">
+                                      <Label
+                                        htmlFor={`tier-${tier.name}`}
+                                        className="flex items-center justify-between cursor-pointer"
+                                      >
+                                        <span className="font-medium">{tier.name}</span>
+                                        <Badge variant="outline" className="ml-2">
+                                          ${tier.price.toFixed(2)}
+                                        </Badge>
+                                      </Label>
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        {tier.description}
+                                      </p>
+                                      <ul className="mt-2 space-y-1">
+                                        {tier.features.map((feature, index) => (
+                                          <li
+                                            key={index}
+                                            className="text-xs text-gray-600 dark:text-gray-300 flex items-start"
+                                          >
+                                            <span className="mr-1 text-green-500">✓</span> {feature}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+
+                          <Separator className="my-4" />
+
+                          {/* Add-ons */}
+                          {getRoomAddOns("bedroom").length > 0 && (
+                            <div className="mb-4">
+                              <h3 className="text-lg font-medium mb-3">Add-on Services</h3>
+                              <div className="space-y-3">
+                                {getRoomAddOns("bedroom").map((addOn) => (
+                                  <div
+                                    key={addOn.id}
+                                    className={cn(
+                                      "border rounded-lg p-3 transition-all",
+                                      bedroomAddOns.includes(addOn.id)
+                                        ? "border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-900/20"
+                                        : "border-gray-200 dark:border-gray-800",
+                                    )}
+                                  >
+                                    <div className="flex items-start space-x-3">
+                                      <Checkbox
+                                        id={`addon-${addOn.id}`}
+                                        checked={bedroomAddOns.includes(addOn.id)}
+                                        onCheckedChange={(checked) =>
+                                          handleBedroomAddOnChange(addOn.id, checked === true)
+                                        }
+                                        className="mt-1"
+                                      />
+                                      <div className="flex-1">
+                                        <Label
+                                          htmlFor={`addon-${addOn.id}`}
+                                          className="flex items-center justify-between cursor-pointer"
+                                        >
+                                          <span className="font-medium">{addOn.name}</span>
+                                          <Badge variant="outline" className="ml-2 bg-green-50 dark:bg-green-900/20">
+                                            +${addOn.price.toFixed(2)}
+                                          </Badge>
+                                        </Label>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          {addOn.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <Separator className="my-4" />
+
+                          {/* Reductions */}
+                          {getRoomReductions("bedroom").length > 0 && (
+                            <div className="mb-4">
+                              <h3 className="text-lg font-medium mb-3">Skip Services (Save Money)</h3>
+                              <div className="space-y-3">
+                                {getRoomReductions("bedroom").map((reduction) => (
+                                  <div
+                                    key={reduction.id}
+                                    className={cn(
+                                      "border rounded-lg p-3 transition-all",
+                                      bedroomReductions.includes(reduction.id)
+                                        ? "border-red-500 bg-red-50 dark:border-red-700 dark:bg-red-900/20"
+                                        : "border-gray-200 dark:border-gray-800",
+                                    )}
+                                  >
+                                    <div className="flex items-start space-x-3">
+                                      <Checkbox
+                                        id={`reduction-${reduction.id}`}
+                                        checked={bedroomReductions.includes(reduction.id)}
+                                        onCheckedChange={(checked) =>
+                                          handleBedroomReductionChange(reduction.id, checked === true)
+                                        }
+                                        className="mt-1"
+                                      />
+                                      <div className="flex-1">
+                                        <Label
+                                          htmlFor={`reduction-${reduction.id}`}
+                                          className="flex items-center justify-between cursor-pointer"
+                                        >
+                                          <span className="font-medium">No {reduction.name}</span>
+                                          <Badge variant="outline" className="ml-2 bg-red-50 dark:bg-red-900/20">
+                                            -${reduction.discount.toFixed(2)}
+                                          </Badge>
+                                        </Label>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                          {reduction.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center mt-6">
+                            <div>
+                              <p className="text-sm text-gray-500">Bedroom Total</p>
+                              <p className="text-xl font-bold">${calculateBedroomTotalPrice().toFixed(2)}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={() => setIsBedroomCustomizing(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleBedroomConfigSave}>Save Changes</Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </Card>
-                ))}
+                </div>
+
+                {/* Other Core Rooms */}
+                {coreRooms
+                  .filter((room) => room !== "bedroom")
+                  .map((roomType) => (
+                    <Card
+                      key={roomType}
+                      className={`border ${roomCounts[roomType] > 0 ? "border-blue-500" : "border-gray-200"}`}
+                    >
+                      <CardContent className="p-4 flex flex-col items-center text-center">
+                        <div className="text-3xl mb-2">{roomIcons[roomType]}</div>
+                        <h3 className="font-medium mb-2">{roomDisplayNames[roomType]}</h3>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRoomCountChange(roomType, false)}
+                            disabled={roomCounts[roomType] <= 0}
+                            className="h-8 w-8"
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                          <span className="font-medium text-lg">{roomCounts[roomType] || 0}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRoomCountChange(roomType, true)}
+                            className="h-8 w-8"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             </CardContent>
           </Card>
@@ -546,32 +848,34 @@ export default function PricingPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
-                    {getActiveRoomConfigs().map((roomType) => (
-                      <div key={roomType}>
-                        <RoomConfigurator
-                          roomName={roomDisplayNames[roomType]}
-                          roomIcon={roomIcons[roomType]}
-                          baseTier={getRoomTiers(roomType)[0]}
-                          tiers={getRoomTiers(roomType)}
-                          addOns={getRoomAddOns(roomType)}
-                          reductions={getRoomReductions(roomType)}
-                          onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomType })}
-                          initialConfig={roomConfigurations.find((c) => c.roomName === roomType)}
-                        />
+                    {getActiveRoomConfigs()
+                      .filter((roomType) => roomType !== "bedroom")
+                      .map((roomType) => (
+                        <div key={roomType}>
+                          <RoomConfigurator
+                            roomName={roomDisplayNames[roomType]}
+                            roomIcon={roomIcons[roomType]}
+                            baseTier={getRoomTiers(roomType)[0]}
+                            tiers={getRoomTiers(roomType)}
+                            addOns={getRoomAddOns(roomType)}
+                            reductions={getRoomReductions(roomType)}
+                            onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomType })}
+                            initialConfig={roomConfigurations.find((c) => c.roomName === roomType)}
+                          />
 
-                        {/* Add Customization Matrix for each room */}
-                        <CustomizationMatrix
-                          roomName={roomDisplayNames[roomType]}
-                          selectedTier={
-                            roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "ESSENTIAL CLEAN"
-                          }
-                          addServices={getMatrixServices(roomType).add}
-                          removeServices={getMatrixServices(roomType).remove}
-                          onSelectionChange={(selection) => handleMatrixSelectionChange(roomType, selection)}
-                          initialSelection={matrixSelections[roomType]}
-                        />
-                      </div>
-                    ))}
+                          {/* Add Customization Matrix for each room */}
+                          <CustomizationMatrix
+                            roomName={roomDisplayNames[roomType]}
+                            selectedTier={
+                              roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "ESSENTIAL CLEAN"
+                            }
+                            addServices={getMatrixServices(roomType).add}
+                            removeServices={getMatrixServices(roomType).remove}
+                            onSelectionChange={(selection) => handleMatrixSelectionChange(roomType, selection)}
+                            initialSelection={matrixSelections[roomType]}
+                          />
+                        </div>
+                      ))}
                   </div>
 
                   <div className="space-y-6">
@@ -742,22 +1046,6 @@ export default function PricingPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Bedroom Customization Drawer */}
-      {roomCounts.bedroom > 0 && (
-        <RoomCustomizationDrawer
-          open={isBedroomCustomizing}
-          onOpenChange={setIsBedroomCustomizing}
-          roomName="Bedroom"
-          roomIcon={roomIcons.bedroom}
-          baseTier={getRoomTiers("bedroom")[0]}
-          tiers={getRoomTiers("bedroom")}
-          addOns={getRoomAddOns("bedroom")}
-          reductions={getRoomReductions("bedroom")}
-          initialConfig={getBedroomConfig()}
-          onSave={handleBedroomConfigSave}
-        />
-      )}
     </div>
   )
 }
