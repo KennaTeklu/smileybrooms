@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,8 +11,9 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { Home, Calendar, Sparkles } from "lucide-react"
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
-import { cn } from "@/lib/utils"
-import { Minus, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
+import { CompactRoomSelector } from "./compact-room-selector"
+import type { RoomConfiguration } from "./room-customization-drawer"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -64,142 +63,114 @@ const cleanlinessMultipliers = [
   { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
 ]
 
-interface RoomConfiguratorProps {
-  selectedRooms: Record<string, number>
-  setSelectedRooms: (rooms: Record<string, number>) => void
-  serviceType: "standard" | "detailing"
+// Sample room tiers, add-ons, and reductions for the customization drawer
+const sampleRoomTiers = {
+  bedroom: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of visible surfaces",
+      price: 49.99,
+      features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning including hard-to-reach areas",
+      price: 89.99,
+      features: ["Everything in Essential Clean", "Under bed cleaning", "Baseboards", "Window sills", "Light fixtures"],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete top-to-bottom cleaning",
+      price: 129.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Inside closets",
+        "Behind furniture",
+        "Wall spot cleaning",
+        "Ceiling fans",
+      ],
+    },
+  ],
+  bathroom: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning of main surfaces",
+      price: 39.99,
+      features: ["Sink and counter", "Toilet", "Shower/tub surfaces", "Floor"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Deeper cleaning of all surfaces",
+      price: 69.99,
+      features: [
+        "Everything in Essential Clean",
+        "Tile grout",
+        "Cabinet exteriors",
+        "Detailed fixtures",
+        "Mirror cleaning",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Complete sanitizing clean",
+      price: 99.99,
+      features: [
+        "Everything in Advanced Clean",
+        "Cabinet interiors",
+        "Exhaust fan",
+        "Scale removal",
+        "Deep disinfection",
+      ],
+    },
+  ],
 }
 
-const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
-  const incrementRoom = (roomId: string) => {
-    setSelectedRooms((prev) => ({
-      ...prev,
-      [roomId]: (prev[roomId] || 0) + 1,
-    }))
-  }
+const sampleAddOns = {
+  bedroom: [
+    {
+      id: "windows",
+      name: "Window Cleaning",
+      price: 15,
+      description: "Interior window cleaning including tracks and sills",
+    },
+    { id: "blinds", name: "Blinds/Curtains", price: 20, description: "Detailed cleaning of window treatments" },
+    { id: "walls", name: "Wall Washing", price: 35, description: "Spot cleaning and full wall washing as needed" },
+    {
+      id: "mattress",
+      name: "Mattress Treatment",
+      price: 45,
+      description: "Vacuum, spot clean, and deodorize mattress",
+    },
+  ],
+  bathroom: [
+    { id: "deep_grout", name: "Deep Grout Cleaning", price: 30, description: "Intensive grout cleaning and sealing" },
+    {
+      id: "shower_doors",
+      name: "Shower Door Treatment",
+      price: 25,
+      description: "Hard water stain and soap scum removal",
+    },
+    { id: "mold", name: "Mold Treatment", price: 40, description: "Mold and mildew removal and prevention" },
+    { id: "cabinet_org", name: "Cabinet Organization", price: 35, description: "Clean and organize bathroom cabinets" },
+  ],
+}
 
-  const decrementRoom = (roomId: string) => {
-    if (selectedRooms[roomId] > 0) {
-      setSelectedRooms((prev) => ({
-        ...prev,
-        [roomId]: prev[roomId] - 1,
-      }))
-    }
-  }
-
-  return (
-    <>
-      <div className="border-b pb-2 mb-4">
-        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-        {roomTypes
-          .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-          .map((room) => (
-            <div
-              key={room.id}
-              className={cn(
-                "border rounded-lg p-3 transition-all",
-                selectedRooms[room.id] > 0
-                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-800",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div
-                    className={cn(
-                      "p-2 rounded-full mr-2",
-                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
-                    )}
-                  >
-                    {room.icon}
-                  </div>
-                  <p className="font-medium">{room.name}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
-                    className="h-7 w-7"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
-            </div>
-          ))}
-      </div>
-
-      <div className="border-b pb-2 mb-4">
-        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {roomTypes
-          .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-          .map((room) => (
-            <div
-              key={room.id}
-              className={cn(
-                "border rounded-lg p-3 transition-all",
-                selectedRooms[room.id] > 0
-                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-800",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div
-                    className={cn(
-                      "p-2 rounded-full mr-2",
-                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
-                    )}
-                  >
-                    {room.icon}
-                  </div>
-                  <p className="font-medium">{room.name}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
-                    className="h-7 w-7"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
-            </div>
-          ))}
-      </div>
-
-      <div className="mt-4 pt-4 border-t">
-        <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-          <Plus className="h-4 w-4" /> Request Custom Space
-        </Button>
-      </div>
-    </>
-  )
+const sampleReductions = {
+  bedroom: [
+    {
+      id: "no_dusting",
+      name: "No Dusting",
+      discount: 10,
+      description: "Skip dusting of surfaces and decorative items",
+    },
+    { id: "no_vacuum", name: "No Vacuuming", discount: 15, description: "Skip vacuuming of floors and rugs" },
+    { id: "no_bed", name: "No Bed Making", discount: 5, description: "Skip making the bed" },
+  ],
+  bathroom: [
+    { id: "no_shower", name: "No Shower/Tub", discount: 15, description: "Skip cleaning the shower or bathtub" },
+    { id: "no_floor", name: "No Floor", discount: 10, description: "Skip cleaning the bathroom floor" },
+    { id: "no_mirror", name: "No Mirrors", discount: 5, description: "Skip cleaning mirrors and glass surfaces" },
+  ],
 }
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
@@ -211,6 +182,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     })
     return initialRooms
   })
+
+  // State for room configurations
+  const [roomConfigurations, setRoomConfigurations] = useState<Record<string, RoomConfiguration>>({})
 
   // State for other selections
   const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
@@ -227,34 +201,39 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   // Calculate the total price whenever selections change
   useEffect(() => {
     calculatePrice()
-  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
+  }, [selectedRooms, roomConfigurations, serviceType, frequency, cleanlinessLevel, paymentFrequency])
 
-  // Function to increment room count
-  const incrementRoom = (roomId: string) => {
+  // Function to handle room count changes
+  const handleRoomCountChange = (roomId: string, count: number) => {
     setSelectedRooms((prev) => ({
       ...prev,
-      [roomId]: (prev[roomId] || 0) + 1,
+      [roomId]: count,
     }))
   }
 
-  // Function to decrement room count
-  const decrementRoom = (roomId: string) => {
-    if (selectedRooms[roomId] > 0) {
-      setSelectedRooms((prev) => ({
-        ...prev,
-        [roomId]: prev[roomId] - 1,
-      }))
-    }
+  // Function to handle room configuration changes
+  const handleRoomConfigChange = (roomId: string, config: RoomConfiguration) => {
+    setRoomConfigurations((prev) => ({
+      ...prev,
+      [roomId]: config,
+    }))
   }
 
   // Function to calculate the total price
   const calculatePrice = () => {
-    // Calculate base price from selected rooms
+    // Calculate base price from selected rooms and their configurations
     let basePrice = 0
     Object.entries(selectedRooms).forEach(([roomId, count]) => {
-      const room = roomTypes.find((r) => r.id === roomId)
-      if (room) {
-        basePrice += room.basePrice * count
+      if (count > 0) {
+        const roomConfig = roomConfigurations[roomId]
+        if (roomConfig) {
+          basePrice += roomConfig.totalPrice * count
+        } else {
+          const room = roomTypes.find((r) => r.id === roomId)
+          if (room) {
+            basePrice += room.basePrice * count
+          }
+        }
       }
     })
 
@@ -321,23 +300,38 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     return expandedSections.includes(section)
   }
 
+  // Get room tiers for a specific room type
+  const getRoomTiers = (roomId: string) => {
+    return sampleRoomTiers[roomId as keyof typeof sampleRoomTiers] || sampleRoomTiers.bedroom
+  }
+
+  // Get room add-ons for a specific room type
+  const getRoomAddOns = (roomId: string) => {
+    return sampleAddOns[roomId as keyof typeof sampleAddOns] || sampleAddOns.bedroom
+  }
+
+  // Get room reductions for a specific room type
+  const getRoomReductions = (roomId: string) => {
+    return sampleReductions[roomId as keyof typeof sampleReductions] || sampleReductions.bedroom
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto">
       <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="standard" className="text-sm md:text-base">
-            Standard Cleaning
+            Residential Services
           </TabsTrigger>
           <TabsTrigger value="detailing" className="text-sm md:text-base">
-            Premium Detailing
+            Commercial Services
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="standard" className="space-y-6">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Standard Cleaning Service</h3>
+            <h3 className="text-lg font-medium">Residential Cleaning Services</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our standard cleaning covers all the basics to keep your space clean and tidy.
+              Customize your home cleaning service with our flexible options
             </p>
           </div>
 
@@ -349,11 +343,63 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
+              <div className="border-b pb-2 mb-4">
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                {roomTypes
+                  .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+                  .map((room) => (
+                    <CompactRoomSelector
+                      key={room.id}
+                      roomId={room.id}
+                      roomName={room.name}
+                      roomIcon={room.icon}
+                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                      count={selectedRooms[room.id] || 0}
+                      onCountChange={handleRoomCountChange}
+                      baseTier={getRoomTiers(room.id)[0]}
+                      tiers={getRoomTiers(room.id)}
+                      addOns={getRoomAddOns(room.id)}
+                      reductions={getRoomReductions(room.id)}
+                      onConfigChange={handleRoomConfigChange}
+                      initialConfig={roomConfigurations[room.id]}
+                    />
+                  ))}
+              </div>
+
+              <div className="border-b pb-2 mb-4">
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {roomTypes
+                  .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+                  .map((room) => (
+                    <CompactRoomSelector
+                      key={room.id}
+                      roomId={room.id}
+                      roomName={room.name}
+                      roomIcon={room.icon}
+                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                      count={selectedRooms[room.id] || 0}
+                      onCountChange={handleRoomCountChange}
+                      baseTier={getRoomTiers(room.id)[0]}
+                      tiers={getRoomTiers(room.id)}
+                      addOns={getRoomAddOns(room.id)}
+                      reductions={getRoomReductions(room.id)}
+                      onConfigChange={handleRoomConfigChange}
+                      initialConfig={roomConfigurations[room.id]}
+                    />
+                  ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Plus className="h-4 w-4" /> Request Custom Space
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -435,9 +481,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
         <TabsContent value="detailing" className="space-y-6">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Premium Detailing Service</h3>
+            <h3 className="text-lg font-medium">Commercial Cleaning Services</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our premium service includes deep cleaning and attention to detail for a thorough clean.
+              Professional cleaning services for businesses and commercial properties
             </p>
           </div>
 
@@ -446,14 +492,66 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Home className="h-5 w-5 mr-2 text-purple-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
+                <h3 className="text-lg font-medium">Select Areas</h3>
               </div>
 
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
+              <div className="border-b pb-2 mb-4">
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE AREAS</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                {roomTypes
+                  .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+                  .map((room) => (
+                    <CompactRoomSelector
+                      key={room.id}
+                      roomId={room.id}
+                      roomName={room.name}
+                      roomIcon={room.icon}
+                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                      count={selectedRooms[room.id] || 0}
+                      onCountChange={handleRoomCountChange}
+                      baseTier={getRoomTiers(room.id)[0]}
+                      tiers={getRoomTiers(room.id)}
+                      addOns={getRoomAddOns(room.id)}
+                      reductions={getRoomReductions(room.id)}
+                      onConfigChange={handleRoomConfigChange}
+                      initialConfig={roomConfigurations[room.id]}
+                    />
+                  ))}
+              </div>
+
+              <div className="border-b pb-2 mb-4">
+                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {roomTypes
+                  .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+                  .map((room) => (
+                    <CompactRoomSelector
+                      key={room.id}
+                      roomId={room.id}
+                      roomName={room.name}
+                      roomIcon={room.icon}
+                      basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
+                      count={selectedRooms[room.id] || 0}
+                      onCountChange={handleRoomCountChange}
+                      baseTier={getRoomTiers(room.id)[0]}
+                      tiers={getRoomTiers(room.id)}
+                      addOns={getRoomAddOns(room.id)}
+                      reductions={getRoomReductions(room.id)}
+                      onConfigChange={handleRoomConfigChange}
+                      initialConfig={roomConfigurations[room.id]}
+                    />
+                  ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                  <Plus className="h-4 w-4" /> Request Custom Space
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -540,7 +638,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div>
             <h3 className="text-lg font-medium">Estimated Price</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+              {serviceType === "standard" ? "Residential Services" : "Commercial Services"}
               {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
             </p>
           </div>
@@ -554,8 +652,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
         {!isServiceAvailable && (
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-            For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
-            quote.
+            For extremely dirty conditions, we recommend our Commercial Services. Please contact us for a custom quote.
           </div>
         )}
 
