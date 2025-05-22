@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
+// Import the new matching utilities
+import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
 
 export type CartItem = {
   id: string
@@ -48,25 +50,8 @@ const calculateCartTotals = (items: CartItem[]): { totalItems: number; totalPric
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
-      // Check if there's a similar item with the same service type and address
-      const similarItemIndex = state.items.findIndex((item) => {
-        // For custom cleaning services, check if they have the same service type, address, and payment frequency
-        if (
-          item.priceId === "price_custom_cleaning" &&
-          action.payload.priceId === "price_custom_cleaning" &&
-          item.metadata?.serviceType === action.payload.metadata?.serviceType &&
-          item.metadata?.frequency === action.payload.metadata?.frequency &&
-          item.paymentFrequency === action.payload.paymentFrequency
-        ) {
-          // Check if addresses match
-          const itemAddress = item.metadata?.customer?.address?.toLowerCase()
-          const payloadAddress = action.payload.metadata?.customer?.address?.toLowerCase()
-          return itemAddress && payloadAddress && itemAddress === payloadAddress
-        }
-
-        // For standard products, just check the ID
-        return item.id === action.payload.id
-      })
+      // Check if there's a similar item using advanced matching criteria
+      const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
 
       let updatedItems: CartItem[]
 
@@ -78,7 +63,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           return item
         })
       } else {
-        updatedItems = [...state.items, action.payload]
+        // Generate a more reliable ID for the new item
+        const itemSignature = getItemSignature(action.payload)
+        const enhancedItem = {
+          ...action.payload,
+          id: action.payload.id.includes("custom-cleaning") ? `custom-cleaning-${itemSignature}` : action.payload.id,
+        }
+        updatedItems = [...state.items, enhancedItem]
       }
 
       const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
