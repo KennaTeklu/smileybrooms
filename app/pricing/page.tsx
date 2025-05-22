@@ -484,6 +484,7 @@ export default function PricingPage() {
                       frequencyDiscount={frequencyDiscount}
                       totalPrice={calculateTotalPrice()}
                       onBookNow={() => setShowCheckoutPreview(true)}
+                      hasItems={getActiveRoomConfigs().length > 0}
                     />
 
                     <div className="mt-4">

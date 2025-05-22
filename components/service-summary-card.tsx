@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +8,18 @@ import { Separator } from "@/components/ui/separator"
 import { ShoppingCart, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
+
+// Optional cart context import
+let useCart: () => { cart: { items: any[] } } | { cart: { items: any[] } }
+
+// Try to import the cart context, but don't fail if it's not available
+try {
+  // Dynamic import to prevent errors
+  useCart = require("@/lib/cart-context").useCart
+} catch (error) {
+  // Provide a fallback if the cart context is not available
+  useCart = () => ({ cart: { items: [] } })
+}
 
 interface ServiceSummaryProps {
   basePrice?: number
@@ -19,6 +30,7 @@ interface ServiceSummaryProps {
   frequencyDiscount?: number
   totalPrice: number
   onBookNow?: () => void
+  hasItems?: boolean // Optional prop to indicate if there are items
 }
 
 export function ServiceSummaryCard({
@@ -30,11 +42,21 @@ export function ServiceSummaryCard({
   frequencyDiscount = 0,
   totalPrice,
   onBookNow,
+  hasItems,
 }: ServiceSummaryProps) {
-  const { cart } = useCart()
   const { toast } = useToast()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  let cartItems: any[] = []
+
+  // Try to use the cart context, but don't fail if it's not available
+  try {
+    const { cart } = useCart()
+    cartItems = cart.items
+  } catch (error) {
+    // If the cart context is not available, use the hasItems prop
+    cartItems = hasItems ? [{ id: "placeholder" }] : []
+  }
 
   // Calculate subtotal
   const subtotal =
@@ -55,8 +77,8 @@ export function ServiceSummaryCard({
 
     setIsLoading(true)
 
-    // If cart is empty, show a message
-    if (cart.items.length === 0) {
+    // If cart is empty and no rooms are selected, show a message
+    if (cartItems.length === 0 && !hasItems && basePrice === 0) {
       toast({
         title: "No services selected",
         description: "Please select services before booking",
