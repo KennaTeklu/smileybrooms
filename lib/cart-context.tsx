@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useToast } from "@/components/ui/use-toast"
 
 // Define the cart item type
 export interface CartItem {
@@ -8,27 +9,9 @@ export interface CartItem {
   name: string
   price: number
   quantity: number
-  type: string
-  details?: {
-    rooms?: Array<{
-      type: string
-      count: number
-      tier: string
-    }>
-    addOns?: Array<{
-      roomName: string
-      name: string
-      price: number
-    }>
-    reductions?: Array<{
-      roomName: string
-      name: string
-      discount: number
-    }>
-    frequency?: string
-    serviceFee?: number
-    frequencyDiscount?: number
-  }
+  image?: string
+  type?: string
+  details?: Record<string, any>
 }
 
 // Define the cart context type
@@ -51,6 +34,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   // Initialize cart state
   const [cart, setCart] = useState<{ items: CartItem[] }>({ items: [] })
+  const { toast } = useToast()
 
   // Load cart from localStorage on component mount
   useEffect(() => {
@@ -92,6 +76,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return { ...prevCart, items: [...prevCart.items, item] }
       }
     })
+
+    // Show toast notification
+    if (toast) {
+      toast({
+        title: "Added to cart",
+        description: `${item.name} has been added to your cart`,
+        duration: 3000,
+      })
+    }
   }
 
   // Remove an item from the cart
@@ -122,12 +115,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Calculate the total price of all items in the cart
   const getCartTotal = () => {
-    return cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
+    return cart.items.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0)
   }
 
   // Get the total number of items in the cart
   const getItemCount = () => {
-    return cart.items.reduce((count, item) => count + item.quantity, 0)
+    return cart.items.reduce((count, item) => count + (item.quantity || 1), 0)
   }
 
   // Create the context value

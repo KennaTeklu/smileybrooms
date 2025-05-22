@@ -17,13 +17,19 @@ export default function CartPage() {
 }
 
 function CartPageContent() {
-  const { cart } = useCart()
+  const { cart, getCartTotal, getItemCount } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
 
   const handleCheckout = () => {
     router.push("/checkout")
   }
+
+  // Calculate values safely
+  const itemCount = getItemCount()
+  const subtotal = getCartTotal()
+  const tax = subtotal * 0.0825 // 8.25% tax rate
+  const total = subtotal + tax
 
   return (
     <div className="container mx-auto py-10 px-4">
@@ -57,17 +63,17 @@ function CartPageContent() {
               <h2 className="text-xl font-bold mb-4">Order Summary</h2>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Items ({cart.totalItems})</span>
-                  <span>${cart.totalPrice.toFixed(2)}</span>
+                  <span>Items ({itemCount})</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (8.25%)</span>
-                  <span>${(cart.totalPrice * 0.0825).toFixed(2)}</span>
+                  <span>${tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t pt-4 mt-4">
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${(cart.totalPrice + cart.totalPrice * 0.0825).toFixed(2)}</span>
+                    <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
