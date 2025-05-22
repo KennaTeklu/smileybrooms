@@ -1,18 +1,10 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import type React from "react"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -26,6 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Info, Check, X } from "lucide-react"
 
 // Define types for room tiers, add-ons, and reductions
 export interface RoomTier {
@@ -39,14 +34,14 @@ export interface RoomAddOn {
   id: string
   name: string
   price: number
-  description?: string
+  description: string
 }
 
 export interface RoomReduction {
   id: string
   name: string
   discount: number
-  description?: string
+  description: string
 }
 
 export interface RoomConfiguration {
@@ -82,69 +77,78 @@ export function RoomCustomizationDrawer({
   initialConfig,
   onSave,
 }: RoomCustomizationDrawerProps) {
-  // State for tracking the current configuration
-  const [selectedTier, setSelectedTier] = useState<string>(initialConfig.selectedTier || baseTier.name)
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig.selectedAddOns || [])
-  const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig.selectedReductions || [])
+  const [activeTab, setActiveTab] = useState("tiers")
+  const [selectedTier, setSelectedTier] = useState(initialConfig.selectedTier)
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig.selectedAddOns)
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig.selectedReductions)
+  const [totalPrice, setTotalPrice] = useState(initialConfig.totalPrice)
 
   // Check if we're on mobile
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  // Calculate the total price based on selections
-  const calculateTotalPrice = () => {
-    // Get base tier price
-    const tierPrice = tiers.find((tier) => tier.name === selectedTier)?.price || baseTier.price
+  // Calculate total price whenever selections change
+  useEffect(() => {
+    let price = 0
 
-    // Add all selected add-ons
-    const addOnsTotal = selectedAddOns.reduce((total, addOnId) => {
+    // Add tier price
+    const tier = tiers.find((t) => t.name === selectedTier)
+    if (tier) {
+      price += tier.price
+    }
+
+    // Add add-ons
+    selectedAddOns.forEach((addOnId) => {
       const addOn = addOns.find((a) => a.id === addOnId)
-      return total + (addOn?.price || 0)
-    }, 0)
+      if (addOn) {
+        price += addOn.price
+      }
+    })
 
-    // Subtract all selected reductions
-    const reductionsTotal = selectedReductions.reduce((total, reductionId) => {
+    // Subtract reductions
+    selectedReductions.forEach((reductionId) => {
       const reduction = reductions.find((r) => r.id === reductionId)
-      return total + (reduction?.discount || 0)
-    }, 0)
+      if (reduction) {
+        price -= reduction.discount
+      }
+    })
 
-    return tierPrice + addOnsTotal - reductionsTotal
-  }
+    // Ensure price doesn't go below zero
+    price = Math.max(0, price)
+
+    setTotalPrice(price)
+  }, [selectedTier, selectedAddOns, selectedReductions, tiers, addOns, reductions])
 
   // Handle tier selection
-  const handleTierChange = (tier: string) => {
-    setSelectedTier(tier)
+  const handleTierChange = (value: string) => {
+    setSelectedTier(value)
   }
 
   // Handle add-on selection
   const handleAddOnChange = (addOnId: string, checked: boolean) => {
-    setSelectedAddOns((prev) => {
-      if (checked) {
-        return [...prev, addOnId]
-      } else {
-        return prev.filter((id) => id !== addOnId)
-      }
-    })
+    if (checked) {
+      setSelectedAddOns((prev) => [...prev, addOnId])
+    } else {
+      setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
+    }
   }
 
   // Handle reduction selection
   const handleReductionChange = (reductionId: string, checked: boolean) => {
-    setSelectedReductions((prev) => {
-      if (checked) {
-        return [...prev, reductionId]
-      } else {
-        return prev.filter((id) => id !== reductionId)
-      }
-    })
+    if (checked) {
+      setSelectedReductions((prev) => [...prev, reductionId])
+    } else {
+      setSelectedReductions((prev) => prev.filter((id) => id !== reductionId))
+    }
   }
 
-  // Handle save button click
+  // Handle save
   const handleSave = () => {
     onSave({
       roomName,
       selectedTier,
       selectedAddOns,
       selectedReductions,
-      totalPrice: calculateTotalPrice(),
+      totalPrice,
     })
     onOpenChange(false)
   }
@@ -152,133 +156,7 @@ export function RoomCustomizationDrawer({
   // Content for both drawer and dialog
   const content = (
     <>
-      <div className="space-y-6 overflow-y-auto px-4 pb-20">
-        <Accordion type="single" collapsible defaultValue="tier" className="w-full">
-          <AccordionItem value="tier" className="border rounded-lg overflow-hidden mb-4">
-            <AccordionTrigger className="px-4 py-3 hover:no-underline bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center">
-                <span className="text-lg font-medium">Cleaning Level</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 py-4">
-              <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-4">
-                {tiers.map((tier, index) => (
-                  <div
-                    key={tier.name}
-                    className={`p-4 rounded-lg border ${
-                      selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-start">
-                      <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                      <div className="ml-3 w-full">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
-                            {tier.name}
-                          </Label>
-                          <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
-                            ${tier.price.toFixed(2)}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
-                        <ul className="mt-2 space-y-1">
-                          {tier.features.map((feature, i) => (
-                            <li key={i} className="text-sm flex items-start">
-                              <span className="text-green-500 mr-2">✓</span>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </RadioGroup>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="addons" className="border rounded-lg overflow-hidden mb-4">
-            <AccordionTrigger className="px-4 py-3 hover:no-underline bg-green-50 dark:bg-green-900/20">
-              <div className="flex items-center">
-                <span className="text-lg font-medium text-green-700">Add Services</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 py-4">
-              <div className="space-y-3 border-l-4 border-green-200 pl-4">
-                {addOns.map((addOn) => (
-                  <div key={addOn.id} className="flex items-start">
-                    <Checkbox
-                      id={`addon-${addOn.id}`}
-                      checked={selectedAddOns.includes(addOn.id)}
-                      onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3">
-                      <Label htmlFor={`addon-${addOn.id}`} className="flex items-center">
-                        {addOn.name}
-                        <Badge variant="outline" className="ml-2">
-                          +${addOn.price.toFixed(2)}
-                        </Badge>
-                      </Label>
-                      {addOn.description && <p className="text-sm text-gray-500 mt-1">{addOn.description}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="reductions" className="border rounded-lg overflow-hidden mb-4">
-            <AccordionTrigger className="px-4 py-3 hover:no-underline bg-red-50 dark:bg-red-900/20">
-              <div className="flex items-center">
-                <span className="text-lg font-medium text-red-700">Remove Services</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 py-4">
-              <div className="space-y-3 border-l-4 border-red-200 pl-4">
-                {reductions.map((reduction) => (
-                  <div key={reduction.id} className="flex items-start">
-                    <Checkbox
-                      id={`reduction-${reduction.id}`}
-                      checked={selectedReductions.includes(reduction.id)}
-                      onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3">
-                      <Label htmlFor={`reduction-${reduction.id}`} className="flex items-center">
-                        {reduction.name}
-                        <Badge variant="outline" className="ml-2 text-red-500">
-                          -${reduction.discount.toFixed(2)}
-                        </Badge>
-                      </Label>
-                      {reduction.description && <p className="text-sm text-gray-500 mt-1">{reduction.description}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="special" className="border rounded-lg overflow-hidden">
-            <AccordionTrigger className="px-4 py-3 hover:no-underline bg-purple-50 dark:bg-purple-900/20">
-              <div className="flex items-center">
-                <span className="text-lg font-medium text-purple-700">Special Requirements</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent className="px-4 py-4">
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500">
-                  Have special requirements for this room? Add them here and our team will take them into account.
-                </p>
-                <textarea
-                  className="w-full p-3 border rounded-md h-24"
-                  placeholder="E.g., Pay special attention to the ceiling fan, don't move the desk, etc."
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
+      <div className="space-y-6 overflow-y-auto px-4 pb-20"></div>
     </>
   )
 
@@ -295,13 +173,13 @@ export function RoomCustomizationDrawer({
             <DialogDescription>Customize your cleaning options for this room</DialogDescription>
           </DialogHeader>
 
-          {content}
+          {/*{content}*/}
 
           <DialogFooter className="sticky bottom-0 bg-white dark:bg-gray-950 pt-4 border-t mt-4">
             <div className="flex justify-between items-center w-full">
               <div>
                 <p className="text-sm text-gray-500">Room Total</p>
-                <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
+                <p className="text-xl font-bold">${totalPrice.toFixed(2)}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -318,30 +196,152 @@ export function RoomCustomizationDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader className="border-b">
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="flex flex-col items-center">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{roomIcon}</span>
-            <DrawerTitle>Customize {roomName}</DrawerTitle>
+            <div className="p-2 bg-blue-100 rounded-full dark:bg-blue-900/30">{roomIcon}</div>
+            <DrawerTitle className="text-xl">{roomName} Customization</DrawerTitle>
           </div>
-          <DrawerDescription>Customize your cleaning options for this room</DrawerDescription>
+          <div className="text-sm text-gray-500 mt-1">Customize your cleaning options</div>
         </DrawerHeader>
 
-        {content}
+        <div className="px-4 overflow-y-auto">
+          <Tabs defaultValue="tiers" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="tiers">Cleaning Tiers</TabsTrigger>
+              <TabsTrigger value="addons">Add-Ons</TabsTrigger>
+              <TabsTrigger value="reductions">Reductions</TabsTrigger>
+            </TabsList>
 
-        <DrawerFooter className="sticky bottom-0 bg-white dark:bg-gray-950 pt-4 border-t">
-          <div className="flex justify-between items-center w-full mb-4">
-            <div>
-              <p className="text-sm text-gray-500">Room Total</p>
-              <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
+            <TabsContent value="tiers" className="space-y-4">
+              <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-4">
+                {tiers.map((tier) => (
+                  <div
+                    key={tier.name}
+                    className={`border rounded-lg p-4 ${
+                      selectedTier === tier.name ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between">
+                          <Label htmlFor={`tier-${tier.name}`} className="font-medium">
+                            {tier.name}
+                          </Label>
+                          <Badge variant="outline" className="ml-2">
+                            ${tier.price.toFixed(2)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
+                        <div className="mt-2 space-y-1">
+                          {tier.features.map((feature, index) => (
+                            <div key={index} className="flex items-start text-sm">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <span>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </TabsContent>
+
+            <TabsContent value="addons" className="space-y-4">
+              {addOns.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No add-ons available for this room</div>
+              ) : (
+                addOns.map((addOn) => (
+                  <div
+                    key={addOn.id}
+                    className={`border rounded-lg p-4 ${
+                      selectedAddOns.includes(addOn.id) ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <Checkbox
+                        id={`addon-${addOn.id}`}
+                        checked={selectedAddOns.includes(addOn.id)}
+                        onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
+                        className="mt-1"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between">
+                          <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
+                            {addOn.name}
+                          </Label>
+                          <Badge variant="outline" className="ml-2 bg-green-50 dark:bg-green-900/20">
+                            +${addOn.price.toFixed(2)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{addOn.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="reductions" className="space-y-4">
+              {reductions.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No reductions available for this room</div>
+              ) : (
+                reductions.map((reduction) => (
+                  <div
+                    key={reduction.id}
+                    className={`border rounded-lg p-4 ${
+                      selectedReductions.includes(reduction.id) ? "border-red-500 bg-red-50 dark:bg-red-900/20" : ""
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <Checkbox
+                        id={`reduction-${reduction.id}`}
+                        checked={selectedReductions.includes(reduction.id)}
+                        onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
+                        className="mt-1"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between">
+                          <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
+                            No {reduction.name}
+                          </Label>
+                          <Badge variant="outline" className="ml-2 bg-red-50 dark:bg-red-900/20">
+                            -${reduction.discount.toFixed(2)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">{reduction.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="px-4 mb-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Info className="h-4 w-4 text-blue-500 mr-2" />
+              <span className="text-sm text-gray-500">Selected options will be applied to all {roomName}s</span>
             </div>
+            <div className="font-bold text-lg">${totalPrice.toFixed(2)}</div>
           </div>
-          <div className="flex gap-2 w-full">
+        </div>
+
+        <DrawerFooter className="pt-2">
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+              <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
             <Button className="flex-1" onClick={handleSave}>
-              Apply Changes
+              <Check className="h-4 w-4 mr-2" />
+              Save Changes
             </Button>
           </div>
         </DrawerFooter>

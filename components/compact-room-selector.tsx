@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Settings } from "lucide-react"
 import { Minus, Plus } from "lucide-react"
@@ -132,17 +132,6 @@ export function CompactRoomSelector({
             </div>
           </div>
 
-          {/* This is the customize button that was missing or not visible */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full flex items-center justify-center gap-1 text-xs mt-2"
-            onClick={() => setIsCustomizing(true)}
-          >
-            <Settings className="h-3 w-3" />
-            Customize
-          </Button>
-
           {hasCustomizations && (
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="flex flex-wrap gap-1">
@@ -165,6 +154,19 @@ export function CompactRoomSelector({
             </div>
           )}
         </CardContent>
+
+        {/* Moved the customize button to a CardFooter for better visibility */}
+        <CardFooter className="p-4 pt-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full flex items-center justify-center gap-1 text-xs"
+            onClick={() => setIsCustomizing(true)}
+          >
+            <Settings className="h-3 w-3" />
+            Customize
+          </Button>
+        </CardFooter>
       </Card>
 
       <RoomCustomizationDrawer
