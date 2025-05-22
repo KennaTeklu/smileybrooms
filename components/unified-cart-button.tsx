@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useEnhancedCart } from "@/lib/enhanced-cart-context"
+import React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetTrigger } from "@/components/ui/sheet"
-import { Cart } from "@/components/cart"
-import { cn } from "@/lib/utils"
-import { formatCurrency } from "@/lib/utils"
 import { ShoppingCart, ArrowRight } from "lucide-react"
+import { useEnhancedCart } from "@/lib/enhanced-cart-context"
+import { formatCurrency } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface UnifiedCartButtonProps {
-  className?: string
-  variant?: "default" | "outline" | "secondary" | "link" | "ghost" | "destructive" | null
+  variant?: "default" | "outline" | "secondary" | "ghost"
   size?: "default" | "sm" | "lg" | "icon"
   showPrice?: boolean
   showCheckout?: boolean
@@ -21,99 +21,80 @@ interface UnifiedCartButtonProps {
 }
 
 export default function UnifiedCartButton({
-  className,
-  variant = "outline",
+  variant = "default",
   size = "default",
   showPrice = false,
   showCheckout = false,
   sticky = false,
-  position = "top-right",
+  position = "bottom-right",
 }: UnifiedCartButtonProps) {
-  const { cart, setActiveList } = useEnhancedCart()
-  const [isClient, setIsClient] = useState(false)
+  const { cart, getListCount } = useEnhancedCart()
   const [isAnimating, setIsAnimating] = useState(false)
-  const [prevCount, setPrevCount] = useState(0)
-  const [isOpen, setIsOpen] = useState(false)
 
-  // Set the active list to "main" by default
-  useEffect(() => {
-    setActiveList("main")
-  }, [setActiveList])
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Add animation when items are added to cart
-  useEffect(() => {
-    if (isClient && cart.totalItems > prevCount) {
-      setIsAnimating(true)
-      const timeout = setTimeout(() => setIsAnimating(false), 600)
-      return () => clearTimeout(timeout)
-    }
-    setPrevCount(cart.totalItems)
-  }, [cart.totalItems, isClient, prevCount])
+  // Get the count of items in the main list
+  const itemCount = getListCount("main")
 
   // Position classes based on the position prop
   const positionClasses = {
     "top-right": "top-4 right-4",
     "bottom-right": "bottom-4 right-4",
-    "bottom-full": "bottom-0 left-0 w-full",
+    "bottom-full": "bottom-0 left-0 right-0 w-full rounded-none",
   }
 
-  // Determine if we should show the sticky version
-  const stickyClasses = sticky
-    ? cn(
-        "fixed z-50 shadow-lg",
-        position === "bottom-full"
-          ? "py-2 px-4 bg-white border-t flex items-center justify-between w-full"
-          : "rounded-full bg-white",
-        positionClasses[position],
-      )
-    : ""
+  // Trigger animation when cart count changes
+  const prevCount = React.useRef(itemCount)
+
+  React.useEffect(() => {
+    if (itemCount > prevCount.current) {
+      setIsAnimating(true)
+      const timer = setTimeout(() => setIsAnimating(false), 1000)
+      return () => clearTimeout(timer)
+    }
+    prevCount.current = itemCount
+  }, [itemCount])
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant={variant}
-          size={size}
-          className={cn(
-            "relative",
-            isAnimating && "animate-bounce-once",
-            stickyClasses,
-            position === "bottom-full" ? "rounded-none" : "",
-            className,
+    <div className={cn("z-50", sticky ? `fixed ${positionClasses[position]}` : "relative")}>
+      <Button
+        variant={variant}
+        size={size}
+        className={cn(
+          "relative",
+          position === "bottom-full" && "w-full justify-between px-6 py-6",
+          isAnimating && "ring-2 ring-blue-400 ring-offset-2",
+        )}
+        aria-label={`Shopping cart with ${itemCount} items`}
+      >
+        <AnimatePresence>
+          {isAnimating && (
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-green-500"
+            />
           )}
-          onClick={() => setIsOpen(true)}
-          aria-label={`Open cart with ${cart.totalItems} items`}
-        >
-          <ShoppingCart className={cn("h-5 w-5", showPrice || showCheckout ? "mr-2" : "")} />
+        </AnimatePresence>
 
-          {showPrice && isClient && <span className="mr-2 font-medium">{formatCurrency(cart.totalPrice)}</span>}
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5" />
 
-          {!showPrice && !showCheckout && <span className="ml-2">Cart</span>}
-
-          {showCheckout && (
-            <span className="flex items-center">
-              Checkout <ArrowRight className="ml-2 h-4 w-4" />
-            </span>
-          )}
-
-          {isClient && cart.totalItems > 0 && (
-            <Badge
-              variant="destructive"
-              className={cn(
-                "absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs",
-                showCheckout && "right-auto left-4",
-              )}
-            >
-              {cart.totalItems}
+          {itemCount > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {itemCount}
             </Badge>
           )}
-        </Button>
-      </SheetTrigger>
-      <Cart />
-    </Sheet>
+
+          {showPrice && <span className="ml-2 font-medium">{formatCurrency(cart.totalPrice)}</span>}
+        </div>
+
+        {showCheckout && (
+          <div className="ml-4 flex items-center">
+            <span>Checkout</span>
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </div>
+        )}
+      </Button>
+    </div>
   )
 }
