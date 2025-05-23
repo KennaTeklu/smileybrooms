@@ -265,6 +265,93 @@ export function RoomCustomizationPanel({
     return selectedFrequencyOption?.name || "One-time Service"
   }
 
+  // Render the price summary
+  const renderPriceSummary = () => (
+    <Card className="border-blue-200 bg-blue-50">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Base Service:</span>
+            <span>${tiers.find((t) => t.name === localSelectedTier)?.price.toFixed(2)}</span>
+          </div>
+          {localSelectedAddOns.length > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>Add-ons:</span>
+              <span>
+                +$
+                {localSelectedAddOns
+                  .reduce((total, addOnId) => {
+                    const addOn = addOns.find((a) => a.id === addOnId)
+                    return total + (addOn?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedReductions.length > 0 && (
+            <div className="flex justify-between items-center text-red-600">
+              <span>Reductions:</span>
+              <span>
+                -$
+                {localSelectedReductions
+                  .reduce((total, reductionId) => {
+                    const reduction = reductions.find((r) => r.id === reductionId)
+                    return total + (reduction?.discount || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedMatrixAddServices.length > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>Specialized Add-ons:</span>
+              <span>
+                +$
+                {localSelectedMatrixAddServices
+                  .reduce((total, serviceId) => {
+                    const service = matrixAddServices.find((s) => s.id === serviceId)
+                    return total + (service?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedMatrixRemoveServices.length > 0 && (
+            <div className="flex justify-between items-center text-red-600">
+              <span>Service Exclusions:</span>
+              <span>
+                -$
+                {localSelectedMatrixRemoveServices
+                  .reduce((total, serviceId) => {
+                    const service = matrixRemoveServices.find((s) => s.id === serviceId)
+                    return total + (service?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {getFrequencyDiscount() > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>{getFrequencyName()} Discount:</span>
+              <span>-{getFrequencyDiscount()}%</span>
+            </div>
+          )}
+          <Separator />
+          <div className="flex justify-between items-center font-bold text-lg">
+            <span>Total per Room:</span>
+            <span>${calculateTotalPrice().toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <span>
+              Total for {roomCount} {roomCount === 1 ? "room" : "rooms"}:
+            </span>
+            <span>${(calculateTotalPrice() * roomCount).toFixed(2)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <>
       {/* Backdrop */}
@@ -306,9 +393,9 @@ export function RoomCustomizationPanel({
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b">
-            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Tabs and Content */}
+          <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <div className="border-b">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
                   <Settings className="h-4 w-4 mr-1 sm:mr-2" />
@@ -323,429 +410,361 @@ export function RoomCustomizationPanel({
                   <span>Schedule</span>
                 </TabsTrigger>
               </TabsList>
-            </Tabs>
-          </div>
+            </div>
 
-          {/* Content */}
-          <ScrollArea className="flex-1 overflow-auto">
-            <div className="p-4 space-y-6">
-              <TabsContent value="basic" className="mt-0 space-y-6">
-                {/* Service Tiers Section */}
-                <Card>
-                  <CardHeader className="cursor-pointer" onClick={() => toggleSection("tiers")}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-blue-600" />
-                        <CardTitle className="text-lg">Service Tiers</CardTitle>
-                      </div>
-                      {expandedSections.tiers ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                    </div>
-                    <CardDescription>Choose your cleaning intensity level</CardDescription>
-                  </CardHeader>
-                  {expandedSections.tiers && (
-                    <CardContent>
-                      <RadioGroup value={localSelectedTier} onValueChange={handleTierChange} className="space-y-3">
-                        {tiers.map((tier, index) => (
-                          <div
-                            key={tier.name}
-                            className={cn(
-                              "p-3 rounded-lg border transition-colors",
-                              localSelectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200",
-                            )}
-                          >
-                            <div className="flex items-start gap-3">
-                              <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                              <div className="flex-1">
-                                <div className="flex justify-between items-center mb-1">
-                                  <Label htmlFor={`tier-${tier.name}`} className="font-medium">
-                                    {tier.name}
-                                  </Label>
-                                  <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
-                                    ${tier.price}
-                                  </Badge>
+            <div className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6">
+                  <TabsContent value="basic" className="mt-0 space-y-6">
+                    {/* Service Tiers Section */}
+                    <Card>
+                      <CardHeader className="cursor-pointer" onClick={() => toggleSection("tiers")}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-blue-600" />
+                            <CardTitle className="text-lg">Service Tiers</CardTitle>
+                          </div>
+                          {expandedSections.tiers ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </div>
+                        <CardDescription>Choose your cleaning intensity level</CardDescription>
+                      </CardHeader>
+                      {expandedSections.tiers && (
+                        <CardContent>
+                          <RadioGroup value={localSelectedTier} onValueChange={handleTierChange} className="space-y-3">
+                            {tiers.map((tier, index) => (
+                              <div
+                                key={tier.name}
+                                className={cn(
+                                  "p-3 rounded-lg border transition-colors",
+                                  localSelectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200",
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <Label htmlFor={`tier-${tier.name}`} className="font-medium">
+                                        {tier.name}
+                                      </Label>
+                                      <Badge
+                                        variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}
+                                      >
+                                        ${tier.price}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
+                                    <div className="space-y-1">
+                                      {tier.features.slice(0, 3).map((feature, i) => (
+                                        <div key={i} className="text-xs flex items-start">
+                                          <span className="text-green-500 mr-1">✓</span>
+                                          <span>{feature}</span>
+                                        </div>
+                                      ))}
+                                      {tier.features.length > 3 && (
+                                        <div className="text-xs text-gray-500">
+                                          +{tier.features.length - 3} more features
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
-                                <div className="space-y-1">
-                                  {tier.features.slice(0, 3).map((feature, i) => (
-                                    <div key={i} className="text-xs flex items-start">
-                                      <span className="text-green-500 mr-1">✓</span>
-                                      <span>{feature}</span>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </CardContent>
+                      )}
+                    </Card>
+
+                    {/* Add-ons Section */}
+                    {addOns.length > 0 && (
+                      <Card>
+                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("addOns")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-5 w-5 bg-green-100 rounded flex items-center justify-center">
+                                <span className="text-green-600 text-xs font-bold">+</span>
+                              </div>
+                              <CardTitle className="text-lg">Additional Services</CardTitle>
+                            </div>
+                            {expandedSections.addOns ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </div>
+                          <CardDescription>Enhance your cleaning service</CardDescription>
+                        </CardHeader>
+                        {expandedSections.addOns && (
+                          <CardContent>
+                            <div className="space-y-3">
+                              {addOns.map((addOn) => (
+                                <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                  <Checkbox
+                                    id={`addon-${addOn.id}`}
+                                    checked={localSelectedAddOns.includes(addOn.id)}
+                                    onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
+                                    className="mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                      <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
+                                        {addOn.name}
+                                      </Label>
+                                      <Badge variant="outline" className="text-green-600">
+                                        +${addOn.price.toFixed(2)}
+                                      </Badge>
                                     </div>
-                                  ))}
-                                  {tier.features.length > 3 && (
-                                    <div className="text-xs text-gray-500">
-                                      +{tier.features.length - 3} more features
+                                    {addOn.description && (
+                                      <p className="text-xs text-gray-500 mt-1">{addOn.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    )}
+
+                    {/* Reductions Section */}
+                    {reductions.length > 0 && (
+                      <Card>
+                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("reductions")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-5 w-5 bg-red-100 rounded flex items-center justify-center">
+                                <span className="text-red-600 text-xs font-bold">-</span>
+                              </div>
+                              <CardTitle className="text-lg">Service Reductions</CardTitle>
+                            </div>
+                            {expandedSections.reductions ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </div>
+                          <CardDescription>Remove services you don't need</CardDescription>
+                        </CardHeader>
+                        {expandedSections.reductions && (
+                          <CardContent>
+                            <div className="space-y-3">
+                              {reductions.map((reduction) => (
+                                <div
+                                  key={reduction.id}
+                                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50"
+                                >
+                                  <Checkbox
+                                    id={`reduction-${reduction.id}`}
+                                    checked={localSelectedReductions.includes(reduction.id)}
+                                    onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
+                                    className="mt-1"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                      <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
+                                        {reduction.name}
+                                      </Label>
+                                      <Badge variant="outline" className="text-red-600">
+                                        -${reduction.discount.toFixed(2)}
+                                      </Badge>
                                     </div>
+                                    {reduction.description && (
+                                      <p className="text-xs text-gray-500 mt-1">{reduction.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="advanced" className="mt-0 space-y-6">
+                    {/* Matrix Add Services */}
+                    {matrixAddServices.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <PlusCircle className="h-5 w-5 text-green-600" />
+                            <CardTitle className="text-lg">Specialized Add-ons</CardTitle>
+                          </div>
+                          <CardDescription>Additional specialized services for this room</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {matrixAddServices.map((service) => (
+                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                <Checkbox
+                                  id={`matrix-add-${service.id}`}
+                                  checked={localSelectedMatrixAddServices.includes(service.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMatrixAddServiceChange(service.id, checked === true)
+                                  }
+                                  className="mt-1"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label htmlFor={`matrix-add-${service.id}`} className="font-medium">
+                                      {service.name}
+                                    </Label>
+                                    <Badge variant="outline" className="text-green-600">
+                                      +${service.price.toFixed(2)}
+                                    </Badge>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
                                   )}
                                 </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </RadioGroup>
-                    </CardContent>
-                  )}
-                </Card>
-
-                {/* Add-ons Section */}
-                {addOns.length > 0 && (
-                  <Card>
-                    <CardHeader className="cursor-pointer" onClick={() => toggleSection("addOns")}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-5 bg-green-100 rounded flex items-center justify-center">
-                            <span className="text-green-600 text-xs font-bold">+</span>
-                          </div>
-                          <CardTitle className="text-lg">Additional Services</CardTitle>
-                        </div>
-                        {expandedSections.addOns ? (
-                          <ChevronUp className="h-5 w-5" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5" />
-                        )}
-                      </div>
-                      <CardDescription>Enhance your cleaning service</CardDescription>
-                    </CardHeader>
-                    {expandedSections.addOns && (
-                      <CardContent>
-                        <div className="space-y-3">
-                          {addOns.map((addOn) => (
-                            <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                              <Checkbox
-                                id={`addon-${addOn.id}`}
-                                checked={localSelectedAddOns.includes(addOn.id)}
-                                onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
-                                className="mt-1"
-                              />
-                              <div className="flex-1">
-                                <div className="flex justify-between items-center">
-                                  <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
-                                    {addOn.name}
-                                  </Label>
-                                  <Badge variant="outline" className="text-green-600">
-                                    +${addOn.price.toFixed(2)}
-                                  </Badge>
-                                </div>
-                                {addOn.description && <p className="text-xs text-gray-500 mt-1">{addOn.description}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
+                        </CardContent>
+                      </Card>
                     )}
-                  </Card>
-                )}
 
-                {/* Reductions Section */}
-                {reductions.length > 0 && (
-                  <Card>
-                    <CardHeader className="cursor-pointer" onClick={() => toggleSection("reductions")}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-5 bg-red-100 rounded flex items-center justify-center">
-                            <span className="text-red-600 text-xs font-bold">-</span>
+                    {/* Matrix Remove Services */}
+                    {matrixRemoveServices.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <MinusCircle className="h-5 w-5 text-red-600" />
+                            <CardTitle className="text-lg">Service Exclusions</CardTitle>
                           </div>
-                          <CardTitle className="text-lg">Service Reductions</CardTitle>
-                        </div>
-                        {expandedSections.reductions ? (
-                          <ChevronUp className="h-5 w-5" />
-                        ) : (
-                          <ChevronDown className="h-5 w-5" />
-                        )}
-                      </div>
-                      <CardDescription>Remove services you don't need</CardDescription>
-                    </CardHeader>
-                    {expandedSections.reductions && (
-                      <CardContent>
-                        <div className="space-y-3">
-                          {reductions.map((reduction) => (
-                            <div key={reduction.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                              <Checkbox
-                                id={`reduction-${reduction.id}`}
-                                checked={localSelectedReductions.includes(reduction.id)}
-                                onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
-                                className="mt-1"
-                              />
-                              <div className="flex-1">
-                                <div className="flex justify-between items-center">
-                                  <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
-                                    {reduction.name}
-                                  </Label>
-                                  <Badge variant="outline" className="text-red-600">
-                                    -${reduction.discount.toFixed(2)}
-                                  </Badge>
+                          <CardDescription>Remove specific services to customize your cleaning</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {matrixRemoveServices.map((service) => (
+                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                <Checkbox
+                                  id={`matrix-remove-${service.id}`}
+                                  checked={localSelectedMatrixRemoveServices.includes(service.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMatrixRemoveServiceChange(service.id, checked === true)
+                                  }
+                                  className="mt-1"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label htmlFor={`matrix-remove-${service.id}`} className="font-medium">
+                                      {service.name}
+                                    </Label>
+                                    <Badge variant="outline" className="text-red-600">
+                                      -${service.price.toFixed(2)}
+                                    </Badge>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
+                                  )}
                                 </div>
-                                {reduction.description && (
-                                  <p className="text-xs text-gray-500 mt-1">{reduction.description}</p>
-                                )}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
-                  </Card>
-                )}
-              </TabsContent>
 
-              <TabsContent value="advanced" className="mt-0 space-y-6">
-                {/* Matrix Add Services */}
-                {matrixAddServices.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <PlusCircle className="h-5 w-5 text-green-600" />
-                        <CardTitle className="text-lg">Specialized Add-ons</CardTitle>
-                      </div>
-                      <CardDescription>Additional specialized services for this room</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {matrixAddServices.map((service) => (
-                          <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                            <Checkbox
-                              id={`matrix-add-${service.id}`}
-                              checked={localSelectedMatrixAddServices.includes(service.id)}
-                              onCheckedChange={(checked) => handleMatrixAddServiceChange(service.id, checked === true)}
-                              className="mt-1"
-                            />
-                            <div className="flex-1">
-                              <div className="flex justify-between items-center">
-                                <Label htmlFor={`matrix-add-${service.id}`} className="font-medium">
-                                  {service.name}
-                                </Label>
-                                <Badge variant="outline" className="text-green-600">
-                                  +${service.price.toFixed(2)}
-                                </Badge>
-                              </div>
-                              {service.description && (
-                                <p className="text-xs text-gray-500 mt-1">{service.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                    {/* Special Instructions */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Info className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-lg">Special Instructions</CardTitle>
+                        </div>
+                        <CardDescription>Add any specific instructions for this room</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <textarea
+                          className="w-full p-3 border rounded-md h-24 text-sm"
+                          placeholder="Enter any special instructions or notes for the cleaning team..."
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                {/* Matrix Remove Services */}
-                {matrixRemoveServices.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <MinusCircle className="h-5 w-5 text-red-600" />
-                        <CardTitle className="text-lg">Service Exclusions</CardTitle>
-                      </div>
-                      <CardDescription>Remove specific services to customize your cleaning</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {matrixRemoveServices.map((service) => (
-                          <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                            <Checkbox
-                              id={`matrix-remove-${service.id}`}
-                              checked={localSelectedMatrixRemoveServices.includes(service.id)}
-                              onCheckedChange={(checked) =>
-                                handleMatrixRemoveServiceChange(service.id, checked === true)
-                              }
-                              className="mt-1"
-                            />
-                            <div className="flex-1">
-                              <div className="flex justify-between items-center">
-                                <Label htmlFor={`matrix-remove-${service.id}`} className="font-medium">
-                                  {service.name}
-                                </Label>
-                                <Badge variant="outline" className="text-red-600">
-                                  -${service.price.toFixed(2)}
-                                </Badge>
-                              </div>
-                              {service.description && (
-                                <p className="text-xs text-gray-500 mt-1">{service.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Special Instructions */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Info className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-lg">Special Instructions</CardTitle>
-                    </div>
-                    <CardDescription>Add any specific instructions for this room</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <textarea
-                      className="w-full p-3 border rounded-md h-24 text-sm"
-                      placeholder="Enter any special instructions or notes for the cleaning team..."
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="schedule" className="mt-0 space-y-6">
-                {/* Frequency Selection */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Repeat className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-lg">Service Frequency</CardTitle>
-                    </div>
-                    <CardDescription>Choose how often you'd like this service</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <RadioGroup
-                      value={localSelectedFrequency}
-                      onValueChange={handleFrequencyChange}
-                      className="space-y-3"
-                    >
-                      {frequencyOptions.map((option) => (
-                        <div
-                          key={option.id}
-                          className={cn(
-                            "p-3 rounded-lg border transition-colors",
-                            localSelectedFrequency === option.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
-                          )}
+                  <TabsContent value="schedule" className="mt-0 space-y-6">
+                    {/* Frequency Selection */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Repeat className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-lg">Service Frequency</CardTitle>
+                        </div>
+                        <CardDescription>Choose how often you'd like this service</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <RadioGroup
+                          value={localSelectedFrequency}
+                          onValueChange={handleFrequencyChange}
+                          className="space-y-3"
                         >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                            <div className="flex-1">
-                              <div className="flex justify-between items-center">
-                                <Label htmlFor={`frequency-${option.id}`} className="font-medium">
-                                  {option.name}
-                                </Label>
-                                {option.discount > 0 && (
-                                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                    {option.discount}% off
-                                  </Badge>
-                                )}
+                          {frequencyOptions.map((option) => (
+                            <div
+                              key={option.id}
+                              className={cn(
+                                "p-3 rounded-lg border transition-colors",
+                                localSelectedFrequency === option.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label htmlFor={`frequency-${option.id}`} className="font-medium">
+                                      {option.name}
+                                    </Label>
+                                    {option.discount > 0 && (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                        {option.discount}% off
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ))}
+                        </RadioGroup>
+                      </CardContent>
+                    </Card>
+
+                    {/* Estimated Duration */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-blue-600" />
+                          <CardTitle className="text-lg">Estimated Duration</CardTitle>
                         </div>
-                      ))}
-                    </RadioGroup>
-                  </CardContent>
-                </Card>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="p-3 rounded-lg border border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Estimated cleaning time:</span>
+                            <span className="text-lg font-bold">
+                              {Math.max(1, Math.ceil(roomCount * 0.75))}{" "}
+                              {Math.max(1, Math.ceil(roomCount * 0.75)) === 1 ? "hour" : "hours"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            This is an estimate based on your selected tier and add-ons. Actual time may vary depending
+                            on the condition of your space.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                {/* Estimated Duration */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-lg">Estimated Duration</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="p-3 rounded-lg border border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Estimated cleaning time:</span>
-                        <span className="text-lg font-bold">
-                          {Math.max(1, Math.ceil(roomCount * 0.75))}{" "}
-                          {Math.max(1, Math.ceil(roomCount * 0.75)) === 1 ? "hour" : "hours"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        This is an estimate based on your selected tier and add-ons. Actual time may vary depending on
-                        the condition of your space.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Price Summary - Always visible at the bottom */}
-              <Card className="border-blue-200 bg-blue-50">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Base Service:</span>
-                      <span>${tiers.find((t) => t.name === localSelectedTier)?.price.toFixed(2)}</span>
-                    </div>
-                    {localSelectedAddOns.length > 0 && (
-                      <div className="flex justify-between items-center text-green-600">
-                        <span>Add-ons:</span>
-                        <span>
-                          +$
-                          {localSelectedAddOns
-                            .reduce((total, addOnId) => {
-                              const addOn = addOns.find((a) => a.id === addOnId)
-                              return total + (addOn?.price || 0)
-                            }, 0)
-                            .toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {localSelectedReductions.length > 0 && (
-                      <div className="flex justify-between items-center text-red-600">
-                        <span>Reductions:</span>
-                        <span>
-                          -$
-                          {localSelectedReductions
-                            .reduce((total, reductionId) => {
-                              const reduction = reductions.find((r) => r.id === reductionId)
-                              return total + (reduction?.discount || 0)
-                            }, 0)
-                            .toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {localSelectedMatrixAddServices.length > 0 && (
-                      <div className="flex justify-between items-center text-green-600">
-                        <span>Specialized Add-ons:</span>
-                        <span>
-                          +$
-                          {localSelectedMatrixAddServices
-                            .reduce((total, serviceId) => {
-                              const service = matrixAddServices.find((s) => s.id === serviceId)
-                              return total + (service?.price || 0)
-                            }, 0)
-                            .toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {localSelectedMatrixRemoveServices.length > 0 && (
-                      <div className="flex justify-between items-center text-red-600">
-                        <span>Service Exclusions:</span>
-                        <span>
-                          -$
-                          {localSelectedMatrixRemoveServices
-                            .reduce((total, serviceId) => {
-                              const service = matrixRemoveServices.find((s) => s.id === serviceId)
-                              return total + (service?.price || 0)
-                            }, 0)
-                            .toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {getFrequencyDiscount() > 0 && (
-                      <div className="flex justify-between items-center text-green-600">
-                        <span>{getFrequencyName()} Discount:</span>
-                        <span>-{getFrequencyDiscount()}%</span>
-                      </div>
-                    )}
-                    <Separator />
-                    <div className="flex justify-between items-center font-bold text-lg">
-                      <span>Total per Room:</span>
-                      <span>${calculateTotalPrice().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>
-                        Total for {roomCount} {roomCount === 1 ? "room" : "rooms"}:
-                      </span>
-                      <span>${(calculateTotalPrice() * roomCount).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  {/* Price Summary - Always visible at the bottom */}
+                  {renderPriceSummary()}
+                </div>
+              </ScrollArea>
             </div>
-          </ScrollArea>
+          </Tabs>
 
           {/* Footer */}
           <div className="border-t p-4 bg-gray-50">
