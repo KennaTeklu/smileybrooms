@@ -386,6 +386,27 @@ export default function PricingPage() {
     return roomConfigurations.find((config) => config.roomName === customizationPanel.roomType)
   }
 
+  // Get matrix services for the current room
+  const getMatrixServicesForCurrentRoom = () => {
+    if (!customizationPanel.roomType) return { add: [], remove: [] }
+    const services = getMatrixServices(customizationPanel.roomType)
+    return services
+  }
+
+  // Get selected matrix services for the current room
+  const getSelectedMatrixServices = () => {
+    if (!customizationPanel.roomType) return { addServices: [], removeServices: [] }
+    return matrixSelections[customizationPanel.roomType] || { addServices: [], removeServices: [] }
+  }
+
+  // Frequency options
+  const frequencyOptions = [
+    { id: "one_time", name: "One-time Service", discount: 0 },
+    { id: "weekly", name: "Weekly Service", discount: 15 },
+    { id: "bi_weekly", name: "Bi-weekly Service", discount: 10 },
+    { id: "monthly", name: "Monthly Service", discount: 5 },
+  ]
+
   return (
     <div className="container mx-auto py-10 px-4">
       <h1 className="text-4xl font-bold text-center mb-2">Pricing Calculator</h1>
@@ -438,14 +459,17 @@ export default function PricingPage() {
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 w-full"
-                        onClick={() => openCustomizationPanel(roomType)}
-                      >
-                        Customize
-                      </Button>
+                      {/* Only show Customize button when rooms are selected */}
+                      {roomCounts[roomType] > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full"
+                          onClick={() => openCustomizationPanel(roomType)}
+                        >
+                          Customize
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -493,14 +517,17 @@ export default function PricingPage() {
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 w-full"
-                        onClick={() => openCustomizationPanel(roomType)}
-                      >
-                        Customize
-                      </Button>
+                      {/* Only show Customize button when rooms are selected */}
+                      {roomCounts[roomType] > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full"
+                          onClick={() => openCustomizationPanel(roomType)}
+                        >
+                          Customize
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -785,7 +812,15 @@ export default function PricingPage() {
           selectedTier={getCurrentRoomConfig()?.selectedTier || getRoomTiers(customizationPanel.roomType)[0].name}
           selectedAddOns={getCurrentRoomConfig()?.selectedAddOns || []}
           selectedReductions={getCurrentRoomConfig()?.selectedReductions || []}
+          matrixAddServices={getMatrixServicesForCurrentRoom().add}
+          matrixRemoveServices={getMatrixServicesForCurrentRoom().remove}
+          selectedMatrixAddServices={getSelectedMatrixServices().addServices}
+          selectedMatrixRemoveServices={getSelectedMatrixServices().removeServices}
+          frequencyOptions={frequencyOptions}
+          selectedFrequency={selectedFrequency}
           onConfigChange={handlePanelConfigChange}
+          onMatrixSelectionChange={(selection) => handleMatrixSelectionChange(customizationPanel.roomType, selection)}
+          onFrequencyChange={handleFrequencyChange}
         />
       )}
     </div>
