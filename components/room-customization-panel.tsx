@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { RoomConfigurator, type RoomConfiguration } from "@/components/room-configurator"
 import { CustomizationMatrix } from "@/components/customization-matrix"
 import { ServiceComparisonTable } from "@/components/service-comparison-table"
@@ -22,14 +24,13 @@ import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayN
 import { getMatrixServices } from "@/lib/matrix-services"
 import { getServiceFeatures } from "@/lib/service-features"
 import { getServiceMap } from "@/lib/service-maps"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Info, CheckCircle, AlertCircle, Clock, Settings, Map, List, Grid3X3 } from "lucide-react"
+import { Settings, Eye, BarChart3, CheckSquare, Map, Sparkles } from "lucide-react"
 
 interface RoomCustomizationPanelProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   roomType: string | null
+  roomCount: number
   initialConfig?: RoomConfiguration
   onConfigChange: (config: RoomConfiguration) => void
   matrixSelection?: { addServices: string[]; removeServices: string[] }
@@ -40,13 +41,14 @@ export function RoomCustomizationPanel({
   open,
   onOpenChange,
   roomType,
+  roomCount,
   initialConfig,
   onConfigChange,
   matrixSelection,
   onMatrixSelectionChange,
 }: RoomCustomizationPanelProps) {
   const [localConfig, setLocalConfig] = useState<RoomConfiguration | undefined>(initialConfig)
-  const [activeTab, setActiveTab] = useState("tiers")
+  const [activeTab, setActiveTab] = useState("configure")
 
   if (!roomType) return null
 
@@ -61,208 +63,191 @@ export function RoomCustomizationPanel({
     }
   }
 
-  // Get the selected tier name for display
-  const selectedTierName = localConfig?.selectedTier || initialConfig?.selectedTier || "ESSENTIAL CLEAN"
-
-  // Calculate the number of add-ons and reductions
-  const addOnsCount = (localConfig?.selectedAddOns || initialConfig?.selectedAddOns || []).length
-  const reductionsCount = (localConfig?.selectedReductions || initialConfig?.selectedReductions || []).length
-  const matrixAddOnsCount = matrixSelection?.addServices.length || 0
-  const matrixReductionsCount = matrixSelection?.removeServices.length || 0
-
-  // Total customizations
-  const totalCustomizations = addOnsCount + reductionsCount + matrixAddOnsCount + matrixReductionsCount
+  const currentTier = localConfig?.selectedTier || initialConfig?.selectedTier || "ESSENTIAL CLEAN"
+  const currentAddOns = localConfig?.selectedAddOns || initialConfig?.selectedAddOns || []
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh] overflow-y-auto">
-        <DrawerHeader className="border-b pb-4">
+      <DrawerContent className="max-h-[95vh] overflow-hidden">
+        <DrawerHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center justify-between">
-            <DrawerTitle className="flex items-center gap-2 text-2xl">
-              <span>{roomIcons[roomType]}</span>
-              <span>{roomDisplayNames[roomType]}</span>
-            </DrawerTitle>
-            <Badge
-              variant={
-                selectedTierName === "ESSENTIAL CLEAN"
-                  ? "default"
-                  : selectedTierName === "ADVANCED CLEAN"
-                    ? "secondary"
-                    : "destructive"
-              }
-            >
-              {selectedTierName}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">{roomIcons[roomType]}</div>
+              <div>
+                <DrawerTitle className="text-2xl">{roomDisplayNames[roomType]} Customization</DrawerTitle>
+                <DrawerDescription className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {roomCount} room{roomCount !== 1 ? "s" : ""}
+                  </Badge>
+                  <Badge variant="secondary">{currentTier}</Badge>
+                </DrawerDescription>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Room Total</p>
+              <p className="text-2xl font-bold text-blue-600">
+                ${(localConfig?.totalPrice || initialConfig?.totalPrice || 0).toFixed(2)}
+              </p>
+            </div>
           </div>
-          <DrawerDescription className="flex items-center justify-between mt-2">
-            <span>Customize cleaning options for this room</span>
-            {totalCustomizations > 0 && (
-              <Badge variant="outline" className="bg-blue-50">
-                {totalCustomizations} Customization{totalCustomizations !== 1 ? "s" : ""}
-              </Badge>
-            )}
-          </DrawerDescription>
         </DrawerHeader>
 
-        <div className="p-0">
-          <Tabs defaultValue="tiers" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="px-4 pt-4 sticky top-0 bg-white z-10 border-b">
-              <TabsList className="grid grid-cols-5 w-full">
-                <TabsTrigger value="tiers" className="flex flex-col items-center gap-1 py-2 h-auto">
+        <div className="flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <div className="border-b bg-white px-4">
+              <TabsList className="grid w-full grid-cols-6 h-12">
+                <TabsTrigger value="configure" className="flex items-center gap-1 text-xs">
                   <Settings className="h-4 w-4" />
-                  <span className="text-xs">Tiers</span>
+                  <span className="hidden sm:inline">Configure</span>
                 </TabsTrigger>
-                <TabsTrigger value="matrix" className="flex flex-col items-center gap-1 py-2 h-auto">
-                  <Grid3X3 className="h-4 w-4" />
-                  <span className="text-xs">Matrix</span>
+                <TabsTrigger value="matrix" className="flex items-center gap-1 text-xs">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Matrix</span>
                 </TabsTrigger>
-                <TabsTrigger value="compare" className="flex flex-col items-center gap-1 py-2 h-auto">
-                  <List className="h-4 w-4" />
-                  <span className="text-xs">Compare</span>
+                <TabsTrigger value="compare" className="flex items-center gap-1 text-xs">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Compare</span>
                 </TabsTrigger>
-                <TabsTrigger value="visual" className="flex flex-col items-center gap-1 py-2 h-auto">
+                <TabsTrigger value="visualize" className="flex items-center gap-1 text-xs">
+                  <Eye className="h-4 w-4" />
+                  <span className="hidden sm:inline">Visualize</span>
+                </TabsTrigger>
+                <TabsTrigger value="checklist" className="flex items-center gap-1 text-xs">
+                  <CheckSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Checklist</span>
+                </TabsTrigger>
+                <TabsTrigger value="map" className="flex items-center gap-1 text-xs">
                   <Map className="h-4 w-4" />
-                  <span className="text-xs">Visual</span>
-                </TabsTrigger>
-                <TabsTrigger value="checklist" className="flex flex-col items-center gap-1 py-2 h-auto">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="text-xs">Checklist</span>
+                  <span className="hidden sm:inline">Map</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="tiers" className="mt-0 p-4">
-              <div className="space-y-2 mb-4">
-                <h3 className="text-lg font-semibold">Select Cleaning Tier</h3>
-                <p className="text-sm text-gray-500">Choose the level of cleaning service for this room</p>
-              </div>
-              <RoomConfigurator
-                roomName={roomDisplayNames[roomType]}
-                roomIcon={roomIcons[roomType]}
-                baseTier={getRoomTiers(roomType)[0]}
-                tiers={getRoomTiers(roomType)}
-                addOns={getRoomAddOns(roomType)}
-                reductions={getRoomReductions(roomType)}
-                onConfigChange={handleConfigChange}
-                initialConfig={initialConfig}
-              />
-            </TabsContent>
-
-            <TabsContent value="matrix" className="mt-0 p-4">
-              <div className="space-y-2 mb-4">
-                <h3 className="text-lg font-semibold">Fine-Tune Services</h3>
-                <p className="text-sm text-gray-500">Add or remove specific cleaning tasks for this room</p>
-              </div>
-              <CustomizationMatrix
-                roomName={roomDisplayNames[roomType]}
-                selectedTier={selectedTierName}
-                addServices={getMatrixServices(roomType).add}
-                removeServices={getMatrixServices(roomType).remove}
-                onSelectionChange={handleMatrixSelectionChange}
-                initialSelection={matrixSelection}
-              />
-            </TabsContent>
-
-            <TabsContent value="compare" className="mt-0 p-4">
-              <div className="space-y-2 mb-4">
-                <h3 className="text-lg font-semibold">Compare Service Tiers</h3>
-                <p className="text-sm text-gray-500">See what's included in each cleaning tier</p>
-              </div>
-              <ServiceComparisonTable roomType={roomDisplayNames[roomType]} features={getServiceFeatures(roomType)} />
-            </TabsContent>
-
-            <TabsContent value="visual" className="mt-0 p-4">
-              <div className="space-y-4">
-                <div className="space-y-2 mb-4">
-                  <h3 className="text-lg font-semibold">Room Visualization</h3>
-                  <p className="text-sm text-gray-500">See how your room will look after cleaning</p>
+            <div className="flex-1 overflow-y-auto">
+              <TabsContent value="configure" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-blue-600" />
+                    Room Configuration
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Select your cleaning tier and customize with add-ons or reductions
+                  </p>
+                  <RoomConfigurator
+                    roomName={roomDisplayNames[roomType]}
+                    roomIcon={roomIcons[roomType]}
+                    baseTier={getRoomTiers(roomType)[0]}
+                    tiers={getRoomTiers(roomType)}
+                    addOns={getRoomAddOns(roomType)}
+                    reductions={getRoomReductions(roomType)}
+                    onConfigChange={handleConfigChange}
+                    initialConfig={initialConfig}
+                  />
                 </div>
-                <RoomVisualization
-                  roomType={roomDisplayNames[roomType]}
-                  selectedTier={selectedTierName}
-                  selectedAddOns={localConfig?.selectedAddOns || initialConfig?.selectedAddOns}
-                />
+              </TabsContent>
 
-                <Separator className="my-6" />
-
-                <div className="space-y-2 mb-4">
-                  <h3 className="text-lg font-semibold">Service Map</h3>
-                  <p className="text-sm text-gray-500">Visual breakdown of cleaning services by area</p>
+              <TabsContent value="matrix" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-600" />
+                    Advanced Customization Matrix
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Fine-tune your service with detailed add-ons and removals
+                  </p>
+                  <CustomizationMatrix
+                    roomName={roomDisplayNames[roomType]}
+                    selectedTier={currentTier}
+                    addServices={getMatrixServices(roomType).add}
+                    removeServices={getMatrixServices(roomType).remove}
+                    onSelectionChange={handleMatrixSelectionChange}
+                    initialSelection={matrixSelection}
+                  />
                 </div>
-                <ServiceMap roomName={roomDisplayNames[roomType]} categories={getServiceMap(roomType)} />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="checklist" className="mt-0 p-4">
-              <div className="space-y-2 mb-4">
-                <h3 className="text-lg font-semibold">Cleaning Checklist</h3>
-                <p className="text-sm text-gray-500">Detailed list of tasks included in your selected tier</p>
-              </div>
-              <CleaningChecklist roomType={roomDisplayNames[roomType]} selectedTier={selectedTierName} />
-
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <div className="flex items-start gap-3">
-                  <div className="text-blue-500 mt-1">
-                    <Info className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-blue-700">Cleaning Time Estimate</h4>
-                    <p className="text-sm text-blue-600 mt-1">
-                      This room will take approximately{" "}
-                      <span className="font-semibold">
-                        {selectedTierName === "ESSENTIAL CLEAN"
-                          ? "15-20"
-                          : selectedTierName === "ADVANCED CLEAN"
-                            ? "30-40"
-                            : "45-60"}{" "}
-                        minutes
-                      </span>{" "}
-                      to clean with your current selections.
-                    </p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Clock className="h-4 w-4 text-blue-500" />
-                      <div className="h-2 bg-blue-200 rounded-full w-full">
-                        <div
-                          className="h-2 bg-blue-500 rounded-full"
-                          style={{
-                            width:
-                              selectedTierName === "ESSENTIAL CLEAN"
-                                ? "30%"
-                                : selectedTierName === "ADVANCED CLEAN"
-                                  ? "60%"
-                                  : "90%",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+              <TabsContent value="compare" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                    Service Comparison
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">Compare what's included in each cleaning tier</p>
+                  <ServiceComparisonTable
+                    roomType={roomDisplayNames[roomType]}
+                    features={getServiceFeatures(roomType)}
+                  />
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
+
+              <TabsContent value="visualize" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-orange-600" />
+                    Room Visualization
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">See how your room will look after cleaning</p>
+                  <RoomVisualization
+                    roomType={roomDisplayNames[roomType]}
+                    selectedTier={currentTier}
+                    selectedAddOns={currentAddOns}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="checklist" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <CheckSquare className="h-5 w-5 text-red-600" />
+                    Cleaning Checklist
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">Detailed list of tasks included in your selected tier</p>
+                  <CleaningChecklist roomType={roomDisplayNames[roomType]} selectedTier={currentTier} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="map" className="p-4 space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Map className="h-5 w-5 text-indigo-600" />
+                    Service Map
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">Visual breakdown of services by cleaning tier</p>
+                  <ServiceMap roomName={roomDisplayNames[roomType]} categories={getServiceMap(roomType)} />
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
-        <DrawerFooter className="border-t pt-4">
-          <div className="flex justify-between items-center w-full mb-4">
-            <div>
-              <p className="text-sm text-gray-500">Room Total</p>
-              <p className="text-xl font-bold">
-                ${localConfig?.totalPrice.toFixed(2) || initialConfig?.totalPrice.toFixed(2) || "0.00"}
-              </p>
+        <DrawerFooter className="border-t bg-gray-50">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+            <div className="flex items-center gap-4">
+              <div className="text-center sm:text-left">
+                <p className="text-sm text-gray-500">
+                  Total for {roomCount} {roomDisplayNames[roomType]}
+                  {roomCount !== 1 ? "s" : ""}
+                </p>
+                <p className="text-2xl font-bold text-blue-600">
+                  ${((localConfig?.totalPrice || initialConfig?.totalPrice || 0) * roomCount).toFixed(2)}
+                </p>
+              </div>
+              <Separator orientation="vertical" className="h-12 hidden sm:block" />
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-400">Per Room</p>
+                <p className="text-lg font-semibold">
+                  ${(localConfig?.totalPrice || initialConfig?.totalPrice || 0).toFixed(2)}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setActiveTab("tiers")}>
-                Edit Tier
+              <Button variant="outline" onClick={() => setActiveTab("configure")}>
+                Back to Config
               </Button>
               <DrawerClose asChild>
-                <Button>Done</Button>
+                <Button className="bg-blue-600 hover:bg-blue-700">Save & Close</Button>
               </DrawerClose>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <AlertCircle className="h-4 w-4" />
-            <span>Changes are automatically saved as you customize</span>
           </div>
         </DrawerFooter>
       </DrawerContent>
