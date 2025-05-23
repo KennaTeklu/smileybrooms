@@ -391,6 +391,24 @@ export default function PricingPage() {
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full"
+                        onClick={() => {
+                          // Ensure at least one room is selected before customizing
+                          if (roomCounts[roomType] === 0) {
+                            handleRoomCountChange(roomType, true)
+                          }
+                          // Set this room as the selected room for customization
+                          setSelectedRoomForMap(roomType)
+                          // Scroll to the room configurator section
+                          document.getElementById("room-configurator")?.scrollIntoView({ behavior: "smooth" })
+                        }}
+                        disabled={roomCounts[roomType] === 0}
+                      >
+                        Customize
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -438,6 +456,24 @@ export default function PricingPage() {
                           <PlusCircle className="h-4 w-4" />
                         </Button>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full"
+                        onClick={() => {
+                          // Ensure at least one room is selected before customizing
+                          if (roomCounts[roomType] === 0) {
+                            handleRoomCountChange(roomType, true)
+                          }
+                          // Set this room as the selected room for customization
+                          setSelectedRoomForMap(roomType)
+                          // Scroll to the room configurator section
+                          document.getElementById("room-configurator")?.scrollIntoView({ behavior: "smooth" })
+                        }}
+                        disabled={roomCounts[roomType] === 0}
+                      >
+                        Customize
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -458,7 +494,7 @@ export default function PricingPage() {
 
           {getActiveRoomConfigs().length > 0 && (
             <>
-              <div className="mt-8">
+              <div className="mt-8" id="room-configurator">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold">ROOM CONFIGURATOR</h2>
                   <div className="flex gap-2">
