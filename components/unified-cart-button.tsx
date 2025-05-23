@@ -6,7 +6,7 @@ import { ShoppingCart } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 
-export default function UnifiedCartButton() {
+export function UnifiedCartButton() {
   const { items, getCartTotal, getItemCount } = useCart()
   const router = useRouter()
   const [isVisible, setIsVisible] = useState(true)
@@ -67,3 +67,6 @@ export default function UnifiedCartButton() {
     </div>
   )
 }
+
+// Default export
+export default UnifiedCartButton
