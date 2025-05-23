@@ -25,7 +25,7 @@ import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
-import { RoomCustomizationSidepanel } from "@/components/room-customization-sidepanel"
+import { RoomCustomizationPanel } from "@/components/room-customization-panel"
 
 interface RoomCount {
   [key: string]: number
@@ -70,9 +70,11 @@ export default function PricingPage() {
   const [showRoomVisualization, setShowRoomVisualization] = useState(false)
   const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
-  // Sidepanel state
-  const [sidepanelOpen, setSidepanelOpen] = useState(false)
-  const [selectedRoomForCustomization, setSelectedRoomForCustomization] = useState<string | null>(null)
+  // Side panel state
+  const [customizationPanel, setCustomizationPanel] = useState({
+    isOpen: false,
+    roomType: "",
+  })
 
   // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
@@ -132,14 +134,38 @@ export default function PricingPage() {
     })
   }
 
-  // Handle opening the customization sidepanel
-  const handleCustomizeRoom = (roomType: string) => {
+  // Handle customization panel
+  const openCustomizationPanel = (roomType: string) => {
     // Ensure at least one room is selected before customizing
     if (roomCounts[roomType] === 0) {
       handleRoomCountChange(roomType, true)
     }
-    setSelectedRoomForCustomization(roomType)
-    setSidepanelOpen(true)
+    setCustomizationPanel({
+      isOpen: true,
+      roomType,
+    })
+  }
+
+  const closeCustomizationPanel = () => {
+    setCustomizationPanel({
+      isOpen: false,
+      roomType: "",
+    })
+  }
+
+  // Handle panel configuration changes
+  const handlePanelConfigChange = (config: {
+    selectedTier: string
+    selectedAddOns: string[]
+    selectedReductions: string[]
+    totalPrice: number
+  }) => {
+    if (customizationPanel.roomType) {
+      handleRoomConfigChange({
+        roomName: customizationPanel.roomType,
+        ...config,
+      })
+    }
   }
 
   // Handle matrix selection changes
@@ -354,6 +380,12 @@ export default function PricingPage() {
     }
   }, [roomCounts])
 
+  // Get current room configuration for the panel
+  const getCurrentRoomConfig = () => {
+    if (!customizationPanel.roomType) return null
+    return roomConfigurations.find((config) => config.roomName === customizationPanel.roomType)
+  }
+
   return (
     <div className="container mx-auto py-10 px-4">
       <h1 className="text-4xl font-bold text-center mb-2">Pricing Calculator</h1>
@@ -410,7 +442,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => handleCustomizeRoom(roomType)}
+                        onClick={() => openCustomizationPanel(roomType)}
                       >
                         Customize
                       </Button>
@@ -465,7 +497,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => handleCustomizeRoom(roomType)}
+                        onClick={() => openCustomizationPanel(roomType)}
                       >
                         Customize
                       </Button>
@@ -738,19 +770,22 @@ export default function PricingPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Room Customization Sidepanel */}
-      {selectedRoomForCustomization && (
-        <RoomCustomizationSidepanel
-          isOpen={sidepanelOpen}
-          onClose={() => {
-            setSidepanelOpen(false)
-            setSelectedRoomForCustomization(null)
-          }}
-          roomType={selectedRoomForCustomization}
-          roomIcon={roomIcons[selectedRoomForCustomization]}
-          roomCount={roomCounts[selectedRoomForCustomization] || 0}
-          initialConfig={roomConfigurations.find((c) => c.roomName === selectedRoomForCustomization)}
-          onConfigChange={handleRoomConfigChange}
+      {/* Room Customization Side Panel */}
+      {customizationPanel.roomType && (
+        <RoomCustomizationPanel
+          isOpen={customizationPanel.isOpen}
+          onClose={closeCustomizationPanel}
+          roomName={roomDisplayNames[customizationPanel.roomType]}
+          roomIcon={roomIcons[customizationPanel.roomType]}
+          roomCount={roomCounts[customizationPanel.roomType] || 0}
+          baseTier={getRoomTiers(customizationPanel.roomType)[0]}
+          tiers={getRoomTiers(customizationPanel.roomType)}
+          addOns={getRoomAddOns(customizationPanel.roomType)}
+          reductions={getRoomReductions(customizationPanel.roomType)}
+          selectedTier={getCurrentRoomConfig()?.selectedTier || getRoomTiers(customizationPanel.roomType)[0].name}
+          selectedAddOns={getCurrentRoomConfig()?.selectedAddOns || []}
+          selectedReductions={getCurrentRoomConfig()?.selectedReductions || []}
+          onConfigChange={handlePanelConfigChange}
         />
       )}
     </div>
