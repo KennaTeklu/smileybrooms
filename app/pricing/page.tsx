@@ -5,27 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Contact, CheckCircle2 } from "lucide-react"
-import { RoomConfigurator } from "@/components/room-configurator"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
-import { ServiceMap } from "@/components/service-map"
-import { getServiceMap } from "@/lib/service-maps"
 import { Separator } from "@/components/ui/separator"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { SpecialtyServicesPortal } from "@/components/specialty-services-portal"
-import { CustomizationMatrix } from "@/components/customization-matrix"
 import { getMatrixServices } from "@/lib/matrix-services"
-import { ServiceComparisonTable } from "@/components/service-comparison-table"
-import { getServiceFeatures } from "@/lib/service-features"
 import { BookingTimeline } from "@/components/booking-timeline"
 import { ConfigurationManager } from "@/components/configuration-manager"
 import { CheckoutPreview } from "@/components/checkout-preview"
-import { RoomVisualization } from "@/components/room-visualization"
 import { FrequencySelector } from "@/components/frequency-selector"
-import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
 import { RoomCustomizationPanel } from "@/components/room-customization-panel"
+import { Badge } from "@/components/ui/badge"
 
 interface RoomCount {
   [key: string]: number
@@ -62,13 +55,10 @@ export default function PricingPage() {
   >({})
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined)
-  const [showComparisonTable, setShowComparisonTable] = useState(false)
   const [showCheckoutPreview, setShowCheckoutPreview] = useState(false)
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [selectedTeam, setSelectedTeam] = useState<string | undefined>(undefined)
-  const [showRoomVisualization, setShowRoomVisualization] = useState(false)
-  const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
   // New state for the customization drawer
   const [customizationDrawerOpen, setCustomizationDrawerOpen] = useState(false)
@@ -493,92 +483,105 @@ export default function PricingPage() {
 
           {getActiveRoomConfigs().length > 0 && (
             <>
-              <div className="mt-8" id="room-configurator">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">ROOM CONFIGURATOR</h2>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowComparisonTable(!showComparisonTable)}>
-                      {showComparisonTable ? "Hide" : "Show"} Service Comparison
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowRoomVisualization(!showRoomVisualization)}>
-                      {showRoomVisualization ? "Hide" : "Show"} Room Visualization
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowCleaningChecklist(!showCleaningChecklist)}>
-                      {showCleaningChecklist ? "Hide" : "Show"} Cleaning Checklist
-                    </Button>
-                  </div>
-                </div>
-
-                {showComparisonTable && selectedRoomForMap && (
-                  <div className="mb-6">
-                    <ServiceComparisonTable
-                      roomType={roomDisplayNames[selectedRoomForMap]}
-                      features={getServiceFeatures(selectedRoomForMap)}
-                    />
-                  </div>
-                )}
-
-                {showRoomVisualization && selectedRoomForMap && (
-                  <div className="mb-6">
-                    <RoomVisualization
-                      roomType={roomDisplayNames[selectedRoomForMap]}
-                      selectedTier={
-                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
-                        "ESSENTIAL CLEAN"
-                      }
-                      selectedAddOns={roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedAddOns}
-                    />
-                  </div>
-                )}
-
-                {showCleaningChecklist && selectedRoomForMap && (
-                  <div className="mb-6">
-                    <CleaningChecklist
-                      roomType={roomDisplayNames[selectedRoomForMap]}
-                      selectedTier={
-                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
-                        "ESSENTIAL CLEAN"
-                      }
-                    />
-                  </div>
-                )}
-
+              <div className="mt-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    {getActiveRoomConfigs().map((roomType) => (
-                      <div key={roomType}>
-                        <RoomConfigurator
-                          roomName={roomDisplayNames[roomType]}
-                          roomIcon={roomIcons[roomType]}
-                          baseTier={getRoomTiers(roomType)[0]}
-                          tiers={getRoomTiers(roomType)}
-                          addOns={getRoomAddOns(roomType)}
-                          reductions={getRoomReductions(roomType)}
-                          onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomType })}
-                          initialConfig={roomConfigurations.find((c) => c.roomName === roomType)}
-                        />
+                  <div className="lg:col-span-3">
+                    <Card>
+                      <CardHeader className="bg-blue-50">
+                        <CardTitle className="flex items-center justify-between">
+                          <span>Room Summary</span>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              // Open customization panel for the first active room
+                              const firstRoom = getActiveRoomConfigs()[0]
+                              if (firstRoom) {
+                                handleOpenCustomization(firstRoom)
+                              }
+                            }}
+                            disabled={getActiveRoomConfigs().length === 0}
+                          >
+                            Customize Rooms
+                          </Button>
+                        </CardTitle>
+                        <CardDescription>Overview of your selected rooms and cleaning options</CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {getActiveRoomConfigs().map((roomType) => {
+                            const config = roomConfigurations.find((c) => c.roomName === roomType)
+                            const addOnsCount = (config?.selectedAddOns || []).length
+                            const reductionsCount = (config?.selectedReductions || []).length
+                            const matrixAddOnsCount = matrixSelections[roomType]?.addServices.length || 0
+                            const matrixReductionsCount = matrixSelections[roomType]?.removeServices.length || 0
+                            const totalCustomizations =
+                              addOnsCount + reductionsCount + matrixAddOnsCount + matrixReductionsCount
 
-                        {/* Add Customization Matrix for each room */}
-                        <CustomizationMatrix
-                          roomName={roomDisplayNames[roomType]}
-                          selectedTier={
-                            roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "ESSENTIAL CLEAN"
-                          }
-                          addServices={getMatrixServices(roomType).add}
-                          removeServices={getMatrixServices(roomType).remove}
-                          onSelectionChange={(selection) => handleMatrixSelectionChange(roomType, selection)}
-                          initialSelection={matrixSelections[roomType]}
-                        />
-                      </div>
-                    ))}
+                            return (
+                              <Card key={roomType} className="border border-gray-200">
+                                <CardHeader className="pb-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xl">{roomIcons[roomType]}</span>
+                                      <CardTitle className="text-base">{roomDisplayNames[roomType]}</CardTitle>
+                                    </div>
+                                    <Badge variant="outline">
+                                      {roomCounts[roomType]} {roomCounts[roomType] === 1 ? "Room" : "Rooms"}
+                                    </Badge>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="pt-2">
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm">Tier:</span>
+                                      <Badge
+                                        variant={
+                                          config?.selectedTier === "ESSENTIAL CLEAN"
+                                            ? "default"
+                                            : config?.selectedTier === "ADVANCED CLEAN"
+                                              ? "secondary"
+                                              : "destructive"
+                                        }
+                                      >
+                                        {config?.selectedTier || "ESSENTIAL CLEAN"}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm">Customizations:</span>
+                                      <span className="text-sm font-medium">{totalCustomizations}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm">Price:</span>
+                                      <span className="text-sm font-bold">
+                                        ${config?.totalPrice.toFixed(2) || "0.00"}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full mt-2"
+                                      onClick={() => handleOpenCustomization(roomType)}
+                                    >
+                                      Customize
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
 
-                  <div className="space-y-6">
+                  <div className="lg:col-span-2">
                     <FrequencySelector
                       onFrequencyChange={handleFrequencyChange}
                       selectedFrequency={selectedFrequency}
                     />
+                  </div>
 
+                  <div className="lg:col-span-1">
                     <PriceBreakdown
                       basePrice={calculateBasePrice()}
                       tierUpgrades={calculateTierUpgrades()}
@@ -589,13 +592,15 @@ export default function PricingPage() {
                       totalPrice={calculateTotalPrice()}
                     />
 
-                    <CleaningTimeEstimator
-                      roomCounts={roomCounts}
-                      selectedTiers={getSelectedTiers()}
-                      totalAddOns={calculateAddOns().length}
-                    />
+                    <div className="mt-6">
+                      <CleaningTimeEstimator
+                        roomCounts={roomCounts}
+                        selectedTiers={getSelectedTiers()}
+                        totalAddOns={calculateAddOns().length}
+                      />
+                    </div>
 
-                    <Card>
+                    <Card className="mt-6">
                       <CardHeader className="bg-blue-50">
                         <CardTitle className="flex items-center justify-between">
                           <span>Service Summary</span>
@@ -628,48 +633,21 @@ export default function PricingPage() {
                       </CardContent>
                     </Card>
 
-                    <ConfigurationManager
-                      currentConfig={{
-                        rooms: roomConfigurations.map((config) => ({
-                          type: roomDisplayNames[config.roomName],
-                          count: roomCounts[config.roomName],
-                          tier: config.selectedTier,
-                        })),
-                        totalPrice: calculateTotalPrice(),
-                      }}
-                      onLoadConfig={handleLoadConfig}
-                    />
+                    <div className="mt-6">
+                      <ConfigurationManager
+                        currentConfig={{
+                          rooms: roomConfigurations.map((config) => ({
+                            type: roomDisplayNames[config.roomName],
+                            count: roomCounts[config.roomName],
+                            tier: config.selectedTier,
+                          })),
+                          totalPrice: calculateTotalPrice(),
+                        }}
+                        onLoadConfig={handleLoadConfig}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-6">VISUAL SERVICE MAP</h2>
-
-                <Card className="mb-4">
-                  <CardContent className="p-4">
-                    <div className="flex flex-wrap gap-2">
-                      {getActiveRoomConfigs().map((roomType) => (
-                        <Button
-                          key={roomType}
-                          variant={selectedRoomForMap === roomType ? "default" : "outline"}
-                          onClick={() => setSelectedRoomForMap(roomType)}
-                          className="flex items-center gap-1"
-                        >
-                          <span>{roomIcons[roomType]}</span>
-                          <span>{roomDisplayNames[roomType]}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {selectedRoomForMap && (
-                  <ServiceMap
-                    roomName={roomDisplayNames[selectedRoomForMap]}
-                    categories={getServiceMap(selectedRoomForMap)}
-                  />
-                )}
               </div>
 
               {showCheckoutPreview && (
