@@ -15,6 +15,7 @@ import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
+import { CompactRoomSelection } from "./compact-room-selection"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -349,7 +350,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <RoomConfigurator
+              <CompactRoomSelection
                 selectedRooms={selectedRooms}
                 setSelectedRooms={setSelectedRooms}
                 serviceType={serviceType}
@@ -449,7 +450,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <RoomConfigurator
+              <CompactRoomSelection
                 selectedRooms={selectedRooms}
                 setSelectedRooms={setSelectedRooms}
                 serviceType={serviceType}
