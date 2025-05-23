@@ -32,6 +32,9 @@ const ScrollArea = React.forwardRef<
     const [scrollPosition, setScrollPosition] = React.useState(0)
     const scrollAreaId = React.useId()
 
+    // Use a ref to track content changes to avoid infinite loops
+    const contentRef = React.useRef(children)
+
     React.useEffect(() => {
       if (forceScrollable && scrollAreaRef.current) {
         const cleanup = forceEnableScrolling(scrollAreaRef.current)
@@ -39,52 +42,67 @@ const ScrollArea = React.forwardRef<
       }
     }, [forceScrollable])
 
-    // Check for overflow on mount and when children change
+    // Check for overflow only when necessary
     React.useEffect(() => {
       const checkOverflow = () => {
         if (scrollAreaRef.current) {
           const hasVerticalOverflow = scrollAreaRef.current.scrollHeight > scrollAreaRef.current.clientHeight
           const hasHorizontalOverflow = scrollAreaRef.current.scrollWidth > scrollAreaRef.current.clientWidth
 
-          setHasOverflow(
+          const newHasOverflow =
             (orientation === "vertical" && hasVerticalOverflow) ||
-              (orientation === "horizontal" && hasHorizontalOverflow) ||
-              (orientation === "both" && (hasVerticalOverflow || hasHorizontalOverflow)),
-          )
+            (orientation === "horizontal" && hasHorizontalOverflow) ||
+            (orientation === "both" && (hasVerticalOverflow || hasHorizontalOverflow))
+
+          // Only update state if the overflow status has changed
+          if (hasOverflow !== newHasOverflow) {
+            setHasOverflow(newHasOverflow)
+          }
         }
       }
+
+      // Update content ref to detect changes
+      contentRef.current = children
 
       checkOverflow()
 
       // Use ResizeObserver to detect size changes
-      const resizeObserver = new ResizeObserver(checkOverflow)
+      const resizeObserver = new ResizeObserver(() => {
+        checkOverflow()
+      })
+
       if (scrollAreaRef.current) {
         resizeObserver.observe(scrollAreaRef.current)
       }
 
       return () => {
-        if (scrollAreaRef.current) {
-          resizeObserver.disconnect()
+        resizeObserver.disconnect()
+      }
+    }, [children, orientation, hasOverflow])
+
+    const handleScroll = React.useCallback(
+      (event: React.UIEvent<HTMLDivElement>) => {
+        if (onScroll) {
+          onScroll(event)
         }
-      }
-    }, [children, orientation])
 
-    const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-      if (onScroll) {
-        onScroll(event)
-      }
+        // Update scroll position for ARIA attributes
+        if (scrollAreaRef.current) {
+          const element = scrollAreaRef.current
+          const position =
+            orientation !== "horizontal"
+              ? element.scrollTop / (element.scrollHeight - element.clientHeight || 1)
+              : element.scrollLeft / (element.scrollWidth - element.clientWidth || 1)
 
-      // Update scroll position for ARIA attributes
-      if (scrollAreaRef.current) {
-        const element = scrollAreaRef.current
-        const position =
-          orientation !== "horizontal"
-            ? element.scrollTop / (element.scrollHeight - element.clientHeight)
-            : element.scrollLeft / (element.scrollWidth - element.clientWidth)
-
-        setScrollPosition(Math.max(0, Math.min(1, position)) * 100)
-      }
-    }
+          // Avoid unnecessary state updates
+          const newPosition = Math.max(0, Math.min(1, position)) * 100
+          if (Math.abs(newPosition - scrollPosition) > 1) {
+            setScrollPosition(newPosition)
+          }
+        }
+      },
+      [onScroll, orientation, scrollPosition],
+    )
 
     return (
       <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>

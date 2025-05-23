@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Drawer,
   DrawerContent,
@@ -64,6 +64,7 @@ export function RoomCustomizationDrawer({
   const [selectedReductions, setSelectedReductions] = useState<string[]>(config.selectedReductions)
   const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
   const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
+  const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
 
   // Get room tiers, add-ons, and reductions
   const tiers = getRoomTiers(roomType)
@@ -74,8 +75,8 @@ export function RoomCustomizationDrawer({
   // Get base tier (Essential Clean)
   const baseTier = tiers[0]
 
-  // Calculate prices
-  const calculatePrices = () => {
+  // Calculate prices - memoized to prevent recalculation on every render
+  const calculatePrices = useCallback(() => {
     // Base price is always the price of the Essential Clean tier
     const basePrice = baseTier.price
 
@@ -117,30 +118,52 @@ export function RoomCustomizationDrawer({
       reductionsPrice: reductionsPrice + matrixRemovePrice,
       totalPrice,
     }
-  }
+  }, [
+    baseTier.price,
+    tiers,
+    selectedTier,
+    selectedAddOns,
+    matrixAddServices,
+    selectedReductions,
+    matrixRemoveServices,
+    addOns,
+    matrixServices.add,
+    reductions,
+    matrixServices.remove,
+  ])
 
-  // Update config when selections change
+  // Update local config when selections change
   useEffect(() => {
     const prices = calculatePrices()
-
-    onConfigChange({
+    setLocalConfig({
       ...config,
       selectedTier,
       selectedAddOns,
       selectedReductions,
       ...prices,
     })
-  }, [selectedTier, selectedAddOns, selectedReductions, matrixAddServices, matrixRemoveServices])
+    // We're only updating local state here, not calling the parent's onConfigChange
+    // This prevents the infinite loop
+  }, [
+    selectedTier,
+    selectedAddOns,
+    selectedReductions,
+    matrixAddServices,
+    matrixRemoveServices,
+    calculatePrices,
+    config,
+  ])
 
-  // Reset selections when drawer opens
+  // Reset selections when drawer opens with new config
   useEffect(() => {
     if (isOpen) {
       setSelectedTier(config.selectedTier)
-      setSelectedAddOns(config.selectedAddOns)
-      setSelectedReductions(config.selectedReductions)
+      setSelectedAddOns([...config.selectedAddOns])
+      setSelectedReductions([...config.selectedReductions])
       setMatrixAddServices([])
       setMatrixRemoveServices([])
       setActiveTab("basic")
+      setLocalConfig(config)
     }
   }, [isOpen, config])
 
@@ -185,8 +208,11 @@ export function RoomCustomizationDrawer({
     }
   }
 
-  // Calculate prices for display
-  const prices = calculatePrices()
+  // Handle apply changes - only call parent's onConfigChange when the user explicitly applies changes
+  const handleApplyChanges = () => {
+    onConfigChange(localConfig)
+    onClose()
+  }
 
   // Generate unique IDs for accessibility
   const drawerTitleId = `drawer-title-${roomType}`
@@ -410,39 +436,39 @@ export function RoomCustomizationDrawer({
           </div>
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium">Base Price:</span>
-            <span>{formatCurrency(prices.basePrice)}</span>
+            <span>{formatCurrency(localConfig.basePrice)}</span>
           </div>
-          {prices.tierUpgradePrice > 0 && (
+          {localConfig.tierUpgradePrice > 0 && (
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Tier Upgrade:</span>
-              <span>+{formatCurrency(prices.tierUpgradePrice)}</span>
+              <span>+{formatCurrency(localConfig.tierUpgradePrice)}</span>
             </div>
           )}
-          {prices.addOnsPrice > 0 && (
+          {localConfig.addOnsPrice > 0 && (
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Add-ons:</span>
-              <span>+{formatCurrency(prices.addOnsPrice)}</span>
+              <span>+{formatCurrency(localConfig.addOnsPrice)}</span>
             </div>
           )}
-          {prices.reductionsPrice > 0 && (
+          {localConfig.reductionsPrice > 0 && (
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Reductions:</span>
-              <span>-{formatCurrency(prices.reductionsPrice)}</span>
+              <span>-{formatCurrency(localConfig.reductionsPrice)}</span>
             </div>
           )}
           <Separator className="my-2" />
           <div className="flex justify-between items-center font-bold">
             <span>Total Per Room:</span>
-            <span>{formatCurrency(prices.totalPrice)}</span>
+            <span>{formatCurrency(localConfig.totalPrice)}</span>
           </div>
           <div className="flex justify-between items-center font-bold mt-1">
             <span>Total ({roomCount} rooms):</span>
-            <span>{formatCurrency(prices.totalPrice * roomCount)}</span>
+            <span>{formatCurrency(localConfig.totalPrice * roomCount)}</span>
           </div>
         </div>
 
         <DrawerFooter className="pt-2">
-          <Button onClick={onClose} className="w-full">
+          <Button onClick={handleApplyChanges} className="w-full">
             <Check className="mr-2 h-4 w-4" aria-hidden="true" />
             Apply Changes
           </Button>

@@ -1,32 +1,29 @@
 /**
- * Forces a container to be scrollable by adding minimum content
- * This is useful when you want to ensure a container has a scrollbar
- * even when its content doesn't overflow
+ * Forces an element to be scrollable by adding minimum content
+ * This is useful for elements that need to be scrollable but don't have enough content
+ *
+ * @param element The element to make scrollable
+ * @returns A cleanup function to remove the added content
  */
-export function forceEnableScrolling(element: HTMLElement): void {
-  // Check if the element already has a scrollbar
-  const hasScrollbar = element.scrollHeight > element.clientHeight
+export function forceEnableScrolling(element: HTMLElement): () => void {
+  // Create a hidden div that's taller than the container
+  const spacer = document.createElement("div")
+  spacer.style.height = "1px"
+  spacer.style.marginBottom = "100vh" // Add extra space to ensure scrollability
+  spacer.style.opacity = "0"
+  spacer.style.pointerEvents = "none"
+  spacer.setAttribute("aria-hidden", "true")
+  spacer.dataset.scrollSpacer = "true"
 
-  if (!hasScrollbar) {
-    // Create a temporary invisible element to force scrolling
-    const tempDiv = document.createElement("div")
-    tempDiv.style.height = "1px"
-    tempDiv.style.marginBottom = "1px"
-    tempDiv.style.visibility = "hidden"
-    tempDiv.setAttribute("data-force-scroll", "true")
+  // Add the spacer to the element
+  element.appendChild(spacer)
 
-    // Append to the element
-    element.appendChild(tempDiv)
-
-    // Clean up function to remove the element when no longer needed
-    return () => {
-      const forceScrollElements = element.querySelectorAll('[data-force-scroll="true"]')
-      forceScrollElements.forEach((el) => el.remove())
+  // Return a cleanup function
+  return () => {
+    if (element.contains(spacer)) {
+      element.removeChild(spacer)
     }
   }
-
-  // Return empty cleanup if no action was taken
-  return () => {}
 }
 
 /**
