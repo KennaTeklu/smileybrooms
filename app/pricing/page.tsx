@@ -5,16 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Contact, CheckCircle2 } from "lucide-react"
-import { getRoomTiers, roomIcons, roomDisplayNames, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { RoomConfigurator } from "@/components/room-configurator"
+import { getRoomTiers, getRoomAddOns, getRoomReductions, roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { PriceBreakdown } from "@/components/price-breakdown"
+import { ServiceMap } from "@/components/service-map"
+import { getServiceMap } from "@/lib/service-maps"
 import { Separator } from "@/components/ui/separator"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { SpecialtyServicesPortal } from "@/components/specialty-services-portal"
+import { CustomizationMatrix } from "@/components/customization-matrix"
 import { getMatrixServices } from "@/lib/matrix-services"
+import { ServiceComparisonTable } from "@/components/service-comparison-table"
+import { getServiceFeatures } from "@/lib/service-features"
 import { BookingTimeline } from "@/components/booking-timeline"
 import { ConfigurationManager } from "@/components/configuration-manager"
 import { CheckoutPreview } from "@/components/checkout-preview"
+import { RoomVisualization } from "@/components/room-visualization"
 import { FrequencySelector } from "@/components/frequency-selector"
+import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
 import { RoomCustomizationPanel } from "@/components/room-customization-panel"
@@ -47,16 +55,20 @@ export default function PricingPage() {
   })
 
   const [roomConfigurations, setRoomConfigurations] = useState<RoomConfig[]>([])
+  const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
   const [serviceFee, setServiceFee] = useState(25) // Default service fee
   const [matrixSelections, setMatrixSelections] = useState<
     Record<string, { addServices: string[]; removeServices: string[] }>
   >({})
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined)
+  const [showComparisonTable, setShowComparisonTable] = useState(false)
   const [showCheckoutPreview, setShowCheckoutPreview] = useState(false)
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [selectedTeam, setSelectedTeam] = useState<string | undefined>(undefined)
+  const [showRoomVisualization, setShowRoomVisualization] = useState(false)
+  const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
   // New state for the customization drawer
   const [customizationDrawerOpen, setCustomizationDrawerOpen] = useState(false)
@@ -85,11 +97,25 @@ export default function PricingPage() {
       }
 
       setRoomConfigurations((prev) => [...prev, newConfig])
+
+      // Set this as the selected room for the service map if none is selected
+      if (!selectedRoomForMap) {
+        setSelectedRoomForMap(roomType)
+      }
     }
 
     // If decrementing to zero, remove configuration
     if (!increment && (roomCounts[roomType] || 0) === 1) {
       setRoomConfigurations((prev) => prev.filter((config) => config.roomName !== roomType))
+
+      // If this was the selected room for the service map, select another one
+      if (selectedRoomForMap === roomType) {
+        const activeRooms = Object.entries(roomCounts)
+          .filter(([key, count]) => key !== roomType && count > 0)
+          .map(([key]) => key)
+
+        setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
+      }
     }
   }
 
@@ -178,6 +204,13 @@ export default function PricingPage() {
 
     setRoomCounts(newRoomCounts)
     setRoomConfigurations(newRoomConfigs)
+
+    // Set the first active room as the selected room for the map
+    const firstActiveRoom = Object.entries(newRoomCounts).find(([_, count]) => count > 0)?.[0]
+
+    if (firstActiveRoom) {
+      setSelectedRoomForMap(firstActiveRoom)
+    }
   }
 
   // Calculate base price (sum of all Essential Clean prices)
@@ -350,7 +383,7 @@ export default function PricingPage() {
                 {coreRooms.map((roomType) => (
                   <Card
                     key={roomType}
-                    className={`border ${roomCounts[roomType] > 0 ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                    className={`border ${roomCounts[roomType] > 0 ? "border-blue-500" : "border-gray-200"}`}
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center">
                       <div className="text-3xl mb-2">{roomIcons[roomType]}</div>
@@ -406,7 +439,7 @@ export default function PricingPage() {
                 {additionalSpaces.map((roomType) => (
                   <Card
                     key={roomType}
-                    className={`border ${roomCounts[roomType] > 0 ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                    className={`border ${roomCounts[roomType] > 0 ? "border-blue-500" : "border-gray-200"}`}
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center">
                       <div className="text-3xl mb-2">{roomIcons[roomType]}</div>
@@ -459,134 +492,210 @@ export default function PricingPage() {
           </Card>
 
           {getActiveRoomConfigs().length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Selected Rooms Summary</CardTitle>
-                    <CardDescription>Overview of your selected rooms and configurations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {getActiveRoomConfigs().map((roomType) => {
-                        const config = roomConfigurations.find((c) => c.roomName === roomType)
-                        return (
-                          <div key={roomType} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl">{roomIcons[roomType]}</span>
-                              <div>
-                                <h4 className="font-medium">{roomDisplayNames[roomType]}</h4>
-                                <p className="text-sm text-gray-500">
-                                  {roomCounts[roomType]} room{roomCounts[roomType] !== 1 ? "s" : ""} •{" "}
-                                  {config?.selectedTier || "ESSENTIAL CLEAN"}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">
-                                ${((config?.totalPrice || 0) * roomCounts[roomType]).toFixed(2)}
-                              </span>
-                              <Button variant="outline" size="sm" onClick={() => handleOpenCustomization(roomType)}>
-                                Edit
-                              </Button>
-                            </div>
+            <>
+              <div className="mt-8" id="room-configurator">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">ROOM CONFIGURATOR</h2>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowComparisonTable(!showComparisonTable)}>
+                      {showComparisonTable ? "Hide" : "Show"} Service Comparison
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowRoomVisualization(!showRoomVisualization)}>
+                      {showRoomVisualization ? "Hide" : "Show"} Room Visualization
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowCleaningChecklist(!showCleaningChecklist)}>
+                      {showCleaningChecklist ? "Hide" : "Show"} Cleaning Checklist
+                    </Button>
+                  </div>
+                </div>
+
+                {showComparisonTable && selectedRoomForMap && (
+                  <div className="mb-6">
+                    <ServiceComparisonTable
+                      roomType={roomDisplayNames[selectedRoomForMap]}
+                      features={getServiceFeatures(selectedRoomForMap)}
+                    />
+                  </div>
+                )}
+
+                {showRoomVisualization && selectedRoomForMap && (
+                  <div className="mb-6">
+                    <RoomVisualization
+                      roomType={roomDisplayNames[selectedRoomForMap]}
+                      selectedTier={
+                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
+                        "ESSENTIAL CLEAN"
+                      }
+                      selectedAddOns={roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedAddOns}
+                    />
+                  </div>
+                )}
+
+                {showCleaningChecklist && selectedRoomForMap && (
+                  <div className="mb-6">
+                    <CleaningChecklist
+                      roomType={roomDisplayNames[selectedRoomForMap]}
+                      selectedTier={
+                        roomConfigurations.find((c) => c.roomName === selectedRoomForMap)?.selectedTier ||
+                        "ESSENTIAL CLEAN"
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    {getActiveRoomConfigs().map((roomType) => (
+                      <div key={roomType}>
+                        <RoomConfigurator
+                          roomName={roomDisplayNames[roomType]}
+                          roomIcon={roomIcons[roomType]}
+                          baseTier={getRoomTiers(roomType)[0]}
+                          tiers={getRoomTiers(roomType)}
+                          addOns={getRoomAddOns(roomType)}
+                          reductions={getRoomReductions(roomType)}
+                          onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomType })}
+                          initialConfig={roomConfigurations.find((c) => c.roomName === roomType)}
+                        />
+
+                        {/* Add Customization Matrix for each room */}
+                        <CustomizationMatrix
+                          roomName={roomDisplayNames[roomType]}
+                          selectedTier={
+                            roomConfigurations.find((c) => c.roomName === roomType)?.selectedTier || "ESSENTIAL CLEAN"
+                          }
+                          addServices={getMatrixServices(roomType).add}
+                          removeServices={getMatrixServices(roomType).remove}
+                          onSelectionChange={(selection) => handleMatrixSelectionChange(roomType, selection)}
+                          initialSelection={matrixSelections[roomType]}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-6">
+                    <FrequencySelector
+                      onFrequencyChange={handleFrequencyChange}
+                      selectedFrequency={selectedFrequency}
+                    />
+
+                    <PriceBreakdown
+                      basePrice={calculateBasePrice()}
+                      tierUpgrades={calculateTierUpgrades()}
+                      addOns={calculateAddOns()}
+                      reductions={calculateReductions()}
+                      serviceFee={serviceFee}
+                      frequencyDiscount={frequencyDiscount}
+                      totalPrice={calculateTotalPrice()}
+                    />
+
+                    <CleaningTimeEstimator
+                      roomCounts={roomCounts}
+                      selectedTiers={getSelectedTiers()}
+                      totalAddOns={calculateAddOns().length}
+                    />
+
+                    <Card>
+                      <CardHeader className="bg-blue-50">
+                        <CardTitle className="flex items-center justify-between">
+                          <span>Service Summary</span>
+                          <Button onClick={() => setShowCheckoutPreview(true)}>Book Now</Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Total Rooms:</span>
+                            <span>{Object.values(roomCounts).reduce((sum, count) => sum + count, 0)}</span>
                           </div>
-                        )
-                      })}
+                          <Separator />
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Estimated Duration:</span>
+                            <span>
+                              {Math.max(
+                                2,
+                                Math.ceil(Object.values(roomCounts).reduce((sum, count) => sum + count, 0) * 0.75),
+                              )}{" "}
+                              hours
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Next Available:</span>
+                            <span>Tomorrow, 9:00 AM</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <ConfigurationManager
+                      currentConfig={{
+                        rooms: roomConfigurations.map((config) => ({
+                          type: roomDisplayNames[config.roomName],
+                          count: roomCounts[config.roomName],
+                          tier: config.selectedTier,
+                        })),
+                        totalPrice: calculateTotalPrice(),
+                      }}
+                      onLoadConfig={handleLoadConfig}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-6">VISUAL SERVICE MAP</h2>
+
+                <Card className="mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {getActiveRoomConfigs().map((roomType) => (
+                        <Button
+                          key={roomType}
+                          variant={selectedRoomForMap === roomType ? "default" : "outline"}
+                          onClick={() => setSelectedRoomForMap(roomType)}
+                          className="flex items-center gap-1"
+                        >
+                          <span>{roomIcons[roomType]}</span>
+                          <span>{roomDisplayNames[roomType]}</span>
+                        </Button>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                {showCheckoutPreview && (
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-bold">BOOKING DETAILS</h2>
-
-                    <div className="grid grid-cols-1 gap-6">
-                      <BookingTimeline
-                        onDateSelected={setSelectedDate}
-                        onTimeSelected={setSelectedTime}
-                        selectedDate={selectedDate}
-                        selectedTime={selectedTime}
-                      />
-
-                      <CheckoutPreview
-                        totalPrice={calculateTotalPrice()}
-                        serviceSummary={getServiceSummary()}
-                        selectedDate={selectedDate}
-                        selectedTime={selectedTime}
-                      />
-                    </div>
-
-                    <CleaningTeamSelector onTeamSelect={setSelectedTeam} selectedTeam={selectedTeam} />
-                  </div>
+                {selectedRoomForMap && (
+                  <ServiceMap
+                    roomName={roomDisplayNames[selectedRoomForMap]}
+                    categories={getServiceMap(selectedRoomForMap)}
+                  />
                 )}
               </div>
 
-              <div className="space-y-6">
-                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
+              {showCheckoutPreview && (
+                <div className="mt-8">
+                  <h2 className="text-2xl font-bold mb-6">BOOKING DETAILS</h2>
 
-                <PriceBreakdown
-                  basePrice={calculateBasePrice()}
-                  tierUpgrades={calculateTierUpgrades()}
-                  addOns={calculateAddOns()}
-                  reductions={calculateReductions()}
-                  serviceFee={serviceFee}
-                  frequencyDiscount={frequencyDiscount}
-                  totalPrice={calculateTotalPrice()}
-                />
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <BookingTimeline
+                      onDateSelected={setSelectedDate}
+                      onTimeSelected={setSelectedTime}
+                      selectedDate={selectedDate}
+                      selectedTime={selectedTime}
+                    />
 
-                <CleaningTimeEstimator
-                  roomCounts={roomCounts}
-                  selectedTiers={getSelectedTiers()}
-                  totalAddOns={calculateAddOns().length}
-                />
+                    <CheckoutPreview
+                      totalPrice={calculateTotalPrice()}
+                      serviceSummary={getServiceSummary()}
+                      selectedDate={selectedDate}
+                      selectedTime={selectedTime}
+                    />
+                  </div>
 
-                <Card>
-                  <CardHeader className="bg-blue-50">
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Service Summary</span>
-                      <Button onClick={() => setShowCheckoutPreview(true)}>Book Now</Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Total Rooms:</span>
-                        <span>{Object.values(roomCounts).reduce((sum, count) => sum + count, 0)}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Estimated Duration:</span>
-                        <span>
-                          {Math.max(
-                            2,
-                            Math.ceil(Object.values(roomCounts).reduce((sum, count) => sum + count, 0) * 0.75),
-                          )}{" "}
-                          hours
-                        </span>
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Next Available:</span>
-                        <span>Tomorrow, 9:00 AM</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <ConfigurationManager
-                  currentConfig={{
-                    rooms: roomConfigurations.map((config) => ({
-                      type: roomDisplayNames[config.roomName],
-                      count: roomCounts[config.roomName],
-                      tier: config.selectedTier,
-                    })),
-                    totalPrice: calculateTotalPrice(),
-                  }}
-                  onLoadConfig={handleLoadConfig}
-                />
-              </div>
-            </div>
+                  <CleaningTeamSelector onTeamSelect={setSelectedTeam} selectedTeam={selectedTeam} />
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-8">
@@ -638,7 +747,6 @@ export default function PricingPage() {
         open={customizationDrawerOpen}
         onOpenChange={setCustomizationDrawerOpen}
         roomType={roomToCustomize}
-        roomCount={roomToCustomize ? roomCounts[roomToCustomize] : 0}
         initialConfig={roomToCustomize ? roomConfigurations.find((c) => c.roomName === roomToCustomize) : undefined}
         onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomToCustomize || "" })}
         matrixSelection={roomToCustomize ? matrixSelections[roomToCustomize] : undefined}
