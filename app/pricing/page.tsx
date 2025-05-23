@@ -25,7 +25,7 @@ import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
-import { RoomCustomizationPanel } from "@/components/room-customization-panel"
+import { RoomCustomizationSidepanel } from "@/components/room-customization-sidepanel"
 
 interface RoomCount {
   [key: string]: number
@@ -70,9 +70,9 @@ export default function PricingPage() {
   const [showRoomVisualization, setShowRoomVisualization] = useState(false)
   const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
-  // New state for the customization drawer
-  const [customizationDrawerOpen, setCustomizationDrawerOpen] = useState(false)
-  const [roomToCustomize, setRoomToCustomize] = useState<string | null>(null)
+  // Sidepanel state
+  const [sidepanelOpen, setSidepanelOpen] = useState(false)
+  const [selectedRoomForCustomization, setSelectedRoomForCustomization] = useState<string | null>(null)
 
   // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
@@ -119,18 +119,6 @@ export default function PricingPage() {
     }
   }
 
-  // Handle opening the customization drawer
-  const handleOpenCustomization = (roomType: string) => {
-    // Ensure at least one room is selected before customizing
-    if (roomCounts[roomType] === 0) {
-      handleRoomCountChange(roomType, true)
-    }
-
-    // Set the room to customize and open the drawer
-    setRoomToCustomize(roomType)
-    setCustomizationDrawerOpen(true)
-  }
-
   // Handle room configuration changes
   const handleRoomConfigChange = (config: RoomConfig) => {
     setRoomConfigurations((prev) => {
@@ -142,6 +130,16 @@ export default function PricingPage() {
       }
       return [...prev, config]
     })
+  }
+
+  // Handle opening the customization sidepanel
+  const handleCustomizeRoom = (roomType: string) => {
+    // Ensure at least one room is selected before customizing
+    if (roomCounts[roomType] === 0) {
+      handleRoomCountChange(roomType, true)
+    }
+    setSelectedRoomForCustomization(roomType)
+    setSidepanelOpen(true)
   }
 
   // Handle matrix selection changes
@@ -412,8 +410,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => handleOpenCustomization(roomType)}
-                        disabled={roomCounts[roomType] === 0}
+                        onClick={() => handleCustomizeRoom(roomType)}
                       >
                         Customize
                       </Button>
@@ -468,8 +465,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => handleOpenCustomization(roomType)}
-                        disabled={roomCounts[roomType] === 0}
+                        onClick={() => handleCustomizeRoom(roomType)}
                       >
                         Customize
                       </Button>
@@ -742,18 +738,21 @@ export default function PricingPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Room Customization Side Panel */}
-      <RoomCustomizationPanel
-        open={customizationDrawerOpen}
-        onOpenChange={setCustomizationDrawerOpen}
-        roomType={roomToCustomize}
-        initialConfig={roomToCustomize ? roomConfigurations.find((c) => c.roomName === roomToCustomize) : undefined}
-        onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomToCustomize || "" })}
-        matrixSelection={roomToCustomize ? matrixSelections[roomToCustomize] : undefined}
-        onMatrixSelectionChange={
-          roomToCustomize ? (selection) => handleMatrixSelectionChange(roomToCustomize, selection) : undefined
-        }
-      />
+      {/* Room Customization Sidepanel */}
+      {selectedRoomForCustomization && (
+        <RoomCustomizationSidepanel
+          isOpen={sidepanelOpen}
+          onClose={() => {
+            setSidepanelOpen(false)
+            setSelectedRoomForCustomization(null)
+          }}
+          roomType={selectedRoomForCustomization}
+          roomIcon={roomIcons[selectedRoomForCustomization]}
+          roomCount={roomCounts[selectedRoomForCustomization] || 0}
+          initialConfig={roomConfigurations.find((c) => c.roomName === selectedRoomForCustomization)}
+          onConfigChange={handleRoomConfigChange}
+        />
+      )}
     </div>
   )
 }
