@@ -15,7 +15,8 @@ import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
-import { CompactRoomSelection } from "./compact-room-selection"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer"
+import { X } from "lucide-react"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -69,9 +70,15 @@ interface RoomConfiguratorProps {
   selectedRooms: Record<string, number>
   setSelectedRooms: (rooms: Record<string, number>) => void
   serviceType: "standard" | "detailing"
+  openCustomization: (roomId: string) => void
 }
 
-const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
+  selectedRooms,
+  setSelectedRooms,
+  serviceType,
+  openCustomization,
+}) => {
   const incrementRoom = (roomId: string) => {
     setSelectedRooms((prev) => ({
       ...prev,
@@ -135,9 +142,21 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-500">
+                  ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+                </p>
+                {selectedRooms[room.id] > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openCustomization(room.id)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Customize
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
       </div>
@@ -187,9 +206,21 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-500">
+                  ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+                </p>
+                {selectedRooms[room.id] > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openCustomization(room.id)}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Customize
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
       </div>
@@ -221,6 +252,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [totalPrice, setTotalPrice] = useState(0)
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
+
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false)
+  const [selectedRoomForCustomization, setSelectedRoomForCustomization] = useState<string | null>(null)
 
   // Media query for responsive design
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -307,6 +341,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     }
   }
 
+  // Function to open customization panel for a specific room
+  const openCustomization = (roomId: string) => {
+    setSelectedRoomForCustomization(roomId)
+    setIsCustomizationOpen(true)
+  }
+
   // Function to check if any rooms are selected
   const hasSelectedRooms = () => {
     return Object.values(selectedRooms).some((count) => count > 0)
@@ -350,10 +390,11 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <CompactRoomSelection
+              <RoomConfigurator
                 selectedRooms={selectedRooms}
                 setSelectedRooms={setSelectedRooms}
                 serviceType={serviceType}
+                openCustomization={openCustomization}
               />
             </CardContent>
           </Card>
@@ -450,10 +491,11 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <CompactRoomSelection
+              <RoomConfigurator
                 selectedRooms={selectedRooms}
                 setSelectedRooms={setSelectedRooms}
                 serviceType={serviceType}
+                openCustomization={openCustomization}
               />
             </CardContent>
           </Card>
@@ -568,6 +610,43 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
         )}
       </div>
+      {/* Customization Panel */}
+      <Drawer open={isCustomizationOpen} onOpenChange={setIsCustomizationOpen}>
+        <DrawerContent className="max-h-[80vh]">
+          <DrawerHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <DrawerTitle>
+                Customize{" "}
+                {selectedRoomForCustomization
+                  ? roomTypes.find((r) => r.id === selectedRoomForCustomization)?.name
+                  : "Room"}
+              </DrawerTitle>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+          <div className="p-6">
+            <div className="text-center text-gray-500 dark:text-gray-400">
+              <p className="text-lg mb-2">Customization Options</p>
+              <p className="text-sm">
+                This panel will be populated with room-specific customization options in the future.
+              </p>
+              <div className="mt-8 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                <p className="text-sm">Coming Soon:</p>
+                <ul className="text-xs mt-2 space-y-1">
+                  <li>• Specific cleaning preferences</li>
+                  <li>• Add-on services</li>
+                  <li>• Special instructions</li>
+                  <li>• Room-specific pricing tiers</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }
