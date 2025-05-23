@@ -10,6 +10,7 @@ import UnifiedFooter from "@/components/unified-footer"
 import AccessibilityPanel from "@/components/accessibility-panel"
 import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
+import { Breadcrumb } from "@/components/breadcrumb"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,8 +30,24 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <CartProvider>
+            {/* Skip to content link for accessibility */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-white dark:focus:bg-gray-900 focus:z-50"
+            >
+              Skip to content
+            </a>
+
             <EnhancedNavigation />
-            <div className="pt-16">{children}</div>
+
+            <div className="container mx-auto px-4">
+              <Breadcrumb />
+            </div>
+
+            <main id="main-content" className="pt-4">
+              {children}
+            </main>
+
             <PersistentBookNowButton />
             <AccessibilityPanel />
             <SharePanel />
