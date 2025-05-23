@@ -1,193 +1,89 @@
 "use client"
 
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
+import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
 
-const drawerVariants = cva(
-  "fixed z-50 flex flex-col bg-background shadow-lg transition-transform duration-300 ease-in-out",
-  {
-    variants: {
-      side: {
-        right: "inset-y-0 right-0 h-full border-l",
-        left: "inset-y-0 left-0 h-full border-r",
-        top: "inset-x-0 top-0 w-full border-b",
-        bottom: "inset-x-0 bottom-0 w-full border-t",
-      },
-      size: {
-        sm: "w-3/4 sm:max-w-sm",
-        default: "w-3/4 sm:max-w-md",
-        lg: "w-3/4 sm:max-w-lg",
-        xl: "w-3/4 sm:max-w-xl",
-        full: "w-screen",
-      },
-    },
-    defaultVariants: {
-      side: "right",
-      size: "default",
-    },
-  },
+const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
 )
+Drawer.displayName = "Drawer"
 
-const overlayVariants = cva(
-  "fixed inset-0 z-40 bg-black/80 backdrop-blur-sm transition-opacity duration-300 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in",
-  {
-    variants: {
-      state: {
-        open: "opacity-100",
-        closed: "opacity-0 pointer-events-none",
-      },
-    },
-    defaultVariants: {
-      state: "closed",
-    },
-  },
+const DrawerTrigger = DrawerPrimitive.Trigger
+
+const DrawerPortal = DrawerPrimitive.Portal
+
+const DrawerClose = DrawerPrimitive.Close
+
+const DrawerOverlay = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-black/80", className)} {...props} />
+))
+DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
+
+const DrawerContent = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DrawerPortal>
+    <DrawerOverlay />
+    <DrawerPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        className,
+      )}
+      {...props}
+    >
+      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      {children}
+    </DrawerPrimitive.Content>
+  </DrawerPortal>
+))
+DrawerContent.displayName = "DrawerContent"
+
+const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("grid gap-1.5 p-4 text-center sm:text-left", className)} {...props} />
 )
+DrawerHeader.displayName = "DrawerHeader"
 
-export interface DrawerProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof drawerVariants> {
-  open?: boolean
-  onClose?: () => void
-  hideCloseButton?: boolean
-  showScrollbar?: boolean
-  closeOnClickOutside?: boolean
-  closeOnEsc?: boolean
-  preventScroll?: boolean
-}
+const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
+)
+DrawerFooter.displayName = "DrawerFooter"
 
-export function Drawer({
-  className,
-  children,
-  side = "right",
-  size = "default",
-  open = false,
-  onClose,
-  hideCloseButton = false,
-  showScrollbar = true,
-  closeOnClickOutside = true,
-  closeOnEsc = true,
-  preventScroll = true,
-  ...props
-}: DrawerProps) {
-  const [isOpen, setIsOpen] = React.useState(open)
-  const drawerRef = React.useRef<HTMLDivElement>(null)
-  const [scrollPosition, setScrollPosition] = React.useState(0)
+const DrawerTitle = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Title
+    ref={ref}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+    {...props}
+  />
+))
+DrawerTitle.displayName = DrawerPrimitive.Title.displayName
 
-  // Sync open state with prop
-  React.useEffect(() => {
-    setIsOpen(open)
-  }, [open])
+const DrawerDescription = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+))
+DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 
-  // Handle ESC key press
-  React.useEffect(() => {
-    if (!closeOnEsc) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false)
-        onClose?.()
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isOpen, onClose, closeOnEsc])
-
-  // Prevent body scroll when drawer is open
-  React.useEffect(() => {
-    if (!preventScroll) return
-
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-
-    return () => {
-      document.body.style.overflow = ""
-    }
-  }, [isOpen, preventScroll])
-
-  // Handle click outside
-  const handleOverlayClick = React.useCallback(() => {
-    if (closeOnClickOutside) {
-      setIsOpen(false)
-      onClose?.()
-    }
-  }, [closeOnClickOutside, onClose])
-
-  // Handle scroll events
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement
-    setScrollPosition(target.scrollTop)
-  }
-
-  // Calculate transform based on side
-  const getTransform = () => {
-    if (!isOpen) {
-      switch (side) {
-        case "right":
-          return "translateX(100%)"
-        case "left":
-          return "translateX(-100%)"
-        case "top":
-          return "translateY(-100%)"
-        case "bottom":
-          return "translateY(100%)"
-      }
-    }
-    return "translate(0)"
-  }
-
-  return (
-    <>
-      {/* Overlay */}
-      <div
-        className={overlayVariants({ state: isOpen ? "open" : "closed" })}
-        onClick={handleOverlayClick}
-        aria-hidden="true"
-      />
-
-      {/* Drawer */}
-      <div
-        ref={drawerRef}
-        className={cn(drawerVariants({ side, size }), className)}
-        style={{ transform: getTransform() }}
-        aria-modal="true"
-        role="dialog"
-        tabIndex={-1}
-        {...props}
-      >
-        {/* Header with close button */}
-        {!hideCloseButton && (
-          <div className="flex items-center justify-end p-4 border-b">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setIsOpen(false)
-                onClose?.()
-              }}
-              aria-label="Close drawer"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Content with ScrollArea */}
-        <ScrollArea className="flex-1" showScrollbar={showScrollbar} forceScrollable={true} onScroll={handleScroll}>
-          {children}
-        </ScrollArea>
-
-        {/* Optional scroll indicator */}
-        {scrollPosition > 20 && (
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-background to-transparent pointer-events-none" />
-        )}
-      </div>
-    </>
-  )
+export {
+  Drawer,
+  DrawerPortal,
+  DrawerOverlay,
+  DrawerTrigger,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+  DrawerDescription,
 }
