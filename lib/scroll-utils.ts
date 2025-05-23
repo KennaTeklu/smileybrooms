@@ -178,3 +178,165 @@ export function throttleScroll(func: Function, limit = 16) {
     }
   }
 }
+
+export function enableBodyScroll() {
+  if (typeof window !== "undefined") {
+    document.body.style.overflow = ""
+    document.body.style.position = ""
+    document.body.style.top = ""
+    document.body.style.width = ""
+    document.body.style.paddingRight = ""
+  }
+}
+
+export function ensureScrollableHeight() {
+  if (typeof window !== "undefined") {
+    const body = document.body
+    const html = document.documentElement
+
+    const height = Math.max(
+      body.scrollHeight,
+      body.offsetHeight,
+      html.clientHeight,
+      html.scrollHeight,
+      html.offsetHeight,
+    )
+
+    if (height < window.innerHeight) {
+      body.style.minHeight = window.innerHeight + "px"
+    }
+  }
+}
+
+export function forceEnableScrolling() {
+  if (typeof window !== "undefined") {
+    document.body.style.overflow = "auto"
+    document.documentElement.style.overflow = "auto"
+
+    // Remove any scroll locks from parent elements
+    const elements = document.querySelectorAll("*")
+    elements.forEach((element) => {
+      const el = element as HTMLElement
+      if (el.style.overflow === "hidden") {
+        el.style.overflow = "auto"
+      }
+    })
+  }
+}
+
+export function preventScrollChaining(element: HTMLElement) {
+  if (!element) return
+
+  element.addEventListener(
+    "touchstart",
+    (e) => {
+      const scrollTop = element.scrollTop
+      const scrollHeight = element.scrollHeight
+      const height = element.clientHeight
+      const deltaY = e.touches[0].clientY
+
+      if (scrollTop === 0 && deltaY > 0) {
+        e.preventDefault()
+      } else if (scrollTop + height >= scrollHeight && deltaY < 0) {
+        e.preventDefault()
+      }
+    },
+    { passive: false },
+  )
+}
+
+export function resetIOSOverscroll() {
+  if (typeof window !== "undefined") {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+
+    if (isIOS) {
+      document.body.style.webkitOverflowScrolling = "touch"
+      document.body.style.overflowScrolling = "touch"
+
+      // Reset any iOS-specific scroll issues
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (e.target === document.body) {
+            e.preventDefault()
+          }
+        },
+        { passive: false },
+      )
+
+      // Fix iOS scroll bounce
+      document.body.addEventListener("touchstart", () => {
+        const scrollTop = document.body.scrollTop
+        if (scrollTop <= 0) {
+          document.body.scrollTop = 1
+        } else if (scrollTop + window.innerHeight >= document.body.scrollHeight) {
+          document.body.scrollTop = document.body.scrollHeight - window.innerHeight - 1
+        }
+      })
+    }
+  }
+}
+
+export function maintainScrollPosition(callback: () => void) {
+  if (typeof window === "undefined") {
+    callback()
+    return
+  }
+
+  const scrollPosition = getScrollPosition()
+
+  callback()
+
+  // Restore scroll position after a brief delay
+  setTimeout(() => {
+    setScrollPosition(scrollPosition.x, scrollPosition.y)
+  }, 0)
+}
+
+export function applyAllScrollFixes() {
+  const fixes = detectAndFixScrollIssues()
+
+  // Apply additional comprehensive fixes
+  enableBodyScroll()
+  ensureScrollableHeight()
+  resetIOSOverscroll()
+
+  // Force enable scrolling if needed
+  if (fixes.issues.length > 0) {
+    forceEnableScrolling()
+  }
+
+  return {
+    ...fixes,
+    additionalFixes: ["Applied enableBodyScroll", "Applied ensureScrollableHeight", "Applied resetIOSOverscroll"],
+  }
+}
+
+export function preventBodyScrollLock() {
+  if (typeof window !== "undefined") {
+    // Prevent any future scroll locks
+    const originalLockScroll = lockScroll
+    window.lockScroll = () => {
+      console.warn("Body scroll lock prevented")
+    }
+
+    // Ensure body can always scroll
+    const observer = new MutationObserver(() => {
+      if (document.body.style.overflow === "hidden") {
+        document.body.style.overflow = ""
+      }
+    })
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["style"],
+    })
+
+    return () => {
+      window.lockScroll = originalLockScroll
+      observer.disconnect()
+    }
+  }
+
+  return () => {}
+}
