@@ -9,7 +9,7 @@ interface CleanlinessSliderProps {
   onChange: (value: number[]) => void
 }
 
-export function CleanlinessSlider({ value = 7, onChange }: CleanlinessSliderProps) {
+export default function CleanlinessSlider({ value = 7, onChange }: CleanlinessSliderProps) {
   const [sliderValue, setSliderValue] = useState(value)
 
   useEffect(() => {
@@ -117,5 +117,3 @@ export function CleanlinessSlider({ value = 7, onChange }: CleanlinessSliderProp
     </div>
   )
 }
-
-export default CleanlinessSlider

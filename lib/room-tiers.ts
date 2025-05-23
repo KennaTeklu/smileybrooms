@@ -19,399 +19,212 @@ export interface RoomReduction {
   discount: number
 }
 
-export interface TierFeatures {
-  name: string
-  description: string
-  features: string[]
-  price: number
-  popular?: boolean
-}
-
-export const TIER_FEATURES: Record<string, TierFeatures> = {
-  essential: {
-    name: "Essential Clean",
-    description: "Basic cleaning for everyday maintenance",
-    features: [
-      "Dusting surfaces",
-      "Vacuuming carpets",
-      "Mopping floors",
-      "Basic bathroom cleaning",
-      "Kitchen counter cleaning",
-      "Trash removal",
-    ],
-    price: 0,
-  },
-  advanced: {
-    name: "Advanced Clean",
-    description: "Deep cleaning with attention to detail",
-    features: [
-      "Everything in Essential",
-      "Deep vacuum with attachments",
-      "Detailed bathroom scrubbing",
-      "Kitchen appliance exterior cleaning",
-      "Baseboards and window sills",
-      "Light fixture dusting",
-      "Mirror and glass cleaning",
-    ],
-    price: 15,
-    popular: true,
-  },
-  premium: {
-    name: "Premium Clean",
-    description: "Complete top-to-bottom cleaning service",
-    features: [
-      "Everything in Advanced",
-      "Inside microwave cleaning",
-      "Cabinet front cleaning",
-      "Detailed shower/tub scrubbing",
-      "Ceiling fan cleaning",
-      "Switch plate and outlet cleaning",
-      "Detailed furniture dusting",
-      "Floor edge cleaning",
-    ],
-    price: 30,
-  },
-}
-
-export const ADD_ON_FEATURES: Record<string, TierFeatures> = {
-  inside_fridge: {
-    name: "Inside Fridge Cleaning",
-    description: "Deep clean inside your refrigerator",
-    features: [
-      "Remove all items safely",
-      "Clean shelves and drawers",
-      "Sanitize interior surfaces",
-      "Clean door seals and handles",
-      "Organize items back neatly",
-    ],
-    price: 25,
-  },
-  inside_oven: {
-    name: "Inside Oven Cleaning",
-    description: "Professional oven interior cleaning",
-    features: [
-      "Remove oven racks",
-      "Clean interior surfaces",
-      "Scrub away grease and grime",
-      "Clean oven door and glass",
-      "Replace racks when clean",
-    ],
-    price: 20,
-  },
-  inside_cabinets: {
-    name: "Inside Cabinet Cleaning",
-    description: "Clean inside kitchen and bathroom cabinets",
-    features: [
-      "Empty cabinets safely",
-      "Wipe down interior surfaces",
-      "Clean shelves and organizers",
-      "Sanitize cabinet interiors",
-      "Reorganize items neatly",
-    ],
-    price: 30,
-  },
-  garage_organization: {
-    name: "Garage Organization",
-    description: "Complete garage cleaning and organization",
-    features: [
-      "Sweep and clean floors",
-      "Organize tools and equipment",
-      "Clean storage areas",
-      "Remove cobwebs",
-      "Basic decluttering",
-    ],
-    price: 50,
-  },
-  basement_cleaning: {
-    name: "Basement Cleaning",
-    description: "Thorough basement cleaning service",
-    features: [
-      "Sweep and mop floors",
-      "Dust surfaces and storage",
-      "Clean light fixtures",
-      "Remove cobwebs",
-      "Basic organization",
-    ],
-    price: 40,
-  },
-  attic_cleaning: {
-    name: "Attic Cleaning",
-    description: "Professional attic cleaning and maintenance",
-    features: [
-      "Remove dust and debris",
-      "Clean accessible surfaces",
-      "Organize storage items",
-      "Check for pest issues",
-      "Basic maintenance inspection",
-    ],
-    price: 35,
-  },
-}
-
-export const REDUCTION_FEATURES: Record<string, TierFeatures> = {
-  bring_own_supplies: {
-    name: "Bring Own Supplies",
-    description: "Provide your own cleaning supplies",
-    features: ["Use your preferred products", "Eco-friendly option", "Cost savings", "Custom cleaning solutions"],
-    price: -10,
-  },
-  eco_friendly_discount: {
-    name: "Eco-Friendly Discount",
-    description: "Choose environmentally friendly cleaning",
-    features: [
-      "Green cleaning products",
-      "Biodegradable solutions",
-      "Non-toxic formulas",
-      "Environmentally responsible",
-    ],
-    price: -5,
-  },
-  senior_discount: {
-    name: "Senior Discount",
-    description: "Special pricing for seniors (65+)",
-    features: ["15% discount on services", "Priority scheduling", "Gentle cleaning approach", "Respectful service"],
-    price: -15,
-  },
-  student_discount: {
-    name: "Student Discount",
-    description: "Special pricing for students",
-    features: [
-      "10% discount on services",
-      "Flexible scheduling",
-      "Budget-friendly option",
-      "Valid student ID required",
-    ],
-    price: -10,
-  },
-}
-
-export function getTierFeatures(tier: string): TierFeatures | null {
-  return TIER_FEATURES[tier] || null
-}
-
-export function getAddOnFeatures(addOn: string): TierFeatures | null {
-  return ADD_ON_FEATURES[addOn] || null
-}
-
-export function getReductionFeatures(reduction: string): TierFeatures | null {
-  return REDUCTION_FEATURES[reduction] || null
-}
-
-export function getAllIncludedFeatures(tier: string, addOns: string[] = [], reductions: string[] = []): string[] {
-  const features: string[] = []
-
-  // Add tier features
-  const tierFeatures = getTierFeatures(tier)
-  if (tierFeatures) {
-    features.push(...tierFeatures.features)
-  }
-
-  // Add add-on features
-  addOns.forEach((addOn) => {
-    const addOnFeatures = getAddOnFeatures(addOn)
-    if (addOnFeatures) {
-      features.push(...addOnFeatures.features)
-    }
-  })
-
-  // Add reduction features
-  reductions.forEach((reduction) => {
-    const reductionFeatures = getReductionFeatures(reduction)
-    if (reductionFeatures) {
-      features.push(...reductionFeatures.features)
-    }
-  })
-
-  return [...new Set(features)] // Remove duplicates
-}
-
 // Update the pricing structure for tiers to use multipliers instead of fixed prices
 
 // For the defaultTiers object, update each room type's tier pricing to use multipliers
 // For example, in the bedroom section:
 
-export const getRoomTiers = (roomType: string) => {
-  const tiers = {
-    bedroom: [
-      {
-        name: "ESSENTIAL CLEAN",
-        description: "Basic cleaning of visible surfaces",
-        price: 49.99,
-        features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-        multiplier: 1,
-      },
-      {
-        name: "ADVANCED CLEAN",
-        description: "Deeper cleaning including hard-to-reach areas",
-        price: 149.97, // Exactly 3x the Essential price
-        features: [
-          "Everything in Essential Clean",
-          "Under bed cleaning",
-          "Baseboards",
-          "Window sills",
-          "Light fixtures",
-        ],
-        multiplier: 3,
-      },
-      {
-        name: "PREMIUM CLEAN",
-        description: "Complete top-to-bottom cleaning",
-        price: 449.91, // Exactly 9x the Essential price
-        features: [
-          "Everything in Advanced Clean",
-          "Inside closets",
-          "Behind furniture",
-          "Wall spot cleaning",
-          "Ceiling fans",
-        ],
-        multiplier: 9,
-      },
-    ],
-    bathroom: [
-      {
-        name: "ESSENTIAL CLEAN",
-        description: "Basic cleaning of visible surfaces",
-        price: 49.99,
-        features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-        multiplier: 1,
-      },
-      {
-        name: "ADVANCED CLEAN",
-        description: "Deeper cleaning including hard-to-reach areas",
-        price: 149.97, // Exactly 3x the Essential price
-        features: [
-          "Everything in Essential Clean",
-          "Under bed cleaning",
-          "Baseboards",
-          "Window sills",
-          "Light fixtures",
-        ],
-        multiplier: 3,
-      },
-      {
-        name: "PREMIUM CLEAN",
-        description: "Complete top-to-bottom cleaning",
-        price: 449.91, // Exactly 9x the Essential price
-        features: [
-          "Everything in Advanced Clean",
-          "Inside closets",
-          "Behind furniture",
-          "Wall spot cleaning",
-          "Ceiling fans",
-        ],
-        multiplier: 9,
-      },
-    ],
-    kitchen: [
-      {
-        name: "ESSENTIAL CLEAN",
-        description: "Basic cleaning of visible surfaces",
-        price: 49.99,
-        features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-        multiplier: 1,
-      },
-      {
-        name: "ADVANCED CLEAN",
-        description: "Deeper cleaning including hard-to-reach areas",
-        price: 149.97, // Exactly 3x the Essential price
-        features: [
-          "Everything in Essential Clean",
-          "Under bed cleaning",
-          "Baseboards",
-          "Window sills",
-          "Light fixtures",
-        ],
-        multiplier: 3,
-      },
-      {
-        name: "PREMIUM CLEAN",
-        description: "Complete top-to-bottom cleaning",
-        price: 449.91, // Exactly 9x the Essential price
-        features: [
-          "Everything in Advanced Clean",
-          "Inside closets",
-          "Behind furniture",
-          "Wall spot cleaning",
-          "Ceiling fans",
-        ],
-        multiplier: 9,
-      },
-    ],
-    livingRoom: [
-      {
-        name: "ESSENTIAL CLEAN",
-        description: "Basic cleaning of visible surfaces",
-        price: 49.99,
-        features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-        multiplier: 1,
-      },
-      {
-        name: "ADVANCED CLEAN",
-        description: "Deeper cleaning including hard-to-reach areas",
-        price: 149.97, // Exactly 3x the Essential price
-        features: [
-          "Everything in Essential Clean",
-          "Under bed cleaning",
-          "Baseboards",
-          "Window sills",
-          "Light fixtures",
-        ],
-        multiplier: 3,
-      },
-      {
-        name: "PREMIUM CLEAN",
-        description: "Complete top-to-bottom cleaning",
-        price: 449.91, // Exactly 9x the Essential price
-        features: [
-          "Everything in Advanced Clean",
-          "Inside closets",
-          "Behind furniture",
-          "Wall spot cleaning",
-          "Ceiling fans",
-        ],
-        multiplier: 9,
-      },
-    ],
-    default: [
-      {
-        name: "ESSENTIAL CLEAN",
-        description: "Basic cleaning of visible surfaces",
-        price: 49.99,
-        features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-        multiplier: 1,
-      },
-      {
-        name: "ADVANCED CLEAN",
-        description: "Deeper cleaning including hard-to-reach areas",
-        price: 149.97, // Exactly 3x the Essential price
-        features: [
-          "Everything in Essential Clean",
-          "Under bed cleaning",
-          "Baseboards",
-          "Window sills",
-          "Light fixtures",
-        ],
-        multiplier: 3,
-      },
-      {
-        name: "PREMIUM CLEAN",
-        description: "Complete top-to-bottom cleaning",
-        price: 449.91, // Exactly 9x the Essential price
-        features: [
-          "Everything in Advanced Clean",
-          "Inside closets",
-          "Behind furniture",
-          "Wall spot cleaning",
-          "Ceiling fans",
-        ],
-        multiplier: 9,
-      },
-    ],
-    // ... other room types with similar multiplier structure
-  }
-
-  // Return the tiers for the requested room type, or default to bedroom
-  return tiers[roomType as keyof typeof tiers] || tiers.bedroom
+export const defaultTiers: Record<string, RoomTier[]> = {
+  bedroom: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for lightly used rooms",
+      price: 25.0,
+      features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Thorough cleaning for regular maintenance",
+      price: 25.0 * 3, // 3x the Essential Clean price
+      features: [
+        "Includes Essential Clean",
+        "Under-bed extended reach",
+        "Closet organization (visible items)",
+        "Baseboard spotlight",
+        "Window sill cleaning",
+        "Light fixture dusting",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Comprehensive cleaning for maximum freshness",
+      price: 25.0 * 9, // 9x the Essential Clean price
+      features: [
+        "Includes Advanced Clean",
+        "Mattress deep vacuum & flip",
+        "Light fixture interior cleaning",
+        "Aroma mist treatment",
+        "Wall spot cleaning",
+        "Furniture polishing",
+        "Ceiling fan detailed cleaning",
+        "Closet deep organization",
+        "Under furniture detailed cleaning",
+        "Air vent cleaning",
+        "Door and doorframe cleaning",
+        "Picture frame dusting",
+      ],
+    },
+  ],
+  bathroom: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for guest bathrooms",
+      price: 30.0,
+      features: ["Sink and counter wipe-down", "Toilet exterior cleaning", "Mirror cleaning"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Thorough cleaning for regular bathrooms",
+      price: 30.0 * 3, // 3x the Essential Clean price
+      features: [
+        "Includes Essential Clean",
+        "Shower/tub scrubbing",
+        "Toilet deep clean (interior/exterior)",
+        "Floor detailed mopping",
+        "Cabinet fronts cleaning",
+        "Towel replacement",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Comprehensive cleaning for master bathrooms",
+      price: 30.0 * 9, // 9x the Essential Clean price
+      features: [
+        "Includes Advanced Clean",
+        "Grout detailed cleaning",
+        "Cabinet interior organization",
+        "Fixture polishing",
+        "Aromatherapy treatment",
+        "Shower door track cleaning",
+        "Exhaust fan cleaning",
+        "Mold/mildew treatment",
+        "Tile wall cleaning",
+        "Shower head descaling",
+        "Drain cleaning",
+        "Toilet tank cleaning",
+      ],
+    },
+  ],
+  kitchen: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Surface cleaning for lightly used kitchens",
+      price: 35.0,
+      features: ["Countertop cleaning", "Sink washing", "Stovetop wipe-down"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Thorough cleaning for regular kitchens",
+      price: 35.0 * 3, // 3x the Essential Clean price
+      features: [
+        "Includes Essential Clean",
+        "Appliance exterior cleaning",
+        "Cabinet fronts wiping",
+        "Floor detailed mopping",
+        "Microwave interior cleaning",
+        "Trash emptying",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Comprehensive cleaning for gourmet kitchens",
+      price: 35.0 * 9, // 9x the Essential Clean price
+      features: [
+        "Includes Advanced Clean",
+        "Refrigerator interior organization",
+        "Oven deep cleaning",
+        "Cabinet interior organization (1-2 cabinets)",
+        "Dishwasher sanitizing cycle",
+        "Range hood degreasing",
+        "Under sink cleaning",
+        "Backsplash detailed cleaning",
+        "Small appliance cleaning",
+        "Pantry organization",
+        "Drawer cleaning and organization",
+        "Cutting board sanitization",
+      ],
+    },
+  ],
+  livingRoom: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for living spaces",
+      price: 30.0,
+      features: ["Surface dusting", "Floor vacuum", "Coffee table cleaning"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Thorough cleaning for family rooms",
+      price: 30.0 * 3, // 3x the Essential Clean price
+      features: [
+        "Includes Essential Clean",
+        "Furniture vacuuming",
+        "Under furniture cleaning",
+        "Baseboard dusting",
+        "Electronics dusting",
+        "Throw pillow fluffing",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Comprehensive cleaning for entertainment areas",
+      price: 30.0 * 9, // 9x the Essential Clean price
+      features: [
+        "Includes Advanced Clean",
+        "Upholstery spot treatment",
+        "Ceiling fan detailed cleaning",
+        "Window sill detailing",
+        "Decor item individual cleaning",
+        "Entertainment center organization",
+        "Bookshelf dusting",
+        "Light fixture cleaning",
+        "Carpet spot treatment",
+        "Wall spot cleaning",
+        "Air vent cleaning",
+        "Furniture polishing",
+      ],
+    },
+  ],
+  default: [
+    {
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for all spaces",
+      price: 25.0,
+      features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
+    },
+    {
+      name: "ADVANCED CLEAN",
+      description: "Thorough cleaning for all spaces",
+      price: 25.0 * 3, // 3x the Essential Clean price
+      features: [
+        "Includes Essential Clean",
+        "Detailed dusting",
+        "Floor detailed cleaning",
+        "Baseboard attention",
+        "Surface sanitizing",
+        "Trash removal",
+      ],
+    },
+    {
+      name: "PREMIUM CLEAN",
+      description: "Comprehensive cleaning for all spaces",
+      price: 25.0 * 9, // 9x the Essential Clean price
+      features: [
+        "Includes Advanced Clean",
+        "Specialty surface treatment",
+        "Detail work on fixtures",
+        "Hard-to-reach areas",
+        "Aromatherapy finishing",
+        "Wall spot cleaning",
+        "Ceiling corner cleaning",
+        "Door and doorframe cleaning",
+        "Light fixture detailed cleaning",
+        "Air vent cleaning",
+        "Furniture polishing",
+        "Decor item individual cleaning",
+      ],
+    },
+  ],
 }
 
 // Default add-ons for all rooms
@@ -485,6 +298,11 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
     { id: "def-r3", name: "No baseboard cleaning", discount: 8.0 },
     { id: "def-r4", name: "Skip hard-to-reach areas", discount: 10.0 },
   ],
+}
+
+// Helper function to get tiers for a specific room type
+export function getRoomTiers(roomType: string): RoomTier[] {
+  return defaultTiers[roomType] || defaultTiers.default
 }
 
 // Helper function to get add-ons for a specific room type

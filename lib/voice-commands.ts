@@ -1,173 +1,199 @@
-// Voice command utilities
+type CommandHandler = () => void
 
-interface VoiceCommandOptions {
-  continuous?: boolean
-  interimResults?: boolean
-  lang?: string
-  onResult?: (transcript: string, isFinal: boolean) => void
-  onError?: (error: Error) => void
-  commands?: Record<string, () => void>
+interface VoiceCommand {
+  phrases: string[]
+  handler: CommandHandler
+  description: string
 }
 
-/**
- * Creates a voice command system
- */
-export function createVoiceCommands(options: VoiceCommandOptions = {}) {
-  // Check if browser supports speech recognition
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+}
 
-  if (!SpeechRecognition) {
-    console.error("Speech recognition not supported in this browser")
-    return {
-      start: () => {},
-      stop: () => {},
-      isListening: false,
-    }
+interface SpeechRecognitionErrorEvent extends Event {
+  error: SpeechRecognitionError
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: any
+    webkitSpeechRecognition: any
+    SpeechSynthesisUtterance: any
+    speechSynthesis: any
+  }
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean
+    interimResults: boolean
+    lang: string
+    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null
+    onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null
+    onend: ((this: SpeechRecognition, ev: Event) => any) | null
+    start(): void
+    stop(): void
   }
 
-  // Create recognition instance
-  const recognition = new SpeechRecognition()
+  interface SpeechRecognitionResultList {
+    [index: number]: SpeechRecognitionResult
+    length: number
+    item(index: number): SpeechRecognitionResult
+  }
 
-  // Configure recognition
-  recognition.continuous = options.continuous ?? true
-  recognition.interimResults = options.interimResults ?? true
-  recognition.lang = options.lang ?? "en-US"
+  interface SpeechRecognitionResult {
+    [index: number]: SpeechRecognitionAlternative
+    length: number
+    final: boolean
+    item(index: number): SpeechRecognitionAlternative
+  }
 
-  let isListening = false
+  interface SpeechRecognitionAlternative {
+    transcript: string
+    confidence: number
+  }
 
-  // Set up result handler
-  recognition.onresult = (event) => {
-    const transcript = Array.from(event.results)
-      .map((result) => result[0].transcript)
-      .join("")
+  interface SpeechRecognitionError extends Event {
+    error: string
+    message: string
+  }
+}
 
-    const isFinal = event.results[event.results.length - 1].isFinal
+class VoiceCommandManager {
+  private commands: VoiceCommand[] = []
+  private recognition: SpeechRecognition | null = null
+  private isListening = false
+  private onStateChange: ((isListening: boolean) => void) | null = null
 
-    // Call the result callback if provided
-    if (options.onResult) {
-      options.onResult(transcript, isFinal)
-    }
+  constructor() {
+    this.initSpeechRecognition()
+  }
 
-    // Process commands if final result and commands are provided
-    if (isFinal && options.commands) {
-      const lowerTranscript = transcript.toLowerCase().trim()
+  private initSpeechRecognition() {
+    if (typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)) {
+      // @ts-ignore - TypeScript doesn't know about webkitSpeechRecognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      this.recognition = new SpeechRecognition()
 
-      // Check each command
-      Object.entries(options.commands).forEach(([command, action]) => {
-        if (lowerTranscript.includes(command.toLowerCase())) {
-          action()
+      if (this.recognition) {
+        this.recognition.continuous = true
+        this.recognition.interimResults = false
+        this.recognition.lang = "en-US"
+
+        this.recognition.onresult = this.handleSpeechResult.bind(this)
+        this.recognition.onerror = this.handleSpeechError.bind(this)
+        this.recognition.onend = () => {
+          if (this.isListening) {
+            // Restart if it ended unexpectedly while still supposed to be listening
+            this.recognition?.start()
+          }
         }
-      })
-    }
-  }
-
-  // Set up error handler
-  recognition.onerror = (event) => {
-    if (options.onError) {
-      options.onError(new Error(`Speech recognition error: ${event.error}`))
-    }
-  }
-
-  // Restart recognition when it ends
-  recognition.onend = () => {
-    if (isListening) {
-      recognition.start()
-    }
-  }
-
-  return {
-    start: () => {
-      if (!isListening) {
-        recognition.start()
-        isListening = true
       }
-    },
-    stop: () => {
-      recognition.stop()
-      isListening = false
-    },
-    isListening: () => isListening,
-  }
-}
-
-/**
- * Predefined voice commands for common actions
- */
-export const commonVoiceCommands = {
-  "go home": () => {
-    window.location.href = "/"
-  },
-  "go back": () => {
-    window.history.back()
-  },
-  "scroll down": () => {
-    window.scrollBy({ top: 300, behavior: "smooth" })
-  },
-  "scroll up": () => {
-    window.scrollBy({ top: -300, behavior: "smooth" })
-  },
-  "scroll to top": () => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  },
-  "scroll to bottom": () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-  },
-  "click button": () => {
-    // Find the most prominent button and click it
-    const buttons = Array.from(document.querySelectorAll("button"))
-    if (buttons.length > 0) {
-      // Sort by size and position to find the most prominent
-      const mainButton = buttons.sort((a, b) => {
-        const aRect = a.getBoundingClientRect()
-        const bRect = b.getBoundingClientRect()
-        const aArea = aRect.width * aRect.height
-        const bArea = bRect.width * bRect.height
-        return bArea - aArea
-      })[0]
-      mainButton.click()
-    }
-  },
-}
-
-/**
- * Creates a voice feedback system for screen reader-like functionality
- */
-export function createVoiceFeedback() {
-  // Check if browser supports speech synthesis
-  if (!window.speechSynthesis) {
-    console.error("Speech synthesis not supported in this browser")
-    return {
-      speak: () => {},
-      stop: () => {},
     }
   }
 
-  return {
-    speak: (text: string, options: { rate?: number; pitch?: number; volume?: number } = {}) => {
-      const utterance = new SpeechSynthesisUtterance(text)
+  private handleSpeechResult(event: SpeechRecognitionEvent) {
+    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase()
+    console.log("Voice command detected:", transcript)
 
-      // Configure utterance
-      utterance.rate = options.rate ?? 1
-      utterance.pitch = options.pitch ?? 1
-      utterance.volume = options.volume ?? 1
-
-      // Use the first available voice
-      const voices = window.speechSynthesis.getVoices()
-      if (voices.length > 0) {
-        utterance.voice = voices[0]
+    // Check if the transcript matches any registered command
+    for (const command of this.commands) {
+      if (command.phrases.some((phrase) => transcript.includes(phrase.toLowerCase()))) {
+        command.handler()
+        // Provide feedback that command was recognized
+        this.speakFeedback(`Executing command: ${command.description}`)
+        return
       }
+    }
 
-      // Speak the text
+    // If we get here, no command matched
+    this.speakFeedback("Command not recognized. Please try again.")
+  }
+
+  private handleSpeechError(event: SpeechRecognitionErrorEvent) {
+    console.error("Speech recognition error:", event.error)
+    this.isListening = false
+    if (this.onStateChange) {
+      this.onStateChange(false)
+    }
+  }
+
+  private speakFeedback(message: string) {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(message)
+      utterance.volume = 0.8
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
       window.speechSynthesis.speak(utterance)
-    },
-    stop: () => {
-      window.speechSynthesis.cancel()
-    },
+    }
+  }
+
+  public registerCommand(command: VoiceCommand) {
+    this.commands.push(command)
+  }
+
+  public registerCommands(commands: VoiceCommand[]) {
+    this.commands.push(...commands)
+  }
+
+  public startListening() {
+    if (!this.recognition) {
+      console.error("Speech recognition not supported in this browser")
+      return false
+    }
+
+    try {
+      this.recognition.start()
+      this.isListening = true
+      if (this.onStateChange) {
+        this.onStateChange(true)
+      }
+      this.speakFeedback("Voice commands activated. What would you like to do?")
+      return true
+    } catch (error) {
+      console.error("Error starting speech recognition:", error)
+      return false
+    }
+  }
+
+  public stopListening() {
+    if (!this.recognition) return
+
+    try {
+      this.recognition.stop()
+      this.isListening = false
+      if (this.onStateChange) {
+        this.onStateChange(false)
+      }
+      this.speakFeedback("Voice commands deactivated")
+    } catch (error) {
+      console.error("Error stopping speech recognition:", error)
+    }
+  }
+
+  public toggleListening() {
+    if (this.isListening) {
+      this.stopListening()
+    } else {
+      this.startListening()
+    }
+    return this.isListening
+  }
+
+  public isSupported() {
+    return this.recognition !== null
+  }
+
+  public setOnStateChange(callback: (isListening: boolean) => void) {
+    this.onStateChange = callback
+  }
+
+  public getCommands() {
+    return this.commands
   }
 }
 
-export default {
-  createVoiceCommands,
-  commonVoiceCommands,
-  createVoiceFeedback,
+// Singleton instance
+export const voiceCommandManager = typeof window !== "undefined" ? new VoiceCommandManager() : null
+
+// Hook for using voice commands
+export function useVoiceCommands() {
+  return voiceCommandManager
 }

@@ -6,9 +6,16 @@ import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, X, ArrowRight } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -44,7 +51,6 @@ export function Cart({ showLabel = false }: CartProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
-  const router = useRouter()
 
   // This will ensure the cart stays open when other dialogs/popups are closed
   const handleOpenChange = (open: boolean) => {
@@ -54,22 +60,6 @@ export function Cart({ showLabel = false }: CartProps) {
     } else if (open) {
       setIsOpen(true)
     }
-  }
-
-  // Add a new function to navigate to the checkout page
-  const goToCheckout = () => {
-    if (cart.items.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add items to your cart before proceeding to checkout",
-        variant: "destructive",
-        duration: 3000,
-      })
-      return
-    }
-
-    setIsOpen(false)
-    router.push("/checkout")
   }
 
   // Function to create Google Maps link
@@ -98,6 +88,15 @@ export function Cart({ showLabel = false }: CartProps) {
       title: "Cart cleared",
       description: "All items have been removed from your cart",
       duration: 3000,
+    })
+  }
+
+  const handleAddItem = (item: any) => {
+    addItem(item)
+    toast({
+      title: "Item added",
+      description: "The item has been added to your cart",
+      duration: 3000, // Auto-dismiss after 3 seconds
     })
   }
 
@@ -287,6 +286,22 @@ export function Cart({ showLabel = false }: CartProps) {
 
   return (
     <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
+          onClick={() => setIsOpen(true)}
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+              {totalItems}
+            </span>
+          )}
+          {showLabel && <span className="ml-2">Cart</span>}
+        </Button>
+      </DrawerTrigger>
       <DrawerContent className="max-h-[85vh] overflow-y-auto">
         <DrawerHeader className="flex items-center justify-between">
           <DrawerTitle>Your Cart</DrawerTitle>
@@ -419,9 +434,8 @@ export function Cart({ showLabel = false }: CartProps) {
         </div>
 
         <DrawerFooter className="border-t">
-          {/* Replace the existing checkout button with a "Proceed to Checkout" button */}
-          <Button onClick={goToCheckout} disabled={cart.items.length === 0} className="w-full">
-            Proceed to Checkout {!isCheckingOut && <ArrowRight className="ml-2 h-4 w-4" />}
+          <Button onClick={handleCheckout} disabled={cart.items.length === 0 || isCheckingOut} className="w-full">
+            {isCheckingOut ? "Processing..." : "Checkout"} {!isCheckingOut && <ArrowRight className="ml-2 h-4 w-4" />}
           </Button>
           {cart.items.length > 0 && (
             <Button variant="outline" onClick={handleClearCart}>

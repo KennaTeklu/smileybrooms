@@ -12,14 +12,9 @@ export * from "./rate-limit"
 
 // Export honeypot utilities
 export * from "./honeypot"
-
-// Export field encryption utilities
-export * from "./field-encryption"
-
 import { useCSRFProtection } from "./csrf"
 import { useRateLimit } from "./rate-limit"
 import { useHoneypot } from "./honeypot"
-import { useFieldEncryption } from "./field-encryption"
 
 export interface FormSecurityOptions {
   formId: string
@@ -37,11 +32,6 @@ export interface FormSecurityOptions {
     enableTimingCheck?: boolean
     minSubmitTime?: number
   }
-  encryptionOptions?: {
-    sensitiveFields?: string[]
-    encryptionKey?: string
-    autoDetectSensitiveFields?: boolean
-  }
 }
 
 export function useFormSecurity({
@@ -51,7 +41,6 @@ export function useFormSecurity({
   csrfMaxAge,
   rateLimitOptions,
   honeypotOptions,
-  encryptionOptions,
 }: FormSecurityOptions) {
   // Initialize CSRF protection
   const csrf = useCSRFProtection(formId, csrfMaxAge)
@@ -61,11 +50,6 @@ export function useFormSecurity({
 
   // Initialize honeypot
   const honeypot = useHoneypot(honeypotOptions)
-
-  // Initialize field encryption
-  const encryption = encryptionOptions
-    ? useFieldEncryption(encryptionOptions.encryptionKey, encryptionOptions.sensitiveFields)
-    : null
 
   // Combined validation function
   const validateSecurity = (
@@ -108,7 +92,6 @@ export function useFormSecurity({
     csrf,
     rateLimit,
     honeypot,
-    encryption,
     validateSecurity,
     recordSubmission,
     securityFields: (

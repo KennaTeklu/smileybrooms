@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -14,7 +14,6 @@ export interface RoomTier {
   description: string
   price: number
   features: string[]
-  multiplier?: number
 }
 
 export interface RoomAddOn {
@@ -45,11 +44,7 @@ export interface RoomConfiguration {
   selectedTier: string
   selectedAddOns: string[]
   selectedReductions: string[]
-  basePrice: number // Essential Clean price
-  tierUpgradePrice: number // Additional cost for tier upgrade
-  addOnsPrice: number // Total cost of add-ons
-  reductionsPrice: number // Total savings from reductions
-  totalPrice: number // Final price for this room
+  totalPrice: number
 }
 
 export function RoomConfigurator({
@@ -66,62 +61,42 @@ export function RoomConfigurator({
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig?.selectedReductions || [])
 
-  // Calculate the price components
-  const calculatePrices = () => {
-    // Base price is always the Essential Clean price
-    const basePrice = baseTier.price
+  // Calculate the total price based on selections
+  const calculateTotalPrice = () => {
+    // Get base tier price
+    const tierPrice = tiers.find((tier) => tier.name === selectedTier)?.price || baseTier.price
 
-    // Get selected tier
-    const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
-
-    // Calculate tier upgrade price (difference between selected tier and base tier)
-    const tierUpgradePrice = selectedTierObj && selectedTier !== baseTier.name ? selectedTierObj.price - basePrice : 0
-
-    // Calculate add-ons price
-    const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
+    // Add all selected add-ons
+    const addOnsTotal = selectedAddOns.reduce((total, addOnId) => {
       const addOn = addOns.find((a) => a.id === addOnId)
       return total + (addOn?.price || 0)
     }, 0)
 
-    // Calculate reductions price
-    const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
+    // Subtract all selected reductions
+    const reductionsTotal = selectedReductions.reduce((total, reductionId) => {
       const reduction = reductions.find((r) => r.id === reductionId)
       return total + (reduction?.discount || 0)
     }, 0)
 
-    // Calculate total price
-    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice - reductionsPrice
-
-    return {
-      basePrice,
-      tierUpgradePrice,
-      addOnsPrice,
-      reductionsPrice,
-      totalPrice,
-    }
+    return tierPrice + addOnsTotal - reductionsTotal
   }
 
   // Update parent component when configuration changes
   const updateConfiguration = () => {
-    const prices = calculatePrices()
-
+    const totalPrice = calculateTotalPrice()
     onConfigChange({
       roomName,
       selectedTier,
       selectedAddOns,
       selectedReductions,
-      ...prices,
+      totalPrice,
     })
   }
-
-  // Update configuration when selections change
-  useEffect(() => {
-    updateConfiguration()
-  }, [selectedTier, selectedAddOns, selectedReductions])
 
   // Handle tier selection
   const handleTierChange = (tier: string) => {
     setSelectedTier(tier)
+    setTimeout(updateConfiguration, 0)
   }
 
   // Handle add-on selection
@@ -133,6 +108,7 @@ export function RoomConfigurator({
         return prev.filter((id) => id !== addOnId)
       }
     })
+    setTimeout(updateConfiguration, 0)
   }
 
   // Handle reduction selection
@@ -144,10 +120,8 @@ export function RoomConfigurator({
         return prev.filter((id) => id !== reductionId)
       }
     })
+    setTimeout(updateConfiguration, 0)
   }
-
-  // Calculate prices for display
-  const { totalPrice } = calculatePrices()
 
   return (
     <Card className="w-full mb-6 border-2 border-blue-100">
@@ -158,7 +132,7 @@ export function RoomConfigurator({
             <CardTitle>{roomName}</CardTitle>
           </div>
           <Badge variant="outline" className="bg-white">
-            ${totalPrice.toFixed(2)}
+            ${calculateTotalPrice().toFixed(2)}
           </Badge>
         </div>
         <CardDescription>Customize your cleaning options for this room</CardDescription>
@@ -168,44 +142,35 @@ export function RoomConfigurator({
           <div>
             <h3 className="text-lg font-semibold mb-3">TIER OPTIONS</h3>
             <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-3">
-              {tiers.map((tier, index) => {
-                // Calculate multiplier for display
-                const multiplier = tier.multiplier || (index === 0 ? 1 : index === 1 ? 3 : 9)
-                const multiplierText = index === 0 ? "Basic" : `${multiplier}x Basic`
-
-                return (
-                  <div
-                    key={tier.name}
-                    className={`p-4 rounded-lg border ${selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
-                  >
-                    <div className="flex items-start">
-                      <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                      <div className="ml-3 w-full">
-                        <div className="flex justify-between items-center">
-                          <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
-                            {tier.name}
-                          </Label>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">${tier.price.toFixed(2)}</span>
-                            <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
-                              {multiplierText}
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
-                        <ul className="mt-2 space-y-1">
-                          {tier.features.map((feature, i) => (
-                            <li key={i} className="text-sm flex items-start">
-                              <span className="text-green-500 mr-2">✓</span>
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
+              {tiers.map((tier, index) => (
+                <div
+                  key={tier.name}
+                  className={`p-4 rounded-lg border ${selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                >
+                  <div className="flex items-start">
+                    <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                    <div className="ml-3 w-full">
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
+                          {tier.name}
+                        </Label>
+                        <Badge variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}>
+                          {index === 0 ? "Basic" : index === 1 ? "3x Basic" : "9x Basic"}
+                        </Badge>
                       </div>
+                      <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
+                      <ul className="mt-2 space-y-1">
+                        {tier.features.map((feature, i) => (
+                          <li key={i} className="text-sm flex items-start">
+                            <span className="text-green-500 mr-2">✓</span>
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </RadioGroup>
           </div>
 
@@ -267,7 +232,7 @@ export function RoomConfigurator({
               </Button>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Room Total</p>
-                <p className="text-xl font-bold">${totalPrice.toFixed(2)}</p>
+                <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
               </div>
             </div>
           </div>

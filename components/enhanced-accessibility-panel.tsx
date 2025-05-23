@@ -2,176 +2,313 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Eye, EyeOff, ZoomIn, ZoomOut, Type, Contrast, MousePointer, Mic, Volume2, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Mic, Keyboard, Eye, Monitor, HelpCircle, Maximize2, ZoomIn, Zap, MousePointer2, Volume2 } from "lucide-react"
+import { useAccessibility } from "@/lib/accessibility-context"
+import { useVoiceCommands } from "@/lib/voice-commands"
+import { useKeyboardNavigation } from "@/lib/keyboard-navigation"
 
-interface EnhancedAccessibilityPanelProps {
-  className?: string
-}
+export function EnhancedAccessibilityPanel() {
+  const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("preferences")
+  const { preferences, updatePreference, resetPreferences } = useAccessibility()
+  const voiceCommands = useVoiceCommands()
+  const keyboardNav = useKeyboardNavigation()
+  const [isListening, setIsListening] = useState(false)
 
-export function EnhancedAccessibilityPanel({ className }: EnhancedAccessibilityPanelProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [fontSize, setFontSize] = useState(100)
-  const [contrast, setContrast] = useState(100)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
-  const [screenReader, setScreenReader] = useState(false)
-  const [cursorSize, setCursorSize] = useState(16)
-
-  const togglePanel = () => {
-    setIsOpen(!isOpen)
+  // Set up voice command state change listener
+  if (voiceCommands) {
+    voiceCommands.setOnStateChange(setIsListening)
   }
 
-  const applyFontSize = (size: number) => {
-    document.documentElement.style.setProperty("--font-size-multiplier", `${size / 100}`)
-    setFontSize(size)
+  const preferenceItems = [
+    {
+      id: "highContrast",
+      label: "High Contrast",
+      description: "Increases contrast for better readability",
+      icon: <Eye className="h-4 w-4" />,
+      value: preferences.highContrast,
+    },
+    {
+      id: "largeText",
+      label: "Large Text",
+      description: "Increases text size throughout the site",
+      icon: <ZoomIn className="h-4 w-4" />,
+      value: preferences.largeText,
+    },
+    {
+      id: "reducedMotion",
+      label: "Reduced Motion",
+      description: "Minimizes animations and transitions",
+      icon: <Zap className="h-4 w-4" />,
+      value: preferences.reducedMotion,
+    },
+    {
+      id: "screenReader",
+      label: "Screen Reader Optimized",
+      description: "Enhances compatibility with screen readers",
+      icon: <Volume2 className="h-4 w-4" />,
+      value: preferences.screenReader,
+    },
+    {
+      id: "voiceControl",
+      label: "Voice Control",
+      description: "Enable voice commands for navigation",
+      icon: <Mic className="h-4 w-4" />,
+      value: preferences.voiceControl,
+    },
+    {
+      id: "keyboardOnly",
+      label: "Keyboard Navigation",
+      description: "Optimized for keyboard-only navigation",
+      icon: <Keyboard className="h-4 w-4" />,
+      value: preferences.keyboardOnly,
+    },
+  ]
+
+  const toggleVoiceCommands = () => {
+    if (!voiceCommands) return
+
+    const newState = voiceCommands.toggleListening()
+    setIsListening(newState)
+
+    // Also update the preference
+    updatePreference("voiceControl", newState)
   }
 
-  const applyContrast = (value: number) => {
-    document.documentElement.style.setProperty("--contrast-multiplier", `${value / 100}`)
-    setContrast(value)
+  // Register some example voice commands
+  if (voiceCommands && voiceCommands.getCommands().length === 0) {
+    voiceCommands.registerCommands([
+      {
+        phrases: ["open cart", "show cart", "view cart"],
+        handler: () => {
+          // This would open the cart
+          console.log("Voice command: Opening cart")
+        },
+        description: "Open shopping cart",
+      },
+      {
+        phrases: ["checkout", "check out", "proceed to checkout"],
+        handler: () => {
+          // This would proceed to checkout
+          console.log("Voice command: Proceeding to checkout")
+        },
+        description: "Proceed to checkout",
+      },
+      {
+        phrases: ["clear cart", "empty cart", "remove all items"],
+        handler: () => {
+          // This would clear the cart
+          console.log("Voice command: Clearing cart")
+        },
+        description: "Clear shopping cart",
+      },
+    ])
   }
 
-  const toggleReducedMotion = (checked: boolean) => {
-    if (checked) {
-      document.documentElement.classList.add("reduced-motion")
-    } else {
-      document.documentElement.classList.remove("reduced-motion")
-    }
-    setReducedMotion(checked)
-  }
-
-  const toggleHighContrast = (checked: boolean) => {
-    if (checked) {
-      document.documentElement.classList.add("high-contrast")
-    } else {
-      document.documentElement.classList.remove("high-contrast")
-    }
-    setHighContrast(checked)
-  }
-
-  const toggleScreenReader = (checked: boolean) => {
-    // This would integrate with actual screen reader APIs in a real implementation
-    setScreenReader(checked)
-  }
-
-  const applyCursorSize = (size: number) => {
-    document.documentElement.style.setProperty("--cursor-size", `${size}px`)
-    setCursorSize(size)
+  // Register some example keyboard shortcuts
+  if (keyboardNav && keyboardNav.getShortcuts().length === 0) {
+    keyboardNav.registerShortcuts([
+      {
+        key: "c",
+        altKey: true,
+        description: "Open cart",
+        handler: () => {
+          console.log("Keyboard shortcut: Opening cart")
+        },
+      },
+      {
+        key: "a",
+        altKey: true,
+        description: "Toggle accessibility panel",
+        handler: () => {
+          setOpen(!open)
+        },
+      },
+      {
+        key: "h",
+        altKey: true,
+        description: "Go to homepage",
+        handler: () => {
+          console.log("Keyboard shortcut: Going to homepage")
+        },
+      },
+    ])
   }
 
   return (
-    <div className={cn("fixed bottom-4 right-4 z-50", className)}>
-      {isOpen ? (
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 w-80 border border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold">Accessibility Options</h2>
-            <Button variant="ghost" size="icon" onClick={togglePanel}>
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </div>
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-4 right-4 z-50 rounded-full h-12 w-12"
+        onClick={() => setOpen(true)}
+        aria-label="Accessibility options"
+      >
+        <Maximize2 className="h-5 w-5" />
+      </Button>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="flex items-center gap-2">
-                  <Type className="h-4 w-4" />
-                  Font Size
-                </Label>
-                <span className="text-sm">{fontSize}%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ZoomOut className="h-4 w-4 text-gray-500" />
-                <Slider
-                  value={[fontSize]}
-                  min={75}
-                  max={200}
-                  step={5}
-                  onValueChange={(value) => applyFontSize(value[0])}
-                  className="flex-1"
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle className="text-center">Accessibility Options</DrawerTitle>
+          </DrawerHeader>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full px-4">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="preferences">
+                <Monitor className="h-4 w-4 mr-2" />
+                <span>Display</span>
+              </TabsTrigger>
+              <TabsTrigger value="controls">
+                <MousePointer2 className="h-4 w-4 mr-2" />
+                <span>Controls</span>
+              </TabsTrigger>
+              <TabsTrigger value="help">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                <span>Help</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="preferences" className="space-y-4">
+              {preferenceItems.slice(0, 4).map((item) => (
+                <div key={item.id} className="flex items-start space-x-4 p-3 border rounded-lg">
+                  <div className="mt-0.5">{item.icon}</div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium">{item.label}</h4>
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                  </div>
+                  <Switch
+                    checked={item.value}
+                    onCheckedChange={(checked) => updatePreference(item.id as any, checked)}
+                    aria-label={`Toggle ${item.label}`}
+                  />
+                </div>
+              ))}
+            </TabsContent>
+
+            <TabsContent value="controls" className="space-y-4">
+              {/* Voice Control */}
+              <div className="flex items-start space-x-4 p-3 border rounded-lg">
+                <div className="mt-0.5">
+                  <Mic className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Voice Control</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {voiceCommands?.isSupported()
+                      ? "Use voice commands to navigate the site"
+                      : "Voice control is not supported in your browser"}
+                  </p>
+                </div>
+                <Switch
+                  checked={isListening}
+                  onCheckedChange={toggleVoiceCommands}
+                  disabled={!voiceCommands?.isSupported()}
+                  aria-label="Toggle voice control"
                 />
-                <ZoomIn className="h-4 w-4 text-gray-500" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="flex items-center gap-2">
-                  <Contrast className="h-4 w-4" />
-                  Contrast
-                </Label>
-                <span className="text-sm">{contrast}%</span>
-              </div>
-              <Slider
-                value={[contrast]}
-                min={75}
-                max={125}
-                step={5}
-                onValueChange={(value) => applyContrast(value[0])}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label className="flex items-center gap-2">
-                  <MousePointer className="h-4 w-4" />
-                  Cursor Size
-                </Label>
-                <span className="text-sm">{cursorSize}px</span>
-              </div>
-              <Slider
-                value={[cursorSize]}
-                min={16}
-                max={64}
-                step={4}
-                onValueChange={(value) => applyCursorSize(value[0])}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="reduced-motion" className="flex items-center gap-2 cursor-pointer">
-                  <Eye className="h-4 w-4" />
-                  Reduced Motion
-                </Label>
-                <Switch id="reduced-motion" checked={reducedMotion} onCheckedChange={toggleReducedMotion} />
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label htmlFor="high-contrast" className="flex items-center gap-2 cursor-pointer">
-                  <EyeOff className="h-4 w-4" />
-                  High Contrast
-                </Label>
-                <Switch id="high-contrast" checked={highContrast} onCheckedChange={toggleHighContrast} />
+              {/* Keyboard Navigation */}
+              <div className="flex items-start space-x-4 p-3 border rounded-lg">
+                <div className="mt-0.5">
+                  <Keyboard className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium">Keyboard Navigation</h4>
+                  <p className="text-xs text-muted-foreground">Optimized for keyboard-only navigation</p>
+                </div>
+                <Switch
+                  checked={preferences.keyboardOnly}
+                  onCheckedChange={(checked) => {
+                    updatePreference("keyboardOnly", checked)
+                    if (keyboardNav) {
+                      checked ? keyboardNav.enable() : keyboardNav.disable()
+                    }
+                  }}
+                  aria-label="Toggle keyboard navigation"
+                />
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label htmlFor="screen-reader" className="flex items-center gap-2 cursor-pointer">
-                  <Volume2 className="h-4 w-4" />
-                  Screen Reader
-                </Label>
-                <Switch id="screen-reader" checked={screenReader} onCheckedChange={toggleScreenReader} />
+              {/* Keyboard Shortcuts */}
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Keyboard Shortcuts</h4>
+                <div className="space-y-2 text-sm">
+                  {keyboardNav?.getShortcuts().map((shortcut, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span>{shortcut.description}</span>
+                      <kbd className="px-2 py-1 bg-muted rounded text-xs">
+                        {[
+                          shortcut.ctrlKey && "Ctrl",
+                          shortcut.altKey && "Alt",
+                          shortcut.shiftKey && "Shift",
+                          shortcut.key.toUpperCase(),
+                        ]
+                          .filter(Boolean)
+                          .join(" + ")}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <Button
-          onClick={togglePanel}
-          variant="default"
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-          aria-label="Accessibility Options"
-        >
-          <Mic className="h-6 w-6" />
-        </Button>
-      )}
-    </div>
+
+              {/* Voice Commands */}
+              {voiceCommands?.isSupported() && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Voice Commands</h4>
+                  <div className="space-y-2 text-sm">
+                    {voiceCommands.getCommands().map((command, index) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <span>{command.description}</span>
+                        <span className="text-xs text-muted-foreground">Say: "{command.phrases[0]}"</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="help" className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Accessibility Statement</h4>
+                <p className="text-sm text-muted-foreground">
+                  smileybrooms is committed to ensuring digital accessibility for people with disabilities. We are
+                  continually improving the user experience for everyone, and applying the relevant accessibility
+                  standards.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Conformance Status</h4>
+                <p className="text-sm text-muted-foreground">
+                  The Web Content Accessibility Guidelines (WCAG) defines requirements for designers and developers to
+                  improve accessibility for people with disabilities. It defines three levels of conformance: Level A,
+                  Level AA, and Level AAA. smileybrooms is partially conformant with WCAG 2.2 level AA.
+                </p>
+              </div>
+
+              <div className="p-4 border rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Contact Us</h4>
+                <p className="text-sm text-muted-foreground">
+                  If you encounter any accessibility barriers, please email{" "}
+                  <a href="mailto:accessibility@smileybrooms.com" className="underline">
+                    accessibility@smileybrooms.com
+                  </a>
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DrawerFooter>
+            <Button variant="outline" onClick={resetPreferences}>
+              Reset All Preferences
+            </Button>
+            <Button onClick={() => setOpen(false)}>Close</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   )
 }
-
-export default EnhancedAccessibilityPanel

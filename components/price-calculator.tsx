@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,9 +13,8 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { Home, Calendar, Sparkles } from "lucide-react"
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
-import { Plus } from "lucide-react"
-import { CompactRoomSelector } from "./compact-room-selector"
-import type { RoomConfiguration } from "./room-customization-drawer"
+import { cn } from "@/lib/utils"
+import { Minus, Plus } from "lucide-react"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -63,346 +64,142 @@ const cleanlinessMultipliers = [
   { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
 ]
 
-// Sample room tiers, add-ons, and reductions for the customization drawer
-const sampleRoomTiers = {
-  bedroom: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of visible surfaces",
-      price: 49.99,
-      features: ["Dusting surfaces", "Vacuuming floors", "Making bed", "Emptying trash"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning including hard-to-reach areas",
-      price: 89.99,
-      features: ["Everything in Essential Clean", "Under bed cleaning", "Baseboards", "Window sills", "Light fixtures"],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete top-to-bottom cleaning",
-      price: 129.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Inside closets",
-        "Behind furniture",
-        "Wall spot cleaning",
-        "Ceiling fans",
-      ],
-    },
-  ],
-  bathroom: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of main surfaces",
-      price: 39.99,
-      features: ["Sink and counter", "Toilet", "Shower/tub surfaces", "Floor"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning of all surfaces",
-      price: 69.99,
-      features: [
-        "Everything in Essential Clean",
-        "Tile grout",
-        "Cabinet exteriors",
-        "Detailed fixtures",
-        "Mirror cleaning",
-      ],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete sanitizing clean",
-      price: 99.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Cabinet interiors",
-        "Exhaust fan",
-        "Scale removal",
-        "Deep disinfection",
-      ],
-    },
-  ],
-  kitchen: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of main surfaces",
-      price: 59.99,
-      features: ["Countertops", "Sink", "Stovetop", "Floor sweeping/mopping"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning of all surfaces",
-      price: 99.99,
-      features: [
-        "Everything in Essential Clean",
-        "Inside microwave",
-        "Cabinet exteriors",
-        "Appliance exteriors",
-        "Detailed fixtures",
-      ],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete deep cleaning",
-      price: 149.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Inside refrigerator",
-        "Inside oven",
-        "Cabinet interiors",
-        "Detailed appliance cleaning",
-      ],
-    },
-  ],
-  living_room: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of main surfaces",
-      price: 49.99,
-      features: ["Dusting surfaces", "Vacuuming floors", "Straightening items", "Emptying trash"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning including hard-to-reach areas",
-      price: 89.99,
-      features: [
-        "Everything in Essential Clean",
-        "Under furniture cleaning",
-        "Baseboards",
-        "Window sills",
-        "Light fixtures",
-      ],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete top-to-bottom cleaning",
-      price: 129.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Furniture deep cleaning",
-        "Wall spot cleaning",
-        "Ceiling fans",
-        "Detailed decor cleaning",
-      ],
-    },
-  ],
-  dining_room: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of main surfaces",
-      price: 44.99,
-      features: ["Dusting surfaces", "Vacuuming/mopping floors", "Table and chairs", "Emptying trash"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning including hard-to-reach areas",
-      price: 79.99,
-      features: [
-        "Everything in Essential Clean",
-        "Under furniture cleaning",
-        "Baseboards",
-        "Window sills",
-        "Light fixtures",
-      ],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete top-to-bottom cleaning",
-      price: 119.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Furniture deep cleaning",
-        "Wall spot cleaning",
-        "Ceiling fans",
-        "China cabinet/hutch",
-      ],
-    },
-  ],
-  home_office: [
-    {
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning of main surfaces",
-      price: 49.99,
-      features: ["Dusting surfaces", "Vacuuming floors", "Desk organization", "Emptying trash"],
-    },
-    {
-      name: "ADVANCED CLEAN",
-      description: "Deeper cleaning including hard-to-reach areas",
-      price: 89.99,
-      features: [
-        "Everything in Essential Clean",
-        "Under furniture cleaning",
-        "Baseboards",
-        "Window sills",
-        "Light fixtures",
-      ],
-    },
-    {
-      name: "PREMIUM CLEAN",
-      description: "Complete top-to-bottom cleaning",
-      price: 129.99,
-      features: [
-        "Everything in Advanced Clean",
-        "Furniture deep cleaning",
-        "Wall spot cleaning",
-        "Ceiling fans",
-        "Electronics dusting",
-      ],
-    },
-  ],
+interface RoomConfiguratorProps {
+  selectedRooms: Record<string, number>
+  setSelectedRooms: (rooms: Record<string, number>) => void
+  serviceType: "standard" | "detailing"
 }
 
-const sampleAddOns = {
-  bedroom: [
-    {
-      id: "windows",
-      name: "Window Cleaning",
-      price: 15,
-      description: "Interior window cleaning including tracks and sills",
-    },
-    { id: "blinds", name: "Blinds/Curtains", price: 20, description: "Detailed cleaning of window treatments" },
-    { id: "walls", name: "Wall Washing", price: 35, description: "Spot cleaning and full wall washing as needed" },
-    {
-      id: "mattress",
-      name: "Mattress Treatment",
-      price: 45,
-      description: "Vacuum, spot clean, and deodorize mattress",
-    },
-  ],
-  bathroom: [
-    { id: "deep_grout", name: "Deep Grout Cleaning", price: 30, description: "Intensive grout cleaning and sealing" },
-    {
-      id: "shower_doors",
-      name: "Shower Door Treatment",
-      price: 25,
-      description: "Hard water stain and soap scum removal",
-    },
-    { id: "mold", name: "Mold Treatment", price: 40, description: "Mold and mildew removal and prevention" },
-    { id: "cabinet_org", name: "Cabinet Organization", price: 35, description: "Clean and organize bathroom cabinets" },
-  ],
-  kitchen: [
-    { id: "fridge", name: "Refrigerator Cleaning", price: 35, description: "Complete interior and exterior cleaning" },
-    { id: "oven", name: "Oven Cleaning", price: 40, description: "Deep cleaning of oven interior and racks" },
-    { id: "cabinets", name: "Cabinet Detailing", price: 45, description: "Interior and exterior cabinet cleaning" },
-    { id: "pantry", name: "Pantry Organization", price: 30, description: "Clean and organize pantry shelves" },
-  ],
-  living_room: [
-    { id: "upholstery", name: "Upholstery Cleaning", price: 50, description: "Deep clean of sofas and chairs" },
-    { id: "carpet", name: "Carpet Treatment", price: 45, description: "Deep carpet cleaning and stain removal" },
-    {
-      id: "electronics",
-      name: "Electronics Cleaning",
-      price: 25,
-      description: "Careful cleaning of TV and electronics",
-    },
-    { id: "decor", name: "Decor Detailing", price: 30, description: "Detailed cleaning of decorative items" },
-  ],
-  dining_room: [
-    { id: "table_polish", name: "Table Polishing", price: 25, description: "Premium wood polish for dining table" },
-    { id: "chair_clean", name: "Chair Deep Clean", price: 35, description: "Detailed cleaning of all chair surfaces" },
-    { id: "china", name: "China Cabinet", price: 40, description: "Cleaning inside and outside of china cabinet" },
-    { id: "chandelier", name: "Chandelier Cleaning", price: 45, description: "Detailed cleaning of light fixtures" },
-  ],
-  home_office: [
-    {
-      id: "desk_org",
-      name: "Desk Organization",
-      price: 30,
-      description: "Organize and clean desk surface and drawers",
-    },
-    {
-      id: "electronics",
-      name: "Electronics Cleaning",
-      price: 25,
-      description: "Careful cleaning of computer and peripherals",
-    },
-    { id: "bookshelf", name: "Bookshelf Detailing", price: 35, description: "Dust and organize bookshelves" },
-    { id: "filing", name: "Filing Cabinet", price: 20, description: "Clean exterior of filing cabinets" },
-  ],
-}
-
-const sampleReductions = {
-  bedroom: [
-    {
-      id: "no_dusting",
-      name: "No Dusting",
-      discount: 10,
-      description: "Skip dusting of surfaces and decorative items",
-    },
-    { id: "no_vacuum", name: "No Vacuuming", discount: 15, description: "Skip vacuuming of floors and rugs" },
-    { id: "no_bed", name: "No Bed Making", discount: 5, description: "Skip making the bed" },
-  ],
-  bathroom: [
-    { id: "no_shower", name: "No Shower/Tub", discount: 15, description: "Skip cleaning the shower or bathtub" },
-    { id: "no_floor", name: "No Floor", discount: 10, description: "Skip cleaning the bathroom floor" },
-    { id: "no_mirror", name: "No Mirrors", discount: 5, description: "Skip cleaning mirrors and glass surfaces" },
-  ],
-  kitchen: [
-    { id: "no_appliances", name: "No Appliances", discount: 20, description: "Skip cleaning appliance exteriors" },
-    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the kitchen floor" },
-    { id: "no_cabinets", name: "No Cabinets", discount: 10, description: "Skip cleaning cabinet exteriors" },
-  ],
-  living_room: [
-    {
-      id: "no_dusting",
-      name: "No Dusting",
-      discount: 10,
-      description: "Skip dusting of surfaces and decorative items",
-    },
-    { id: "no_vacuum", name: "No Vacuuming", discount: 15, description: "Skip vacuuming of floors and rugs" },
-    { id: "no_straighten", name: "No Straightening", discount: 5, description: "Skip straightening items and pillows" },
-  ],
-  dining_room: [
-    { id: "no_table", name: "No Table", discount: 10, description: "Skip cleaning the dining table and chairs" },
-    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the dining room floor" },
-    { id: "no_decor", name: "No Decor", discount: 5, description: "Skip cleaning decorative items" },
-  ],
-  home_office: [
-    { id: "no_desk", name: "No Desk", discount: 10, description: "Skip cleaning the desk and work surfaces" },
-    { id: "no_floor", name: "No Floor", discount: 15, description: "Skip cleaning the office floor" },
-    {
-      id: "no_dusting",
-      name: "No Dusting",
-      discount: 10,
-      description: "Skip dusting of surfaces and decorative items",
-    },
-  ],
-}
-
-// Helper function to get room data for any room type
-const getRoomData = (roomId: string) => {
-  // Map room IDs to keys in our sample data
-  const roomTypeMap: Record<string, string> = {
-    bedroom: "bedroom",
-    bathroom: "bathroom",
-    kitchen: "kitchen",
-    living_room: "living_room",
-    dining_room: "dining_room",
-    home_office: "home_office",
-    laundry_room: "bedroom", // Fallback to bedroom data
-    entryway: "living_room", // Fallback to living room data
-    hallway: "living_room", // Fallback to living room data
-    stairs: "living_room", // Fallback to living room data
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
+  const incrementRoom = (roomId: string) => {
+    setSelectedRooms((prev) => ({
+      ...prev,
+      [roomId]: (prev[roomId] || 0) + 1,
+    }))
   }
 
-  const roomType = roomTypeMap[roomId] || "bedroom" // Default to bedroom if not found
-
-  // Get tiers
-  const tiers = sampleRoomTiers[roomType as keyof typeof sampleRoomTiers] || sampleRoomTiers.bedroom
-
-  // Get add-ons
-  const addOns = sampleAddOns[roomType as keyof typeof sampleAddOns] || sampleAddOns.bedroom
-
-  // Get reductions
-  const reductions = sampleReductions[roomType as keyof typeof sampleReductions] || sampleReductions.bedroom
-
-  return {
-    tiers,
-    addOns,
-    reductions,
-    baseTier: tiers[0],
+  const decrementRoom = (roomId: string) => {
+    if (selectedRooms[roomId] > 0) {
+      setSelectedRooms((prev) => ({
+        ...prev,
+        [roomId]: prev[roomId] - 1,
+      }))
+    }
   }
+
+  return (
+    <>
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        {roomTypes
+          .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                    )}
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {roomTypes
+          .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                    )}
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="mt-4 pt-4 border-t">
+        <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+          <Plus className="h-4 w-4" /> Request Custom Space
+        </Button>
+      </div>
+    </>
+  )
 }
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
@@ -415,9 +212,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     return initialRooms
   })
 
-  // State for room configurations
-  const [roomConfigurations, setRoomConfigurations] = useState<Record<string, RoomConfiguration>>({})
-
   // State for other selections
   const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
   const [frequency, setFrequency] = useState("one_time")
@@ -425,6 +219,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
   const [totalPrice, setTotalPrice] = useState(0)
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
+  const [expandedSections, setExpandedSections] = useState<string[]>([])
 
   // Media query for responsive design
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -432,39 +227,34 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   // Calculate the total price whenever selections change
   useEffect(() => {
     calculatePrice()
-  }, [selectedRooms, roomConfigurations, serviceType, frequency, cleanlinessLevel, paymentFrequency])
+  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
 
-  // Function to handle room count changes
-  const handleRoomCountChange = (roomId: string, count: number) => {
+  // Function to increment room count
+  const incrementRoom = (roomId: string) => {
     setSelectedRooms((prev) => ({
       ...prev,
-      [roomId]: count,
+      [roomId]: (prev[roomId] || 0) + 1,
     }))
   }
 
-  // Function to handle room configuration changes
-  const handleRoomConfigChange = (roomId: string, config: RoomConfiguration) => {
-    setRoomConfigurations((prev) => ({
-      ...prev,
-      [roomId]: config,
-    }))
+  // Function to decrement room count
+  const decrementRoom = (roomId: string) => {
+    if (selectedRooms[roomId] > 0) {
+      setSelectedRooms((prev) => ({
+        ...prev,
+        [roomId]: prev[roomId] - 1,
+      }))
+    }
   }
 
   // Function to calculate the total price
   const calculatePrice = () => {
-    // Calculate base price from selected rooms and their configurations
+    // Calculate base price from selected rooms
     let basePrice = 0
     Object.entries(selectedRooms).forEach(([roomId, count]) => {
-      if (count > 0) {
-        const roomConfig = roomConfigurations[roomId]
-        if (roomConfig) {
-          basePrice += roomConfig.totalPrice * count
-        } else {
-          const room = roomTypes.find((r) => r.id === roomId)
-          if (room) {
-            basePrice += room.basePrice * count
-          }
-        }
+      const room = roomTypes.find((r) => r.id === roomId)
+      if (room) {
+        basePrice += room.basePrice * count
       }
     })
 
@@ -521,23 +311,33 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     return Object.values(selectedRooms).some((count) => count > 0)
   }
 
+  // Function to toggle section expansion
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
+  }
+
+  // Check if a section is expanded
+  const isSectionExpanded = (section: string) => {
+    return expandedSections.includes(section)
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto">
       <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="standard" className="text-sm md:text-base">
-            Residential Services
+            Standard Cleaning
           </TabsTrigger>
           <TabsTrigger value="detailing" className="text-sm md:text-base">
-            Commercial Services
+            Premium Detailing
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="standard" className="space-y-6">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Residential Cleaning Services</h3>
+            <h3 className="text-lg font-medium">Standard Cleaning Service</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Customize your home cleaning service with our flexible options
+              Our standard cleaning covers all the basics to keep your space clean and tidy.
             </p>
           </div>
 
@@ -549,69 +349,11 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <div className="border-b pb-2 mb-4">
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                {roomTypes
-                  .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => {
-                    const roomData = getRoomData(room.id)
-                    return (
-                      <CompactRoomSelector
-                        key={room.id}
-                        roomId={room.id}
-                        roomName={room.name}
-                        roomIcon={room.icon}
-                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                        count={selectedRooms[room.id] || 0}
-                        onCountChange={handleRoomCountChange}
-                        baseTier={roomData.baseTier}
-                        tiers={roomData.tiers}
-                        addOns={roomData.addOns}
-                        reductions={roomData.reductions}
-                        onConfigChange={handleRoomConfigChange}
-                        initialConfig={roomConfigurations[room.id]}
-                      />
-                    )
-                  })}
-              </div>
-
-              <div className="border-b pb-2 mb-4">
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {roomTypes
-                  .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => {
-                    const roomData = getRoomData(room.id)
-                    return (
-                      <CompactRoomSelector
-                        key={room.id}
-                        roomId={room.id}
-                        roomName={room.name}
-                        roomIcon={room.icon}
-                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                        count={selectedRooms[room.id] || 0}
-                        onCountChange={handleRoomCountChange}
-                        baseTier={roomData.baseTier}
-                        tiers={roomData.tiers}
-                        addOns={roomData.addOns}
-                        reductions={roomData.reductions}
-                        onConfigChange={handleRoomConfigChange}
-                        initialConfig={roomConfigurations[room.id]}
-                      />
-                    )
-                  })}
-              </div>
-
-              <div className="mt-4 pt-4 border-t">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Plus className="h-4 w-4" /> Request Custom Space
-                </Button>
-              </div>
+              <RoomConfigurator
+                selectedRooms={selectedRooms}
+                setSelectedRooms={setSelectedRooms}
+                serviceType={serviceType}
+              />
             </CardContent>
           </Card>
 
@@ -693,9 +435,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
         <TabsContent value="detailing" className="space-y-6">
           <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Commercial Cleaning Services</h3>
+            <h3 className="text-lg font-medium">Premium Detailing Service</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Professional cleaning services for businesses and commercial properties
+              Our premium service includes deep cleaning and attention to detail for a thorough clean.
             </p>
           </div>
 
@@ -704,72 +446,14 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Home className="h-5 w-5 mr-2 text-purple-600" />
-                <h3 className="text-lg font-medium">Select Areas</h3>
+                <h3 className="text-lg font-medium">Select Rooms</h3>
               </div>
 
-              <div className="border-b pb-2 mb-4">
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE AREAS</h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                {roomTypes
-                  .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => {
-                    const roomData = getRoomData(room.id)
-                    return (
-                      <CompactRoomSelector
-                        key={room.id}
-                        roomId={room.id}
-                        roomName={room.name}
-                        roomIcon={room.icon}
-                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                        count={selectedRooms[room.id] || 0}
-                        onCountChange={handleRoomCountChange}
-                        baseTier={roomData.baseTier}
-                        tiers={roomData.tiers}
-                        addOns={roomData.addOns}
-                        reductions={roomData.reductions}
-                        onConfigChange={handleRoomConfigChange}
-                        initialConfig={roomConfigurations[room.id]}
-                      />
-                    )
-                  })}
-              </div>
-
-              <div className="border-b pb-2 mb-4">
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {roomTypes
-                  .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-                  .map((room) => {
-                    const roomData = getRoomData(room.id)
-                    return (
-                      <CompactRoomSelector
-                        key={room.id}
-                        roomId={room.id}
-                        roomName={room.name}
-                        roomIcon={room.icon}
-                        basePrice={serviceType === "standard" ? room.basePrice : room.basePrice * 1.8}
-                        count={selectedRooms[room.id] || 0}
-                        onCountChange={handleRoomCountChange}
-                        baseTier={roomData.baseTier}
-                        tiers={roomData.tiers}
-                        addOns={roomData.addOns}
-                        reductions={roomData.reductions}
-                        onConfigChange={handleRoomConfigChange}
-                        initialConfig={roomConfigurations[room.id]}
-                      />
-                    )
-                  })}
-              </div>
-
-              <div className="mt-4 pt-4 border-t">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Plus className="h-4 w-4" /> Request Custom Space
-                </Button>
-              </div>
+              <RoomConfigurator
+                selectedRooms={selectedRooms}
+                setSelectedRooms={setSelectedRooms}
+                serviceType={serviceType}
+              />
             </CardContent>
           </Card>
 
@@ -850,42 +534,38 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         </TabsContent>
       </Tabs>
 
-      {/* Price Summary - Always visible and prominent */}
-      <div className="mt-8 sticky bottom-0 bg-white border-t shadow-lg p-4 z-10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-              <h3 className="text-lg font-medium">Estimated Price</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {serviceType === "standard" ? "Residential Services" : "Commercial Services"}
-                {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
-              </p>
-            </div>
-            <div className="text-center md:text-right">
-              <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {frequency !== "one_time" ? "Recurring" : "One-time"} service
-              </p>
-            </div>
-            {onAddToCart && (
-              <Button
-                onClick={onAddToCart}
-                disabled={!hasSelectedRooms() || !isServiceAvailable}
-                size="lg"
-                className="w-full md:w-auto px-8 py-6 text-lg"
-              >
-                Book Now
-              </Button>
-            )}
+      {/* Price Summary */}
+      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-medium">Estimated Price</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+            </p>
           </div>
-
-          {!isServiceAvailable && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-              For extremely dirty conditions, we recommend our Commercial Services. Please contact us for a custom
-              quote.
-            </div>
-          )}
+          <div className="text-right">
+            <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {frequency !== "one_time" ? "Recurring" : "One-time"} service
+            </p>
+          </div>
         </div>
+
+        {!isServiceAvailable && (
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
+            For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
+            quote.
+          </div>
+        )}
+
+        {onAddToCart && (
+          <div className="mt-4">
+            <Button onClick={onAddToCart} disabled={!hasSelectedRooms() || !isServiceAvailable} className="w-full">
+              Add to Cart
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
