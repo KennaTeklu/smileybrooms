@@ -66,7 +66,7 @@ interface RoomCustomizationPanelProps {
   onFrequencyChange?: (frequency: string, discount: number) => void
 }
 
-export function RoomCustomizationPanel({
+export default function RoomCustomizationPanel({
   isOpen,
   onClose,
   roomName,
@@ -927,7 +927,6 @@ export function RoomCustomizationPanel({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Repeat className="h-5 w-5 text-blue-600" />
-            blue-600" />
             <CardTitle className="text-lg">Service Frequency</CardTitle>
           </div>
           <CardDescription>Choose how often you'd like this service</CardDescription>
@@ -1345,7 +1344,7 @@ export function RoomCustomizationPanel({
             </div>
 
             {/* Content Area */}
-            <div className="flex flex-1">
+            <div className="flex-1 flex flex-col">
               {/* Quick Navigation Sidebar */}
               <div className="hidden md:block w-[80px] border-r bg-gray-50 pt-4">
                 <div className="flex flex-col items-center space-y-6">
