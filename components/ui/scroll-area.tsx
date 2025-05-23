@@ -29,6 +29,8 @@ const ScrollArea = React.forwardRef<
   ) => {
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
     const [hasOverflow, setHasOverflow] = React.useState(false)
+    const [scrollPosition, setScrollPosition] = React.useState(0)
+    const scrollAreaId = React.useId()
 
     React.useEffect(() => {
       if (forceScrollable && scrollAreaRef.current) {
@@ -42,7 +44,13 @@ const ScrollArea = React.forwardRef<
       const checkOverflow = () => {
         if (scrollAreaRef.current) {
           const hasVerticalOverflow = scrollAreaRef.current.scrollHeight > scrollAreaRef.current.clientHeight
-          setHasOverflow(hasVerticalOverflow)
+          const hasHorizontalOverflow = scrollAreaRef.current.scrollWidth > scrollAreaRef.current.clientWidth
+
+          setHasOverflow(
+            (orientation === "vertical" && hasVerticalOverflow) ||
+              (orientation === "horizontal" && hasHorizontalOverflow) ||
+              (orientation === "both" && (hasVerticalOverflow || hasHorizontalOverflow)),
+          )
         }
       }
 
@@ -59,30 +67,64 @@ const ScrollArea = React.forwardRef<
           resizeObserver.disconnect()
         }
       }
-    }, [children])
+    }, [children, orientation])
+
+    const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+      if (onScroll) {
+        onScroll(event)
+      }
+
+      // Update scroll position for ARIA attributes
+      if (scrollAreaRef.current) {
+        const element = scrollAreaRef.current
+        const position =
+          orientation !== "horizontal"
+            ? element.scrollTop / (element.scrollHeight - element.clientHeight)
+            : element.scrollLeft / (element.scrollWidth - element.clientWidth)
+
+        setScrollPosition(Math.max(0, Math.min(1, position)) * 100)
+      }
+    }
 
     return (
-      <ScrollAreaPrimitive.Root
-        ref={ref}
-        className={cn("relative overflow-hidden h-full w-full", className)}
-        {...props}
-      >
+      <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
         <ScrollAreaPrimitive.Viewport
           ref={scrollAreaRef}
-          className="h-full w-full rounded-[inherit] [&>div]:!block"
-          onScroll={onScroll}
+          className="h-full w-full rounded-[inherit]"
+          onScroll={handleScroll}
           style={{
             // Ensure the viewport is scrollable
-            overflowY: orientation !== "horizontal" && (forceScrollable || hasOverflow) ? "scroll" : "auto",
-            overflowX: orientation !== "vertical" && (forceScrollable || hasOverflow) ? "scroll" : "auto",
+            overflowY: orientation !== "horizontal" ? (forceScrollable || hasOverflow ? "scroll" : "auto") : "hidden",
+            overflowX: orientation !== "vertical" ? (forceScrollable || hasOverflow ? "scroll" : "auto") : "hidden",
           }}
+          tabIndex={0}
+          aria-label={`Scrollable content${orientation !== "both" ? ` with ${orientation} scrolling` : ""}`}
         >
           {children}
         </ScrollAreaPrimitive.Viewport>
+
         {showScrollbar && (hasOverflow || forceScrollable) && (
           <>
-            {orientation !== "horizontal" && <ScrollBar orientation="vertical" />}
-            {orientation !== "vertical" && <ScrollBar orientation="horizontal" />}
+            {orientation !== "horizontal" && (
+              <ScrollBar
+                orientation="vertical"
+                aria-label="Vertical scrollbar"
+                aria-controls={`${scrollAreaId}-content`}
+                aria-valuenow={scrollPosition}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              />
+            )}
+            {orientation !== "vertical" && (
+              <ScrollBar
+                orientation="horizontal"
+                aria-label="Horizontal scrollbar"
+                aria-controls={`${scrollAreaId}-content`}
+                aria-valuenow={scrollPosition}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              />
+            )}
           </>
         )}
         <ScrollAreaPrimitive.Corner />
