@@ -334,9 +334,35 @@ export function RoomCustomizationPanel({
       // Isolate scrolling to prevent scroll chaining
       const cleanup = isolateScrolling(scrollContainerRef.current)
 
-      return cleanup
+      // Use ResizeObserver to detect content size changes
+      const resizeObserver = new ResizeObserver(() => {
+        updateScrollPosition()
+      })
+
+      if (scrollContainerRef.current) {
+        resizeObserver.observe(scrollContainerRef.current)
+      }
+
+      return () => {
+        cleanup()
+        if (scrollContainerRef.current) {
+          resizeObserver.disconnect()
+        }
+      }
     }
-  }, [isOpen, activeTab])
+  }, [isOpen, activeTab, expandedSections]) // Add expandedSections to dependencies
+
+  // Update scroll position when sections expand/collapse
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to allow animation to start
+      const timer = setTimeout(() => {
+        updateScrollPosition()
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }
+  }, [expandedSections, isOpen])
 
   // Get frequency discount
   const getFrequencyDiscount = () => {
@@ -480,7 +506,7 @@ export function RoomCustomizationPanel({
           </div>
 
           {/* Tabs - Fixed below header */}
-          <div className="border-b sticky top-[73px] bg-white z-10">
+          <div className="border-b bg-white z-10">
             <Tabs defaultValue="basic" value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
@@ -499,10 +525,10 @@ export function RoomCustomizationPanel({
             </Tabs>
           </div>
 
-          {/* Content Area with ScrollArea component */}
-          <div className="flex-1 relative">
-            <ScrollArea className="h-full" onScroll={handleScroll} forceScrollable={true}>
-              <div ref={scrollContainerRef} className="p-4 space-y-6">
+          {/* Content Area with proper height constraint */}
+          <div className="flex-1 min-h-0 relative">
+            <ScrollArea className="absolute inset-0" forceScrollable={true}>
+              <div ref={scrollContainerRef} className="p-4 space-y-6" onScroll={handleScroll}>
                 {activeTab === "basic" && (
                   <div className="space-y-6">
                     {/* Service Tiers Section */}

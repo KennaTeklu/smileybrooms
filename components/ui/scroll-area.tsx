@@ -15,23 +15,53 @@ const ScrollArea = React.forwardRef<
   }
 >(({ className, children, forceScrollable = false, showScrollbar = true, onScroll, ...props }, ref) => {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+  const [hasOverflow, setHasOverflow] = React.useState(false)
 
   React.useEffect(() => {
     if (forceScrollable && scrollAreaRef.current) {
-      forceEnableScrolling(scrollAreaRef.current)
+      const cleanup = forceEnableScrolling(scrollAreaRef.current)
+      return cleanup
     }
   }, [forceScrollable])
 
+  // Check for overflow on mount and when children change
+  React.useEffect(() => {
+    const checkOverflow = () => {
+      if (scrollAreaRef.current) {
+        const hasVerticalOverflow = scrollAreaRef.current.scrollHeight > scrollAreaRef.current.clientHeight
+        setHasOverflow(hasVerticalOverflow)
+      }
+    }
+
+    checkOverflow()
+
+    // Use ResizeObserver to detect size changes
+    const resizeObserver = new ResizeObserver(checkOverflow)
+    if (scrollAreaRef.current) {
+      resizeObserver.observe(scrollAreaRef.current)
+    }
+
+    return () => {
+      if (scrollAreaRef.current) {
+        resizeObserver.disconnect()
+      }
+    }
+  }, [children])
+
   return (
-    <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
+    <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden h-full w-full", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
         ref={scrollAreaRef}
-        className="h-full w-full rounded-[inherit] scrollable-container"
+        className="h-full w-full rounded-[inherit] [&>div]:!block"
         onScroll={onScroll}
+        style={{
+          // Ensure the viewport is scrollable
+          overflowY: forceScrollable || hasOverflow ? "scroll" : "auto",
+        }}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      {showScrollbar && <ScrollBar />}
+      {showScrollbar && (hasOverflow || forceScrollable) && <ScrollBar />}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )
