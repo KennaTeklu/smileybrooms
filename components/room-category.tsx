@@ -175,20 +175,20 @@ export function RoomCategory({
         </CardContent>
       </Card>
 
-      {/* Room Customization Drawers */}
-      {rooms.map((roomType) => (
+      {/* Room Customization Drawer */}
+      {activeDrawer && (
         <RoomCustomizationDrawer
-          key={roomType}
-          isOpen={activeDrawer === roomType}
+          key={activeDrawer}
+          isOpen={activeDrawer !== null}
           onClose={handleCloseDrawer}
-          roomType={roomType}
-          roomName={roomDisplayNames[roomType]}
-          roomIcon={roomIcons[roomType]}
-          roomCount={roomCounts[roomType] || 0}
-          config={getRoomConfig(roomType)}
+          roomType={activeDrawer}
+          roomName={roomDisplayNames[activeDrawer] || "Room"}
+          roomIcon={roomIcons[activeDrawer] || "🏠"}
+          roomCount={roomCounts[activeDrawer] || 0}
+          config={getRoomConfig(activeDrawer)}
           onConfigChange={handleRoomConfigChange}
         />
-      ))}
+      )}
     </>
   )
 }

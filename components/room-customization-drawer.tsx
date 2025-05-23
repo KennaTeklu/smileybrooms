@@ -14,16 +14,15 @@ import {
 } from "@/components/ui/drawer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
-import { getMatrixServices } from "@/lib/matrix-services"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { formatCurrency } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
-import { Check, X } from "lucide-react"
+import { Check, X, AlertCircle } from "lucide-react"
+import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { getMatrixServices } from "@/lib/matrix-services"
 
 interface RoomConfig {
   roomName: string
@@ -65,58 +64,72 @@ export function RoomCustomizationDrawer({
   const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
   const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
   const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
+  const [error, setError] = useState<string | null>(null)
 
   // Get room tiers, add-ons, and reductions
-  const tiers = getRoomTiers(roomType)
-  const addOns = getRoomAddOns(roomType)
-  const reductions = getRoomReductions(roomType)
-  const matrixServices = getMatrixServices(roomType)
+  const tiers = getRoomTiers(roomType) || []
+  const addOns = getRoomAddOns(roomType) || []
+  const reductions = getRoomReductions(roomType) || []
+  const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
 
   // Get base tier (Essential Clean)
-  const baseTier = tiers[0]
+  const baseTier = tiers[0] || { name: "ESSENTIAL CLEAN", price: 25, description: "Basic cleaning", features: [] }
 
   // Calculate prices - memoized to prevent recalculation on every render
   const calculatePrices = useCallback(() => {
-    // Base price is always the price of the Essential Clean tier
-    const basePrice = baseTier.price
+    try {
+      // Base price is always the price of the Essential Clean tier
+      const basePrice = baseTier.price
 
-    // Calculate tier upgrade price (difference between selected tier and base tier)
-    const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
-    const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
+      // Calculate tier upgrade price (difference between selected tier and base tier)
+      const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
+      const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
 
-    // Calculate add-ons price
-    const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
-      const addOn = addOns.find((a) => a.id === addOnId)
-      return total + (addOn?.price || 0)
-    }, 0)
+      // Calculate add-ons price
+      const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
+        const addOn = addOns.find((a) => a.id === addOnId)
+        return total + (addOn?.price || 0)
+      }, 0)
 
-    // Calculate matrix add services price
-    const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
-      const service = matrixServices.add.find((s) => s.id === serviceId)
-      return total + (service?.price || 0)
-    }, 0)
+      // Calculate matrix add services price
+      const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
+        const service = matrixServices.add.find((s) => s.id === serviceId)
+        return total + (service?.price || 0)
+      }, 0)
 
-    // Calculate reductions price
-    const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
-      const reduction = reductions.find((r) => r.id === reductionId)
-      return total + (reduction?.discount || 0)
-    }, 0)
+      // Calculate reductions price
+      const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
+        const reduction = reductions.find((r) => r.id === reductionId)
+        return total + (reduction?.discount || 0)
+      }, 0)
 
-    // Calculate matrix remove services price
-    const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
-      const service = matrixServices.remove.find((s) => s.id === serviceId)
-      return total + (service?.price || 0)
-    }, 0)
+      // Calculate matrix remove services price
+      const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
+        const service = matrixServices.remove.find((s) => s.id === serviceId)
+        return total + (service?.price || 0)
+      }, 0)
 
-    // Calculate total price
-    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - reductionsPrice - matrixRemovePrice
+      // Calculate total price
+      const totalPrice =
+        basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - reductionsPrice - matrixRemovePrice
 
-    return {
-      basePrice,
-      tierUpgradePrice,
-      addOnsPrice: addOnsPrice + matrixAddPrice,
-      reductionsPrice: reductionsPrice + matrixRemovePrice,
-      totalPrice,
+      return {
+        basePrice,
+        tierUpgradePrice,
+        addOnsPrice: addOnsPrice + matrixAddPrice,
+        reductionsPrice: reductionsPrice + matrixRemovePrice,
+        totalPrice,
+      }
+    } catch (err) {
+      console.error("Error calculating prices:", err)
+      setError("Error calculating prices. Please try again.")
+      return {
+        basePrice: baseTier.price,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: baseTier.price,
+      }
     }
   }, [
     baseTier.price,
@@ -134,16 +147,20 @@ export function RoomCustomizationDrawer({
 
   // Update local config when selections change
   useEffect(() => {
-    const prices = calculatePrices()
-    setLocalConfig({
-      ...config,
-      selectedTier,
-      selectedAddOns,
-      selectedReductions,
-      ...prices,
-    })
-    // We're only updating local state here, not calling the parent's onConfigChange
-    // This prevents the infinite loop
+    try {
+      const prices = calculatePrices()
+      setLocalConfig({
+        ...config,
+        selectedTier,
+        selectedAddOns,
+        selectedReductions,
+        ...prices,
+      })
+      setError(null)
+    } catch (err) {
+      console.error("Error updating local config:", err)
+      setError("Error updating configuration. Please try again.")
+    }
   }, [
     selectedTier,
     selectedAddOns,
@@ -157,13 +174,19 @@ export function RoomCustomizationDrawer({
   // Reset selections when drawer opens with new config
   useEffect(() => {
     if (isOpen) {
-      setSelectedTier(config.selectedTier)
-      setSelectedAddOns([...config.selectedAddOns])
-      setSelectedReductions([...config.selectedReductions])
-      setMatrixAddServices([])
-      setMatrixRemoveServices([])
-      setActiveTab("basic")
-      setLocalConfig(config)
+      try {
+        setSelectedTier(config.selectedTier)
+        setSelectedAddOns([...config.selectedAddOns])
+        setSelectedReductions([...config.selectedReductions])
+        setMatrixAddServices([])
+        setMatrixRemoveServices([])
+        setActiveTab("basic")
+        setLocalConfig(config)
+        setError(null)
+      } catch (err) {
+        console.error("Error resetting selections:", err)
+        setError("Error loading configuration. Please try again.")
+      }
     }
   }, [isOpen, config])
 
@@ -210,8 +233,13 @@ export function RoomCustomizationDrawer({
 
   // Handle apply changes - only call parent's onConfigChange when the user explicitly applies changes
   const handleApplyChanges = () => {
-    onConfigChange(localConfig)
-    onClose()
+    try {
+      onConfigChange(localConfig)
+      onClose()
+    } catch (err) {
+      console.error("Error applying changes:", err)
+      setError("Error applying changes. Please try again.")
+    }
   }
 
   // Generate unique IDs for accessibility
@@ -240,7 +268,14 @@ export function RoomCustomizationDrawer({
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="px-4">
+        {error && (
+          <div className="mx-4 mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="px-4 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="basic" aria-controls="basic-tab-content">
@@ -254,9 +289,9 @@ export function RoomCustomizationDrawer({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="basic" id="basic-tab-content" role="tabpanel">
-              <ScrollArea className="h-[50vh] pr-4" orientation="vertical" forceScrollable={true}>
-                <div className="space-y-6 py-4">
+            <div className="overflow-y-auto h-[50vh] mt-4">
+              <TabsContent value="basic" id="basic-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Select Cleaning Tier</h3>
                     <RadioGroup
@@ -265,12 +300,12 @@ export function RoomCustomizationDrawer({
                       className="space-y-4"
                       aria-label="Cleaning tier options"
                     >
-                      {tiers.map((tier) => (
-                        <div key={tier.id} className="flex items-start space-x-3">
-                          <RadioGroupItem value={tier.name} id={`tier-${tier.id}`} className="mt-1" />
+                      {tiers.map((tier, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <RadioGroupItem value={tier.name} id={`tier-${index}`} className="mt-1" />
                           <div className="grid gap-1.5 leading-none">
                             <Label
-                              htmlFor={`tier-${tier.id}`}
+                              htmlFor={`tier-${index}`}
                               className="text-base font-medium flex items-center justify-between"
                             >
                               <span>{tier.name}</span>
@@ -287,17 +322,17 @@ export function RoomCustomizationDrawer({
                     <div>
                       <h3 className="text-lg font-medium mb-4">Add-on Services</h3>
                       <div className="space-y-3">
-                        {addOns.map((addOn) => (
-                          <div key={addOn.id} className="flex items-start space-x-3">
+                        {addOns.map((addOn, index) => (
+                          <div key={index} className="flex items-start space-x-3">
                             <Checkbox
-                              id={`addon-${addOn.id}`}
+                              id={`addon-${index}`}
                               checked={selectedAddOns.includes(addOn.id)}
                               onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked as boolean)}
                               className="mt-1"
                             />
                             <div className="grid gap-1.5 leading-none">
                               <Label
-                                htmlFor={`addon-${addOn.id}`}
+                                htmlFor={`addon-${index}`}
                                 className="text-base font-medium flex items-center justify-between"
                               >
                                 <span>{addOn.name}</span>
@@ -315,17 +350,17 @@ export function RoomCustomizationDrawer({
                     <div>
                       <h3 className="text-lg font-medium mb-4">Service Reductions</h3>
                       <div className="space-y-3">
-                        {reductions.map((reduction) => (
-                          <div key={reduction.id} className="flex items-start space-x-3">
+                        {reductions.map((reduction, index) => (
+                          <div key={index} className="flex items-start space-x-3">
                             <Checkbox
-                              id={`reduction-${reduction.id}`}
+                              id={`reduction-${index}`}
                               checked={selectedReductions.includes(reduction.id)}
                               onCheckedChange={(checked) => handleReductionChange(reduction.id, checked as boolean)}
                               className="mt-1"
                             />
                             <div className="grid gap-1.5 leading-none">
                               <Label
-                                htmlFor={`reduction-${reduction.id}`}
+                                htmlFor={`reduction-${index}`}
                                 className="text-base font-medium flex items-center justify-between"
                               >
                                 <span>No {reduction.name}</span>
@@ -339,20 +374,18 @@ export function RoomCustomizationDrawer({
                     </div>
                   )}
                 </div>
-              </ScrollArea>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="advanced" id="advanced-tab-content" role="tabpanel">
-              <ScrollArea className="h-[50vh] pr-4" orientation="vertical" forceScrollable={true}>
-                <div className="space-y-6 py-4">
+              <TabsContent value="advanced" id="advanced-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
                   {matrixServices.add.length > 0 && (
                     <div>
                       <h3 className="text-lg font-medium mb-4">Additional Services</h3>
                       <div className="space-y-3">
-                        {matrixServices.add.map((service) => (
-                          <div key={service.id} className="flex items-start space-x-3">
+                        {matrixServices.add.map((service, index) => (
+                          <div key={index} className="flex items-start space-x-3">
                             <Checkbox
-                              id={`matrix-add-${service.id}`}
+                              id={`matrix-add-${index}`}
                               checked={matrixAddServices.includes(service.id)}
                               onCheckedChange={(checked) =>
                                 handleMatrixAddServiceChange(service.id, checked as boolean)
@@ -361,7 +394,7 @@ export function RoomCustomizationDrawer({
                             />
                             <div className="grid gap-1.5 leading-none">
                               <Label
-                                htmlFor={`matrix-add-${service.id}`}
+                                htmlFor={`matrix-add-${index}`}
                                 className="text-base font-medium flex items-center justify-between"
                               >
                                 <span>{service.name}</span>
@@ -379,10 +412,10 @@ export function RoomCustomizationDrawer({
                     <div>
                       <h3 className="text-lg font-medium mb-4">Remove Services</h3>
                       <div className="space-y-3">
-                        {matrixServices.remove.map((service) => (
-                          <div key={service.id} className="flex items-start space-x-3">
+                        {matrixServices.remove.map((service, index) => (
+                          <div key={index} className="flex items-start space-x-3">
                             <Checkbox
-                              id={`matrix-remove-${service.id}`}
+                              id={`matrix-remove-${index}`}
                               checked={matrixRemoveServices.includes(service.id)}
                               onCheckedChange={(checked) =>
                                 handleMatrixRemoveServiceChange(service.id, checked as boolean)
@@ -391,7 +424,7 @@ export function RoomCustomizationDrawer({
                             />
                             <div className="grid gap-1.5 leading-none">
                               <Label
-                                htmlFor={`matrix-remove-${service.id}`}
+                                htmlFor={`matrix-remove-${index}`}
                                 className="text-base font-medium flex items-center justify-between"
                               >
                                 <span>Skip {service.name}</span>
@@ -404,13 +437,17 @@ export function RoomCustomizationDrawer({
                       </div>
                     </div>
                   )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
 
-            <TabsContent value="schedule" id="schedule-tab-content" role="tabpanel">
-              <ScrollArea className="h-[50vh] pr-4" orientation="vertical" forceScrollable={true}>
-                <div className="space-y-6 py-4">
+                  {matrixServices.add.length === 0 && matrixServices.remove.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-32 text-center">
+                      <p className="text-gray-500">No advanced options available for this room type.</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="schedule" id="schedule-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
                   <Card>
                     <CardHeader>
                       <CardTitle>Scheduling Options</CardTitle>
@@ -422,8 +459,8 @@ export function RoomCustomizationDrawer({
                     </CardContent>
                   </Card>
                 </div>
-              </ScrollArea>
-            </TabsContent>
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
