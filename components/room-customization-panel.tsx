@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   X,
   Settings,
@@ -27,6 +28,7 @@ import {
   ArrowDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { isolateScrolling } from "@/lib/scroll-utils"
 import type { RoomTier, RoomAddOn, RoomReduction } from "@/components/room-configurator"
 
 interface MatrixService {
@@ -112,11 +114,14 @@ export function RoomCustomizationPanel({
   const [showScrollButtons, setShowScrollButtons] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [maxScroll, setMaxScroll] = useState(0)
+  const [tabScrollPositions, setTabScrollPositions] = useState({
+    basic: 0,
+    advanced: 0,
+    schedule: 0,
+  })
+
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const [touchStartY, setTouchStartY] = useState<number | null>(null)
-  const [initialScrollTop, setInitialScrollTop] = useState<number | null>(null)
 
   // Calculate the total price based on selections
   const calculateTotalPrice = () => {
@@ -240,6 +245,28 @@ export function RoomCustomizationPanel({
     }))
   }
 
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    // Save current scroll position for the active tab
+    if (scrollContainerRef.current) {
+      setTabScrollPositions((prev) => ({
+        ...prev,
+        [activeTab]: scrollContainerRef.current?.scrollTop || 0,
+      }))
+    }
+
+    // Change the tab
+    setActiveTab(value)
+
+    // Restore scroll position for the new tab after a short delay
+    // to allow the tab content to render
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = tabScrollPositions[value as keyof typeof tabScrollPositions] || 0
+      }
+    }, 50)
+  }
+
   // Custom scroll functions
   const scrollTo = (position: number) => {
     if (scrollContainerRef.current) {
@@ -260,14 +287,6 @@ export function RoomCustomizationPanel({
     }
   }
 
-  // Scroll by a specific amount
-  const scrollBy = (amount: number) => {
-    if (scrollContainerRef.current) {
-      const newPosition = scrollContainerRef.current.scrollTop + amount
-      scrollTo(Math.max(0, Math.min(newPosition, maxScroll)))
-    }
-  }
-
   // Update scroll position state
   const updateScrollPosition = () => {
     if (scrollContainerRef.current) {
@@ -280,96 +299,7 @@ export function RoomCustomizationPanel({
 
   // Handle scroll event
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    e.stopPropagation() // Prevent scroll event from bubbling up to parent elements
     updateScrollPosition()
-  }
-
-  // Handle wheel event
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (scrollContainerRef.current) {
-      e.stopPropagation() // Prevent wheel event from bubbling up
-
-      // Calculate new scroll position
-      const newScrollTop = scrollContainerRef.current.scrollTop + e.deltaY
-
-      // Check if we're at the top or bottom boundary
-      if ((newScrollTop <= 0 && e.deltaY < 0) || (newScrollTop >= maxScroll && e.deltaY > 0)) {
-        // At boundary, prevent default to avoid page scroll
-        e.preventDefault()
-      }
-
-      // Let the native scroll happen within our container
-    }
-  }
-
-  // Handle touch start
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchStartY(e.touches[0].clientY)
-    if (scrollContainerRef.current) {
-      setInitialScrollTop(scrollContainerRef.current.scrollTop)
-    }
-  }
-
-  // Handle touch move
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartY === null || initialScrollTop === null || !scrollContainerRef.current) return
-
-    const touchY = e.touches[0].clientY
-    const deltaY = touchStartY - touchY
-    const newScrollTop = initialScrollTop + deltaY
-
-    // Check if we're at the boundaries
-    if ((newScrollTop <= 0 && deltaY < 0) || (newScrollTop >= maxScroll && deltaY > 0)) {
-      // At boundary, let the event propagate to allow page scroll
-    } else {
-      // Within our scroll container, prevent default to handle our own scrolling
-      e.preventDefault()
-      scrollContainerRef.current.scrollTop = newScrollTop
-    }
-  }
-
-  // Handle touch end
-  const handleTouchEnd = () => {
-    setTouchStartY(null)
-    setInitialScrollTop(null)
-  }
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Only handle keyboard events if the scroll container is focused
-    if (document.activeElement !== scrollContainerRef.current) return
-
-    const scrollStep = 100
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault()
-        scrollBy(scrollStep)
-        break
-      case "ArrowUp":
-        e.preventDefault()
-        scrollBy(-scrollStep)
-        break
-      case "PageDown":
-        e.preventDefault()
-        scrollBy(scrollContainerRef.current?.clientHeight || 300)
-        break
-      case "PageUp":
-        e.preventDefault()
-        scrollBy(-(scrollContainerRef.current?.clientHeight || 300))
-        break
-      case "Home":
-        e.preventDefault()
-        scrollToTop()
-        break
-      case "End":
-        e.preventDefault()
-        scrollToBottom()
-        break
-      default:
-        // Let other key events pass through
-        break
-    }
   }
 
   // Update configuration when local state changes
@@ -386,25 +316,13 @@ export function RoomCustomizationPanel({
 
   // Prevent body scroll when panel is open
   useEffect(() => {
-    const handleBodyScroll = (e: WheelEvent) => {
-      // If the panel is open and the event target is within the panel
-      if (isOpen && panelRef.current?.contains(e.target as Node)) {
-        // Let the panel handle its own scrolling
-        return
-      }
-    }
-
     if (isOpen) {
       document.body.style.overflow = "hidden"
-      document.addEventListener("wheel", handleBodyScroll, { passive: false })
     } else {
       document.body.style.overflow = "unset"
-      document.removeEventListener("wheel", handleBodyScroll)
     }
-
     return () => {
       document.body.style.overflow = "unset"
-      document.removeEventListener("wheel", handleBodyScroll)
     }
   }, [isOpen])
 
@@ -413,20 +331,10 @@ export function RoomCustomizationPanel({
     if (isOpen && scrollContainerRef.current) {
       updateScrollPosition()
 
-      // Use ResizeObserver to detect content size changes
-      const resizeObserver = new ResizeObserver(() => {
-        updateScrollPosition()
-      })
+      // Isolate scrolling to prevent scroll chaining
+      const cleanup = isolateScrolling(scrollContainerRef.current)
 
-      if (contentRef.current) {
-        resizeObserver.observe(contentRef.current)
-      }
-
-      return () => {
-        if (contentRef.current) {
-          resizeObserver.disconnect()
-        }
-      }
+      return cleanup
     }
   }, [isOpen, activeTab])
 
@@ -573,7 +481,7 @@ export function RoomCustomizationPanel({
 
           {/* Tabs - Fixed below header */}
           <div className="border-b sticky top-[73px] bg-white z-10">
-            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
                   <Settings className="h-4 w-4 mr-1 sm:mr-2" />
@@ -591,375 +499,10 @@ export function RoomCustomizationPanel({
             </Tabs>
           </div>
 
-          {/* Custom Scrollable Content Area */}
-          <div className="flex-1 flex flex-col relative">
-            <div
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto isolate"
-              onScroll={handleScroll}
-              onWheel={handleWheel}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              tabIndex={0}
-              onKeyDown={handleKeyDown}
-              style={{
-                WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
-                scrollbarWidth: "thin", // Firefox scrollbar
-                scrollbarColor: "rgba(0,0,0,0.2) transparent", // Firefox scrollbar colors
-                msOverflowStyle: "-ms-autohiding-scrollbar", // IE/Edge scrollbar
-              }}
-              aria-label="Room customization options"
-            >
-              {/* Content wrapper */}
-              <div ref={contentRef} className="p-4 space-y-6">
-                <Tabs value={activeTab} className="hidden">
-                  <TabsContent value="basic" className="mt-0 space-y-6 m-0">
-                    {/* Service Tiers Section */}
-                    <Card>
-                      <CardHeader className="cursor-pointer" onClick={() => toggleSection("tiers")}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Settings className="h-5 w-5 text-blue-600" />
-                            <CardTitle className="text-lg">Service Tiers</CardTitle>
-                          </div>
-                          {expandedSections.tiers ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </div>
-                        <CardDescription>Choose your cleaning intensity level</CardDescription>
-                      </CardHeader>
-                      {expandedSections.tiers && (
-                        <CardContent>
-                          <RadioGroup value={localSelectedTier} onValueChange={handleTierChange} className="space-y-3">
-                            {tiers.map((tier, index) => (
-                              <div
-                                key={tier.name}
-                                className={cn(
-                                  "p-3 rounded-lg border transition-colors",
-                                  localSelectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200",
-                                )}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                                  <div className="flex-1">
-                                    <div className="flex justify-between items-center mb-1">
-                                      <Label htmlFor={`tier-${tier.name}`} className="font-medium">
-                                        {tier.name}
-                                      </Label>
-                                      <Badge
-                                        variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}
-                                      >
-                                        ${tier.price}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
-                                    <div className="space-y-1">
-                                      {tier.features.slice(0, 3).map((feature, i) => (
-                                        <div key={i} className="text-xs flex items-start">
-                                          <span className="text-green-500 mr-1">✓</span>
-                                          <span>{feature}</span>
-                                        </div>
-                                      ))}
-                                      {tier.features.length > 3 && (
-                                        <div className="text-xs text-gray-500">
-                                          +{tier.features.length - 3} more features
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </CardContent>
-                      )}
-                    </Card>
-
-                    {/* Add-ons Section */}
-                    {addOns.length > 0 && (
-                      <Card>
-                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("addOns")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="h-5 w-5 bg-green-100 rounded flex items-center justify-center">
-                                <span className="text-green-600 text-xs font-bold">+</span>
-                              </div>
-                              <CardTitle className="text-lg">Additional Services</CardTitle>
-                            </div>
-                            {expandedSections.addOns ? (
-                              <ChevronUp className="h-5 w-5" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5" />
-                            )}
-                          </div>
-                          <CardDescription>Enhance your cleaning service</CardDescription>
-                        </CardHeader>
-                        {expandedSections.addOns && (
-                          <CardContent>
-                            <div className="space-y-3">
-                              {addOns.map((addOn) => (
-                                <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                                  <Checkbox
-                                    id={`addon-${addOn.id}`}
-                                    checked={localSelectedAddOns.includes(addOn.id)}
-                                    onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
-                                    className="mt-1"
-                                  />
-                                  <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                      <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
-                                        {addOn.name}
-                                      </Label>
-                                      <Badge variant="outline" className="text-green-600">
-                                        +${addOn.price.toFixed(2)}
-                                      </Badge>
-                                    </div>
-                                    {addOn.description && (
-                                      <p className="text-xs text-gray-500 mt-1">{addOn.description}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        )}
-                      </Card>
-                    )}
-
-                    {/* Reductions Section */}
-                    {reductions.length > 0 && (
-                      <Card>
-                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("reductions")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="h-5 w-5 bg-red-100 rounded flex items-center justify-center">
-                                <span className="text-red-600 text-xs font-bold">-</span>
-                              </div>
-                              <CardTitle className="text-lg">Service Reductions</CardTitle>
-                            </div>
-                            {expandedSections.reductions ? (
-                              <ChevronUp className="h-5 w-5" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5" />
-                            )}
-                          </div>
-                          <CardDescription>Remove services you don't need</CardDescription>
-                        </CardHeader>
-                        {expandedSections.reductions && (
-                          <CardContent>
-                            <div className="space-y-3">
-                              {reductions.map((reduction) => (
-                                <div
-                                  key={reduction.id}
-                                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50"
-                                >
-                                  <Checkbox
-                                    id={`reduction-${reduction.id}`}
-                                    checked={localSelectedReductions.includes(reduction.id)}
-                                    onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
-                                    className="mt-1"
-                                  />
-                                  <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                      <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
-                                        {reduction.name}
-                                      </Label>
-                                      <Badge variant="outline" className="text-red-600">
-                                        -${reduction.discount.toFixed(2)}
-                                      </Badge>
-                                    </div>
-                                    {reduction.description && (
-                                      <p className="text-xs text-gray-500 mt-1">{reduction.description}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        )}
-                      </Card>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="advanced" className="mt-0 space-y-6 m-0">
-                    {/* Matrix Add Services */}
-                    {matrixAddServices.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <PlusCircle className="h-5 w-5 text-green-600" />
-                            <CardTitle className="text-lg">Specialized Add-ons</CardTitle>
-                          </div>
-                          <CardDescription>Additional specialized services for this room</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            {matrixAddServices.map((service) => (
-                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                                <Checkbox
-                                  id={`matrix-add-${service.id}`}
-                                  checked={localSelectedMatrixAddServices.includes(service.id)}
-                                  onCheckedChange={(checked) =>
-                                    handleMatrixAddServiceChange(service.id, checked === true)
-                                  }
-                                  className="mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-center">
-                                    <Label htmlFor={`matrix-add-${service.id}`} className="font-medium">
-                                      {service.name}
-                                    </Label>
-                                    <Badge variant="outline" className="text-green-600">
-                                      +${service.price.toFixed(2)}
-                                    </Badge>
-                                  </div>
-                                  {service.description && (
-                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Matrix Remove Services */}
-                    {matrixRemoveServices.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-2">
-                            <MinusCircle className="h-5 w-5 text-red-600" />
-                            <CardTitle className="text-lg">Service Exclusions</CardTitle>
-                          </div>
-                          <CardDescription>Remove specific services to customize your cleaning</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            {matrixRemoveServices.map((service) => (
-                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                                <Checkbox
-                                  id={`matrix-remove-${service.id}`}
-                                  checked={localSelectedMatrixRemoveServices.includes(service.id)}
-                                  onCheckedChange={(checked) =>
-                                    handleMatrixRemoveServiceChange(service.id, checked === true)
-                                  }
-                                  className="mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-center">
-                                    <Label htmlFor={`matrix-remove-${service.id}`} className="font-medium">
-                                      {service.name}
-                                    </Label>
-                                    <Badge variant="outline" className="text-red-600">
-                                      -${service.price.toFixed(2)}
-                                    </Badge>
-                                  </div>
-                                  {service.description && (
-                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Special Instructions */}
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Info className="h-5 w-5 text-blue-600" />
-                          <CardTitle className="text-lg">Special Instructions</CardTitle>
-                        </div>
-                        <CardDescription>Add any specific instructions for this room</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <textarea
-                          className="w-full p-3 border rounded-md h-24 text-sm"
-                          placeholder="Enter any special instructions or notes for the cleaning team..."
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="schedule" className="mt-0 space-y-6 m-0">
-                    {/* Frequency Selection */}
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Repeat className="h-5 w-5 text-blue-600" />
-                          <CardTitle className="text-lg">Service Frequency</CardTitle>
-                        </div>
-                        <CardDescription>Choose how often you'd like this service</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <RadioGroup
-                          value={localSelectedFrequency}
-                          onValueChange={handleFrequencyChange}
-                          className="space-y-3"
-                        >
-                          {frequencyOptions.map((option) => (
-                            <div
-                              key={option.id}
-                              className={cn(
-                                "p-3 rounded-lg border transition-colors",
-                                localSelectedFrequency === option.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-center">
-                                    <Label htmlFor={`frequency-${option.id}`} className="font-medium">
-                                      {option.name}
-                                    </Label>
-                                    {option.discount > 0 && (
-                                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                        {option.discount}% off
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </CardContent>
-                    </Card>
-
-                    {/* Estimated Duration */}
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-blue-600" />
-                          <CardTitle className="text-lg">Estimated Duration</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="p-3 rounded-lg border border-gray-200">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">Estimated cleaning time:</span>
-                            <span className="text-lg font-bold">
-                              {Math.max(1, Math.ceil(roomCount * 0.75))}{" "}
-                              {Math.max(1, Math.ceil(roomCount * 0.75)) === 1 ? "hour" : "hours"}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-2">
-                            This is an estimate based on your selected tier and add-ons. Actual time may vary depending
-                            on the condition of your space.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-
-                {/* Conditionally render content based on active tab */}
+          {/* Content Area with ScrollArea component */}
+          <div className="flex-1 relative">
+            <ScrollArea className="h-full" onScroll={handleScroll} forceScrollable={true}>
+              <div ref={scrollContainerRef} className="p-4 space-y-6">
                 {activeTab === "basic" && (
                   <div className="space-y-6">
                     {/* Service Tiers Section */}
@@ -1316,7 +859,7 @@ export function RoomCustomizationPanel({
                 {/* Add extra padding at the bottom to ensure content is scrollable past the footer */}
                 <div className="h-4"></div>
               </div>
-            </div>
+            </ScrollArea>
 
             {/* Scroll navigation buttons */}
             {showScrollButtons && (
