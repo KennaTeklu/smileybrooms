@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -122,6 +122,11 @@ export function RoomConfigurator({
     })
     setTimeout(updateConfiguration, 0)
   }
+
+  // Call updateConfiguration when the component mounts
+  useEffect(() => {
+    updateConfiguration()
+  }, [])
 
   return (
     <Card className="w-full mb-6 border-2 border-blue-100">

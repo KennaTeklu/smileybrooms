@@ -32,6 +32,7 @@ interface RoomCategoryProps {
   onRoomConfigChange: (roomId: string, config: RoomConfig) => void
   getRoomConfig: (roomType: string) => RoomConfig
   variant?: "primary" | "secondary"
+  onRoomSelect?: (roomType: string) => void
 }
 
 export function RoomCategory({
@@ -43,6 +44,7 @@ export function RoomCategory({
   onRoomConfigChange,
   getRoomConfig,
   variant = "primary",
+  onRoomSelect,
 }: RoomCategoryProps) {
   const [activeDrawer, setActiveDrawer] = useState<string | null>(null)
 
@@ -125,7 +127,15 @@ export function RoomCategory({
                 key={roomType}
                 className={`border ${
                   roomCounts[roomType] > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
-                }`}
+                } cursor-pointer`}
+                onClick={() => {
+                  if (roomCounts[roomType] <= 0) {
+                    onRoomCountChange(roomType, 1)
+                  }
+                  if (onRoomSelect) {
+                    onRoomSelect(roomType)
+                  }
+                }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
                   <div className="text-3xl mb-2" aria-hidden="true">

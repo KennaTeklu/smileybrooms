@@ -17,6 +17,7 @@ import { RequestQuoteButton } from "@/components/request-quote-button"
 import { ServiceSummaryCard } from "@/components/service-summary-card"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
+import { RoomConfigurator } from "@/components/room-configurator"
 
 interface RoomCount {
   [key: string]: number
@@ -435,6 +436,7 @@ export default function PricingPage() {
             onRoomConfigChange={handleRoomConfigChange}
             getRoomConfig={getRoomConfig}
             variant="primary"
+            onRoomSelect={setSelectedRoomForMap}
           />
 
           {/* Additional Spaces Category */}
@@ -447,6 +449,7 @@ export default function PricingPage() {
             onRoomConfigChange={handleRoomConfigChange}
             getRoomConfig={getRoomConfig}
             variant="secondary"
+            onRoomSelect={setSelectedRoomForMap}
           />
 
           {/* Custom Space Card */}
@@ -473,6 +476,97 @@ export default function PricingPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Room Configurator Section */}
+          {getActiveRoomConfigs().length > 0 && (
+            <div className="mt-8">
+              <Card className="shadow-sm">
+                <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                      <span className="text-lg" aria-hidden="true">
+                        ⚙️
+                      </span>
+                    </span>
+                    ROOM CONFIGURATOR
+                  </CardTitle>
+                  <CardDescription>Fine-tune your selected rooms with detailed options</CardDescription>
+                  {getActiveRoomConfigs().length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {getActiveRoomConfigs().map((roomType) => (
+                        <Button
+                          key={roomType}
+                          variant={selectedRoomForMap === roomType ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedRoomForMap(roomType)}
+                          className="flex items-center gap-1"
+                        >
+                          <span className="text-sm" aria-hidden="true">
+                            {roomIcons[roomType]}
+                          </span>
+                          {roomDisplayNames[roomType]}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {selectedRoomForMap && (
+                    <RoomConfigurator
+                      roomName={roomDisplayNames[selectedRoomForMap]}
+                      roomIcon={roomIcons[selectedRoomForMap]}
+                      baseTier={getRoomTiers(selectedRoomForMap)[0]}
+                      tiers={getRoomTiers(selectedRoomForMap)}
+                      addOns={getRoomAddOns(selectedRoomForMap)}
+                      reductions={getRoomReductions(selectedRoomForMap)}
+                      onConfigChange={(config) => {
+                        // Convert the RoomConfiguration to RoomConfig format
+                        const roomConfig: RoomConfig = {
+                          roomName: selectedRoomForMap,
+                          selectedTier: config.selectedTier,
+                          selectedAddOns: config.selectedAddOns,
+                          selectedReductions: config.selectedReductions,
+                          basePrice: getRoomTiers(selectedRoomForMap)[0].price,
+                          tierUpgradePrice: 0, // Will be calculated
+                          addOnsPrice: 0, // Will be calculated
+                          reductionsPrice: 0, // Will be calculated
+                          totalPrice: config.totalPrice,
+                        }
+
+                        // Update the room configuration
+                        handleRoomConfigChange(selectedRoomForMap, roomConfig)
+                      }}
+                      initialConfig={{
+                        roomName: selectedRoomForMap,
+                        selectedTier: getRoomConfig(selectedRoomForMap).selectedTier,
+                        selectedAddOns: getRoomConfig(selectedRoomForMap).selectedAddOns,
+                        selectedReductions: getRoomConfig(selectedRoomForMap).selectedReductions,
+                        totalPrice: getRoomConfig(selectedRoomForMap).totalPrice,
+                      }}
+                    />
+                  )}
+
+                  {!selectedRoomForMap && (
+                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                      <p className="text-gray-500 mb-4">Please select a room to configure</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const firstRoom = getActiveRoomConfigs()[0]
+                          if (firstRoom) {
+                            setSelectedRoomForMap(firstRoom)
+                          }
+                        }}
+                        disabled={getActiveRoomConfigs().length === 0}
+                      >
+                        Select First Room
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {getActiveRoomConfigs().length > 0 && (
             <>
