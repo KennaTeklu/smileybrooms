@@ -12,61 +12,85 @@ const ScrollArea = React.forwardRef<
     forceScrollable?: boolean
     showScrollbar?: boolean
     onScroll?: (event: React.UIEvent<HTMLDivElement>) => void
+    orientation?: "vertical" | "horizontal" | "both"
   }
->(({ className, children, forceScrollable = false, showScrollbar = true, onScroll, ...props }, ref) => {
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
-  const [hasOverflow, setHasOverflow] = React.useState(false)
+>(
+  (
+    {
+      className,
+      children,
+      forceScrollable = false,
+      showScrollbar = true,
+      onScroll,
+      orientation = "vertical",
+      ...props
+    },
+    ref,
+  ) => {
+    const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+    const [hasOverflow, setHasOverflow] = React.useState(false)
 
-  React.useEffect(() => {
-    if (forceScrollable && scrollAreaRef.current) {
-      const cleanup = forceEnableScrolling(scrollAreaRef.current)
-      return cleanup
-    }
-  }, [forceScrollable])
-
-  // Check for overflow on mount and when children change
-  React.useEffect(() => {
-    const checkOverflow = () => {
-      if (scrollAreaRef.current) {
-        const hasVerticalOverflow = scrollAreaRef.current.scrollHeight > scrollAreaRef.current.clientHeight
-        setHasOverflow(hasVerticalOverflow)
+    React.useEffect(() => {
+      if (forceScrollable && scrollAreaRef.current) {
+        const cleanup = forceEnableScrolling(scrollAreaRef.current)
+        return cleanup
       }
-    }
+    }, [forceScrollable])
 
-    checkOverflow()
-
-    // Use ResizeObserver to detect size changes
-    const resizeObserver = new ResizeObserver(checkOverflow)
-    if (scrollAreaRef.current) {
-      resizeObserver.observe(scrollAreaRef.current)
-    }
-
-    return () => {
-      if (scrollAreaRef.current) {
-        resizeObserver.disconnect()
+    // Check for overflow on mount and when children change
+    React.useEffect(() => {
+      const checkOverflow = () => {
+        if (scrollAreaRef.current) {
+          const hasVerticalOverflow = scrollAreaRef.current.scrollHeight > scrollAreaRef.current.clientHeight
+          setHasOverflow(hasVerticalOverflow)
+        }
       }
-    }
-  }, [children])
 
-  return (
-    <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden h-full w-full", className)} {...props}>
-      <ScrollAreaPrimitive.Viewport
-        ref={scrollAreaRef}
-        className="h-full w-full rounded-[inherit] [&>div]:!block"
-        onScroll={onScroll}
-        style={{
-          // Ensure the viewport is scrollable
-          overflowY: forceScrollable || hasOverflow ? "scroll" : "auto",
-        }}
+      checkOverflow()
+
+      // Use ResizeObserver to detect size changes
+      const resizeObserver = new ResizeObserver(checkOverflow)
+      if (scrollAreaRef.current) {
+        resizeObserver.observe(scrollAreaRef.current)
+      }
+
+      return () => {
+        if (scrollAreaRef.current) {
+          resizeObserver.disconnect()
+        }
+      }
+    }, [children])
+
+    return (
+      <ScrollAreaPrimitive.Root
+        ref={ref}
+        className={cn("relative overflow-hidden h-full w-full", className)}
+        {...props}
       >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      {showScrollbar && (hasOverflow || forceScrollable) && <ScrollBar />}
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  )
-})
-ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
+        <ScrollAreaPrimitive.Viewport
+          ref={scrollAreaRef}
+          className="h-full w-full rounded-[inherit] [&>div]:!block"
+          onScroll={onScroll}
+          style={{
+            // Ensure the viewport is scrollable
+            overflowY: orientation !== "horizontal" && (forceScrollable || hasOverflow) ? "scroll" : "auto",
+            overflowX: orientation !== "vertical" && (forceScrollable || hasOverflow) ? "scroll" : "auto",
+          }}
+        >
+          {children}
+        </ScrollAreaPrimitive.Viewport>
+        {showScrollbar && (hasOverflow || forceScrollable) && (
+          <>
+            {orientation !== "horizontal" && <ScrollBar orientation="vertical" />}
+            {orientation !== "vertical" && <ScrollBar orientation="horizontal" />}
+          </>
+        )}
+        <ScrollAreaPrimitive.Corner />
+      </ScrollAreaPrimitive.Root>
+    )
+  },
+)
+ScrollArea.displayName = "ScrollArea"
 
 const ScrollBar = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
@@ -83,9 +107,12 @@ const ScrollBar = React.forwardRef<
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-border" />
+    <ScrollAreaPrimitive.ScrollAreaThumb
+      className="relative flex-1 rounded-full bg-border"
+      aria-label={`${orientation} scrollbar thumb`}
+    />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
-ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
+ScrollBar.displayName = "ScrollBar"
 
 export { ScrollArea, ScrollBar }

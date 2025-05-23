@@ -463,6 +463,11 @@ export function RoomCustomizationPanel({
     </Card>
   )
 
+  // Generate unique IDs for accessibility
+  const panelId = `room-panel-${roomName.toLowerCase().replace(/\s+/g, "-")}`
+  const headerId = `${panelId}-header`
+  const contentId = `${panelId}-content`
+
   return (
     <>
       {/* Backdrop */}
@@ -472,11 +477,17 @@ export function RoomCustomizationPanel({
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Side Panel */}
       <div
         ref={panelRef}
+        id={panelId}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headerId}
+        aria-describedby={contentId}
         className={cn(
           "fixed top-0 right-0 h-full bg-white shadow-2xl z-50 transition-transform duration-300 ease-in-out",
           "w-full sm:w-[480px] lg:w-[520px] xl:w-[600px]",
@@ -485,11 +496,13 @@ export function RoomCustomizationPanel({
       >
         <div className="flex flex-col h-full">
           {/* Header - Fixed at the top */}
-          <div className="flex items-center justify-between p-4 border-b bg-blue-50 sticky top-0 z-10">
+          <div id={headerId} className="flex items-center justify-between p-4 border-b bg-blue-50 sticky top-0 z-10">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{roomIcon}</span>
+              <span className="text-2xl" aria-hidden="true">
+                {roomIcon}
+              </span>
               <div>
-                <h2 className="text-xl font-bold">{roomName}</h2>
+                <h1 className="text-xl font-bold">{roomName}</h1>
                 <p className="text-sm text-gray-600">
                   {roomCount} {roomCount === 1 ? "room" : "rooms"} selected
                 </p>
@@ -499,8 +512,8 @@ export function RoomCustomizationPanel({
               <Badge variant="outline" className="bg-white">
                 ${calculateTotalPrice().toFixed(2)}
               </Badge>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close panel">
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
           </div>
@@ -508,17 +521,27 @@ export function RoomCustomizationPanel({
           {/* Tabs - Fixed below header */}
           <div className="border-b bg-white z-10">
             <Tabs defaultValue="basic" value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="basic" className="text-xs sm:text-sm">
-                  <Settings className="h-4 w-4 mr-1 sm:mr-2" />
+              <TabsList className="grid w-full grid-cols-3" aria-label="Room customization options">
+                <TabsTrigger value="basic" className="text-xs sm:text-sm" id="tab-basic" aria-controls="panel-basic">
+                  <Settings className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
                   <span>Basic</span>
                 </TabsTrigger>
-                <TabsTrigger value="advanced" className="text-xs sm:text-sm">
-                  <Sliders className="h-4 w-4 mr-1 sm:mr-2" />
+                <TabsTrigger
+                  value="advanced"
+                  className="text-xs sm:text-sm"
+                  id="tab-advanced"
+                  aria-controls="panel-advanced"
+                >
+                  <Sliders className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
                   <span>Advanced</span>
                 </TabsTrigger>
-                <TabsTrigger value="schedule" className="text-xs sm:text-sm">
-                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                <TabsTrigger
+                  value="schedule"
+                  className="text-xs sm:text-sm"
+                  id="tab-schedule"
+                  aria-controls="panel-schedule"
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
                   <span>Schedule</span>
                 </TabsTrigger>
               </TabsList>
@@ -526,30 +549,41 @@ export function RoomCustomizationPanel({
           </div>
 
           {/* Content Area with proper height constraint */}
-          <div className="flex-1 min-h-0 relative">
+          <main id={contentId} className="flex-1 min-h-0 relative">
             <ScrollArea className="absolute inset-0" forceScrollable={true}>
               <div ref={scrollContainerRef} className="p-4 space-y-6" onScroll={handleScroll}>
                 {activeTab === "basic" && (
-                  <div className="space-y-6">
+                  <div id="panel-basic" className="space-y-6">
                     {/* Service Tiers Section */}
                     <Card>
-                      <CardHeader className="cursor-pointer" onClick={() => toggleSection("tiers")}>
+                      <CardHeader
+                        className="cursor-pointer"
+                        onClick={() => toggleSection("tiers")}
+                        role="button"
+                        aria-expanded={expandedSections.tiers}
+                        aria-controls="tiers-content"
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Settings className="h-5 w-5 text-blue-600" />
+                            <Settings className="h-5 w-5 text-blue-600" aria-hidden="true" />
                             <CardTitle className="text-lg">Service Tiers</CardTitle>
                           </div>
                           {expandedSections.tiers ? (
-                            <ChevronUp className="h-5 w-5" />
+                            <ChevronUp className="h-5 w-5" aria-hidden="true" />
                           ) : (
-                            <ChevronDown className="h-5 w-5" />
+                            <ChevronDown className="h-5 w-5" aria-hidden="true" />
                           )}
                         </div>
                         <CardDescription>Choose your cleaning intensity level</CardDescription>
                       </CardHeader>
                       {expandedSections.tiers && (
-                        <CardContent>
-                          <RadioGroup value={localSelectedTier} onValueChange={handleTierChange} className="space-y-3">
+                        <CardContent id="tiers-content">
+                          <RadioGroup
+                            value={localSelectedTier}
+                            onValueChange={handleTierChange}
+                            className="space-y-3"
+                            aria-label="Service tier options"
+                          >
                             {tiers.map((tier, index) => (
                               <div
                                 key={tier.name}
@@ -559,10 +593,19 @@ export function RoomCustomizationPanel({
                                 )}
                               >
                                 <div className="flex items-start gap-3">
-                                  <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
+                                  <RadioGroupItem
+                                    value={tier.name}
+                                    id={`tier-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                    className="mt-1"
+                                    aria-labelledby={`tier-label-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                  />
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center mb-1">
-                                      <Label htmlFor={`tier-${tier.name}`} className="font-medium">
+                                      <Label
+                                        htmlFor={`tier-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                        className="font-medium"
+                                        id={`tier-label-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                      >
                                         {tier.name}
                                       </Label>
                                       <Badge
@@ -575,7 +618,9 @@ export function RoomCustomizationPanel({
                                     <div className="space-y-1">
                                       {tier.features.slice(0, 3).map((feature, i) => (
                                         <div key={i} className="text-xs flex items-start">
-                                          <span className="text-green-500 mr-1">✓</span>
+                                          <span className="text-green-500 mr-1" aria-hidden="true">
+                                            ✓
+                                          </span>
                                           <span>{feature}</span>
                                         </div>
                                       ))}
@@ -597,25 +642,34 @@ export function RoomCustomizationPanel({
                     {/* Add-ons Section */}
                     {addOns.length > 0 && (
                       <Card>
-                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("addOns")}>
+                        <CardHeader
+                          className="cursor-pointer"
+                          onClick={() => toggleSection("addOns")}
+                          role="button"
+                          aria-expanded={expandedSections.addOns}
+                          aria-controls="addons-content"
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <div className="h-5 w-5 bg-green-100 rounded flex items-center justify-center">
+                              <div
+                                className="h-5 w-5 bg-green-100 rounded flex items-center justify-center"
+                                aria-hidden="true"
+                              >
                                 <span className="text-green-600 text-xs font-bold">+</span>
                               </div>
                               <CardTitle className="text-lg">Additional Services</CardTitle>
                             </div>
                             {expandedSections.addOns ? (
-                              <ChevronUp className="h-5 w-5" />
+                              <ChevronUp className="h-5 w-5" aria-hidden="true" />
                             ) : (
-                              <ChevronDown className="h-5 w-5" />
+                              <ChevronDown className="h-5 w-5" aria-hidden="true" />
                             )}
                           </div>
                           <CardDescription>Enhance your cleaning service</CardDescription>
                         </CardHeader>
                         {expandedSections.addOns && (
-                          <CardContent>
-                            <div className="space-y-3">
+                          <CardContent id="addons-content">
+                            <div className="space-y-3" role="group" aria-label="Additional services options">
                               {addOns.map((addOn) => (
                                 <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                                   <Checkbox
@@ -623,10 +677,15 @@ export function RoomCustomizationPanel({
                                     checked={localSelectedAddOns.includes(addOn.id)}
                                     onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
                                     className="mt-1"
+                                    aria-labelledby={`addon-label-${addOn.id}`}
                                   />
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center">
-                                      <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
+                                      <Label
+                                        htmlFor={`addon-${addOn.id}`}
+                                        className="font-medium"
+                                        id={`addon-label-${addOn.id}`}
+                                      >
                                         {addOn.name}
                                       </Label>
                                       <Badge variant="outline" className="text-green-600">
@@ -648,25 +707,34 @@ export function RoomCustomizationPanel({
                     {/* Reductions Section */}
                     {reductions.length > 0 && (
                       <Card>
-                        <CardHeader className="cursor-pointer" onClick={() => toggleSection("reductions")}>
+                        <CardHeader
+                          className="cursor-pointer"
+                          onClick={() => toggleSection("reductions")}
+                          role="button"
+                          aria-expanded={expandedSections.reductions}
+                          aria-controls="reductions-content"
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <div className="h-5 w-5 bg-red-100 rounded flex items-center justify-center">
+                              <div
+                                className="h-5 w-5 bg-red-100 rounded flex items-center justify-center"
+                                aria-hidden="true"
+                              >
                                 <span className="text-red-600 text-xs font-bold">-</span>
                               </div>
                               <CardTitle className="text-lg">Service Reductions</CardTitle>
                             </div>
                             {expandedSections.reductions ? (
-                              <ChevronUp className="h-5 w-5" />
+                              <ChevronUp className="h-5 w-5" aria-hidden="true" />
                             ) : (
-                              <ChevronDown className="h-5 w-5" />
+                              <ChevronDown className="h-5 w-5" aria-hidden="true" />
                             )}
                           </div>
                           <CardDescription>Remove services you don't need</CardDescription>
                         </CardHeader>
                         {expandedSections.reductions && (
-                          <CardContent>
-                            <div className="space-y-3">
+                          <CardContent id="reductions-content">
+                            <div className="space-y-3" role="group" aria-label="Service reductions options">
                               {reductions.map((reduction) => (
                                 <div
                                   key={reduction.id}
@@ -677,10 +745,15 @@ export function RoomCustomizationPanel({
                                     checked={localSelectedReductions.includes(reduction.id)}
                                     onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
                                     className="mt-1"
+                                    aria-labelledby={`reduction-label-${reduction.id}`}
                                   />
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center">
-                                      <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
+                                      <Label
+                                        htmlFor={`reduction-${reduction.id}`}
+                                        className="font-medium"
+                                        id={`reduction-label-${reduction.id}`}
+                                      >
                                         {reduction.name}
                                       </Label>
                                       <Badge variant="outline" className="text-red-600">
@@ -702,19 +775,19 @@ export function RoomCustomizationPanel({
                 )}
 
                 {activeTab === "advanced" && (
-                  <div className="space-y-6">
+                  <div id="panel-advanced" className="space-y-6">
                     {/* Matrix Add Services */}
                     {matrixAddServices.length > 0 && (
                       <Card>
                         <CardHeader>
                           <div className="flex items-center gap-2">
-                            <PlusCircle className="h-5 w-5 text-green-600" />
+                            <PlusCircle className="h-5 w-5 text-green-600" aria-hidden="true" />
                             <CardTitle className="text-lg">Specialized Add-ons</CardTitle>
                           </div>
                           <CardDescription>Additional specialized services for this room</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-3">
+                          <div className="space-y-3" role="group" aria-label="Specialized add-ons options">
                             {matrixAddServices.map((service) => (
                               <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                                 <Checkbox
@@ -724,10 +797,15 @@ export function RoomCustomizationPanel({
                                     handleMatrixAddServiceChange(service.id, checked === true)
                                   }
                                   className="mt-1"
+                                  aria-labelledby={`matrix-add-label-${service.id}`}
                                 />
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center">
-                                    <Label htmlFor={`matrix-add-${service.id}`} className="font-medium">
+                                    <Label
+                                      htmlFor={`matrix-add-${service.id}`}
+                                      className="font-medium"
+                                      id={`matrix-add-label-${service.id}`}
+                                    >
                                       {service.name}
                                     </Label>
                                     <Badge variant="outline" className="text-green-600">
@@ -750,13 +828,13 @@ export function RoomCustomizationPanel({
                       <Card>
                         <CardHeader>
                           <div className="flex items-center gap-2">
-                            <MinusCircle className="h-5 w-5 text-red-600" />
+                            <MinusCircle className="h-5 w-5 text-red-600" aria-hidden="true" />
                             <CardTitle className="text-lg">Service Exclusions</CardTitle>
                           </div>
                           <CardDescription>Remove specific services to customize your cleaning</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-3">
+                          <div className="space-y-3" role="group" aria-label="Service exclusions options">
                             {matrixRemoveServices.map((service) => (
                               <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                                 <Checkbox
@@ -766,10 +844,15 @@ export function RoomCustomizationPanel({
                                     handleMatrixRemoveServiceChange(service.id, checked === true)
                                   }
                                   className="mt-1"
+                                  aria-labelledby={`matrix-remove-label-${service.id}`}
                                 />
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center">
-                                    <Label htmlFor={`matrix-remove-${service.id}`} className="font-medium">
+                                    <Label
+                                      htmlFor={`matrix-remove-${service.id}`}
+                                      className="font-medium"
+                                      id={`matrix-remove-label-${service.id}`}
+                                    >
                                       {service.name}
                                     </Label>
                                     <Badge variant="outline" className="text-red-600">
@@ -791,7 +874,7 @@ export function RoomCustomizationPanel({
                     <Card>
                       <CardHeader>
                         <div className="flex items-center gap-2">
-                          <Info className="h-5 w-5 text-blue-600" />
+                          <Info className="h-5 w-5 text-blue-600" aria-hidden="true" />
                           <CardTitle className="text-lg">Special Instructions</CardTitle>
                         </div>
                         <CardDescription>Add any specific instructions for this room</CardDescription>
@@ -800,6 +883,7 @@ export function RoomCustomizationPanel({
                         <textarea
                           className="w-full p-3 border rounded-md h-24 text-sm"
                           placeholder="Enter any special instructions or notes for the cleaning team..."
+                          aria-label="Special instructions for cleaning team"
                         />
                       </CardContent>
                     </Card>
@@ -807,12 +891,12 @@ export function RoomCustomizationPanel({
                 )}
 
                 {activeTab === "schedule" && (
-                  <div className="space-y-6">
+                  <div id="panel-schedule" className="space-y-6">
                     {/* Frequency Selection */}
                     <Card>
                       <CardHeader>
                         <div className="flex items-center gap-2">
-                          <Repeat className="h-5 w-5 text-blue-600" />
+                          <Repeat className="h-5 w-5 text-blue-600" aria-hidden="true" />
                           <CardTitle className="text-lg">Service Frequency</CardTitle>
                         </div>
                         <CardDescription>Choose how often you'd like this service</CardDescription>
@@ -822,6 +906,7 @@ export function RoomCustomizationPanel({
                           value={localSelectedFrequency}
                           onValueChange={handleFrequencyChange}
                           className="space-y-3"
+                          aria-label="Service frequency options"
                         >
                           {frequencyOptions.map((option) => (
                             <div
@@ -832,10 +917,18 @@ export function RoomCustomizationPanel({
                               )}
                             >
                               <div className="flex items-center gap-3">
-                                <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
+                                <RadioGroupItem
+                                  value={option.id}
+                                  id={`frequency-${option.id}`}
+                                  aria-labelledby={`frequency-label-${option.id}`}
+                                />
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center">
-                                    <Label htmlFor={`frequency-${option.id}`} className="font-medium">
+                                    <Label
+                                      htmlFor={`frequency-${option.id}`}
+                                      className="font-medium"
+                                      id={`frequency-label-${option.id}`}
+                                    >
                                       {option.name}
                                     </Label>
                                     {option.discount > 0 && (
@@ -856,12 +949,16 @@ export function RoomCustomizationPanel({
                     <Card>
                       <CardHeader>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-blue-600" />
+                          <Clock className="h-5 w-5 text-blue-600" aria-hidden="true" />
                           <CardTitle className="text-lg">Estimated Duration</CardTitle>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="p-3 rounded-lg border border-gray-200">
+                        <div
+                          className="p-3 rounded-lg border border-gray-200"
+                          role="region"
+                          aria-label="Estimated cleaning duration"
+                        >
                           <div className="flex justify-between items-center">
                             <span className="font-medium">Estimated cleaning time:</span>
                             <span className="text-lg font-bold">
@@ -897,7 +994,7 @@ export function RoomCustomizationPanel({
                   onClick={scrollToTop}
                   aria-label="Scroll to top"
                 >
-                  <ArrowUp className="h-4 w-4" />
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <Button
                   variant="secondary"
@@ -906,14 +1003,21 @@ export function RoomCustomizationPanel({
                   onClick={scrollToBottom}
                   aria-label="Scroll to bottom"
                 >
-                  <ArrowDown className="h-4 w-4" />
+                  <ArrowDown className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             )}
 
             {/* Scroll progress indicator */}
             {showScrollButtons && (
-              <div className="absolute left-0 right-0 bottom-0 h-1 bg-gray-200">
+              <div
+                className="absolute left-0 right-0 bottom-0 h-1 bg-gray-200"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={maxScroll > 0 ? Math.round((scrollPosition / maxScroll) * 100) : 0}
+                aria-label="Scroll position"
+              >
                 <div
                   className="h-full bg-blue-500 transition-all duration-100"
                   style={{
@@ -922,7 +1026,7 @@ export function RoomCustomizationPanel({
                 />
               </div>
             )}
-          </div>
+          </main>
 
           {/* Footer - Fixed at the bottom */}
           <div className="border-t p-4 bg-gray-50 sticky bottom-0 z-10">
