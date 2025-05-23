@@ -113,6 +113,7 @@ export function RoomCustomizationPanel({
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<string>("tiers")
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
 
   // Refs for scroll-to-section functionality
   const sectionRefs = {
@@ -926,6 +927,7 @@ export function RoomCustomizationPanel({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Repeat className="h-5 w-5 text-blue-600" />
+            blue-600" />
             <CardTitle className="text-lg">Service Frequency</CardTitle>
           </div>
           <CardDescription>Choose how often you'd like this service</CardDescription>
@@ -987,6 +989,118 @@ export function RoomCustomizationPanel({
       </Card>
     </>
   )
+
+  // Track scroll progress
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollElement = document.querySelector(".scroll-area-viewport")
+      if (scrollElement) {
+        const scrollTop = scrollElement.scrollTop
+        const scrollHeight = scrollElement.scrollHeight - scrollElement.clientHeight
+        const progress = (scrollTop / scrollHeight) * 100
+        setScrollProgress(progress)
+
+        // Update active section based on scroll position
+        const sections = [
+          "tiers",
+          "addOns",
+          "reductions",
+          "matrixAdd",
+          "matrixRemove",
+          "specialInstructions",
+          "frequency",
+          "duration",
+        ]
+        for (const section of sections.reverse()) {
+          const sectionRef = sectionRefs[section as keyof typeof sectionRefs]
+          if (sectionRef && sectionRef.current) {
+            const rect = sectionRef.current.getBoundingClientRect()
+            if (rect.top <= 200) {
+              setActiveSection(section)
+              break
+            }
+          }
+        }
+      }
+    }
+
+    const scrollElement = document.querySelector(".scroll-area-viewport")
+    if (scrollElement) {
+      scrollElement.addEventListener("scroll", handleScroll)
+      return () => scrollElement.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
+
+  // Keyboard shortcuts for navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return
+
+      // Only handle if not in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (e.key) {
+        case "1":
+          if (e.altKey) {
+            setActiveTab("basic")
+            scrollToSection("tiers")
+            e.preventDefault()
+          }
+          break
+        case "2":
+          if (e.altKey) {
+            setActiveTab("basic")
+            scrollToSection("addOns")
+            e.preventDefault()
+          }
+          break
+        case "3":
+          if (e.altKey) {
+            setActiveTab("basic")
+            scrollToSection("reductions")
+            e.preventDefault()
+          }
+          break
+        case "4":
+          if (e.altKey) {
+            setActiveTab("advanced")
+            scrollToSection("matrixAdd")
+            e.preventDefault()
+          }
+          break
+        case "5":
+          if (e.altKey) {
+            setActiveTab("schedule")
+            scrollToSection("frequency")
+            e.preventDefault()
+          }
+          break
+        case "ArrowUp":
+          if (e.altKey) {
+            const scrollElement = document.querySelector(".scroll-area-viewport")
+            if (scrollElement) {
+              scrollElement.scrollBy({ top: -100, behavior: "smooth" })
+              e.preventDefault()
+            }
+          }
+          break
+        case "ArrowDown":
+          if (e.altKey) {
+            const scrollElement = document.querySelector(".scroll-area-viewport")
+            if (scrollElement) {
+              scrollElement.scrollBy({ top: 100, behavior: "smooth" })
+              e.preventDefault()
+            }
+          }
+          break
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, setActiveTab])
 
   return (
     <>
@@ -1169,6 +1283,16 @@ export function RoomCustomizationPanel({
           {/* Breadcrumb Navigation */}
           {renderBreadcrumbs()}
 
+          {/* Scroll Progress Indicator */}
+          <div className="sticky top-[48px] z-10 w-full h-1 bg-gray-200">
+            <div
+              className="h-full bg-blue-500 transition-all duration-300"
+              style={{
+                width: `${scrollProgress}%`,
+              }}
+            />
+          </div>
+
           {/* Tabs and Content */}
           <div className="flex-1 flex flex-col">
             {/* Sticky Tabs Navigation */}
@@ -1221,42 +1345,121 @@ export function RoomCustomizationPanel({
             </div>
 
             {/* Content Area */}
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-6">
-                <Tabs value={activeTab} className="hidden">
-                  <TabsContent value="basic" className="mt-0 space-y-6">
-                    {renderBasicTabContent()}
-                  </TabsContent>
-
-                  <TabsContent value="advanced" className="mt-0 space-y-6">
-                    {renderAdvancedTabContent()}
-                  </TabsContent>
-
-                  <TabsContent value="schedule" className="mt-0 space-y-6">
-                    {renderScheduleTabContent()}
-                  </TabsContent>
-                </Tabs>
-
-                {/* Conditionally render content based on active tab */}
-                {activeTab === "basic" && renderBasicTabContent()}
-                {activeTab === "advanced" && renderAdvancedTabContent()}
-                {activeTab === "schedule" && renderScheduleTabContent()}
-
-                {/* Price Summary - Always visible at the bottom */}
-                {renderPriceSummary()}
+            <div className="flex flex-1">
+              {/* Quick Navigation Sidebar */}
+              <div className="hidden md:block w-[80px] border-r bg-gray-50 pt-4">
+                <div className="flex flex-col items-center space-y-6">
+                  <button
+                    onClick={() => scrollToSection("tiers")}
+                    className={cn(
+                      "p-2 rounded-md w-14 flex flex-col items-center text-xs",
+                      activeSection === "tiers" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    )}
+                  >
+                    <Settings className="h-5 w-5 mb-1" />
+                    Tiers
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("addOns")}
+                    className={cn(
+                      "p-2 rounded-md w-14 flex flex-col items-center text-xs",
+                      activeSection === "addOns" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    )}
+                  >
+                    <PlusCircle className="h-5 w-5 mb-1" />
+                    Add-ons
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("reductions")}
+                    className={cn(
+                      "p-2 rounded-md w-14 flex flex-col items-center text-xs",
+                      activeSection === "reductions" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    )}
+                  >
+                    <MinusCircle className="h-5 w-5 mb-1" />
+                    Reduce
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("frequency")}
+                    className={cn(
+                      "p-2 rounded-md w-14 flex flex-col items-center text-xs",
+                      activeSection === "frequency" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    )}
+                  >
+                    <Repeat className="h-5 w-5 mb-1" />
+                    Frequency
+                  </button>
+                  <button
+                    onClick={() => scrollToSection("duration")}
+                    className={cn(
+                      "p-2 rounded-md w-14 flex flex-col items-center text-xs",
+                      activeSection === "duration" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100",
+                    )}
+                  >
+                    <Clock className="h-5 w-5 mb-1" />
+                    Duration
+                  </button>
+                </div>
               </div>
-            </ScrollArea>
+
+              <ScrollArea className="flex-1 h-[calc(100vh-220px)]">
+                <div className="p-4 space-y-6">
+                  <Tabs value={activeTab} className="hidden">
+                    <TabsContent value="basic" className="mt-0 space-y-6">
+                      {renderBasicTabContent()}
+                    </TabsContent>
+
+                    <TabsContent value="advanced" className="mt-0 space-y-6">
+                      {renderAdvancedTabContent()}
+                    </TabsContent>
+
+                    <TabsContent value="schedule" className="mt-0 space-y-6">
+                      {renderScheduleTabContent()}
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Conditionally render content based on active tab */}
+                  {activeTab === "basic" && renderBasicTabContent()}
+                  {activeTab === "advanced" && renderAdvancedTabContent()}
+                  {activeTab === "schedule" && renderScheduleTabContent()}
+
+                  {/* Price Summary - Always visible at the bottom */}
+                  {renderPriceSummary()}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Back to Top Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="fixed bottom-20 right-4 rounded-full h-10 w-10 shadow-md bg-white z-20"
+              onClick={() => {
+                const scrollContainer = document.querySelector(".scroll-area-viewport")
+                if (scrollContainer) {
+                  scrollContainer.scrollTo({ top: 0, behavior: "smooth" })
+                }
+              }}
+              aria-label="Back to top"
+            >
+              <ChevronUp className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Footer */}
           <div className="border-t p-4 bg-gray-50">
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button onClick={onClose} className="flex-1">
-                Apply Changes
-              </Button>
+            <div className="flex flex-col gap-3">
+              <div className="text-xs text-gray-500 mb-2">
+                <span className="font-medium">Keyboard shortcuts:</span> Alt+1-5 for sections, Alt+↑/↓ to scroll
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={onClose} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={onClose} className="flex-1">
+                  Apply Changes
+                </Button>
+              </div>
             </div>
           </div>
         </div>
