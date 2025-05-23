@@ -25,6 +25,7 @@ import { FrequencySelector } from "@/components/frequency-selector"
 import { CleaningChecklist } from "@/components/cleaning-checklist"
 import { CleaningTimeEstimator } from "@/components/cleaning-time-estimator"
 import { CleaningTeamSelector } from "@/components/cleaning-team-selector"
+import { RoomCustomizationPanel } from "@/components/room-customization-panel"
 
 interface RoomCount {
   [key: string]: number
@@ -69,6 +70,10 @@ export default function PricingPage() {
   const [showRoomVisualization, setShowRoomVisualization] = useState(false)
   const [showCleaningChecklist, setShowCleaningChecklist] = useState(false)
 
+  // New state for the customization drawer
+  const [customizationDrawerOpen, setCustomizationDrawerOpen] = useState(false)
+  const [roomToCustomize, setRoomToCustomize] = useState<string | null>(null)
+
   // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
   const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
@@ -112,6 +117,18 @@ export default function PricingPage() {
         setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
       }
     }
+  }
+
+  // Handle opening the customization drawer
+  const handleOpenCustomization = (roomType: string) => {
+    // Ensure at least one room is selected before customizing
+    if (roomCounts[roomType] === 0) {
+      handleRoomCountChange(roomType, true)
+    }
+
+    // Set the room to customize and open the drawer
+    setRoomToCustomize(roomType)
+    setCustomizationDrawerOpen(true)
   }
 
   // Handle room configuration changes
@@ -395,16 +412,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => {
-                          // Ensure at least one room is selected before customizing
-                          if (roomCounts[roomType] === 0) {
-                            handleRoomCountChange(roomType, true)
-                          }
-                          // Set this room as the selected room for customization
-                          setSelectedRoomForMap(roomType)
-                          // Scroll to the room configurator section
-                          document.getElementById("room-configurator")?.scrollIntoView({ behavior: "smooth" })
-                        }}
+                        onClick={() => handleOpenCustomization(roomType)}
                         disabled={roomCounts[roomType] === 0}
                       >
                         Customize
@@ -460,16 +468,7 @@ export default function PricingPage() {
                         variant="outline"
                         size="sm"
                         className="mt-3 w-full"
-                        onClick={() => {
-                          // Ensure at least one room is selected before customizing
-                          if (roomCounts[roomType] === 0) {
-                            handleRoomCountChange(roomType, true)
-                          }
-                          // Set this room as the selected room for customization
-                          setSelectedRoomForMap(roomType)
-                          // Scroll to the room configurator section
-                          document.getElementById("room-configurator")?.scrollIntoView({ behavior: "smooth" })
-                        }}
+                        onClick={() => handleOpenCustomization(roomType)}
                         disabled={roomCounts[roomType] === 0}
                       >
                         Customize
@@ -742,6 +741,19 @@ export default function PricingPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Room Customization Side Panel */}
+      <RoomCustomizationPanel
+        open={customizationDrawerOpen}
+        onOpenChange={setCustomizationDrawerOpen}
+        roomType={roomToCustomize}
+        initialConfig={roomToCustomize ? roomConfigurations.find((c) => c.roomName === roomToCustomize) : undefined}
+        onConfigChange={(config) => handleRoomConfigChange({ ...config, roomName: roomToCustomize || "" })}
+        matrixSelection={roomToCustomize ? matrixSelections[roomToCustomize] : undefined}
+        onMatrixSelectionChange={
+          roomToCustomize ? (selection) => handleMatrixSelectionChange(roomToCustomize, selection) : undefined
+        }
+      />
     </div>
   )
 }
