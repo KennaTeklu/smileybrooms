@@ -4,7 +4,7 @@ import * as React from "react"
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
 import { cn } from "@/lib/utils"
-import { forceEnableScrolling } from "@/lib/scroll-utils"
+import { forceEnableScrolling, isolateScrolling } from "@/lib/scroll-utils"
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
@@ -12,30 +12,47 @@ const ScrollArea = React.forwardRef<
     forceScrollable?: boolean
     showScrollbar?: boolean
     onScroll?: (event: React.UIEvent<HTMLDivElement>) => void
+    isolate?: boolean
   }
->(({ className, children, forceScrollable = false, showScrollbar = true, onScroll, ...props }, ref) => {
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+>(
+  (
+    { className, children, forceScrollable = false, showScrollbar = true, onScroll, isolate = false, ...props },
+    ref,
+  ) => {
+    const scrollAreaRef = React.useRef<HTMLDivElement>(null)
 
-  React.useEffect(() => {
-    if (forceScrollable && scrollAreaRef.current) {
-      forceEnableScrolling(scrollAreaRef.current)
-    }
-  }, [forceScrollable])
+    React.useEffect(() => {
+      if (!scrollAreaRef.current) return
 
-  return (
-    <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
-      <ScrollAreaPrimitive.Viewport
-        ref={scrollAreaRef}
-        className="h-full w-full rounded-[inherit] scrollable-container"
-        onScroll={onScroll}
-      >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      {showScrollbar && <ScrollBar />}
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  )
-})
+      // Force scrollable if needed
+      if (forceScrollable) {
+        forceEnableScrolling(scrollAreaRef.current)
+      }
+
+      // Isolate scrolling if needed
+      let cleanup: (() => void) | undefined
+      if (isolate) {
+        cleanup = isolateScrolling(scrollAreaRef.current)
+      }
+
+      return cleanup
+    }, [forceScrollable, isolate])
+
+    return (
+      <ScrollAreaPrimitive.Root ref={ref} className={cn("relative overflow-hidden", className)} {...props}>
+        <ScrollAreaPrimitive.Viewport
+          ref={scrollAreaRef}
+          className="h-full w-full rounded-[inherit] scrollable-container"
+          onScroll={onScroll}
+        >
+          {children}
+        </ScrollAreaPrimitive.Viewport>
+        {showScrollbar && <ScrollBar />}
+        <ScrollAreaPrimitive.Corner />
+      </ScrollAreaPrimitive.Root>
+    )
+  },
+)
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
 const ScrollBar = React.forwardRef<

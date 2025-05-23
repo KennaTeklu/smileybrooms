@@ -1,45 +1,35 @@
 /**
- * Forces a container to be scrollable by adding minimum content
- * This is useful when you want to ensure a container has a scrollbar
- * even when its content doesn't overflow
+ * Utility functions for scroll management
  */
+
+// Force a container to be scrollable even if content doesn't overflow
 export function forceEnableScrolling(element: HTMLElement): void {
-  // Check if the element already has a scrollbar
-  const hasScrollbar = element.scrollHeight > element.clientHeight
-
-  if (!hasScrollbar) {
-    // Create a temporary invisible element to force scrolling
-    const tempDiv = document.createElement("div")
-    tempDiv.style.height = "1px"
-    tempDiv.style.marginBottom = "1px"
-    tempDiv.style.visibility = "hidden"
-    tempDiv.setAttribute("data-force-scroll", "true")
-
-    // Append to the element
-    element.appendChild(tempDiv)
-
-    // Clean up function to remove the element when no longer needed
-    return () => {
-      const forceScrollElements = element.querySelectorAll('[data-force-scroll="true"]')
-      forceScrollElements.forEach((el) => el.remove())
-    }
-  }
-
-  // Return empty cleanup if no action was taken
-  return () => {}
+  // Add a small invisible element to force scrolling
+  const forceScrollEl = document.createElement("div")
+  forceScrollEl.style.height = "1px"
+  forceScrollEl.style.marginBottom = "1px"
+  forceScrollEl.style.visibility = "hidden"
+  element.appendChild(forceScrollEl)
 }
 
-/**
- * Prevents scroll events from propagating to parent elements
- */
+// Prevent scroll events from propagating to parent elements
 export function isolateScrolling(element: HTMLElement): () => void {
   const handleWheel = (e: WheelEvent) => {
     const { scrollTop, scrollHeight, clientHeight } = element
 
-    // Check if scrolling up at the top or down at the bottom
-    if ((scrollTop === 0 && e.deltaY < 0) || (scrollTop + clientHeight >= scrollHeight && e.deltaY > 0)) {
-      e.preventDefault()
+    // Check if scrolling up and already at the top
+    if (e.deltaY < 0 && scrollTop <= 0) {
+      return // Allow browser to handle
     }
+
+    // Check if scrolling down and already at the bottom
+    if (e.deltaY > 0 && scrollTop + clientHeight >= scrollHeight) {
+      return // Allow browser to handle
+    }
+
+    // Otherwise prevent default and handle scroll ourselves
+    e.preventDefault()
+    element.scrollTop += e.deltaY
   }
 
   element.addEventListener("wheel", handleWheel, { passive: false })
@@ -50,36 +40,9 @@ export function isolateScrolling(element: HTMLElement): () => void {
   }
 }
 
-/**
- * Tracks scroll position and provides information about the scroll state
- */
-export function useScrollTracking(element: HTMLElement | null): {
-  position: number
-  percentage: number
-  isAtTop: boolean
-  isAtBottom: boolean
-  maxScroll: number
-} {
-  if (!element) {
-    return {
-      position: 0,
-      percentage: 0,
-      isAtTop: true,
-      isAtBottom: false,
-      maxScroll: 0,
-    }
-  }
-
-  const scrollTop = element.scrollTop
-  const scrollHeight = element.scrollHeight
-  const clientHeight = element.clientHeight
-  const maxScroll = scrollHeight - clientHeight
-
-  return {
-    position: scrollTop,
-    percentage: maxScroll > 0 ? scrollTop / maxScroll : 0,
-    isAtTop: scrollTop <= 0,
-    isAtBottom: Math.abs(scrollTop + clientHeight - scrollHeight) < 1,
-    maxScroll,
-  }
+// Calculate scroll percentage
+export function getScrollPercentage(element: HTMLElement): number {
+  const { scrollTop, scrollHeight, clientHeight } = element
+  if (scrollHeight <= clientHeight) return 100
+  return (scrollTop / (scrollHeight - clientHeight)) * 100
 }
