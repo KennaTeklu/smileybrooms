@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Settings } from "lucide-react"
 import { roomIcons, roomDisplayNames } from "@/lib/room-tiers"
-import { RoomCustomizationDrawer } from "./room-customization-drawer"
+import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
 
 interface RoomCount {
   [key: string]: number
@@ -185,9 +185,9 @@ export function RoomCategory({
         </CardContent>
       </Card>
 
-      {/* Room Customization Drawer */}
+      {/* Room Customization Panel */}
       {activeDrawer && (
-        <RoomCustomizationDrawer
+        <EnhancedRoomCustomizationPanel
           key={activeDrawer}
           isOpen={activeDrawer !== null}
           onClose={handleCloseDrawer}
