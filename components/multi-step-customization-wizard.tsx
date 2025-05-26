@@ -7,9 +7,9 @@ import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
 import { ConfigurationManager } from "./configuration-manager"
-import { AddressCollectionModal } from "./address-collection-modal"
+import AddressCollectionModal from "./address-collection-modal"
 import { useCart } from "@/lib/cart-context"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 interface RoomConfig {
   roomName: string
