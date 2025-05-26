@@ -517,30 +517,32 @@ export function MultiStepCustomizationWizard({
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4">
-              <div className="flex items-center justify-between mb-4">
-                <span className="font-medium">Total:</span>
-                <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
-              </div>
+            <div className="border-t bg-white dark:bg-gray-900">
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Total:</span>
+                  <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
+                </div>
 
-              <div className="flex gap-2">
-                {!isFirstStep && (
-                  <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Back
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {!isFirstStep && (
+                    <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
+                  )}
 
-                {isLastStep ? (
-                  <Button onClick={handleAddToCart} className="flex-1" disabled={!addressData}>
-                    Add to Cart
-                  </Button>
-                ) : (
-                  <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext}>
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                )}
+                  {isLastStep ? (
+                    <Button onClick={handleAddToCart} className="flex-1" disabled={!addressData}>
+                      Add to Cart
+                    </Button>
+                  ) : (
+                    <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext}>
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
