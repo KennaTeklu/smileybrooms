@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Settings } from "lucide-react"
 import { roomIcons, roomDisplayNames } from "@/lib/room-tiers"
-import { SimpleCustomizationPanel } from "./simple-customization-panel"
+import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 
 interface RoomCount {
   [key: string]: number
@@ -46,28 +46,28 @@ export function RoomCategory({
   variant = "primary",
   onRoomSelect,
 }: RoomCategoryProps) {
-  const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [activeWizard, setActiveWizard] = useState<string | null>(null)
 
-  const handleOpenPanel = (roomType: string) => {
+  const handleOpenWizard = (roomType: string) => {
     try {
       // Ensure at least one room is selected before customizing
       if (roomCounts[roomType] === 0) {
         onRoomCountChange(roomType, 1)
       }
-      setActivePanel(roomType)
+      setActiveWizard(roomType)
     } catch (error) {
-      console.error("Error opening customization panel:", error)
+      console.error("Error opening customization wizard:", error)
     }
   }
 
-  const handleClosePanel = () => {
-    setActivePanel(null)
+  const handleCloseWizard = () => {
+    setActiveWizard(null)
   }
 
   const handleRoomConfigChange = (config: RoomConfig) => {
     try {
-      if (activePanel && onRoomConfigChange) {
-        onRoomConfigChange(activePanel, config)
+      if (activeWizard && onRoomConfigChange) {
+        onRoomConfigChange(activeWizard, config)
       }
     } catch (error) {
       console.error("Error updating room config:", error)
@@ -219,7 +219,7 @@ export function RoomCategory({
                       className="mt-3 w-full"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleOpenPanel(roomType)
+                        handleOpenWizard(roomType)
                       }}
                       aria-label={`Customize ${roomDisplayNames[roomType] || roomType}`}
                     >
@@ -234,16 +234,16 @@ export function RoomCategory({
         </CardContent>
       </Card>
 
-      {/* Simple Customization Panel */}
-      {activePanel && (
-        <SimpleCustomizationPanel
-          isOpen={activePanel !== null}
-          onClose={handleClosePanel}
-          roomType={activePanel}
-          roomName={roomDisplayNames[activePanel] || activePanel}
-          roomIcon={roomIcons[activePanel] || "🏠"}
-          roomCount={roomCounts[activePanel] || 0}
-          config={safeGetRoomConfig(activePanel)}
+      {/* Multi-Step Customization Wizard */}
+      {activeWizard && (
+        <MultiStepCustomizationWizard
+          isOpen={activeWizard !== null}
+          onClose={handleCloseWizard}
+          roomType={activeWizard}
+          roomName={roomDisplayNames[activeWizard] || activeWizard}
+          roomIcon={roomIcons[activeWizard] || "🏠"}
+          roomCount={roomCounts[activeWizard] || 0}
+          config={safeGetRoomConfig(activeWizard)}
           onConfigChange={handleRoomConfigChange}
         />
       )}
