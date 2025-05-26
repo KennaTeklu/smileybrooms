@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
@@ -52,8 +52,8 @@ export function SimpleCustomizationPanel({
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
 
-  // Safely get room data
-  const getRoomData = () => {
+  // Memoize room data to prevent recalculation
+  const roomData = useMemo(() => {
     try {
       return {
         tiers: getRoomTiers(roomType) || [],
@@ -68,14 +68,12 @@ export function SimpleCustomizationPanel({
         reductions: [],
       }
     }
-  }
+  }, [roomType])
 
-  const { tiers, addOns, reductions } = getRoomData()
-
-  // Calculate pricing safely
-  const calculatePricing = () => {
+  // Memoize pricing calculation to prevent infinite loops
+  const pricing = useMemo(() => {
     try {
-      if (tiers.length === 0) {
+      if (roomData.tiers.length === 0) {
         return {
           basePrice: 0,
           tierUpgradePrice: 0,
@@ -85,18 +83,18 @@ export function SimpleCustomizationPanel({
         }
       }
 
-      const baseTier = tiers[0]
-      const currentTier = tiers.find((t) => t.name === selectedTier) || baseTier
+      const baseTier = roomData.tiers[0]
+      const currentTier = roomData.tiers.find((t) => t.name === selectedTier) || baseTier
 
       const tierUpgradePrice = Math.max(0, currentTier.price - baseTier.price)
 
       const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
-        const addOn = addOns.find((a) => a.id === addOnId)
+        const addOn = roomData.addOns.find((a) => a.id === addOnId)
         return sum + (addOn?.price || 0)
       }, 0)
 
       const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
-        const reduction = reductions.find((r) => r.id === reductionId)
+        const reduction = roomData.reductions.find((r) => r.id === reductionId)
         return sum + (reduction?.discount || 0)
       }, 0)
 
@@ -119,45 +117,48 @@ export function SimpleCustomizationPanel({
         totalPrice: 0,
       }
     }
-  }
+  }, [selectedTier, selectedAddOns, selectedReductions, roomData])
 
-  const pricing = calculatePricing()
+  // Memoize the config object to prevent infinite updates
+  const currentConfig = useMemo(
+    () => ({
+      roomName: roomType,
+      selectedTier,
+      selectedAddOns,
+      selectedReductions,
+      ...pricing,
+    }),
+    [roomType, selectedTier, selectedAddOns, selectedReductions, pricing],
+  )
 
-  // Update config when selections change
-  useEffect(() => {
+  // Use useCallback to prevent function recreation
+  const handleConfigChange = useCallback(() => {
     try {
-      if (!onConfigChange || !roomType) return
-
-      const newConfig: RoomConfig = {
-        roomName: roomType,
-        selectedTier,
-        selectedAddOns,
-        selectedReductions,
-        ...pricing,
+      if (onConfigChange) {
+        onConfigChange(currentConfig)
       }
-      onConfigChange(newConfig)
     } catch (error) {
       console.error("Error updating config:", error)
     }
-  }, [selectedTier, selectedAddOns, selectedReductions, roomType, onConfigChange])
+  }, [onConfigChange, currentConfig])
 
-  const toggleAddOn = (addOnId: string) => {
-    try {
-      setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
-    } catch (error) {
-      console.error("Error toggling add-on:", error)
+  // Only call onConfigChange when the config actually changes
+  useEffect(() => {
+    // Only update if the panel is open and we have valid data
+    if (isOpen && roomType) {
+      handleConfigChange()
     }
-  }
+  }, [isOpen, roomType, handleConfigChange])
 
-  const toggleReduction = (reductionId: string) => {
-    try {
-      setSelectedReductions((prev) =>
-        prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
-      )
-    } catch (error) {
-      console.error("Error toggling reduction:", error)
-    }
-  }
+  const toggleAddOn = useCallback((addOnId: string) => {
+    setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
+  }, [])
+
+  const toggleReduction = useCallback((reductionId: string) => {
+    setSelectedReductions((prev) =>
+      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
+    )
+  }, [])
 
   if (!isOpen) return null
 
@@ -188,11 +189,11 @@ export function SimpleCustomizationPanel({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Cleaning Tiers */}
-            {tiers.length > 0 && (
+            {roomData.tiers.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Cleaning Level</h3>
                 <div className="space-y-2">
-                  {tiers.map((tier, index) => (
+                  {roomData.tiers.map((tier, index) => (
                     <Card
                       key={tier.id || tier.name || index}
                       className={`cursor-pointer transition-colors ${
@@ -221,11 +222,11 @@ export function SimpleCustomizationPanel({
             )}
 
             {/* Add-ons */}
-            {addOns.length > 0 && (
+            {roomData.addOns.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Add-ons</h3>
                 <div className="space-y-2">
-                  {addOns.map((addOn, index) => (
+                  {roomData.addOns.map((addOn, index) => (
                     <Card
                       key={addOn.id || index}
                       className={`cursor-pointer transition-colors ${
@@ -254,11 +255,11 @@ export function SimpleCustomizationPanel({
             )}
 
             {/* Reductions */}
-            {reductions.length > 0 && (
+            {roomData.reductions.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
                 <div className="space-y-2">
-                  {reductions.map((reduction, index) => (
+                  {roomData.reductions.map((reduction, index) => (
                     <Card
                       key={reduction.id || index}
                       className={`cursor-pointer transition-colors ${
@@ -289,7 +290,7 @@ export function SimpleCustomizationPanel({
             )}
 
             {/* Fallback if no data */}
-            {tiers.length === 0 && addOns.length === 0 && reductions.length === 0 && (
+            {roomData.tiers.length === 0 && roomData.addOns.length === 0 && roomData.reductions.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">No customization options available for this room type.</p>
                 <p className="text-sm text-gray-400 mt-2">Room type: {roomType}</p>
