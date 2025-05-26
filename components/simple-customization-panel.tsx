@@ -39,17 +39,78 @@ export function SimpleCustomizationPanel({
   config,
   onConfigChange,
 }: SimpleCustomizationPanelProps) {
-  const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
+  // Initialize with safe defaults
+  const [selectedTier, setSelectedTier] = useState(() => {
+    try {
+      const tiers = getRoomTiers(roomType)
+      return config?.selectedTier || tiers?.[0]?.name || "ESSENTIAL CLEAN"
+    } catch {
+      return "ESSENTIAL CLEAN"
+    }
+  })
+
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
 
-  const tiers = getRoomTiers(roomType) || []
-  const addOns = getRoomAddOns(roomType) || []
-  const reductions = getRoomReductions(roomType) || []
+  // Safely get room data
+  const getRoomData = () => {
+    try {
+      return {
+        tiers: getRoomTiers(roomType) || [],
+        addOns: getRoomAddOns(roomType) || [],
+        reductions: getRoomReductions(roomType) || [],
+      }
+    } catch (error) {
+      console.error("Error getting room data:", error)
+      return {
+        tiers: [],
+        addOns: [],
+        reductions: [],
+      }
+    }
+  }
 
-  // Calculate pricing
+  const { tiers, addOns, reductions } = getRoomData()
+
+  // Calculate pricing safely
   const calculatePricing = () => {
-    if (tiers.length === 0) {
+    try {
+      if (tiers.length === 0) {
+        return {
+          basePrice: 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          reductionsPrice: 0,
+          totalPrice: 0,
+        }
+      }
+
+      const baseTier = tiers[0]
+      const currentTier = tiers.find((t) => t.name === selectedTier) || baseTier
+
+      const tierUpgradePrice = Math.max(0, currentTier.price - baseTier.price)
+
+      const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
+        const addOn = addOns.find((a) => a.id === addOnId)
+        return sum + (addOn?.price || 0)
+      }, 0)
+
+      const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
+        const reduction = reductions.find((r) => r.id === reductionId)
+        return sum + (reduction?.discount || 0)
+      }, 0)
+
+      const totalPrice = Math.max(0, currentTier.price + addOnsPrice - reductionsPrice)
+
+      return {
+        basePrice: baseTier.price,
+        tierUpgradePrice,
+        addOnsPrice,
+        reductionsPrice,
+        totalPrice,
+      }
+    } catch (error) {
+      console.error("Error calculating pricing:", error)
       return {
         basePrice: 0,
         tierUpgradePrice: 0,
@@ -58,56 +119,44 @@ export function SimpleCustomizationPanel({
         totalPrice: 0,
       }
     }
-
-    const baseTier = tiers[0]
-    const currentTier = tiers.find((t) => t.name === selectedTier) || baseTier
-
-    const tierUpgradePrice = currentTier.price - baseTier.price
-    const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
-      const addOn = addOns.find((a) => a.id === addOnId)
-      return sum + (addOn?.price || 0)
-    }, 0)
-
-    const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
-      const reduction = reductions.find((r) => r.id === reductionId)
-      return sum + (reduction?.discount || 0)
-    }, 0)
-
-    const totalPrice = currentTier.price + addOnsPrice - reductionsPrice
-
-    return {
-      basePrice: baseTier.price,
-      tierUpgradePrice,
-      addOnsPrice,
-      reductionsPrice,
-      totalPrice: Math.max(0, totalPrice),
-    }
   }
 
   const pricing = calculatePricing()
 
   // Update config when selections change
   useEffect(() => {
-    if (!onConfigChange) return
+    try {
+      if (!onConfigChange || !roomType) return
 
-    const newConfig: RoomConfig = {
-      roomName: roomType,
-      selectedTier,
-      selectedAddOns,
-      selectedReductions,
-      ...pricing,
+      const newConfig: RoomConfig = {
+        roomName: roomType,
+        selectedTier,
+        selectedAddOns,
+        selectedReductions,
+        ...pricing,
+      }
+      onConfigChange(newConfig)
+    } catch (error) {
+      console.error("Error updating config:", error)
     }
-    onConfigChange(newConfig)
-  }, [selectedTier, selectedAddOns, selectedReductions, roomType, pricing, onConfigChange])
+  }, [selectedTier, selectedAddOns, selectedReductions, roomType, onConfigChange])
 
   const toggleAddOn = (addOnId: string) => {
-    setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
+    try {
+      setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
+    } catch (error) {
+      console.error("Error toggling add-on:", error)
+    }
   }
 
   const toggleReduction = (reductionId: string) => {
-    setSelectedReductions((prev) =>
-      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
-    )
+    try {
+      setSelectedReductions((prev) =>
+        prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
+      )
+    } catch (error) {
+      console.error("Error toggling reduction:", error)
+    }
   }
 
   if (!isOpen) return null
@@ -143,9 +192,9 @@ export function SimpleCustomizationPanel({
               <div>
                 <h3 className="font-medium mb-3">Cleaning Level</h3>
                 <div className="space-y-2">
-                  {tiers.map((tier) => (
+                  {tiers.map((tier, index) => (
                     <Card
-                      key={tier.id || tier.name}
+                      key={tier.id || tier.name || index}
                       className={`cursor-pointer transition-colors ${
                         selectedTier === tier.name
                           ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
@@ -160,7 +209,7 @@ export function SimpleCustomizationPanel({
                               <span className="font-medium">{tier.name}</span>
                               {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
                             </div>
-                            <p className="text-sm text-gray-500">{tier.description}</p>
+                            {tier.description && <p className="text-sm text-gray-500">{tier.description}</p>}
                           </div>
                           <span className="font-medium">${tier.price}</span>
                         </div>
@@ -176,9 +225,9 @@ export function SimpleCustomizationPanel({
               <div>
                 <h3 className="font-medium mb-3">Add-ons</h3>
                 <div className="space-y-2">
-                  {addOns.map((addOn) => (
+                  {addOns.map((addOn, index) => (
                     <Card
-                      key={addOn.id}
+                      key={addOn.id || index}
                       className={`cursor-pointer transition-colors ${
                         selectedAddOns.includes(addOn.id)
                           ? "border-green-500 bg-green-50 dark:bg-green-900/20"
@@ -209,9 +258,9 @@ export function SimpleCustomizationPanel({
               <div>
                 <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
                 <div className="space-y-2">
-                  {reductions.map((reduction) => (
+                  {reductions.map((reduction, index) => (
                     <Card
-                      key={reduction.id}
+                      key={reduction.id || index}
                       className={`cursor-pointer transition-colors ${
                         selectedReductions.includes(reduction.id)
                           ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
@@ -243,6 +292,7 @@ export function SimpleCustomizationPanel({
             {tiers.length === 0 && addOns.length === 0 && reductions.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">No customization options available for this room type.</p>
+                <p className="text-sm text-gray-400 mt-2">Room type: {roomType}</p>
               </div>
             )}
           </div>

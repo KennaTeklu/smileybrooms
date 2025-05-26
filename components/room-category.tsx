@@ -49,11 +49,15 @@ export function RoomCategory({
   const [activePanel, setActivePanel] = useState<string | null>(null)
 
   const handleOpenPanel = (roomType: string) => {
-    // Ensure at least one room is selected before customizing
-    if (roomCounts[roomType] === 0) {
-      onRoomCountChange(roomType, 1)
+    try {
+      // Ensure at least one room is selected before customizing
+      if (roomCounts[roomType] === 0) {
+        onRoomCountChange(roomType, 1)
+      }
+      setActivePanel(roomType)
+    } catch (error) {
+      console.error("Error opening customization panel:", error)
     }
-    setActivePanel(roomType)
   }
 
   const handleClosePanel = () => {
@@ -61,8 +65,12 @@ export function RoomCategory({
   }
 
   const handleRoomConfigChange = (config: RoomConfig) => {
-    if (activePanel) {
-      onRoomConfigChange(activePanel, config)
+    try {
+      if (activePanel && onRoomConfigChange) {
+        onRoomConfigChange(activePanel, config)
+      }
+    } catch (error) {
+      console.error("Error updating room config:", error)
     }
   }
 
@@ -92,6 +100,26 @@ export function RoomCategory({
       return "border-blue-500 dark:border-blue-400"
     }
     return "border-gray-500 dark:border-gray-400"
+  }
+
+  const safeGetRoomConfig = (roomType: string): RoomConfig => {
+    try {
+      return getRoomConfig(roomType)
+    } catch (error) {
+      console.error("Error getting room config:", error)
+      // Return a safe default config
+      return {
+        roomName: roomType,
+        selectedTier: "ESSENTIAL CLEAN",
+        selectedAddOns: [],
+        selectedReductions: [],
+        basePrice: 0,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: 0,
+      }
+    }
   }
 
   return (
@@ -129,30 +157,38 @@ export function RoomCategory({
                   roomCounts[roomType] > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
                 } cursor-pointer`}
                 onClick={() => {
-                  if (roomCounts[roomType] <= 0) {
-                    onRoomCountChange(roomType, 1)
-                  }
-                  if (onRoomSelect) {
-                    onRoomSelect(roomType)
+                  try {
+                    if (roomCounts[roomType] <= 0) {
+                      onRoomCountChange(roomType, 1)
+                    }
+                    if (onRoomSelect) {
+                      onRoomSelect(roomType)
+                    }
+                  } catch (error) {
+                    console.error("Error selecting room:", error)
                   }
                 }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
                   <div className="text-3xl mb-2" aria-hidden="true">
-                    {roomIcons[roomType]}
+                    {roomIcons[roomType] || "🏠"}
                   </div>
-                  <h3 className="font-medium mb-2">{roomDisplayNames[roomType]}</h3>
+                  <h3 className="font-medium mb-2">{roomDisplayNames[roomType] || roomType}</h3>
                   <div className="flex items-center gap-3 mt-2">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onRoomCountChange(roomType, (roomCounts[roomType] || 0) - 1)
+                        try {
+                          onRoomCountChange(roomType, Math.max(0, (roomCounts[roomType] || 0) - 1))
+                        } catch (error) {
+                          console.error("Error decreasing room count:", error)
+                        }
                       }}
                       disabled={roomCounts[roomType] <= 0}
                       className="h-8 w-8"
-                      aria-label={`Decrease ${roomDisplayNames[roomType]} count`}
+                      aria-label={`Decrease ${roomDisplayNames[roomType] || roomType} count`}
                     >
                       <MinusCircle className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -162,10 +198,14 @@ export function RoomCategory({
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onRoomCountChange(roomType, (roomCounts[roomType] || 0) + 1)
+                        try {
+                          onRoomCountChange(roomType, (roomCounts[roomType] || 0) + 1)
+                        } catch (error) {
+                          console.error("Error increasing room count:", error)
+                        }
                       }}
                       className="h-8 w-8"
-                      aria-label={`Increase ${roomDisplayNames[roomType]} count`}
+                      aria-label={`Increase ${roomDisplayNames[roomType] || roomType} count`}
                     >
                       <PlusCircle className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -181,7 +221,7 @@ export function RoomCategory({
                         e.stopPropagation()
                         handleOpenPanel(roomType)
                       }}
-                      aria-label={`Customize ${roomDisplayNames[roomType]}`}
+                      aria-label={`Customize ${roomDisplayNames[roomType] || roomType}`}
                     >
                       <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                       Customize
@@ -200,10 +240,10 @@ export function RoomCategory({
           isOpen={activePanel !== null}
           onClose={handleClosePanel}
           roomType={activePanel}
-          roomName={roomDisplayNames[activePanel] || "Room"}
+          roomName={roomDisplayNames[activePanel] || activePanel}
           roomIcon={roomIcons[activePanel] || "🏠"}
           roomCount={roomCounts[activePanel] || 0}
-          config={getRoomConfig(activePanel)}
+          config={safeGetRoomConfig(activePanel)}
           onConfigChange={handleRoomConfigChange}
         />
       )}
