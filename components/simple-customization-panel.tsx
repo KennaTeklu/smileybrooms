@@ -1,152 +1,248 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useCart } from "@/lib/cart-context"
-import { roomTiers } from "@/lib/room-tiers"
+import { Card, CardContent } from "@/components/ui/card"
+import { X, Check } from "lucide-react"
+import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+
+interface RoomConfig {
+  roomName: string
+  selectedTier: string
+  selectedAddOns: string[]
+  selectedReductions: string[]
+  basePrice: number
+  tierUpgradePrice: number
+  addOnsPrice: number
+  reductionsPrice: number
+  totalPrice: number
+}
 
 interface SimpleCustomizationPanelProps {
   isOpen: boolean
   onClose: () => void
   roomType: string
   roomName: string
+  roomIcon?: string
+  roomCount?: number
+  config: RoomConfig
+  onConfigChange: (config: RoomConfig) => void
 }
 
-export default function SimpleCustomizationPanel({
+export function SimpleCustomizationPanel({
   isOpen,
   onClose,
   roomType,
   roomName,
+  roomIcon = "🏠",
+  roomCount = 1,
+  config,
+  onConfigChange,
 }: SimpleCustomizationPanelProps) {
-  const { addToCart } = useCart()
-  const [selectedTier, setSelectedTier] = useState("standard")
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([])
-  const [totalPrice, setTotalPrice] = useState(0)
+  const [selectedTier, setSelectedTier] = useState(config.selectedTier)
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(config.selectedReductions)
 
-  const roomData = roomTiers[roomType as keyof typeof roomTiers]
+  const tiers = getRoomTiers(roomType)
+  const addOns = getRoomAddOns(roomType)
+  const reductions = getRoomReductions(roomType)
 
-  useEffect(() => {
-    if (!roomData) return
+  // Calculate pricing
+  const calculatePricing = () => {
+    const baseTier = tiers[0]
+    const currentTier = tiers.find((t) => t.name === selectedTier) || baseTier
 
-    const tierPrice = roomData.tiers.find((t) => t.id === selectedTier)?.price || 0
-    const addOnPrice = selectedAddOns.reduce((sum, addOnId) => {
-      const addOn = roomData.addOns.find((a) => a.id === addOnId)
+    const tierUpgradePrice = currentTier.price - baseTier.price
+    const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
+      const addOn = addOns.find((a) => a.id === addOnId)
       return sum + (addOn?.price || 0)
     }, 0)
 
-    setTotalPrice(tierPrice + addOnPrice)
-  }, [selectedTier, selectedAddOns, roomData])
+    const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
+      const reduction = reductions.find((r) => r.id === reductionId)
+      return sum + (reduction?.discount || 0)
+    }, 0)
+
+    const totalPrice = currentTier.price + addOnsPrice - reductionsPrice
+
+    return {
+      basePrice: baseTier.price,
+      tierUpgradePrice,
+      addOnsPrice,
+      reductionsPrice,
+      totalPrice: Math.max(0, totalPrice),
+    }
+  }
+
+  const pricing = calculatePricing()
+
+  // Update config when selections change
+  useEffect(() => {
+    const newConfig: RoomConfig = {
+      roomName: roomType,
+      selectedTier,
+      selectedAddOns,
+      selectedReductions,
+      ...pricing,
+    }
+    onConfigChange(newConfig)
+  }, [selectedTier, selectedAddOns, selectedReductions, roomType, onConfigChange])
 
   const toggleAddOn = (addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }
 
-  const handleAddToCart = () => {
-    const tier = roomData?.tiers.find((t) => t.id === selectedTier)
-    const addOns = roomData?.addOns.filter((a) => selectedAddOns.includes(a.id)) || []
-
-    if (tier) {
-      addToCart({
-        id: `${roomType}-${Date.now()}`,
-        name: `${roomName} - ${tier.name}`,
-        price: totalPrice,
-        quantity: 1,
-        roomType,
-        tier: tier.name,
-        addOns: addOns.map((a) => a.name),
-      })
-      onClose()
-    }
+  const toggleReduction = (reductionId: string) => {
+    setSelectedReductions((prev) =>
+      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
+    )
   }
 
-  if (!isOpen || !roomData) return null
+  if (!isOpen) return null
 
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl z-50 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Customize {roomName}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+      <div className="relative ml-auto w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{roomIcon}</span>
+              <div>
+                <h2 className="text-lg font-semibold">{roomName}</h2>
+                <p className="text-sm text-gray-500">
+                  {roomCount} room{roomCount !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* Cleaning Tiers */}
-          <div>
-            <h3 className="font-medium mb-3">Cleaning Level</h3>
-            <div className="space-y-2">
-              {roomData.tiers.map((tier) => (
-                <div
-                  key={tier.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                    selectedTier === tier.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                  onClick={() => setSelectedTier(tier.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{tier.name}</div>
-                      <div className="text-sm text-gray-600">{tier.description}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">${tier.price}</div>
-                      {selectedTier === tier.id && <Check className="h-4 w-4 text-blue-500 ml-auto mt-1" />}
-                    </div>
-                  </div>
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Cleaning Tiers */}
+            <div>
+              <h3 className="font-medium mb-3">Cleaning Level</h3>
+              <div className="space-y-2">
+                {tiers.map((tier) => (
+                  <Card
+                    key={tier.name}
+                    className={`cursor-pointer transition-colors ${
+                      selectedTier === tier.name
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                    onClick={() => setSelectedTier(tier.name)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{tier.name}</span>
+                            {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
+                          </div>
+                          <p className="text-sm text-gray-500">{tier.description}</p>
+                        </div>
+                        <span className="font-medium">${tier.price}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Add-ons */}
+            {addOns.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-3">Add-ons</h3>
+                <div className="space-y-2">
+                  {addOns.map((addOn) => (
+                    <Card
+                      key={addOn.id}
+                      className={`cursor-pointer transition-colors ${
+                        selectedAddOns.includes(addOn.id)
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      onClick={() => toggleAddOn(addOn.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{addOn.name}</span>
+                              {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
+                            </div>
+                            <p className="text-sm text-gray-500">{addOn.description}</p>
+                          </div>
+                          <span className="font-medium">+${addOn.price}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Reductions */}
+            {reductions.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
+                <div className="space-y-2">
+                  {reductions.map((reduction) => (
+                    <Card
+                      key={reduction.id}
+                      className={`cursor-pointer transition-colors ${
+                        selectedReductions.includes(reduction.id)
+                          ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      onClick={() => toggleReduction(reduction.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{reduction.name}</span>
+                              {selectedReductions.includes(reduction.id) && (
+                                <Check className="h-4 w-4 text-orange-600" />
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{reduction.description}</p>
+                          </div>
+                          <span className="font-medium text-orange-600">-${reduction.discount}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t p-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-medium">Total per room:</span>
+              <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={onClose} className="flex-1">
+                Apply Changes
+              </Button>
             </div>
           </div>
-
-          {/* Add-ons */}
-          <div>
-            <h3 className="font-medium mb-3">Add-ons</h3>
-            <div className="space-y-2">
-              {roomData.addOns.map((addOn) => (
-                <div
-                  key={addOn.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                    selectedAddOns.includes(addOn.id)
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                  onClick={() => toggleAddOn(addOn.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{addOn.name}</div>
-                      <div className="text-sm text-gray-600">{addOn.description}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">+${addOn.price}</div>
-                      {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-500 ml-auto mt-1" />}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t p-4 space-y-3">
-          <div className="flex items-center justify-between text-lg font-semibold">
-            <span>Total:</span>
-            <span>${totalPrice}</span>
-          </div>
-          <Button onClick={handleAddToCart} className="w-full" size="lg">
-            Add to Cart
-          </Button>
         </div>
       </div>
-    </>
+    </div>
   )
 }
