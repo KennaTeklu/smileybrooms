@@ -1,83 +1,71 @@
 /**
- * Email Utilities Module
- *
- * This module provides functions for formatting form data into email content
- * and generating mailto links for direct email client integration.
- */
-
-import { formatPhoneNumber } from "./form-utils"
-
-/**
  * Format form data into a readable paragraph for email
  */
-export function formatFormDataForEmail(formData: Record<string, any>): string {
-  // Extract customer information
-  const customerInfo = formData.customer || {}
-  const rooms = formData.rooms || ""
-  const frequency = formData.frequency || "one_time"
-  const serviceType = formData.serviceType || "standard"
-  const isRecurring = formData.isRecurring || false
-  const recurringInterval = formData.recurringInterval || ""
-  const totalPrice = formData.price || 0
+export function formatFormDataForEmail(emailData: any): string {
+  const customer = emailData.customer || {}
+  const service = emailData.service || {}
+  const pricing = emailData.pricing || {}
 
-  // Format frequency label
-  const frequencyLabel =
-    {
-      one_time: "One-Time Cleaning",
-      weekly: "Weekly Cleaning",
-      biweekly: "Biweekly Cleaning",
-      monthly: "Monthly Cleaning",
-      semi_annual: "Semi-Annual Cleaning",
-      annually: "Annual Cleaning",
-      vip_daily: "VIP Daily Cleaning",
-    }[frequency] || frequency
+  // Format service details
+  const serviceDetails = `${service.roomName} (${service.roomCount} room${service.roomCount !== 1 ? "s" : ""})`
+  const cleaningLevel = service.selectedTier || "Standard"
+  const frequency = service.frequency?.replace("_", " ") || "one-time"
 
-  // Format service type
-  const serviceTypeLabel = serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"
+  // Format add-ons and reductions
+  const addOns =
+    service.selectedAddOns?.length > 0 ? `Add-ons: ${service.selectedAddOns.join(", ")}` : "No add-ons selected"
 
-  // Format recurring information
-  const recurringText = isRecurring
-    ? `This is a recurring service on a ${recurringInterval}ly basis.`
-    : "This is a one-time service."
+  const reductions =
+    service.selectedReductions?.length > 0
+      ? `Skipped services: ${service.selectedReductions.join(", ")}`
+      : "No services skipped"
 
-  // Format customer address
-  const address = customerInfo.address
-    ? `${customerInfo.address}, ${customerInfo.city || ""}, ${customerInfo.state || ""} ${customerInfo.zipCode || ""}`
+  // Format address
+  const address = customer.address
+    ? `${customer.address}, ${customer.city || ""}, ${customer.state || ""} ${customer.zipCode || ""}`
     : "No address provided"
 
   // Format special instructions
-  const specialInstructions = customerInfo.specialInstructions
-    ? `Special Instructions: ${customerInfo.specialInstructions}`
+  const specialInstructions = customer.specialInstructions
+    ? `Special Instructions: ${customer.specialInstructions}`
     : "No special instructions provided."
 
   // Format video recording preference
-  const videoRecording = customerInfo.allowVideoRecording
-    ? "Customer has agreed to allow video recording for quality assurance."
+  const videoRecording = customer.allowVideoRecording
+    ? "Customer has agreed to allow video recording for quality assurance (discount applied)."
     : "Customer has declined video recording."
 
-  // Compile the paragraph
+  // Compile the email content
   return `
-New Cleaning Service Request
+New Cleaning Service Request - SmileBrooms
 
-Customer: ${customerInfo.name || "Not provided"}
-Email: ${customerInfo.email || "Not provided"}
-Phone: ${formatPhoneNumber(customerInfo.phone || "")}
+CUSTOMER INFORMATION:
+Name: ${customer.name || "Not provided"}
+Email: ${customer.email || "Not provided"}
+Phone: ${customer.phone || "Not provided"}
 
-Service Details:
-${serviceTypeLabel} - ${frequencyLabel}
-Rooms: ${rooms}
-Price: $${totalPrice.toFixed(2)}
-${recurringText}
+SERVICE DETAILS:
+Service: ${serviceDetails}
+Cleaning Level: ${cleaningLevel}
+Frequency: ${frequency}
+${addOns}
+${reductions}
 
-Location:
+PRICING:
+Base Price: $${pricing.basePrice?.toFixed(2) || "0.00"}
+${pricing.videoRecordingDiscount > 0 ? `Video Recording Discount: -$${pricing.videoRecordingDiscount.toFixed(2)}` : ""}
+Total Price: $${pricing.finalPrice?.toFixed(2) || "0.00"}
+
+SERVICE LOCATION:
 ${address}
-${customerInfo.googleMapsLink ? `Google Maps: ${customerInfo.googleMapsLink}` : ""}
 
-Additional Information:
+ADDITIONAL INFORMATION:
 ${specialInstructions}
 ${videoRecording}
 
-This request was submitted through the SmileBrooms website calculator.
+This request was submitted through the SmileBrooms website pricing calculator.
+
+Please contact the customer to confirm the appointment and arrange payment.
 `.trim()
 }
 

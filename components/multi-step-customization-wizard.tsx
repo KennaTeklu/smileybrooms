@@ -7,7 +7,7 @@ import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
 import { ConfigurationManager } from "./configuration-manager"
-import AddressCollectionModal from "./address-collection-modal"
+import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
 
@@ -69,7 +69,7 @@ export function MultiStepCustomizationWizard({
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
-  const [showAddressModal, setShowAddressModal] = useState(false)
+  // const [showAddressModal, setShowAddressModal] = useState(false)
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -184,7 +184,7 @@ export function MultiStepCustomizationWizard({
   const handleAddressSubmit = useCallback(
     (data: any) => {
       setAddressData(data)
-      setShowAddressModal(false)
+      // setShowAddressModal(false)
       goToNextStep()
     },
     [goToNextStep],
@@ -436,31 +436,19 @@ export function MultiStepCustomizationWizard({
             )}
 
             {currentStep === "address" && (
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <h3 className="text-lg font-medium mb-2">Service Address Required</h3>
-                  <p className="text-gray-500 mb-4">We need your address to provide the cleaning service.</p>
-                  {addressData ? (
-                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-green-800 dark:text-green-200">Address Added</span>
-                      </div>
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        {addressData.fullName}
-                        <br />
-                        {addressData.address}
-                        <br />
-                        {addressData.city}, {addressData.state} {addressData.zipCode}
-                      </p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddressModal(true)}>
-                        Edit Address
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button onClick={() => setShowAddressModal(true)}>Add Service Address</Button>
-                  )}
-                </div>
+              <div>
+                <InlineAddressForm
+                  onSubmit={handleAddressSubmit}
+                  calculatedPrice={pricing.totalPrice}
+                  serviceDetails={{
+                    roomName,
+                    roomCount,
+                    selectedTier,
+                    selectedAddOns,
+                    selectedReductions,
+                    frequency: selectedFrequency,
+                  }}
+                />
               </div>
             )}
 
@@ -544,16 +532,6 @@ export function MultiStepCustomizationWizard({
           </div>
         </div>
       </div>
-
-      {/* Address Modal */}
-      {showAddressModal && (
-        <AddressCollectionModal
-          isOpen={showAddressModal}
-          onClose={() => setShowAddressModal(false)}
-          onSubmit={handleAddressSubmit}
-          calculatedPrice={pricing.totalPrice}
-        />
-      )}
     </>
   )
 }
