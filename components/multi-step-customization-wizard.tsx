@@ -268,282 +268,278 @@ export function MultiStepCustomizationWizard({
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-        {/* Panel */}
-        <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl">
-          <div className="flex h-full flex-col">
-            {/* Header */}
-            <div className="border-b p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{roomIcon}</span>
-                  <div>
-                    <h2 className="text-lg font-semibold">{STEP_TITLES[currentStep]}</h2>
-                    <p className="text-sm text-gray-500">{STEP_DESCRIPTIONS[currentStep]}</p>
-                  </div>
+        {/* Panel - Content-aware height */}
+        <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
+          {/* Header - Fixed */}
+          <div className="flex-shrink-0 border-b p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{roomIcon}</span>
+                <div>
+                  <h2 className="text-lg font-semibold">{STEP_TITLES[currentStep]}</h2>
+                  <p className="text-sm text-gray-500">{STEP_DESCRIPTIONS[currentStep]}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose}>
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
-
-              {/* Progress indicator */}
-              <div className="flex items-center gap-2">
-                {steps.map((step, index) => (
-                  <div
-                    key={step}
-                    className={`flex-1 h-2 rounded-full ${
-                      index <= currentStepIndex ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Step {currentStepIndex + 1}</span>
-                <span>{steps.length} steps</span>
-              </div>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {currentStep === "room-config" && (
-                <div className="space-y-6">
-                  {/* Cleaning Tiers */}
-                  {roomData.tiers.length > 0 && (
-                    <div>
-                      <h3 className="font-medium mb-3">Cleaning Level</h3>
-                      <div className="space-y-2">
-                        {roomData.tiers.map((tier, index) => (
-                          <Card
-                            key={tier.id || tier.name || index}
-                            className={`cursor-pointer transition-colors ${
-                              selectedTier === tier.name
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                            }`}
-                            onClick={() => setSelectedTier(tier.name)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{tier.name}</span>
-                                    {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
-                                  </div>
-                                  {tier.description && <p className="text-sm text-gray-500">{tier.description}</p>}
-                                </div>
-                                <span className="font-medium">${tier.price}</span>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            {/* Progress indicator */}
+            <div className="flex items-center gap-2">
+              {steps.map((step, index) => (
+                <div
+                  key={step}
+                  className={`flex-1 h-2 rounded-full ${
+                    index <= currentStepIndex ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Step {currentStepIndex + 1}</span>
+              <span>{steps.length} steps</span>
+            </div>
+          </div>
 
-                  {/* Add-ons */}
-                  {roomData.addOns.length > 0 && (
-                    <div>
-                      <h3 className="font-medium mb-3">Add-ons</h3>
-                      <div className="space-y-2">
-                        {roomData.addOns.map((addOn, index) => (
-                          <Card
-                            key={addOn.id || index}
-                            className={`cursor-pointer transition-colors ${
-                              selectedAddOns.includes(addOn.id)
-                                ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                            }`}
-                            onClick={() => toggleAddOn(addOn.id)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{addOn.name}</span>
-                                    {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
-                                  </div>
-                                  {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            {currentStep === "room-config" && (
+              <div className="space-y-6">
+                {/* Cleaning Tiers */}
+                {roomData.tiers.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Cleaning Level</h3>
+                    <div className="space-y-2">
+                      {roomData.tiers.map((tier, index) => (
+                        <Card
+                          key={tier.id || tier.name || index}
+                          className={`cursor-pointer transition-colors ${
+                            selectedTier === tier.name
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => setSelectedTier(tier.name)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{tier.name}</span>
+                                  {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
                                 </div>
-                                <span className="font-medium">+${addOn.price}</span>
+                                {tier.description && <p className="text-sm text-gray-500">{tier.description}</p>}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                              <span className="font-medium">${tier.price}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Reductions */}
-                  {roomData.reductions.length > 0 && (
-                    <div>
-                      <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
-                      <div className="space-y-2">
-                        {roomData.reductions.map((reduction, index) => (
-                          <Card
-                            key={reduction.id || index}
-                            className={`cursor-pointer transition-colors ${
-                              selectedReductions.includes(reduction.id)
-                                ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
-                                : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                            }`}
-                            onClick={() => toggleReduction(reduction.id)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{reduction.name}</span>
-                                    {selectedReductions.includes(reduction.id) && (
-                                      <Check className="h-4 w-4 text-orange-600" />
-                                    )}
-                                  </div>
-                                  {reduction.description && (
-                                    <p className="text-sm text-gray-500">{reduction.description}</p>
+                {/* Add-ons */}
+                {roomData.addOns.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Add-ons</h3>
+                    <div className="space-y-2">
+                      {roomData.addOns.map((addOn, index) => (
+                        <Card
+                          key={addOn.id || index}
+                          className={`cursor-pointer transition-colors ${
+                            selectedAddOns.includes(addOn.id)
+                              ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => toggleAddOn(addOn.id)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{addOn.name}</span>
+                                  {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
+                                </div>
+                                {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
+                              </div>
+                              <span className="font-medium">+${addOn.price}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reductions */}
+                {roomData.reductions.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
+                    <div className="space-y-2">
+                      {roomData.reductions.map((reduction, index) => (
+                        <Card
+                          key={reduction.id || index}
+                          className={`cursor-pointer transition-colors ${
+                            selectedReductions.includes(reduction.id)
+                              ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => toggleReduction(reduction.id)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{reduction.name}</span>
+                                  {selectedReductions.includes(reduction.id) && (
+                                    <Check className="h-4 w-4 text-orange-600" />
                                   )}
                                 </div>
-                                <span className="font-medium text-orange-600">-${reduction.discount}</span>
+                                {reduction.description && (
+                                  <p className="text-sm text-gray-500">{reduction.description}</p>
+                                )}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                              <span className="font-medium text-orange-600">-${reduction.discount}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+            )}
 
-              {currentStep === "frequency" && (
-                <div>
-                  <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
-                </div>
-              )}
+            {currentStep === "frequency" && (
+              <div>
+                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
+              </div>
+            )}
 
-              {currentStep === "configuration-manager" && (
-                <div>
-                  <ConfigurationManager
-                    currentConfig={{
-                      rooms: [
-                        {
-                          type: roomName,
-                          count: roomCount,
-                          tier: selectedTier,
-                        },
-                      ],
-                      totalPrice: pricing.totalPrice,
-                    }}
-                    onLoadConfig={handleLoadConfig}
-                  />
-                </div>
-              )}
+            {currentStep === "configuration-manager" && (
+              <div>
+                <ConfigurationManager
+                  currentConfig={{
+                    rooms: [
+                      {
+                        type: roomName,
+                        count: roomCount,
+                        tier: selectedTier,
+                      },
+                    ],
+                    totalPrice: pricing.totalPrice,
+                  }}
+                  onLoadConfig={handleLoadConfig}
+                />
+              </div>
+            )}
 
-              {currentStep === "address" && (
-                <div className="space-y-4">
-                  <div className="text-center py-8">
-                    <h3 className="text-lg font-medium mb-2">Service Address Required</h3>
-                    <p className="text-gray-500 mb-4">We need your address to provide the cleaning service.</p>
-                    {addressData ? (
-                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Check className="h-4 w-4 text-green-600" />
-                          <span className="font-medium text-green-800 dark:text-green-200">Address Added</span>
-                        </div>
-                        <p className="text-sm text-green-700 dark:text-green-300">
-                          {addressData.fullName}
-                          <br />
-                          {addressData.address}
-                          <br />
-                          {addressData.city}, {addressData.state} {addressData.zipCode}
-                        </p>
-                        <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddressModal(true)}>
-                          Edit Address
-                        </Button>
+            {currentStep === "address" && (
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-medium mb-2">Service Address Required</h3>
+                  <p className="text-gray-500 mb-4">We need your address to provide the cleaning service.</p>
+                  {addressData ? (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="font-medium text-green-800 dark:text-green-200">Address Added</span>
                       </div>
-                    ) : (
-                      <Button onClick={() => setShowAddressModal(true)}>Add Service Address</Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentStep === "review" && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-medium mb-3">Order Summary</h3>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span>Room:</span>
-                            <span className="font-medium">
-                              {roomName} ({roomCount})
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Cleaning Level:</span>
-                            <span className="font-medium">{selectedTier}</span>
-                          </div>
-                          {selectedAddOns.length > 0 && (
-                            <div className="flex justify-between">
-                              <span>Add-ons:</span>
-                              <span className="font-medium">{selectedAddOns.length} selected</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between">
-                            <span>Frequency:</span>
-                            <span className="font-medium">{selectedFrequency.replace("_", " ")}</span>
-                          </div>
-                          {addressData && (
-                            <div className="flex justify-between">
-                              <span>Address:</span>
-                              <span className="font-medium text-right text-sm">
-                                {addressData.address}
-                                <br />
-                                {addressData.city}, {addressData.state}
-                              </span>
-                            </div>
-                          )}
-                          <div className="border-t pt-3">
-                            <div className="flex justify-between text-lg font-bold">
-                              <span>Total:</span>
-                              <span>${pricing.totalPrice.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t bg-white dark:bg-gray-900">
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Total:</span>
-                  <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  {!isFirstStep && (
-                    <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  )}
-
-                  {isLastStep ? (
-                    <Button onClick={handleAddToCart} className="flex-1" disabled={!addressData}>
-                      Add to Cart
-                    </Button>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        {addressData.fullName}
+                        <br />
+                        {addressData.address}
+                        <br />
+                        {addressData.city}, {addressData.state} {addressData.zipCode}
+                      </p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowAddressModal(true)}>
+                        Edit Address
+                      </Button>
+                    </div>
                   ) : (
-                    <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext}>
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <Button onClick={() => setShowAddressModal(true)}>Add Service Address</Button>
                   )}
                 </div>
               </div>
+            )}
+
+            {currentStep === "review" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-3">Order Summary</h3>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Room:</span>
+                          <span className="font-medium">
+                            {roomName} ({roomCount})
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Cleaning Level:</span>
+                          <span className="font-medium">{selectedTier}</span>
+                        </div>
+                        {selectedAddOns.length > 0 && (
+                          <div className="flex justify-between">
+                            <span>Add-ons:</span>
+                            <span className="font-medium">{selectedAddOns.length} selected</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Frequency:</span>
+                          <span className="font-medium">{selectedFrequency.replace("_", " ")}</span>
+                        </div>
+                        {addressData && (
+                          <div className="flex justify-between">
+                            <span>Address:</span>
+                            <span className="font-medium text-right text-sm">
+                              {addressData.address}
+                              <br />
+                              {addressData.city}, {addressData.state}
+                            </span>
+                          </div>
+                        )}
+                        <div className="border-t pt-3">
+                          <div className="flex justify-between text-lg font-bold">
+                            <span>Total:</span>
+                            <span>${pricing.totalPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer - Fixed at bottom, always visible */}
+          <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-medium">Total:</span>
+              <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
+            </div>
+
+            <div className="flex gap-2">
+              {!isFirstStep && (
+                <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+              )}
+
+              {isLastStep ? (
+                <Button onClick={handleAddToCart} className="flex-1" disabled={!addressData}>
+                  Add to Cart
+                </Button>
+              ) : (
+                <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext}>
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
