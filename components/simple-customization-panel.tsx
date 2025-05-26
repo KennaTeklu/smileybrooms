@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
@@ -39,20 +39,12 @@ export function SimpleCustomizationPanel({
   config,
   onConfigChange,
 }: SimpleCustomizationPanelProps) {
-  // Initialize with safe defaults
-  const [selectedTier, setSelectedTier] = useState(() => {
-    try {
-      const tiers = getRoomTiers(roomType)
-      return config?.selectedTier || tiers?.[0]?.name || "ESSENTIAL CLEAN"
-    } catch {
-      return "ESSENTIAL CLEAN"
-    }
-  })
-
+  // Initialize with config values
+  const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
 
-  // Memoize room data to prevent recalculation
+  // Memoize room data
   const roomData = useMemo(() => {
     try {
       return {
@@ -70,7 +62,7 @@ export function SimpleCustomizationPanel({
     }
   }, [roomType])
 
-  // Memoize pricing calculation to prevent infinite loops
+  // Calculate pricing
   const pricing = useMemo(() => {
     try {
       if (roomData.tiers.length === 0) {
@@ -119,7 +111,7 @@ export function SimpleCustomizationPanel({
     }
   }, [selectedTier, selectedAddOns, selectedReductions, roomData])
 
-  // Memoize the config object to prevent infinite updates
+  // Create config object
   const currentConfig = useMemo(
     () => ({
       roomName: roomType,
@@ -131,34 +123,35 @@ export function SimpleCustomizationPanel({
     [roomType, selectedTier, selectedAddOns, selectedReductions, pricing],
   )
 
-  // Use useCallback to prevent function recreation
-  const handleConfigChange = useCallback(() => {
-    try {
-      if (onConfigChange) {
-        onConfigChange(currentConfig)
-      }
-    } catch (error) {
-      console.error("Error updating config:", error)
-    }
-  }, [onConfigChange, currentConfig])
+  // Handle tier selection
+  const handleTierSelect = useCallback((tierName: string) => {
+    setSelectedTier(tierName)
+  }, [])
 
-  // Only call onConfigChange when the config actually changes
-  useEffect(() => {
-    // Only update if the panel is open and we have valid data
-    if (isOpen && roomType) {
-      handleConfigChange()
-    }
-  }, [isOpen, roomType, handleConfigChange])
-
+  // Handle add-on toggle
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
 
+  // Handle reduction toggle
   const toggleReduction = useCallback((reductionId: string) => {
     setSelectedReductions((prev) =>
       prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
     )
   }, [])
+
+  // Handle apply changes - only call onConfigChange when user clicks apply
+  const handleApplyChanges = useCallback(() => {
+    try {
+      if (onConfigChange) {
+        onConfigChange(currentConfig)
+      }
+      onClose()
+    } catch (error) {
+      console.error("Error applying changes:", error)
+      onClose()
+    }
+  }, [onConfigChange, currentConfig, onClose])
 
   if (!isOpen) return null
 
@@ -201,7 +194,7 @@ export function SimpleCustomizationPanel({
                           ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                           : "hover:bg-gray-50 dark:hover:bg-gray-800"
                       }`}
-                      onClick={() => setSelectedTier(tier.name)}
+                      onClick={() => handleTierSelect(tier.name)}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
@@ -308,7 +301,7 @@ export function SimpleCustomizationPanel({
               <Button variant="outline" onClick={onClose} className="flex-1">
                 Cancel
               </Button>
-              <Button onClick={onClose} className="flex-1">
+              <Button onClick={handleApplyChanges} className="flex-1">
                 Apply Changes
               </Button>
             </div>
