@@ -39,16 +39,26 @@ export function SimpleCustomizationPanel({
   config,
   onConfigChange,
 }: SimpleCustomizationPanelProps) {
-  const [selectedTier, setSelectedTier] = useState(config.selectedTier)
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
-  const [selectedReductions, setSelectedReductions] = useState<string[]>(config.selectedReductions)
+  const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
 
-  const tiers = getRoomTiers(roomType)
-  const addOns = getRoomAddOns(roomType)
-  const reductions = getRoomReductions(roomType)
+  const tiers = getRoomTiers(roomType) || []
+  const addOns = getRoomAddOns(roomType) || []
+  const reductions = getRoomReductions(roomType) || []
 
   // Calculate pricing
   const calculatePricing = () => {
+    if (tiers.length === 0) {
+      return {
+        basePrice: 0,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: 0,
+      }
+    }
+
     const baseTier = tiers[0]
     const currentTier = tiers.find((t) => t.name === selectedTier) || baseTier
 
@@ -78,6 +88,8 @@ export function SimpleCustomizationPanel({
 
   // Update config when selections change
   useEffect(() => {
+    if (!onConfigChange) return
+
     const newConfig: RoomConfig = {
       roomName: roomType,
       selectedTier,
@@ -86,7 +98,7 @@ export function SimpleCustomizationPanel({
       ...pricing,
     }
     onConfigChange(newConfig)
-  }, [selectedTier, selectedAddOns, selectedReductions, roomType, onConfigChange])
+  }, [selectedTier, selectedAddOns, selectedReductions, roomType, pricing, onConfigChange])
 
   const toggleAddOn = (addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
@@ -127,35 +139,37 @@ export function SimpleCustomizationPanel({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Cleaning Tiers */}
-            <div>
-              <h3 className="font-medium mb-3">Cleaning Level</h3>
-              <div className="space-y-2">
-                {tiers.map((tier) => (
-                  <Card
-                    key={tier.name}
-                    className={`cursor-pointer transition-colors ${
-                      selectedTier === tier.name
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                    }`}
-                    onClick={() => setSelectedTier(tier.name)}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{tier.name}</span>
-                            {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
+            {tiers.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-3">Cleaning Level</h3>
+                <div className="space-y-2">
+                  {tiers.map((tier) => (
+                    <Card
+                      key={tier.id || tier.name}
+                      className={`cursor-pointer transition-colors ${
+                        selectedTier === tier.name
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      onClick={() => setSelectedTier(tier.name)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{tier.name}</span>
+                              {selectedTier === tier.name && <Check className="h-4 w-4 text-blue-600" />}
+                            </div>
+                            <p className="text-sm text-gray-500">{tier.description}</p>
                           </div>
-                          <p className="text-sm text-gray-500">{tier.description}</p>
+                          <span className="font-medium">${tier.price}</span>
                         </div>
-                        <span className="font-medium">${tier.price}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Add-ons */}
             {addOns.length > 0 && (
@@ -179,7 +193,7 @@ export function SimpleCustomizationPanel({
                               <span className="font-medium">{addOn.name}</span>
                               {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
                             </div>
-                            <p className="text-sm text-gray-500">{addOn.description}</p>
+                            {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
                           </div>
                           <span className="font-medium">+${addOn.price}</span>
                         </div>
@@ -214,7 +228,7 @@ export function SimpleCustomizationPanel({
                                 <Check className="h-4 w-4 text-orange-600" />
                               )}
                             </div>
-                            <p className="text-sm text-gray-500">{reduction.description}</p>
+                            {reduction.description && <p className="text-sm text-gray-500">{reduction.description}</p>}
                           </div>
                           <span className="font-medium text-orange-600">-${reduction.discount}</span>
                         </div>
@@ -222,6 +236,13 @@ export function SimpleCustomizationPanel({
                     </Card>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Fallback if no data */}
+            {tiers.length === 0 && addOns.length === 0 && reductions.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No customization options available for this room type.</p>
               </div>
             )}
           </div>

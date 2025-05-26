@@ -10,6 +10,7 @@ import AccessibilityPanel from "@/components/accessibility-panel"
 import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
+import { Suspense } from "react"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -25,6 +26,14 @@ function ConditionalHeader() {
   )
 }
 
+function ConditionalHeaderWrapper() {
+  return (
+    <Suspense fallback={<div className="pt-16" />}>
+      <ConditionalHeader />
+    </Suspense>
+  )
+}
+
 export default function ClientLayout({
   children,
 }: {
@@ -33,7 +42,7 @@ export default function ClientLayout({
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <CartProvider>
-        <ConditionalHeader />
+        <ConditionalHeaderWrapper />
         {children}
         <PersistentBookNowButton />
         <AccessibilityPanel />
