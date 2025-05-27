@@ -9,7 +9,7 @@ export default function Home() {
         <MinimalHero />
 
         {/* Quick Custom Quote Section */}
-        <section className="py-12 bg-white dark:bg-gray-900">
+        <section id="custom-quote-section" className="py-12 bg-white dark:bg-gray-900">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-2xl mx-auto">
               <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Need a Custom Quote?</h2>
@@ -19,6 +19,8 @@ export default function Home() {
               <RequestQuoteButton
                 showIcon={true}
                 className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                scrollToSection="custom-quote-section"
+                autoScroll={true}
               />
             </div>
           </div>
