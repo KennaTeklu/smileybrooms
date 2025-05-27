@@ -3,7 +3,9 @@
 import { useEffect } from "react"
 
 const MultiStepCustomizationWizard = ({ isOpen }: { isOpen: boolean }) => {
-  // Add this useEffect after the existing useEffects
+  // Add the scroll to top effect to the existing MultiStepCustomizationWizard component
+  // Add this useEffect at the beginning of the component, after the existing useState declarations:
+
   useEffect(() => {
     if (isOpen) {
       // Scroll to top when wizard opens
@@ -26,4 +28,5 @@ const MultiStepCustomizationWizard = ({ isOpen }: { isOpen: boolean }) => {
   )
 }
 
-export default MultiStepCustomizationWizard
+// Make sure the component is exported as a named export
+export { MultiStepCustomizationWizard }
