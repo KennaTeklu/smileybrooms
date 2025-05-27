@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { X, ChevronLeft, ChevronRight, Calculator, MessageSquare, User, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { openGmailWithQuote, previewQuoteEmail, type QuoteFormData } from "@/lib/custom-quote-email-utils"
 
 interface CustomQuoteWizardProps {
   isOpen: boolean
@@ -108,10 +109,8 @@ export function CustomQuoteWizard({ isOpen, onClose }: CustomQuoteWizardProps) {
 
   const handleSubmitQuote = useCallback(() => {
     try {
-      // Create quote request object
-      const quoteRequest = {
-        id: `quote-${Date.now()}`,
-        timestamp: new Date().toISOString(),
+      // Prepare the form data for email
+      const quoteData: QuoteFormData = {
         serviceType: formData.serviceType,
         propertyType: formData.propertyType,
         squareFootage: formData.squareFootage,
@@ -120,17 +119,21 @@ export function CustomQuoteWizard({ isOpen, onClose }: CustomQuoteWizardProps) {
         customRequest: formData.customRequest,
         urgency: formData.urgency,
         budget: formData.budget,
-        customer: {
-          name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
-          preferredContact: formData.preferredContact,
-        },
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        preferredContact: formData.preferredContact,
         additionalNotes: formData.additionalNotes,
       }
 
-      // Submit to Google Sheets (using existing waitlist endpoint)
+      // Open Gmail with formatted HTML email
+      openGmailWithQuote(quoteData)
+
+      // Also submit to Google Sheets as backup
       const scriptURL =
         "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
 
@@ -165,8 +168,8 @@ Additional Notes: ${formData.additionalNotes}`,
       })
 
       toast({
-        title: "Quote Request Submitted",
-        description: "We'll contact you within 24 hours with a custom quote.",
+        title: "Quote Request Sent",
+        description: "Gmail opened with your formatted quote request. Please review and send the email.",
         duration: 5000,
       })
 
@@ -175,7 +178,7 @@ Additional Notes: ${formData.additionalNotes}`,
       console.error("Error submitting quote:", error)
       toast({
         title: "Error",
-        description: "Failed to submit quote request. Please try again.",
+        description: "Failed to open Gmail. Please try again or contact us directly.",
         variant: "destructive",
         duration: 3000,
       })
@@ -604,9 +607,18 @@ Additional Notes: ${formData.additionalNotes}`,
               )}
 
               {isLastStep ? (
-                <Button onClick={handleSubmitQuote} className="flex-1">
-                  Submit Quote Request
-                </Button>
+                <div className="flex gap-2 flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => previewQuoteEmail(formData as QuoteFormData)}
+                    className="flex-1"
+                  >
+                    Preview Email
+                  </Button>
+                  <Button onClick={handleSubmitQuote} className="flex-1">
+                    Send to Gmail
+                  </Button>
+                </div>
               ) : (
                 <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext()}>
                   Next
