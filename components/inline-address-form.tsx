@@ -10,10 +10,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Mail, Info } from "lucide-react"
+import { MapPin, ShoppingCart, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { US_STATES } from "@/lib/location-data"
-import { generateMailtoLink, openGmailWithFormData } from "@/lib/email-utils"
 
 export interface AddressFormData {
   fullName: string
@@ -104,38 +103,6 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
     return Object.keys(newErrors).length === 0
   }
 
-  const generateEmailData = () => {
-    const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
-    const finalPrice = calculatedPrice - videoRecordingDiscount
-
-    return {
-      customer: {
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        specialInstructions: formData.specialInstructions,
-        allowVideoRecording: formData.allowVideoRecording,
-      },
-      service: {
-        roomName: serviceDetails.roomName,
-        roomCount: serviceDetails.roomCount,
-        selectedTier: serviceDetails.selectedTier,
-        selectedAddOns: serviceDetails.selectedAddOns,
-        selectedReductions: serviceDetails.selectedReductions,
-        frequency: serviceDetails.frequency,
-      },
-      pricing: {
-        basePrice: calculatedPrice,
-        videoRecordingDiscount,
-        finalPrice,
-      },
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -144,31 +111,22 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
     setIsSubmitting(true)
 
     try {
-      const emailData = generateEmailData()
       const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
+      const finalPrice = calculatedPrice - videoRecordingDiscount
 
-      // Detect if user is on mobile
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
-      if (isMobile) {
-        // On mobile, try to open Gmail app first, fallback to mailto
-        try {
-          openGmailWithFormData(emailData)
-        } catch (error) {
-          // Fallback to mailto for mobile
-          const mailtoLink = generateMailtoLink(emailData)
-          window.location.href = mailtoLink
-        }
-      } else {
-        // On desktop, open Gmail in new tab
-        openGmailWithFormData(emailData)
+      // Create complete service data
+      const serviceData = {
+        ...formData,
+        serviceDetails,
+        pricing: {
+          basePrice: calculatedPrice,
+          videoRecordingDiscount,
+          finalPrice,
+        },
       }
 
-      // Call the onSubmit callback
-      onSubmit({
-        ...formData,
-        videoRecordingDiscount,
-      } as any)
+      // Call the onSubmit callback to add to cart
+      onSubmit(serviceData)
 
       // Reset form
       setFormData({
@@ -376,12 +334,12 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
 
           {/* Submit Button */}
           <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
-            <Mail className="h-4 w-4" />
-            {isSubmitting ? "Opening Gmail..." : "Send Request via Gmail"}
+            <ShoppingCart className="h-4 w-4" />
+            {isSubmitting ? "Adding to Cart..." : "Add to Cart"}
           </Button>
 
           <p className="text-xs text-gray-500 text-center">
-            This will open Gmail with a pre-filled message containing your service request details.
+            Your service will be added to cart with all the details you've provided.
           </p>
         </form>
       </CardContent>
