@@ -71,6 +71,17 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(false)
   }, [config])
 
+  // Add this useEffect after the existing useEffects
+  useEffect(() => {
+    if (isOpen) {
+      // Scroll to top when panel opens
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
+    }
+  }, [isOpen])
+
   // Add to history when config changes
   const addToHistory = (newConfig: RoomConfig) => {
     setHistory((prev) => {

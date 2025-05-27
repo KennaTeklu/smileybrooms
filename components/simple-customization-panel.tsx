@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
@@ -43,6 +43,17 @@ export function SimpleCustomizationPanel({
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
+
+  // Add this useEffect after the existing state declarations
+  useEffect(() => {
+    if (isOpen) {
+      // Scroll to top when panel opens
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
+    }
+  }, [isOpen])
 
   // Memoize room data
   const roomData = useMemo(() => {
