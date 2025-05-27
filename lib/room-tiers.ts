@@ -894,19 +894,19 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
   return defaultReductions[roomType] || defaultReductions.default
 }
 
-// Room type to icon mapping
+// Room type to professional image mapping - replacing emojis with high-quality images
 export const roomIcons: Record<string, string> = {
-  bedroom: "🛏️",
-  bathroom: "🚿",
-  kitchen: "🍳",
-  livingRoom: "🛋️",
-  diningRoom: "🍽️",
-  homeOffice: "💻",
-  laundryRoom: "🧺",
-  entryway: "🚪",
-  hallway: "🚶",
-  stairs: "🪜",
-  other: "➕",
+  bedroom: "/images/rooms/bedroom-icon.png",
+  bathroom: "/images/rooms/bathroom-icon.png",
+  kitchen: "/images/rooms/kitchen-icon.png",
+  livingRoom: "/images/rooms/living-room-icon.png",
+  diningRoom: "/images/rooms/dining-room-icon.png",
+  homeOffice: "/images/rooms/home-office-icon.png",
+  laundryRoom: "/images/rooms/laundry-room-icon.png",
+  entryway: "/images/rooms/entryway-icon.png",
+  hallway: "/images/rooms/hallway-icon.png",
+  stairs: "/images/rooms/stairs-icon.png",
+  other: "/images/rooms/other-room-icon.png",
 }
 
 // Room type to display name mapping

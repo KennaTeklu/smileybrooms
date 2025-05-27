@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Settings } from "lucide-react"
 import { roomIcons, roomDisplayNames } from "@/lib/room-tiers"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
+import Image from "next/image"
 
 interface RoomCount {
   [key: string]: number
@@ -81,20 +82,6 @@ export function RoomCategory({
     return "bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30"
   }
 
-  const getIconBgColor = () => {
-    if (variant === "primary") {
-      return "bg-blue-100 dark:bg-blue-900/30"
-    }
-    return "bg-gray-200 dark:bg-gray-700/30"
-  }
-
-  const getIconTextColor = () => {
-    if (variant === "primary") {
-      return "text-blue-600 dark:text-blue-400"
-    }
-    return "text-gray-600 dark:text-gray-400"
-  }
-
   const getActiveBorderColor = () => {
     if (variant === "primary") {
       return "border-blue-500 dark:border-blue-400"
@@ -127,9 +114,7 @@ export function RoomCategory({
       <Card className="shadow-sm">
         <CardHeader className={getBgColor()}>
           <CardTitle className="text-2xl flex items-center gap-2">
-            <span
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
-            >
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm">
               {variant === "primary" ? (
                 <span className="text-lg" aria-hidden="true">
                   🏠
@@ -155,7 +140,7 @@ export function RoomCategory({
                 key={roomType}
                 className={`border ${
                   roomCounts[roomType] > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
-                } cursor-pointer`}
+                } cursor-pointer transition-all duration-200 hover:shadow-md`}
                 onClick={() => {
                   try {
                     if (roomCounts[roomType] <= 0) {
@@ -170,10 +155,19 @@ export function RoomCategory({
                 }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="text-3xl mb-2" aria-hidden="true">
-                    {roomIcons[roomType] || "🏠"}
+                  {/* Professional Room Image */}
+                  <div className="relative w-16 h-16 mb-3 rounded-lg overflow-hidden shadow-sm">
+                    <Image
+                      src={roomIcons[roomType] || roomIcons.other}
+                      alt={`${roomDisplayNames[roomType] || roomType} interior`}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
                   </div>
-                  <h3 className="font-medium mb-2">{roomDisplayNames[roomType] || roomType}</h3>
+
+                  <h3 className="font-medium mb-2 text-sm">{roomDisplayNames[roomType] || roomType}</h3>
+
                   <div className="flex items-center gap-3 mt-2">
                     <Button
                       variant="outline"
@@ -192,7 +186,7 @@ export function RoomCategory({
                     >
                       <MinusCircle className="h-4 w-4" aria-hidden="true" />
                     </Button>
-                    <span className="font-medium text-lg">{roomCounts[roomType] || 0}</span>
+                    <span className="font-medium text-lg min-w-[2rem]">{roomCounts[roomType] || 0}</span>
                     <Button
                       variant="outline"
                       size="icon"
@@ -210,13 +204,14 @@ export function RoomCategory({
                       <PlusCircle className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
+
                   {/* Only show Customize button when rooms are selected */}
                   {roomCounts[roomType] > 0 && (
                     <Button
                       id={`customize-${roomType}`}
                       variant="outline"
                       size="sm"
-                      className="mt-3 w-full"
+                      className="mt-3 w-full text-xs"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleOpenWizard(roomType)
@@ -241,7 +236,7 @@ export function RoomCategory({
           onClose={handleCloseWizard}
           roomType={activeWizard}
           roomName={roomDisplayNames[activeWizard] || activeWizard}
-          roomIcon={roomIcons[activeWizard] || "🏠"}
+          roomIcon={roomIcons[activeWizard] || roomIcons.other}
           roomCount={roomCounts[activeWizard] || 0}
           config={safeGetRoomConfig(activeWizard)}
           onConfigChange={handleRoomConfigChange}
