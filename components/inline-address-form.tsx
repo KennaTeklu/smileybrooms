@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, ShoppingCart, Info } from "lucide-react"
+import { MapPin, Save, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { US_STATES } from "@/lib/location-data"
 
@@ -54,10 +54,12 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    setIsSaved(false)
 
     // Clear error when field is edited
     if (errors[name]) {
@@ -71,6 +73,7 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
+    setIsSaved(false)
 
     // Clear error when field is edited
     if (errors[name]) {
@@ -84,6 +87,7 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
 
   const handleCheckboxChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, allowVideoRecording: checked }))
+    setIsSaved(false)
   }
 
   const validateForm = () => {
@@ -125,21 +129,9 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
         },
       }
 
-      // Call the onSubmit callback to add to cart
+      // Call the onSubmit callback
       onSubmit(serviceData)
-
-      // Reset form
-      setFormData({
-        fullName: "",
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        specialInstructions: "",
-        allowVideoRecording: false,
-      })
+      setIsSaved(true)
     } catch (error) {
       console.error("Error submitting form:", error)
     } finally {
@@ -312,7 +304,7 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
             </div>
           </div>
 
-          {/* Price Summary */}
+          {/* Price Preview */}
           <div className="bg-gray-50 dark:bg-gray-800/20 p-4 rounded-lg mt-6">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -326,20 +318,22 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
                 </div>
               )}
               <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Total:</span>
+                <span>Estimated Total:</span>
                 <span>${finalPrice.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Save Button */}
           <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
-            <ShoppingCart className="h-4 w-4" />
-            {isSubmitting ? "Adding to Cart..." : "Add to Cart"}
+            <Save className="h-4 w-4" />
+            {isSubmitting ? "Saving..." : isSaved ? "Saved!" : "Save Address Information"}
           </Button>
 
           <p className="text-xs text-gray-500 text-center">
-            Your service will be added to cart with all the details you've provided.
+            {isSaved
+              ? "Address information saved. Click Next to continue to review."
+              : "Save your address information to continue to the final review step."}
           </p>
         </form>
       </CardContent>

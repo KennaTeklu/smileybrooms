@@ -69,7 +69,6 @@ export function MultiStepCustomizationWizard({
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
-  // const [showAddressModal, setShowAddressModal] = useState(false)
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -116,7 +115,12 @@ export function MultiStepCustomizationWizard({
 
       const subtotal = currentTier.price + addOnsPrice - reductionsPrice
       const discountAmount = subtotal * (frequencyDiscount / 100)
-      const totalPrice = Math.max(0, subtotal - discountAmount)
+      let totalPrice = Math.max(0, subtotal - discountAmount)
+
+      // Apply video recording discount if applicable
+      if (addressData?.allowVideoRecording) {
+        totalPrice = Math.max(0, totalPrice - 25)
+      }
 
       return {
         basePrice: baseTier.price,
@@ -135,7 +139,7 @@ export function MultiStepCustomizationWizard({
         totalPrice: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, selectedReductions, frequencyDiscount, roomData])
+  }, [selectedTier, selectedAddOns, selectedReductions, frequencyDiscount, roomData, addressData])
 
   // Steps configuration
   const steps: WizardStep[] = ["room-config", "frequency", "configuration-manager", "address", "review"]
@@ -181,14 +185,10 @@ export function MultiStepCustomizationWizard({
     }
   }, [])
 
-  const handleAddressSubmit = useCallback(
-    (data: any) => {
-      setAddressData(data)
-      // setShowAddressModal(false)
-      goToNextStep()
-    },
-    [goToNextStep],
-  )
+  const handleAddressSubmit = useCallback((data: any) => {
+    setAddressData(data)
+    // Don't auto-advance to next step, let user click Next
+  }, [])
 
   const handleAddToCart = useCallback(() => {
     try {
@@ -252,13 +252,13 @@ export function MultiStepCustomizationWizard({
       case "configuration-manager":
         return true // Always can proceed
       case "address":
-        return addressData !== null
+        return true // Always can proceed - user can skip address for now
       case "review":
         return false // Last step
       default:
         return false
     }
-  }, [currentStep, selectedTier, selectedFrequency, addressData])
+  }, [currentStep, selectedTier, selectedFrequency])
 
   if (!isOpen) return null
 
@@ -480,14 +480,26 @@ export function MultiStepCustomizationWizard({
                           <span className="font-medium">{selectedFrequency.replace("_", " ")}</span>
                         </div>
                         {addressData && (
-                          <div className="flex justify-between">
-                            <span>Address:</span>
-                            <span className="font-medium text-right text-sm">
-                              {addressData.address}
-                              <br />
-                              {addressData.city}, {addressData.state}
-                            </span>
-                          </div>
+                          <>
+                            <div className="flex justify-between">
+                              <span>Customer:</span>
+                              <span className="font-medium text-right text-sm">{addressData.fullName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Address:</span>
+                              <span className="font-medium text-right text-sm">
+                                {addressData.address}
+                                <br />
+                                {addressData.city}, {addressData.state}
+                              </span>
+                            </div>
+                            {addressData.allowVideoRecording && (
+                              <div className="flex justify-between text-green-600">
+                                <span>Video Recording Discount:</span>
+                                <span className="font-medium">-$25.00</span>
+                              </div>
+                            )}
+                          </>
                         )}
                         <div className="border-t pt-3">
                           <div className="flex justify-between text-lg font-bold">
@@ -499,16 +511,28 @@ export function MultiStepCustomizationWizard({
                     </CardContent>
                   </Card>
                 </div>
+
+                {!addressData && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <strong>Note:</strong> You haven't provided address information yet. You can go back to step 4 to
+                      add your service address, or add this to cart and provide address details later.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Footer - Fixed at bottom, always visible */}
           <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-medium">Total:</span>
-              <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
-            </div>
+            {/* Only show total on review step */}
+            {currentStep === "review" && (
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium">Total:</span>
+                <span className="text-xl font-bold">${pricing.totalPrice.toFixed(2)}</span>
+              </div>
+            )}
 
             <div className="flex gap-2">
               {!isFirstStep && (
@@ -519,7 +543,7 @@ export function MultiStepCustomizationWizard({
               )}
 
               {isLastStep ? (
-                <Button onClick={handleAddToCart} className="flex-1" disabled={!addressData}>
+                <Button onClick={handleAddToCart} className="flex-1">
                   Add to Cart
                 </Button>
               ) : (
