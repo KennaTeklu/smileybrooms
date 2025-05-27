@@ -894,19 +894,34 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
   return defaultReductions[roomType] || defaultReductions.default
 }
 
-// Room type to professional image mapping - replacing emojis with high-quality images
+// Room type to professional image mapping
+export const roomImages: Record<string, string> = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  livingRoom: "/images/living-room-professional.png",
+  diningRoom: "/images/dining-room-professional.png",
+  homeOffice: "/images/home-office-professional.png",
+  laundryRoom: "/images/laundry-room-professional.png",
+  entryway: "/images/entryway-professional.png",
+  hallway: "/images/hallway-professional.png",
+  stairs: "/images/stairs-professional.png",
+  other: "/images/bedroom-professional.png", // fallback
+}
+
+// Room type to icon mapping (keeping as fallback)
 export const roomIcons: Record<string, string> = {
-  bedroom: "/images/rooms/bedroom-icon.png",
-  bathroom: "/images/rooms/bathroom-icon.png",
-  kitchen: "/images/rooms/kitchen-icon.png",
-  livingRoom: "/images/rooms/living-room-icon.png",
-  diningRoom: "/images/rooms/dining-room-icon.png",
-  homeOffice: "/images/rooms/home-office-icon.png",
-  laundryRoom: "/images/rooms/laundry-room-icon.png",
-  entryway: "/images/rooms/entryway-icon.png",
-  hallway: "/images/rooms/hallway-icon.png",
-  stairs: "/images/rooms/stairs-icon.png",
-  other: "/images/rooms/other-room-icon.png",
+  bedroom: "🛏️",
+  bathroom: "🚿",
+  kitchen: "🍳",
+  livingRoom: "🛋️",
+  diningRoom: "🍽️",
+  homeOffice: "💻",
+  laundryRoom: "🧺",
+  entryway: "🚪",
+  hallway: "🚶",
+  stairs: "🪜",
+  other: "➕",
 }
 
 // Room type to display name mapping
