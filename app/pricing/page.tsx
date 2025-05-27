@@ -163,19 +163,17 @@ export default function PricingPage() {
 
         <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-8">
           {/* Core Rooms Category */}
-          <div id="room-customization-section">
-            <RoomCategory
-              title="CORE ROOMS"
-              description="Select the rooms you want cleaned in your home"
-              rooms={coreRooms}
-              roomCounts={roomCounts}
-              onRoomCountChange={handleRoomCountChange}
-              onRoomConfigChange={handleRoomConfigChange}
-              getRoomConfig={getRoomConfig}
-              variant="primary"
-              onRoomSelect={setSelectedRoomForMap}
-            />
-          </div>
+          <RoomCategory
+            title="CORE ROOMS"
+            description="Select the rooms you want cleaned in your home"
+            rooms={coreRooms}
+            roomCounts={roomCounts}
+            onRoomCountChange={handleRoomCountChange}
+            onRoomConfigChange={handleRoomConfigChange}
+            getRoomConfig={getRoomConfig}
+            variant="primary"
+            onRoomSelect={setSelectedRoomForMap}
+          />
 
           {/* Additional Spaces Category */}
           <RoomCategory
@@ -191,7 +189,7 @@ export default function PricingPage() {
           />
 
           {/* Custom Space Card */}
-          <Card className="shadow-sm" id="custom-quote-section">
+          <Card className="shadow-sm">
             <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
               <CardTitle className="text-2xl flex items-center gap-2">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
@@ -210,7 +208,7 @@ export default function PricingPage() {
                 <p className="text-gray-500 mb-4 text-center max-w-md">
                   Have a unique space that needs cleaning? Contact us for a custom quote.
                 </p>
-                <RequestQuoteButton showIcon={true} scrollToSection="custom-quote-section" autoScroll={true} />
+                <RequestQuoteButton showIcon={true} />
               </div>
             </CardContent>
           </Card>
