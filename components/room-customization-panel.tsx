@@ -258,11 +258,11 @@ export function RoomCustomizationPanel({
     // Change the tab
     setActiveTab(value)
 
-    // Restore scroll position for the new tab after a short delay
-    // to allow the tab content to render
+    // Scroll to top for new tab instead of restoring position
     setTimeout(() => {
       if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = tabScrollPositions[value as keyof typeof tabScrollPositions] || 0
+        scrollContainerRef.current.scrollTop = 0
+        updateScrollPosition()
       }
     }, 50)
   }
@@ -363,6 +363,15 @@ export function RoomCustomizationPanel({
       return () => clearTimeout(timer)
     }
   }, [expandedSections, isOpen])
+
+  // Add this useEffect after the existing useEffects
+  useEffect(() => {
+    if (isOpen && scrollContainerRef.current) {
+      // Scroll to top when panel opens
+      scrollContainerRef.current.scrollTop = 0
+      updateScrollPosition()
+    }
+  }, [isOpen])
 
   // Get frequency discount
   const getFrequencyDiscount = () => {

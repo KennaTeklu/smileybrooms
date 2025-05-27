@@ -51,12 +51,6 @@ export function RoomCategory({
 
   const handleOpenWizard = (roomType: string) => {
     try {
-      // Scroll to top when opening wizard
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      })
-
       // Ensure at least one room is selected before customizing
       if (roomCounts[roomType] === 0) {
         onRoomCountChange(roomType, 1)
