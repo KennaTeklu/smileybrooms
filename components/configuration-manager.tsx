@@ -44,44 +44,7 @@ interface ConfigurationManagerProps {
 }
 
 export function ConfigurationManager({ currentConfig, onLoadConfig }: ConfigurationManagerProps) {
-  const [savedConfigs, setSavedConfigs] = useState<SavedConfiguration[]>([
-    {
-      id: "config-1",
-      name: "Weekly Standard Clean",
-      date: "2023-05-15",
-      rooms: [
-        { type: "Living Room", count: 1, tier: "DEEP CLEAN" },
-        { type: "Kitchen", count: 1, tier: "DEEP CLEAN" },
-        { type: "Bathroom", count: 2, tier: "QUICK CLEAN" },
-        { type: "Bedroom", count: 3, tier: "QUICK CLEAN" },
-      ],
-      totalPrice: 245.0,
-      favorite: true,
-    },
-    {
-      id: "config-2",
-      name: "Monthly Deep Clean",
-      date: "2023-04-20",
-      rooms: [
-        { type: "Living Room", count: 1, tier: "PREMIUM" },
-        { type: "Kitchen", count: 1, tier: "PREMIUM" },
-        { type: "Bathroom", count: 2, tier: "DEEP CLEAN" },
-        { type: "Bedroom", count: 3, tier: "DEEP CLEAN" },
-        { type: "Dining Room", count: 1, tier: "DEEP CLEAN" },
-      ],
-      totalPrice: 495.0,
-    },
-    {
-      id: "config-3",
-      name: "Guest Room Prep",
-      date: "2023-03-10",
-      rooms: [
-        { type: "Bedroom", count: 1, tier: "PREMIUM" },
-        { type: "Bathroom", count: 1, tier: "PREMIUM" },
-      ],
-      totalPrice: 175.0,
-    },
-  ])
+  const [savedConfigs, setSavedConfigs] = useState<SavedConfiguration[]>([])
 
   const [newConfigName, setNewConfigName] = useState("")
   const [editingConfig, setEditingConfig] = useState<SavedConfiguration | null>(null)
