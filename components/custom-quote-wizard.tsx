@@ -63,27 +63,13 @@ export function CustomQuoteWizard({ isOpen, onClose }: CustomQuoteWizardProps) {
 
   const { toast } = useToast()
 
-  // Auto-scroll to sidebar when opened
+  // Auto-scroll to top when wizard opens
   useEffect(() => {
     if (isOpen) {
-      // Small delay to ensure the sidebar is rendered
-      setTimeout(() => {
-        // Scroll the sidebar into view smoothly
-        const sidebar = document.querySelector('[data-sidebar="custom-quote"]')
-        if (sidebar) {
-          sidebar.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-            inline: "nearest",
-          })
-        }
-
-        // Also scroll the page to bring focus to the right side
-        window.scrollTo({
-          left: window.innerWidth * 0.3, // Scroll right to show sidebar better
-          behavior: "smooth",
-        })
-      }, 100)
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
     }
   }, [isOpen])
 
@@ -223,10 +209,7 @@ Additional Notes: ${formData.additionalNotes}`,
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
         {/* Panel */}
-        <div
-          className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen"
-          data-sidebar="custom-quote"
-        >
+        <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
           {/* Header - Fixed */}
           <div className="flex-shrink-0 border-b p-4">
             <div className="flex items-center justify-between mb-4">
