@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Contact } from "lucide-react"
 import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
+import { CustomQuoteWizard } from "./custom-quote-wizard"
 
 interface RequestQuoteButtonProps {
   showIcon?: boolean
@@ -11,39 +11,21 @@ interface RequestQuoteButtonProps {
 }
 
 export function RequestQuoteButton({ showIcon = false, className = "" }: RequestQuoteButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
-
-  const handleClick = () => {
-    setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      toast({
-        title: "Request Received",
-        description: "We'll contact you shortly to discuss your custom quote.",
-        duration: 5000,
-      })
-    }, 1000)
-  }
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
 
   return (
-    <Button
-      variant="outline"
-      className={className}
-      onClick={handleClick}
-      disabled={isLoading}
-      aria-label="Request a custom quote"
-    >
-      {isLoading ? (
-        "Sending Request..."
-      ) : (
-        <>
-          {showIcon && <Contact className="mr-2 h-4 w-4" aria-hidden="true" />}
-          Request Custom Quote
-        </>
-      )}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        className={className}
+        onClick={() => setIsWizardOpen(true)}
+        aria-label="Request a custom quote"
+      >
+        {showIcon && <Contact className="mr-2 h-4 w-4" aria-hidden="true" />}
+        Request Custom Quote
+      </Button>
+
+      <CustomQuoteWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+    </>
   )
 }
