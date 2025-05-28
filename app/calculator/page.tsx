@@ -9,10 +9,12 @@ import AddressCollectionModal, { type AddressData } from "@/components/address-c
 import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import StickyCartButton from "@/components/sticky-cart-button"
 import EmailFormData from "@/components/email-form-data"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Mail } from 'lucide-react'
+import { Mail } from "lucide-react"
+import dynamic from "next/dynamic"
 
 type CalculatedService = {
   rooms: Record<string, number>
@@ -28,24 +30,34 @@ type CalculatedService = {
   recurringInterval: "week" | "month" | "year"
 }
 
-export default function CalculatorPage() {
+// Create a client-only component to avoid SSR issues
+function CalculatorPageContent() {
   const [calculatedService, setCalculatedService] = useState<CalculatedService | null>(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showStickyButton, setShowStickyButton] = useState(true)
   const [formDataForEmail, setFormDataForEmail] = useState<Record<string, any> | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   const { addItem } = useCart()
   const { toast } = useToast()
   const router = useRouter()
 
+  // Ensure component is mounted before using cart
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Check if terms have been accepted
   useEffect(() => {
-    const accepted = localStorage.getItem("termsAccepted")
-    if (accepted) {
-      setTermsAccepted(true)
+    if (mounted) {
+      const accepted = localStorage.getItem("termsAccepted")
+      if (accepted) {
+        setTermsAccepted(true)
+      }
     }
-  }, [])
+  }, [mounted])
 
   const handleCalculationComplete = (data: CalculatedService) => {
     setCalculatedService(data)
@@ -76,7 +88,7 @@ export default function CalculatorPage() {
 
   // Process the address data and add to cart
   const handleAddressSubmit = (addressData: AddressData) => {
-    if (!calculatedService) return
+    if (!calculatedService || !mounted) return
 
     const frequencyLabel = {
       one_time: "One-Time Cleaning",
@@ -203,7 +215,9 @@ export default function CalculatorPage() {
     })
 
     // Store data for email summary page
-    localStorage.setItem("serviceFormData", JSON.stringify(emailData))
+    if (typeof window !== "undefined") {
+      localStorage.setItem("serviceFormData", JSON.stringify(emailData))
+    }
 
     // Show success message
     toast({
@@ -235,8 +249,43 @@ export default function CalculatorPage() {
     setCalculatedService(null)
   }
 
+  // Don't render until mounted to avoid hydration issues
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <div className="container mx-auto px-4 py-8 flex-1">
+          <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
+          <div className="max-w-6xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Calculate Your Cleaning Price</CardTitle>
+                <CardDescription>Loading calculator...</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-96 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Sticky Add to Cart Button */}
+      {calculatedService && calculatedService.totalPrice > 0 && (
+        <StickyCartButton
+          totalPrice={calculatedService.totalPrice}
+          isServiceAvailable={calculatedService.isServiceAvailable}
+          onAddToCart={handleAddToCart}
+          visible={showStickyButton}
+        />
+      )}
+
       <div className="container mx-auto px-4 py-8 flex-1">
         <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
@@ -292,4 +341,34 @@ export default function CalculatorPage() {
       <Footer />
     </div>
   )
+}
+
+// Use dynamic import to disable SSR for this component
+const DynamicCalculatorPage = dynamic(() => Promise.resolve(CalculatorPageContent), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-screen flex-col">
+      <div className="container mx-auto px-4 py-8 flex-1">
+        <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
+        <div className="max-w-6xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Calculate Your Cleaning Price</CardTitle>
+              <CardDescription>Loading calculator...</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-96 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  ),
+})
+
+export default function CalculatorPage() {
+  return <DynamicCalculatorPage />
 }
