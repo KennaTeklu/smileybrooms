@@ -53,7 +53,7 @@ export interface RoomConfiguration {
   totalPrice: number
 }
 
-export default function RoomConfigurator({
+export function RoomConfigurator({
   roomName,
   roomIcon,
   baseTier,
@@ -168,54 +168,58 @@ export default function RoomConfigurator({
                 {tiers.map((tier, index) => (
                   <div
                     key={tier.name}
-                    className={`p-4 rounded-lg border ${
+                    className={`p-4 rounded-lg border relative ${
                       selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"
                     }`}
                   >
-                    <div className="flex items-start">
+                    {/* Info symbol prominently placed in top-right */}
+                    <div className="absolute top-3 right-3">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-blue-100">
+                            <Info className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-sm">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-medium text-sm">{tier.name}</p>
+                              <p className="text-xs text-muted-foreground">{tier.description}</p>
+                              {tier.timeEstimate && (
+                                <p className="text-xs text-blue-600 font-medium">⏱️ {tier.timeEstimate}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-medium mb-2">What's Included:</p>
+                              <div className="space-y-1 max-h-40 overflow-y-auto">
+                                {tier.detailedTasks
+                                  ? tier.detailedTasks.map((task, i) => (
+                                      <p key={i} className="text-xs text-green-700">
+                                        {task}
+                                      </p>
+                                    ))
+                                  : tier.features.map((feature, i) => (
+                                      <p key={i} className="text-xs flex items-start">
+                                        <span className="text-green-500 mr-1">✓</span>
+                                        {feature}
+                                      </p>
+                                    ))}
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    <div className="flex items-start pr-10">
                       <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
                       <div className="ml-3 w-full">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
+                            <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base cursor-pointer">
                               {getTierIcon(tier.name)} {tier.name}
                             </Label>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-5 w-5">
-                                  <Info className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-sm">
-                                <div className="space-y-3">
-                                  <div>
-                                    <p className="font-medium text-sm">{tier.name}</p>
-                                    <p className="text-xs text-muted-foreground">{tier.description}</p>
-                                    {tier.timeEstimate && (
-                                      <p className="text-xs text-blue-600 font-medium">⏱️ {tier.timeEstimate}</p>
-                                    )}
-                                  </div>
-
-                                  <div>
-                                    <p className="text-xs font-medium mb-2">What's Included:</p>
-                                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                                      {tier.detailedTasks
-                                        ? tier.detailedTasks.map((task, i) => (
-                                            <p key={i} className="text-xs text-green-700">
-                                              {task}
-                                            </p>
-                                          ))
-                                        : tier.features.map((feature, i) => (
-                                            <p key={i} className="text-xs flex items-start">
-                                              <span className="text-green-500 mr-1">✓</span>
-                                              {feature}
-                                            </p>
-                                          ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
                           </div>
                           <Badge className={getTierBadgeColor(tier.name)}>${tier.price}</Badge>
                         </div>
