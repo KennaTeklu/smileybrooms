@@ -6,11 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format a number as USD currency
+ * Formats a number as USD currency
  * @param amount - The amount to format
- * @returns Formatted currency string (e.g., "$12.34")
+ * @returns Formatted currency string
  */
 export function formatCurrency(amount: number): string {
+  // Handle invalid input
   if (typeof amount !== "number" || isNaN(amount)) {
     return "$0.00"
   }
