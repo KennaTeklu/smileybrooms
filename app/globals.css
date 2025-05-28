@@ -64,6 +64,17 @@
   body {
     @apply bg-background text-foreground;
     filter: contrast(var(--accessibility-contrast)) saturate(var(--accessibility-saturation));
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Add transition to all theme-aware elements */
+  * {
+    transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    filter: contrast(var(--accessibility-contrast)) saturate(var(--accessibility-saturation));
   }
 
   /* Light theme specific styling */

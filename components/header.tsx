@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { AnimatedDownloadButton } from "@/components/animated-download-button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Header() {
   const pathname = usePathname()
@@ -38,6 +39,9 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Animated Download Button */}
           <div className="hidden md:block">
             <AnimatedDownloadButton />
@@ -52,6 +56,10 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col gap-4 mt-8">
+                <div className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm font-medium">Theme</span>
+                  <ThemeToggle />
+                </div>
                 <Link
                   href="/download"
                   className="px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
