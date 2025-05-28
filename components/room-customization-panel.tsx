@@ -26,10 +26,13 @@ import {
   Sliders,
   ArrowUp,
   ArrowDown,
+  Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isolateScrolling } from "@/lib/scroll-utils"
 import type { RoomTier, RoomAddOn, RoomReduction } from "@/components/room-configurator"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface MatrixService {
   id: string
@@ -603,10 +606,30 @@ export function RoomCustomizationPanel({
                                     <div className="flex justify-between items-center mb-1">
                                       <Label
                                         htmlFor={`tier-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
-                                        className="font-medium"
+                                        className="font-medium flex items-center gap-1.5"
                                         id={`tier-label-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
                                       >
                                         {tier.name}
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Info className="h-4 w-4 text-blue-500 cursor-help" aria-hidden="true" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                              <div className="space-y-2 p-1">
+                                                <p className="font-medium">What's included:</p>
+                                                <ul className="text-xs space-y-1">
+                                                  {tier.features.map((feature, i) => (
+                                                    <li key={i} className="flex items-start">
+                                                      <Check className="h-3 w-3 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
+                                                      <span>{feature}</span>
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              </div>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
                                       </Label>
                                       <Badge
                                         variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}
@@ -615,21 +638,20 @@ export function RoomCustomizationPanel({
                                       </Badge>
                                     </div>
                                     <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
-                                    <div className="space-y-1">
-                                      {tier.features.slice(0, 3).map((feature, i) => (
-                                        <div key={i} className="text-xs flex items-start">
-                                          <span className="text-green-500 mr-1" aria-hidden="true">
-                                            ✓
-                                          </span>
-                                          <span>{feature}</span>
-                                        </div>
-                                      ))}
-                                      {tier.features.length > 3 && (
-                                        <div className="text-xs text-gray-500">
-                                          +{tier.features.length - 3} more features
-                                        </div>
-                                      )}
-                                    </div>
+                                    <Collapsible>
+                                      <CollapsibleTrigger className="flex items-center text-xs text-blue-600 mb-1 hover:underline">
+                                        <span>What's included</span>
+                                        <ChevronDown className="h-3 w-3 ml-1" />
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent className="space-y-1 pl-1 animate-collapsible-down">
+                                        {tier.features.map((feature, i) => (
+                                          <div key={i} className="text-xs flex items-start">
+                                            <Check className="h-3 w-3 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
+                                            <span>{feature}</span>
+                                          </div>
+                                        ))}
+                                      </CollapsibleContent>
+                                    </Collapsible>
                                   </div>
                                 </div>
                               </div>
