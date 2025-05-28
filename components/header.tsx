@@ -29,16 +29,16 @@ export default function Header() {
       className={cn(
         "sticky top-0 left-0 right-0 z-50 transition-all duration-300",
         isScrolled || pathname !== "/"
-          ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md shadow-sm"
-          : "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md",
+          ? "glass-light shadow-elegant border-b border-gradient"
+          : "glass-light shadow-soft",
       )}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center button-hover-lift">
           <Logo className="h-8 w-auto" />
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Theme Toggle */}
           <ThemeToggle />
 
@@ -49,20 +49,20 @@ export default function Header() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="md:hidden glass-light shadow-soft button-hover-lift">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent className="glass-light border-gradient">
               <div className="flex flex-col gap-4 mt-8">
-                <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center justify-between px-4 py-3 glass-light rounded-lg shadow-soft">
                   <span className="text-sm font-medium">Theme</span>
                   <ThemeToggle />
                 </div>
                 <Link
                   href="/download"
-                  className="px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                  className="px-4 py-3 rounded-lg glass-light shadow-soft button-hover-lift flex items-center gap-2 transition-all duration-200"
                 >
                   <Download className="h-4 w-4" />
                   Download App

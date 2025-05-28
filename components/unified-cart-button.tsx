@@ -13,12 +13,6 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { createCheckoutSession } from "@/lib/actions"
 import { useToast } from "@/components/ui/use-toast"
 
-// TODO: When dark mode settings are implemented, apply the current amazing background
-// For dark mode: add conditional styling like:
-// className={cn(
-//   "w-full sm:max-w-lg flex flex-col h-full",
-//   isDarkMode ? "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" : "bg-white"
-// )}
 interface UnifiedCartButtonProps {
   className?: string
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
@@ -87,8 +81,8 @@ export default function UnifiedCartButton({
   }
 
   const buttonClasses = cn(
-    "relative transition-all duration-200 bg-white hover:bg-gray-50 border border-gray-200",
-    position === "fixed" && "fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl",
+    "relative button-hover-lift shadow-soft",
+    position === "fixed" && "fixed bottom-6 right-6 z-50 shadow-elegant hover:shadow-xl",
     className,
   )
 
@@ -101,7 +95,7 @@ export default function UnifiedCartButton({
           {isClient && cart.totalItems > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse"
+              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse shadow-soft"
             >
               {cart.totalItems}
             </Badge>
@@ -109,10 +103,10 @@ export default function UnifiedCartButton({
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full bg-white">
+      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full glass-light border-gradient">
         <SheetHeader className="space-y-4">
           <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2">
+            <SheetTitle className="flex items-center gap-2 text-gradient">
               <ShoppingCart className="h-5 w-5" />
               Your Cart
             </SheetTitle>
@@ -122,20 +116,20 @@ export default function UnifiedCartButton({
           </div>
 
           {cart.totalItems > 0 && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between p-4 card-enhanced rounded-lg shadow-soft">
               <span className="font-medium">Total</span>
-              <span className="text-lg font-bold">{formatCurrency(total)}</span>
+              <span className="text-xl font-bold text-gradient">{formatCurrency(total)}</span>
             </div>
           )}
         </SheetHeader>
 
         {cart.items.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+            <div className="w-24 h-24 rounded-full glass-light flex items-center justify-center shadow-soft">
               <ShoppingCart className="h-12 w-12 text-muted-foreground" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Your cart is empty</h3>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold">Your cart is empty</h3>
               <p className="text-muted-foreground">Add some cleaning services to get started</p>
             </div>
           </div>
@@ -144,11 +138,11 @@ export default function UnifiedCartButton({
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4">
                 {cart.items.map((item) => (
-                  <Card key={item.id} className="overflow-hidden bg-white border border-gray-200">
+                  <Card key={item.id} className="overflow-hidden card-enhanced card-hover shadow-soft">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
                         {item.image && (
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          <div className="w-16 h-16 rounded-lg overflow-hidden glass-light flex-shrink-0 shadow-soft">
                             <img
                               src={item.image || "/placeholder.svg"}
                               alt={item.name}
@@ -157,13 +151,13 @@ export default function UnifiedCartButton({
                           </div>
                         )}
 
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 space-y-3">
                           <div className="flex items-start justify-between">
-                            <h4 className="font-medium leading-tight">{item.name}</h4>
+                            <h4 className="font-semibold leading-tight">{item.name}</h4>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive button-hover-lift"
                               onClick={() => removeItem(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -172,21 +166,21 @@ export default function UnifiedCartButton({
 
                           {/* Service metadata */}
                           {item.metadata && (
-                            <div className="space-y-1 text-sm text-muted-foreground">
+                            <div className="space-y-2 text-sm text-muted-foreground">
                               {item.metadata.frequency && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2 glass-light px-2 py-1 rounded-md">
                                   <Clock className="h-3 w-3" />
                                   <span>{item.metadata.frequency}</span>
                                 </div>
                               )}
                               {item.metadata.customer?.address && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2 glass-light px-2 py-1 rounded-md">
                                   <MapPin className="h-3 w-3" />
                                   <span className="truncate">{item.metadata.customer.address}</span>
                                 </div>
                               )}
                               {item.metadata.rooms && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-2 glass-light px-2 py-1 rounded-md">
                                   <Star className="h-3 w-3" />
                                   <span>{item.metadata.rooms}</span>
                                 </div>
@@ -195,11 +189,11 @@ export default function UnifiedCartButton({
                           )}
 
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center border rounded-lg">
+                            <div className="flex items-center glass-light rounded-lg shadow-soft">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-none"
+                                className="h-8 w-8 rounded-none button-hover-lift"
                                 onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
                               >
                                 <Minus className="h-3 w-3" />
@@ -208,7 +202,7 @@ export default function UnifiedCartButton({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-none"
+                                className="h-8 w-8 rounded-none button-hover-lift"
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               >
                                 <Plus className="h-3 w-3" />
@@ -217,7 +211,9 @@ export default function UnifiedCartButton({
 
                             <div className="text-right">
                               <div className="text-sm text-muted-foreground">{formatCurrency(item.price)} each</div>
-                              <div className="font-semibold">{formatCurrency(item.price * item.quantity)}</div>
+                              <div className="font-semibold text-gradient">
+                                {formatCurrency(item.price * item.quantity)}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -229,12 +225,12 @@ export default function UnifiedCartButton({
             </ScrollArea>
 
             {/* Order Summary */}
-            <div className="space-y-4 pt-4 border-t">
-              <Card className="bg-white border border-gray-200">
+            <div className="space-y-4 pt-4 border-t border-gradient">
+              <Card className="card-enhanced shadow-soft">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Order Summary</CardTitle>
+                  <CardTitle className="text-base text-gradient">Order Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
                     <span>{formatCurrency(subtotal)}</span>
@@ -244,10 +240,10 @@ export default function UnifiedCartButton({
                     <span>{formatCurrency(tax)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <span>Shipping</span>
                       {shipping === 0 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs glass-light">
                           FREE
                         </Badge>
                       )}
@@ -255,16 +251,21 @@ export default function UnifiedCartButton({
                     <span>{formatCurrency(shipping)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>{formatCurrency(total)}</span>
+                    <span className="text-gradient">{formatCurrency(total)}</span>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Action Buttons */}
-              <div className="space-y-2">
-                <Button onClick={handleCheckout} disabled={isCheckingOut} className="w-full" size="lg">
+              <div className="space-y-3">
+                <Button
+                  onClick={handleCheckout}
+                  disabled={isCheckingOut}
+                  className="w-full button-enhanced button-hover-lift shadow-soft"
+                  size="lg"
+                >
                   {isCheckingOut ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
@@ -279,7 +280,12 @@ export default function UnifiedCartButton({
                   )}
                 </Button>
 
-                <Button variant="outline" onClick={clearCart} className="w-full" size="sm">
+                <Button
+                  variant="outline"
+                  onClick={clearCart}
+                  className="w-full button-hover-lift shadow-soft glass-light"
+                  size="sm"
+                >
                   <X className="mr-2 h-4 w-4" />
                   Clear Cart
                 </Button>
