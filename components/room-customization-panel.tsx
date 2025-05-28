@@ -318,12 +318,6 @@ export function RoomCustomizationPanel({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
-
-      // Scroll the content area to top when panel opens
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = 0
-        updateScrollPosition()
-      }
     } else {
       document.body.style.overflow = "unset"
     }
