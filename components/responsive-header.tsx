@@ -13,8 +13,16 @@ const navigation = [
 
 export function ResponsiveHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { items } = useCart()
-  const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)
+
+  // Add error handling for cart context
+  let cartItemCount = 0
+  try {
+    const { items } = useCart()
+    cartItemCount = items?.reduce((total, item) => total + (item?.quantity || 0), 0) || 0
+  } catch (error) {
+    console.warn("Cart context not available:", error)
+    cartItemCount = 0
+  }
 
   return (
     <header className="bg-white">
