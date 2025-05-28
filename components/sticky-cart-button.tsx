@@ -1,58 +1,37 @@
 "use client"
 
-import { useCart } from "@/lib/cart-context"
-import { cn } from "@/lib/utils"
-import { ShoppingCart } from 'lucide-react'
-import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import type React from "react"
+import { formatCurrency } from "@/lib/utils"
 
 interface StickyCartButtonProps {
-  className?: string
-  visible?: boolean
+  totalPrice: number
+  onCheckout: () => void
 }
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount)
-}
-
-// Define the component
-const StickyCartButton = ({ className, visible = true }: StickyCartButtonProps) => {
-  const { cart } = useCart()
-  const router = useRouter()
-  const [showButton, setShowButton] = useState(false)
-
-  useEffect(() => {
-    setShowButton(visible && cart.totalPrice > 0)
-  }, [visible, cart.totalPrice])
-
-  const handleViewCart = () => {
-    router.push("/cart")
+const StickyCartButton: React.FC<StickyCartButtonProps> = ({ totalPrice, onCheckout }) => {
+  // Add error handling for price formatting
+  const formattedPrice = (price: number) => {
+    try {
+      return formatCurrency(price)
+    } catch (error) {
+      console.error("Error formatting price:", error)
+      return "$0.00" // Fallback value
+    }
   }
 
   return (
-    showButton && (
-      <div
-        className={cn(
-          "fixed bottom-6 right-6 z-50 transition-all duration-300",
-          "bg-white dark:bg-gray-900 rounded-full shadow-lg hover:shadow-xl",
-          className,
-        )}
-      >
-        <Button variant="outline" size="icon" onClick={handleViewCart} className="relative">
-          <ShoppingCart className="h-5 w-5" />
-          {cart.totalItems > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
-              {cart.totalItems}
-            </Badge>
-          )}
-        </Button>
+    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between">
+        {/* Update the price display to use the safe formatter */}
+        <div className="text-lg font-bold">{formattedPrice(totalPrice)}</div>
+        <button
+          onClick={onCheckout}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+        >
+          Checkout
+        </button>
       </div>
-    )
+    </div>
   )
 }
 
