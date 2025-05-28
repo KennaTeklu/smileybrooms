@@ -1,55 +1,29 @@
-"use client"
-
 import type React from "react"
+import { QueryClientProvider } from "@/components/query-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { ResponsiveHeader } from "@/components/responsive-header"
-import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
-import UnifiedFooter from "@/components/unified-footer"
-import AccessibilityPanel from "@/components/accessibility-panel"
-import SharePanel from "@/components/share-panel"
-import { CartProvider } from "@/lib/cart-context"
-import { usePathname } from "next/navigation"
-import { Suspense } from "react"
+import { AccessibilityProvider } from "@/providers/accessibility-provider"
+import { EnhancedCartProvider } from "@/providers/cart/enhanced-cart-provider"
+import { CartProvider } from "@/providers/cart-provider"
+import { ResponsiveHeader } from "@/ui/responsive-header"
+import { UnifiedFooter } from "@/ui/unified-footer"
+import { Toaster } from "sonner"
 
-function ConditionalHeader() {
-  const pathname = usePathname()
-  const isHomepage = pathname === "/"
-
-  if (isHomepage) return null
-
+// Make sure the CartProvider is wrapping the entire layout including the header
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <ResponsiveHeader />
-      <div className="pt-16" />
-    </>
-  )
-}
-
-function ConditionalHeaderWrapper() {
-  return (
-    <Suspense fallback={<div className="pt-16" />}>
-      <ConditionalHeader />
-    </Suspense>
-  )
-}
-
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <CartProvider>
-        <ConditionalHeaderWrapper />
-        {children}
-        <PersistentBookNowButton />
-        <AccessibilityPanel />
-        <SharePanel />
-        <UnifiedFooter />
-        <Toaster />
-      </CartProvider>
-    </ThemeProvider>
+    <CartProvider>
+      <QueryClientProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <AccessibilityProvider>
+            <EnhancedCartProvider>
+              <ResponsiveHeader />
+              <main className="flex-1">{children}</main>
+              <UnifiedFooter />
+              <Toaster />
+            </EnhancedCartProvider>
+          </AccessibilityProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </CartProvider>
   )
 }

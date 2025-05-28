@@ -10,6 +10,10 @@ import Logo from "@/components/logo"
 import { HamburgerMenu } from "@/components/enhanced-hamburger-menu"
 import { MobileMenuOverlay } from "@/components/mobile-menu-overlay"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import { Sheet, SheetTrigger } from "@/components/ui/sheet"
+import { Cart } from "@/components/cart"
+import { Badge } from "@/components/ui/badge"
 
 const primaryNavItems = [
   { name: "Home", href: "/" },
@@ -19,6 +23,7 @@ const primaryNavItems = [
 ]
 
 export function ResponsiveHeader() {
+  const { cart } = useCart()
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -117,14 +122,26 @@ export function ResponsiveHeader() {
                 </span>
               </Button>
 
-              {/* Cart */}
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full text-xs flex items-center justify-center text-white font-medium">
-                  2
-                </span>
-                <span className="sr-only">Shopping cart with 2 items</span>
-              </Button>
+              {/* Cart with Sheet Integration */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <ShoppingCart className="w-5 h-5" />
+                    {cart.totalItems > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs font-medium"
+                      >
+                        {cart.totalItems}
+                      </Badge>
+                    )}
+                    <span className="sr-only">
+                      Shopping cart with {cart.totalItems} {cart.totalItems === 1 ? "item" : "items"}
+                    </span>
+                  </Button>
+                </SheetTrigger>
+                <Cart />
+              </Sheet>
 
               {/* User Menu */}
               <Button variant="ghost" size="icon" className="hidden sm:flex">
