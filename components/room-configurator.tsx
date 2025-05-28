@@ -168,60 +168,58 @@ export function RoomConfigurator({
                 {tiers.map((tier, index) => (
                   <div
                     key={tier.name}
-                    className={`p-4 rounded-lg border relative ${
+                    className={`p-4 rounded-lg border ${
                       selectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200"
                     }`}
                   >
-                    {/* Info symbol prominently placed in top-right */}
-                    <div className="absolute top-3 right-3">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-blue-100">
-                            <Info className="h-4 w-4 text-blue-600" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="max-w-sm">
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-medium text-sm">{tier.name}</p>
-                              <p className="text-xs text-muted-foreground">{tier.description}</p>
-                              {tier.timeEstimate && (
-                                <p className="text-xs text-blue-600 font-medium">⏱️ {tier.timeEstimate}</p>
-                              )}
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-medium mb-2">What's Included:</p>
-                              <div className="space-y-1 max-h-40 overflow-y-auto">
-                                {tier.detailedTasks
-                                  ? tier.detailedTasks.map((task, i) => (
-                                      <p key={i} className="text-xs text-green-700">
-                                        {task}
-                                      </p>
-                                    ))
-                                  : tier.features.map((feature, i) => (
-                                      <p key={i} className="text-xs flex items-start">
-                                        <span className="text-green-500 mr-1">✓</span>
-                                        {feature}
-                                      </p>
-                                    ))}
-                              </div>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    <div className="flex items-start pr-10">
+                    <div className="flex items-start">
                       <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
                       <div className="ml-3 w-full">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
-                            <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base cursor-pointer">
+                            <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base">
                               {getTierIcon(tier.name)} {tier.name}
                             </Label>
                           </div>
-                          <Badge className={getTierBadgeColor(tier.name)}>${tier.price}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getTierBadgeColor(tier.name)}>${tier.price}</Badge>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-7 px-2 border-blue-300 bg-blue-50">
+                                  <Info className="h-3.5 w-3.5 mr-1" /> Info
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-sm">
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="font-medium text-sm">{tier.name}</p>
+                                    <p className="text-xs text-muted-foreground">{tier.description}</p>
+                                    {tier.timeEstimate && (
+                                      <p className="text-xs text-blue-600 font-medium">⏱️ {tier.timeEstimate}</p>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    <p className="text-xs font-medium mb-2">What's Included:</p>
+                                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                                      {tier.detailedTasks
+                                        ? tier.detailedTasks.map((task, i) => (
+                                            <p key={i} className="text-xs text-green-700">
+                                              {task}
+                                            </p>
+                                          ))
+                                        : tier.features.map((feature, i) => (
+                                            <p key={i} className="text-xs flex items-start">
+                                              <span className="text-green-500 mr-1">✓</span>
+                                              {feature}
+                                            </p>
+                                          ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
                         {tier.timeEstimate && (
@@ -258,25 +256,27 @@ export function RoomConfigurator({
                         className="mt-1"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between">
                           <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
                             {addOn.name}
                           </Label>
-                          <Badge variant="outline" className="text-green-600 border-green-200">
-                            +${addOn.price.toFixed(2)}
-                          </Badge>
-                          {addOn.description && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-4 w-4">
-                                  <Info className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <p className="text-xs">{addOn.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-green-600 border-green-200">
+                              +${addOn.price.toFixed(2)}
+                            </Badge>
+                            {addOn.description && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-6 px-2 border-green-200 bg-green-50">
+                                    <Info className="h-3 w-3 mr-1" /> Info
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <p className="text-xs">{addOn.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -309,25 +309,27 @@ export function RoomConfigurator({
                         className="mt-1"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between">
                           <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
                             {reduction.name}
                           </Label>
-                          <Badge variant="outline" className="text-red-600 border-red-200">
-                            -${reduction.discount.toFixed(2)}
-                          </Badge>
-                          {reduction.description && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-4 w-4">
-                                  <Info className="h-3 w-3" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <p className="text-xs">{reduction.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-red-600 border-red-200">
+                              -${reduction.discount.toFixed(2)}
+                            </Badge>
+                            {reduction.description && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-6 px-2 border-red-200 bg-red-50">
+                                    <Info className="h-3 w-3 mr-1" /> Info
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <p className="text-xs">{reduction.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
