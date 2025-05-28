@@ -145,9 +145,9 @@ export default function PricingPage() {
   }, [roomCounts])
 
   return (
-    <main className="container mx-auto py-4 px-4 mt-16">
-      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4" aria-label="Service types">
+    <main className="container mx-auto px-4 pt-2">
+      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+        <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
           <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
             <Home className="h-4 w-4" aria-hidden="true" />
             <span>Residential Services</span>
@@ -158,7 +158,7 @@ export default function PricingPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-8">
+        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
           {/* Core Rooms Category */}
           <RoomCategory
             title="CORE ROOMS"
