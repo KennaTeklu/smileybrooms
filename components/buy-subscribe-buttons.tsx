@@ -4,9 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { ShoppingCart, RefreshCw, Calendar } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 interface RoomSelection {
   roomType: string
@@ -42,7 +41,7 @@ export function BuySubscribeButtons({
   const isSubscription = frequency !== "one_time"
   const buttonType = isSubscription ? "subscribe" : "buy"
   const buttonText = isSubscription ? "Subscribe Now" : "Buy Now"
-  const buttonIcon = isSubscription ? RefreshCw : ShoppingCart
+  const ButtonIcon = isSubscription ? RefreshCw : ShoppingCart
 
   // Calculate pricing details
   const subtotal = selectedRooms.reduce((sum, room) => sum + room.totalPrice * room.roomCount, 0)
@@ -154,7 +153,7 @@ export function BuySubscribeButtons({
           ))}
         </div>
 
-        <Separator />
+        <hr className="border-gray-200" />
 
         {/* Pricing Breakdown */}
         <div className="space-y-2">
@@ -170,7 +169,7 @@ export function BuySubscribeButtons({
             </div>
           )}
 
-          <Separator />
+          <hr className="border-gray-200" />
 
           <div className="flex justify-between items-center font-bold text-lg">
             <span>Total:</span>
@@ -217,7 +216,7 @@ export function BuySubscribeButtons({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <buttonIcon.type className="h-5 w-5" />
+              <ButtonIcon className="h-5 w-5" />
               {buttonText}
             </div>
           )}
