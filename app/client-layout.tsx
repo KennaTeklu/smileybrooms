@@ -3,7 +3,7 @@
 import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { ResponsiveHeader } from "@/components/responsive-header"
+import EnhancedNavigation from "@/components/enhanced-navigation"
 import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
 import UnifiedFooter from "@/components/unified-footer"
 import AccessibilityPanel from "@/components/accessibility-panel"
@@ -16,10 +16,11 @@ function ConditionalHeader() {
   const pathname = usePathname()
   const isHomepage = pathname === "/"
 
-  // Show header on all pages now, including homepage for cart access
+  if (isHomepage) return null
+
   return (
     <>
-      <ResponsiveHeader />
+      <EnhancedNavigation />
       <div className="pt-16" />
     </>
   )

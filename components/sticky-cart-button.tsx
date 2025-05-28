@@ -1,15 +1,14 @@
-"use client"
-
-import type React from "react"
-import { formatCurrency } from "@/lib/utils"
-
-interface StickyCartButtonProps {
-  totalPrice: number
-  onCheckout: () => void
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount)
 }
 
-const StickyCartButton: React.FC<StickyCartButtonProps> = ({ totalPrice, onCheckout }) => {
-  // Add error handling for price formatting
+// Define the component
+const StickyCartButton = () => {
+  const price = 99.99
+
   const formattedPrice = (price: number) => {
     try {
       return formatCurrency(price)
@@ -20,16 +19,30 @@ const StickyCartButton: React.FC<StickyCartButtonProps> = ({ totalPrice, onCheck
   }
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="text-lg font-bold">{formattedPrice(totalPrice)}</div>
-        <button
-          onClick={onCheckout}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
-        >
-          Checkout
-        </button>
-      </div>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        backgroundColor: "white",
+        padding: "10px",
+        textAlign: "center",
+        borderTop: "1px solid #ccc",
+      }}
+    >
+      <button
+        style={{
+          backgroundColor: "blue",
+          color: "white",
+          padding: "10px 20px",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Add to Cart - {formattedPrice(price)}
+      </button>
     </div>
   )
 }

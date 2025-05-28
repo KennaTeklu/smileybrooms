@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Moon, Sun, Home, Info, Phone, Calculator, Briefcase } from "lucide-react"
+import { Menu, X, Moon, Sun, Home, Info, Phone, Calculator, Briefcase } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import CartButton from "./cart-button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 // Define navigation items with their paths and icons
 const navigationItems = [
@@ -55,22 +56,42 @@ export default function EnhancedNavigation() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-1">
-          {filteredNavigationItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.path}
-              className={cn(
-                "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                "hover:bg-gray-100 dark:hover:bg-gray-800",
-              )}
-            >
-              <span className="flex items-center gap-1">
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </span>
-            </Link>
-          ))}
+        <nav className="flex items-center">
+          <div className="hidden md:flex space-x-1">
+            {filteredNavigationItems.slice(0, 3).map((item) => (
+              <Link
+                key={item.name}
+                href={item.path}
+                className={cn(
+                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "hover:bg-gray-100 dark:hover:bg-gray-800",
+                )}
+              >
+                <span className="flex items-center gap-1">
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {filteredNavigationItems.slice(3).map((item) => (
+                <DropdownMenuItem key={item.name}>
+                  <Link href={item.path} className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.name}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             variant="outline"
