@@ -1,6 +1,4 @@
 "use client"
-
-import type React from "react"
 import { useState, useCallback } from "react"
 import RoomConfigurator from "./room-configurator"
 import type { RoomConfig } from "@/types"
@@ -18,7 +16,7 @@ interface RoomCategoryProps {
   onRoomConfigChange: (roomId: string, config: RoomConfig) => void
 }
 
-const RoomCategory: React.FC<RoomCategoryProps> = ({ categoryName, rooms, roomConfigs, onRoomConfigChange }) => {
+export function RoomCategory({ categoryName, rooms, roomConfigs, onRoomConfigChange }) {
   const [expandedRooms, setExpandedRooms] = useState<{ [roomId: string]: boolean }>({})
 
   const toggleRoomExpansion = (roomId: string) => {
