@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic"
-import { LoadingAnimation } from "@/components/loading-animation"
+import LoadingAnimation from "@/components/loading-animation"
 
 const PricingContent = dynamic(() => import("@/components/pricing-content"), {
   ssr: false,
