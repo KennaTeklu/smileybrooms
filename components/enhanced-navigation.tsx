@@ -3,15 +3,13 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Moon, Sun, Home, Info, Phone, Calculator, Briefcase, ShoppingCart } from 'lucide-react'
+import { Menu, X, Moon, Sun, Home, Info, Phone, Calculator, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import CartButton from "./cart-button"
-import { useCart } from "@/lib/cart-context"
-import { Badge } from "@/components/ui/badge"
 
 // Define navigation items with their paths and icons
 const navigationItems = [
@@ -26,12 +24,7 @@ export default function EnhancedNavigation() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
-  const { theme, setTheme, cart } = useTheme()
-  const [showCartButton, setShowCartButton] = useState(false)
-
-  useEffect(() => {
-    setShowCartButton(cart.totalPrice > 0)
-  }, [cart.totalPrice])
+  const { theme, setTheme } = useTheme()
 
   // Filter out the current page from navigation items
   const filteredNavigationItems = navigationItems.filter((item) => item.path !== pathname)
