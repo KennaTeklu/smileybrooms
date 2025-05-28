@@ -145,12 +145,9 @@ export default function PricingPage() {
   }, [roomCounts])
 
   return (
-    <main className="container mx-auto py-10 px-4 mt-16">
-      <h1 className="text-4xl font-bold text-center mb-2">Pricing Calculator</h1>
-      <p className="text-center text-gray-500 mb-10">Customize your cleaning service to fit your needs and budget</p>
-
+    <main className="container mx-auto py-4 px-4 mt-16">
       <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-8" aria-label="Service types">
+        <TabsList className="grid w-full grid-cols-2 mb-4" aria-label="Service types">
           <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
             <Home className="h-4 w-4" aria-hidden="true" />
             <span>Residential Services</span>
