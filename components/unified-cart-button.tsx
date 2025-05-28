@@ -13,6 +13,12 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { createCheckoutSession } from "@/lib/actions"
 import { useToast } from "@/components/ui/use-toast"
 
+// TODO: When dark mode settings are implemented, apply the current amazing background
+// For dark mode: add conditional styling like:
+// className={cn(
+//   "w-full sm:max-w-lg flex flex-col h-full",
+//   isDarkMode ? "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" : "bg-white"
+// )}
 interface UnifiedCartButtonProps {
   className?: string
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive"
@@ -81,7 +87,7 @@ export default function UnifiedCartButton({
   }
 
   const buttonClasses = cn(
-    "relative transition-all duration-200",
+    "relative transition-all duration-200 bg-white hover:bg-gray-50 border border-gray-200",
     position === "fixed" && "fixed bottom-6 right-6 z-50 shadow-lg hover:shadow-xl",
     className,
   )
@@ -103,7 +109,7 @@ export default function UnifiedCartButton({
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full">
+      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full bg-white">
         <SheetHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
@@ -116,7 +122,7 @@ export default function UnifiedCartButton({
           </div>
 
           {cart.totalItems > 0 && (
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
               <span className="font-medium">Total</span>
               <span className="text-lg font-bold">{formatCurrency(total)}</span>
             </div>
@@ -125,7 +131,7 @@ export default function UnifiedCartButton({
 
         {cart.items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
               <ShoppingCart className="h-12 w-12 text-muted-foreground" />
             </div>
             <div className="space-y-2">
@@ -138,7 +144,7 @@ export default function UnifiedCartButton({
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4">
                 {cart.items.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
+                  <Card key={item.id} className="overflow-hidden bg-white border border-gray-200">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
                         {item.image && (
@@ -224,7 +230,7 @@ export default function UnifiedCartButton({
 
             {/* Order Summary */}
             <div className="space-y-4 pt-4 border-t">
-              <Card>
+              <Card className="bg-white border border-gray-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Order Summary</CardTitle>
                 </CardHeader>
