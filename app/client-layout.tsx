@@ -11,6 +11,7 @@ import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
+import StickyCartButton from "@/components/sticky-cart-button"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -21,6 +22,7 @@ function ConditionalHeader() {
   return (
     <>
       <EnhancedNavigation />
+      <StickyCartButton />
       <div className="pt-16" />
     </>
   )
