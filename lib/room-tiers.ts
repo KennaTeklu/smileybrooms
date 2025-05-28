@@ -6,6 +6,7 @@ export interface RoomTier {
   description: string
   price: number
   features: string[]
+  timeEstimate: string
 }
 
 export interface RoomAddOn {
@@ -34,13 +35,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for lightly used rooms",
       price: 25.0,
+      timeEstimate: "20 minutes",
       features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
     },
     {
       id: "bedroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular maintenance",
-      price: 25.0 * 3, // 3x the Essential Clean price
+      price: 75.0, // 3x the Essential Clean price
+      timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
         "Under-bed extended reach",
@@ -54,7 +57,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for maximum freshness",
-      price: 25.0 * 9, // 9x the Essential Clean price
+      price: 225.0, // 9x the Essential Clean price
+      timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
         "Mattress deep vacuum & flip",
@@ -77,13 +81,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for guest bathrooms",
       price: 30.0,
+      timeEstimate: "25 minutes",
       features: ["Sink and counter wipe-down", "Toilet exterior cleaning", "Mirror cleaning"],
     },
     {
       id: "bathroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular bathrooms",
-      price: 30.0 * 3, // 3x the Essential Clean price
+      price: 90.0, // 3x the Essential Clean price
+      timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
         "Shower/tub scrubbing",
@@ -97,7 +103,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bathroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for master bathrooms",
-      price: 30.0 * 9, // 9x the Essential Clean price
+      price: 270.0, // 9x the Essential Clean price
+      timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
         "Grout detailed cleaning",
@@ -120,13 +127,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Surface cleaning for lightly used kitchens",
       price: 35.0,
+      timeEstimate: "30 minutes",
       features: ["Countertop cleaning", "Sink washing", "Stovetop wipe-down"],
     },
     {
       id: "kitchen-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular kitchens",
-      price: 35.0 * 3, // 3x the Essential Clean price
+      price: 105.0, // 3x the Essential Clean price
+      timeEstimate: "90 minutes",
       features: [
         "Includes Essential Clean",
         "Appliance exterior cleaning",
@@ -140,7 +149,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "kitchen-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for gourmet kitchens",
-      price: 35.0 * 9, // 9x the Essential Clean price
+      price: 315.0, // 9x the Essential Clean price
+      timeEstimate: "270 minutes",
       features: [
         "Includes Advanced Clean",
         "Refrigerator interior organization",
@@ -163,13 +173,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for living spaces",
       price: 30.0,
+      timeEstimate: "25 minutes",
       features: ["Surface dusting", "Floor vacuum", "Coffee table cleaning"],
     },
     {
       id: "livingroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for family rooms",
-      price: 30.0 * 3, // 3x the Essential Clean price
+      price: 90.0, // 3x the Essential Clean price
+      timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
         "Furniture vacuuming",
@@ -183,7 +195,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "livingroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for entertainment areas",
-      price: 30.0 * 9, // 9x the Essential Clean price
+      price: 270.0, // 9x the Essential Clean price
+      timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
         "Upholstery spot treatment",
@@ -206,13 +219,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for dining areas",
       price: 25.0,
+      timeEstimate: "20 minutes",
       features: ["Table and chair dusting", "Floor vacuum/sweep", "Light fixture dusting"],
     },
     {
       id: "diningroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for dining rooms",
-      price: 25.0 * 3,
+      price: 75.0,
+      timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
         "Table polishing",
@@ -226,7 +241,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "diningroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for formal dining rooms",
-      price: 25.0 * 9,
+      price: 225.0,
+      timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
         "China/glassware cleaning",
@@ -244,13 +260,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for work spaces",
       price: 25.0,
+      timeEstimate: "20 minutes",
       features: ["Desk surface dusting", "Floor vacuum", "Trash emptying"],
     },
     {
       id: "office-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for home offices",
-      price: 25.0 * 3,
+      price: 75.0,
+      timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
         "Electronics dusting",
@@ -264,7 +282,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "office-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for professional offices",
-      price: 25.0 * 9,
+      price: 225.0,
+      timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
         "Filing cabinet organization",
@@ -282,13 +301,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for laundry areas",
       price: 20.0,
+      timeEstimate: "15 minutes",
       features: ["Surface dusting", "Floor sweep/vacuum", "Sink cleaning"],
     },
     {
       id: "laundry-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for laundry rooms",
-      price: 20.0 * 3,
+      price: 60.0,
+      timeEstimate: "45 minutes",
       features: [
         "Includes Essential Clean",
         "Washer/dryer exterior cleaning",
@@ -302,7 +323,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "laundry-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for laundry centers",
-      price: 20.0 * 9,
+      price: 180.0,
+      timeEstimate: "135 minutes",
       features: [
         "Includes Advanced Clean",
         "Washer drum cleaning",
@@ -320,13 +342,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for entryways",
       price: 15.0,
+      timeEstimate: "10 minutes",
       features: ["Floor sweep/vacuum", "Surface dusting", "Door cleaning"],
     },
     {
       id: "entryway-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for foyers",
-      price: 15.0 * 3,
+      price: 45.0,
+      timeEstimate: "30 minutes",
       features: [
         "Includes Essential Clean",
         "Floor detailed mopping",
@@ -340,7 +364,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "entryway-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for grand entrances",
-      price: 15.0 * 9,
+      price: 135.0,
+      timeEstimate: "90 minutes",
       features: [
         "Includes Advanced Clean",
         "Chandelier detailed cleaning",
@@ -358,13 +383,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for hallways",
       price: 15.0,
+      timeEstimate: "10 minutes",
       features: ["Floor vacuum/sweep", "Surface dusting", "Light fixture dusting"],
     },
     {
       id: "hallway-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for corridors",
-      price: 15.0 * 3,
+      price: 45.0,
+      timeEstimate: "30 minutes",
       features: [
         "Includes Essential Clean",
         "Floor detailed mopping",
@@ -378,7 +405,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "hallway-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for gallery hallways",
-      price: 15.0 * 9,
+      price: 135.0,
+      timeEstimate: "90 minutes",
       features: [
         "Includes Advanced Clean",
         "Runner/carpet detailed cleaning",
@@ -396,13 +424,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for staircases",
       price: 20.0,
+      timeEstimate: "15 minutes",
       features: ["Step vacuum/sweep", "Handrail dusting", "Visible surface dusting"],
     },
     {
       id: "stairs-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for stairways",
-      price: 20.0 * 3,
+      price: 60.0,
+      timeEstimate: "45 minutes",
       features: [
         "Includes Essential Clean",
         "Step detailed cleaning",
@@ -416,7 +446,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "stairs-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for grand staircases",
-      price: 20.0 * 9,
+      price: 180.0,
+      timeEstimate: "135 minutes",
       features: [
         "Includes Advanced Clean",
         "Carpet deep cleaning",
@@ -434,13 +465,15 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for all spaces",
       price: 25.0,
+      timeEstimate: "20 minutes",
       features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
     },
     {
       id: "default-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for all spaces",
-      price: 25.0 * 3, // 3x the Essential Clean price
+      price: 75.0, // 3x the Essential Clean price
+      timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
         "Detailed dusting",
@@ -454,7 +487,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "default-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for all spaces",
-      price: 25.0 * 9, // 9x the Essential Clean price
+      price: 225.0, // 9x the Essential Clean price
+      timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
         "Specialty surface treatment",
