@@ -1,12 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -38,86 +38,22 @@ import {
   Trash2,
   CreditCard,
   Wallet,
-  BanknoteIcon as Bank,
+  BanknoteIcon,
   ArrowRight,
-  MapPin,
-  Calendar,
   Heart,
   Share2,
   Truck,
   Shield,
-  Zap,
   CheckCircle,
   Loader2,
   Lock,
   Smartphone,
   Repeat,
   Package,
-  BanknoteIcon as Bank,
-  Rocket,
-  BellIcon as Pepper,
-  GlassWaterIcon as Water,
-  GlassWaterIcon as Water,
-  SunIcon as Sunflower,
-  FlowerIcon as Jasmine,
-  CandyIcon as Honey,
-  BoltIcon as Bat,
-  MilkIcon as Butter,
-  BeakerIcon as Bee,
-  BeanIcon as Beet,
-  BirdIcon as Chicken,
-  CrownIcon as Crow,
-  AppleIcon as Kiwi,
-  PiggyBankIcon as Pig,
-  BoxIcon as Blue,
-  TreesIcon as Tree,
-  FishIcon as Fly,
-  BirdIcon as Sparrow,
-  BirdIcon as Canary,
-  FlowerIcon as Rose,
-  TruckIcon as Trumpet,
-  BeakerIcon as Bee,
-  CandyIcon as Honey,
 } from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { useDebounce } from "@/hooks/use-debounce"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { useGestures } from "@/hooks/use-gestures"
-import { useAnalytics } from "@/hooks/use-analytics"
-import { useAccessibility } from "@/hooks/use-accessibility"
-import { usePerformanceMonitor } from "@/hooks/use-performance-monitor"
-import { useBiometrics } from "@/hooks/use-biometrics"
-import { useGeolocation } from "@/hooks/use-geolocation"
-import { useNetworkStatus } from "@/hooks/use-network-status"
-import { useBatteryStatus } from "@/hooks/use-battery-status"
-import { useVibration } from "@/hooks/use-vibration"
-import { useNotifications } from "@/hooks/use-notifications"
-import { useClipboard } from "@/hooks/use-clipboard"
-import { useWebShare } from "@/hooks/use-web-share"
-import { useWebAuthn } from "@/hooks/use-web-authn"
-import { usePaymentRequest } from "@/hooks/use-payment-request"
 
-// Advanced types and interfaces
-interface CartItemVariant {
-  id: string
-  name: string
-  value: string
-  price: number
-  available: boolean
-  image?: string
-}
-
-interface CartItemCustomization {
-  id: string
-  name: string
-  type: "select" | "color" | "size" | "text" | "number" | "date" | "time"
-  options?: CartItemVariant[]
-  value: any
-  required: boolean
-  validation?: (value: any) => boolean | string
-}
-
+// Enhanced cart item interface
 interface EnhancedCartItem {
   id: string
   name: string
@@ -127,289 +63,22 @@ interface EnhancedCartItem {
   priceId: string
   quantity: number
   image?: string
-  images?: string[]
   category?: string
-  brand?: string
-  sku?: string
-  weight?: number
-  dimensions?: { width: number; height: number; depth: number }
-  customizations?: CartItemCustomization[]
   metadata?: Record<string, any>
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   isRecurring?: boolean
   recurringInterval?: "week" | "month" | "year"
-  discounts?: Array<{
-    id: string
-    name: string
-    type: "percentage" | "fixed" | "bogo" | "bulk"
-    value: number
-    conditions?: Record<string, any>
-  }>
-  tags?: string[]
-  rating?: number
-  reviews?: number
-  availability?: {
-    inStock: boolean
-    quantity: number
-    estimatedDelivery?: Date
-    backorderDate?: Date
-  }
-  shipping?: {
-    weight: number
-    dimensions: { width: number; height: number; depth: number }
-    restrictions?: string[]
-    freeShippingThreshold?: number
-  }
-  warranty?: {
-    duration: number
-    type: "manufacturer" | "extended" | "premium"
-    coverage: string[]
-  }
-  sustainability?: {
-    ecoFriendly: boolean
-    carbonNeutral: boolean
-    recyclable: boolean
-    sustainabilityScore: number
-  }
-  personalization?: {
-    engraving?: string
-    monogram?: string
-    customMessage?: string
-    giftWrap?: boolean
-    giftMessage?: string
-  }
-  bundleItems?: EnhancedCartItem[]
-  crossSells?: EnhancedCartItem[]
-  upSells?: EnhancedCartItem[]
-  relatedItems?: EnhancedCartItem[]
-  recentlyViewed?: boolean
-  wishlistItem?: boolean
-  compareItem?: boolean
-  shareableLink?: string
-  qrCode?: string
-  nfcData?: string
-  arPreview?: string
-  vrPreview?: string
-  video360?: string
-  productTour?: string
-  sizingGuide?: string
-  careInstructions?: string[]
-  ingredients?: string[]
-  nutritionFacts?: Record<string, any>
-  allergens?: string[]
-  certifications?: string[]
-  awards?: string[]
-  pressReviews?: Array<{
-    source: string
-    quote: string
-    rating: number
-    date: Date
-  }>
-  socialProof?: {
-    purchaseCount: number
-    viewCount: number
-    shareCount: number
-    wishlistCount: number
-    recentPurchases: Array<{
-      location: string
-      timeAgo: string
-      verified: boolean
-    }>
-  }
-  aiRecommendations?: {
-    confidence: number
-    reasons: string[]
-    similarItems: string[]
-    complementaryItems: string[]
-  }
-  dynamicPricing?: {
-    basePrice: number
-    currentPrice: number
-    priceHistory: Array<{ date: Date; price: number }>
-    priceAlerts: boolean
-    demandLevel: "low" | "medium" | "high"
-    priceOptimized: boolean
-  }
-  inventory?: {
-    warehouseLocation: string
-    lastUpdated: Date
-    reservedQuantity: number
-    inTransit: number
-    allocated: number
-    available: number
-  }
-  fulfillment?: {
-    method: "standard" | "express" | "overnight" | "pickup" | "digital"
-    estimatedDelivery: Date
-    trackingNumber?: string
-    carrier?: string
-    signature?: boolean
-    insurance?: boolean
-    packaging?: "standard" | "eco" | "premium" | "gift"
-  }
-  returns?: {
-    eligible: boolean
-    window: number
-    restockingFee?: number
-    returnShipping?: "free" | "paid" | "prepaid"
-    conditions: string[]
-  }
-  support?: {
-    chatAvailable: boolean
-    phoneSupport: boolean
-    emailSupport: boolean
-    videoSupport: boolean
-    documentationUrl?: string
-    faqUrl?: string
-    communityUrl?: string
-  }
-  analytics?: {
-    viewTime: number
-    interactionCount: number
-    conversionProbability: number
-    abandonmentRisk: number
-    engagementScore: number
-    personalizedScore: number
-  }
-  accessibility?: {
-    screenReaderOptimized: boolean
-    keyboardNavigable: boolean
-    highContrast: boolean
-    largeText: boolean
-    voiceControl: boolean
-    gestureControl: boolean
-  }
-  security?: {
-    encrypted: boolean
-    verified: boolean
-    authentic: boolean
-    securePayment: boolean
-    fraudProtection: boolean
-    privacyCompliant: boolean
-  }
-  compliance?: {
-    gdprCompliant: boolean
-    ccpaCompliant: boolean
-    coppaCompliant: boolean
-    hipaaCompliant: boolean
-    pciCompliant: boolean
-    soxCompliant: boolean
-  }
-  performance?: {
-    loadTime: number
-    renderTime: number
-    interactionTime: number
-    cacheHit: boolean
-    optimized: boolean
-    compressed: boolean
-  }
-  experimental?: {
-    betaFeatures: string[]
-    abTestVariant?: string
-    featureFlags: Record<string, boolean>
-    experimentalData: Record<string, any>
-  }
 }
 
+// Payment method interface
 interface PaymentMethod {
   id: string
-  type: "card" | "bank" | "wallet" | "crypto" | "bnpl" | "gift_card" | "store_credit"
+  type: "card" | "bank" | "wallet" | "crypto" | "bnpl"
   name: string
   icon: React.ComponentType
   description: string
   fees?: number
   processingTime?: string
-  security?: string[]
-  availability?: string[]
-  limits?: {
-    min?: number
-    max?: number
-    daily?: number
-    monthly?: number
-  }
-  rewards?: {
-    points?: number
-    cashback?: number
-    miles?: number
-  }
-  installments?: {
-    available: boolean
-    options: number[]
-    fees: number[]
-  }
-}
-
-interface ShippingOption {
-  id: string
-  name: string
-  description: string
-  price: number
-  estimatedDays: number
-  icon: React.ComponentType
-  features: string[]
-  restrictions?: string[]
-  tracking: boolean
-  insurance: boolean
-  signature: boolean
-  carbonNeutral?: boolean
-  packaging?: string
-}
-
-interface TaxCalculation {
-  subtotal: number
-  taxRate: number
-  taxAmount: number
-  total: number
-  breakdown: Array<{
-    type: string
-    rate: number
-    amount: number
-    description: string
-  }>
-}
-
-interface DiscountCode {
-  code: string
-  type: "percentage" | "fixed" | "shipping" | "bogo"
-  value: number
-  description: string
-  conditions: {
-    minAmount?: number
-    maxAmount?: number
-    validUntil?: Date
-    firstTimeOnly?: boolean
-    categories?: string[]
-    products?: string[]
-    userTiers?: string[]
-  }
-  usage: {
-    used: number
-    limit?: number
-    perUser?: number
-  }
-}
-
-interface CheckoutStep {
-  id: string
-  name: string
-  description: string
-  icon: React.ComponentType
-  completed: boolean
-  active: boolean
-  optional: boolean
-  estimatedTime?: number
-}
-
-interface DeliveryEstimate {
-  earliest: Date
-  latest: Date
-  confidence: number
-  factors: string[]
-  alternatives: Array<{
-    date: Date
-    price: number
-    method: string
-  }>
 }
 
 // Advanced cart system component
@@ -417,88 +86,10 @@ export function AdvancedCartSystem() {
   // Core state management
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCart()
   const [isOpen, setIsOpen] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Device and environment detection
+  // Device detection
   const isMobile = useMediaQuery("(max-width: 768px)")
-  const isTablet = useMediaQuery("(min-width: 769px) and (max-width: 1024px)")
-  const isDesktop = useMediaQuery("(min-width: 1025px)")
-  const isTouch = useMediaQuery("(pointer: coarse)")
-  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)")
-  const isDarkMode = useMediaQuery("(prefers-color-scheme: dark)")
-
-  // Advanced hooks
-  const [preferences, setPreferences] = useLocalStorage("cart-preferences", {})
-  const [recentlyViewed, setRecentlyViewed] = useLocalStorage("recently-viewed", [])
-  const [savedForLater, setSavedForLater] = useLocalStorage("saved-for-later", [])
-  const [wishlist, setWishlist] = useLocalStorage("wishlist", [])
-  const [compareList, setCompareList] = useLocalStorage("compare-list", [])
-
-  // Performance and optimization
-  const debouncedQuantityUpdate = useDebounce(updateQuantity, 300)
-  const { trackEvent } = useAnalytics()
-  const { announceToScreenReader } = useAccessibility()
-  const { measurePerformance } = usePerformanceMonitor()
-
-  // Advanced features
-  const { isOnline, connectionType } = useNetworkStatus()
-  const { batteryLevel, isCharging } = useBatteryStatus()
-  const { position } = useGeolocation()
-  const { vibrate } = useVibration()
-  const { showNotification } = useNotifications()
-  const { copyToClipboard } = useClipboard()
-  const { shareData } = useWebShare()
-
-  // Payment and security
-  const { isSupported: isPaymentRequestSupported } = usePaymentRequest()
-  const { isSupported: isWebAuthnSupported } = useWebAuthn()
-  const { isSupported: isBiometricsSupported } = useBiometrics()
-
-  // Checkout steps configuration
-  const checkoutSteps: CheckoutStep[] = [
-    {
-      id: "cart",
-      name: "Shopping Cart",
-      description: "Review your items",
-      icon: ShoppingCart,
-      completed: false,
-      active: currentStep === 0,
-      optional: false,
-      estimatedTime: 2,
-    },
-    {
-      id: "shipping",
-      name: "Shipping",
-      description: "Delivery information",
-      icon: Truck,
-      completed: false,
-      active: currentStep === 1,
-      optional: false,
-      estimatedTime: 3,
-    },
-    {
-      id: "payment",
-      name: "Payment",
-      description: "Payment method",
-      icon: CreditCard,
-      completed: false,
-      active: currentStep === 2,
-      optional: false,
-      estimatedTime: 2,
-    },
-    {
-      id: "review",
-      name: "Review",
-      description: "Confirm your order",
-      icon: CheckCircle,
-      completed: false,
-      active: currentStep === 3,
-      optional: false,
-      estimatedTime: 1,
-    },
-  ]
 
   // Payment methods configuration
   const paymentMethods: PaymentMethod[] = [
@@ -510,10 +101,6 @@ export function AdvancedCartSystem() {
       description: "Visa, Mastercard, American Express",
       fees: 0,
       processingTime: "Instant",
-      security: ["3D Secure", "Fraud Protection", "PCI Compliant"],
-      availability: ["Worldwide"],
-      limits: { min: 1, max: 10000 },
-      rewards: { points: 1 },
     },
     {
       id: "paypal",
@@ -523,9 +110,6 @@ export function AdvancedCartSystem() {
       description: "Pay with your PayPal account",
       fees: 0,
       processingTime: "Instant",
-      security: ["Buyer Protection", "Encrypted"],
-      availability: ["200+ countries"],
-      limits: { min: 1, max: 60000 },
     },
     {
       id: "apple_pay",
@@ -535,102 +119,15 @@ export function AdvancedCartSystem() {
       description: "Touch ID or Face ID",
       fees: 0,
       processingTime: "Instant",
-      security: ["Biometric", "Tokenized", "Secure Element"],
-      availability: ["iOS devices"],
-      limits: { min: 1, max: 3000 },
-    },
-    {
-      id: "google_pay",
-      type: "wallet",
-      name: "Google Pay",
-      icon: Smartphone,
-      description: "Fingerprint or PIN",
-      fees: 0,
-      processingTime: "Instant",
-      security: ["Biometric", "Tokenized", "Secure Element"],
-      availability: ["Android devices"],
-      limits: { min: 1, max: 3000 },
     },
     {
       id: "bank_transfer",
       type: "bank",
       name: "Bank Transfer",
-      icon: Bank,
+      icon: BanknoteIcon,
       description: "Direct bank transfer",
       fees: 0,
       processingTime: "1-3 business days",
-      security: ["Bank Grade", "Encrypted"],
-      availability: ["Select countries"],
-      limits: { min: 50, max: 100000 },
-    },
-    {
-      id: "klarna",
-      type: "bnpl",
-      name: "Klarna",
-      icon: Calendar,
-      description: "Buy now, pay later",
-      fees: 0,
-      processingTime: "Instant",
-      security: ["Credit Check", "Fraud Protection"],
-      availability: ["US, EU, AU"],
-      limits: { min: 35, max: 1000 },
-      installments: { available: true, options: [4, 6, 12], fees: [0, 0, 5.99] },
-    },
-  ]
-
-  // Shipping options configuration
-  const shippingOptions: ShippingOption[] = [
-    {
-      id: "standard",
-      name: "Standard Delivery",
-      description: "5-7 business days",
-      price: 4.99,
-      estimatedDays: 6,
-      icon: Truck,
-      features: ["Tracking included", "Signature on delivery"],
-      tracking: true,
-      insurance: false,
-      signature: true,
-      carbonNeutral: false,
-    },
-    {
-      id: "express",
-      name: "Express Delivery",
-      description: "2-3 business days",
-      price: 9.99,
-      estimatedDays: 2,
-      icon: Zap,
-      features: ["Priority handling", "Tracking included", "Insurance included"],
-      tracking: true,
-      insurance: true,
-      signature: true,
-      carbonNeutral: false,
-    },
-    {
-      id: "overnight",
-      name: "Overnight Delivery",
-      description: "Next business day",
-      price: 24.99,
-      estimatedDays: 1,
-      icon: Rocket,
-      features: ["Next day delivery", "Premium packaging", "Full insurance"],
-      tracking: true,
-      insurance: true,
-      signature: true,
-      carbonNeutral: false,
-    },
-    {
-      id: "pickup",
-      name: "Store Pickup",
-      description: "Ready in 2 hours",
-      price: 0,
-      estimatedDays: 0,
-      icon: MapPin,
-      features: ["Free pickup", "Extended hours", "Curbside available"],
-      tracking: false,
-      insurance: false,
-      signature: false,
-      carbonNeutral: true,
     },
   ]
 
@@ -667,35 +164,7 @@ export function AdvancedCartSystem() {
     },
   }
 
-  // Gesture handlers
-  const swipeHandlers = useGestures({
-    onSwipeLeft: () => {
-      if (currentStep < checkoutSteps.length - 1) {
-        setCurrentStep(currentStep + 1)
-      }
-    },
-    onSwipeRight: () => {
-      if (currentStep > 0) {
-        setCurrentStep(currentStep - 1)
-      }
-    },
-  })
-
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    Escape: () => setIsOpen(false),
-    Enter: () => handleCheckout(),
-    ArrowLeft: () => currentStep > 0 && setCurrentStep(currentStep - 1),
-    ArrowRight: () => currentStep < checkoutSteps.length - 1 && setCurrentStep(currentStep + 1),
-    Delete: () => clearCart(),
-    c: () => setIsOpen(true),
-    "1": () => setCurrentStep(0),
-    "2": () => setCurrentStep(1),
-    "3": () => setCurrentStep(2),
-    "4": () => setCurrentStep(3),
-  })
-
-  // Calculate totals with advanced pricing
+  // Calculate totals
   const calculations = useMemo(() => {
     const subtotal = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
     const shipping = subtotal > 100 ? 0 : 4.99
@@ -729,27 +198,8 @@ export function AdvancedCartSystem() {
     setIsProcessing(true)
 
     try {
-      // Track checkout initiation
-      trackEvent("checkout_initiated", {
-        item_count: calculations.itemCount,
-        total_value: calculations.total,
-        payment_method: "card", // Default
-      })
-
-      // Vibrate on mobile for feedback
-      if (isMobile) {
-        vibrate([100, 50, 100])
-      }
-
-      // Show processing notification
-      showNotification("Processing your order...", {
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
-        tag: "checkout",
-      })
-
       // Simulate processing time
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Create checkout session
       const checkoutUrl = await createCheckoutSession({
@@ -762,27 +212,10 @@ export function AdvancedCartSystem() {
       })
 
       if (checkoutUrl) {
-        // Track successful checkout
-        trackEvent("checkout_success", {
-          checkout_url: checkoutUrl,
-          total_value: calculations.total,
-        })
-
-        // Announce to screen reader
-        announceToScreenReader("Redirecting to secure checkout")
-
-        // Redirect to checkout
         window.location.href = checkoutUrl
       }
     } catch (error) {
       console.error("Checkout error:", error)
-
-      // Track checkout error
-      trackEvent("checkout_error", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        total_value: calculations.total,
-      })
-
       toast({
         title: "Checkout failed",
         description: "There was an error processing your payment. Please try again.",
@@ -791,7 +224,7 @@ export function AdvancedCartSystem() {
     } finally {
       setIsProcessing(false)
     }
-  }, [cart.items, calculations, trackEvent, vibrate, showNotification, announceToScreenReader])
+  }, [cart.items])
 
   // Enhanced item removal with undo
   const handleRemoveItem = useCallback(
@@ -799,18 +232,7 @@ export function AdvancedCartSystem() {
       const item = cart.items.find((item) => item.id === itemId)
       if (!item) return
 
-      // Store for undo functionality
-      const undoData = { item, timestamp: Date.now() }
-
       removeItem(itemId)
-
-      // Track removal
-      trackEvent("item_removed", {
-        item_id: itemId,
-        item_name: item.name,
-        quantity: item.quantity,
-        value: item.price * item.quantity,
-      })
 
       // Show undo toast
       toast({
@@ -832,22 +254,16 @@ export function AdvancedCartSystem() {
         ),
         duration: 5000,
       })
-
-      // Vibrate for feedback
-      if (isMobile) {
-        vibrate([50])
-      }
     },
-    [cart.items, removeItem, addItem, trackEvent, vibrate],
+    [cart.items, removeItem, addItem],
   )
 
-  // Enhanced quantity update with validation
+  // Enhanced quantity update
   const handleQuantityUpdate = useCallback(
     (itemId: string, newQuantity: number) => {
       const item = cart.items.find((item) => item.id === itemId)
       if (!item) return
 
-      // Validate quantity
       if (newQuantity < 1) {
         handleRemoveItem(itemId)
         return
@@ -862,21 +278,9 @@ export function AdvancedCartSystem() {
         return
       }
 
-      const oldQuantity = item.quantity
-      debouncedQuantityUpdate(itemId, newQuantity)
-
-      // Track quantity change
-      trackEvent("quantity_updated", {
-        item_id: itemId,
-        old_quantity: oldQuantity,
-        new_quantity: newQuantity,
-        difference: newQuantity - oldQuantity,
-      })
-
-      // Announce to screen reader
-      announceToScreenReader(`Quantity updated to ${newQuantity}`)
+      updateQuantity(itemId, newQuantity)
     },
-    [cart.items, debouncedQuantityUpdate, handleRemoveItem, trackEvent, announceToScreenReader],
+    [cart.items, updateQuantity, handleRemoveItem],
   )
 
   // Mobile cart component
@@ -906,7 +310,7 @@ export function AdvancedCartSystem() {
         </Button>
       </DrawerTrigger>
 
-      <DrawerContent className="max-h-[90vh]" {...swipeHandlers}>
+      <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center justify-between">
             <div>
@@ -917,7 +321,7 @@ export function AdvancedCartSystem() {
               </DrawerDescription>
             </div>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              {isOnline ? "Online" : "Offline"}
+              Online
             </Badge>
           </div>
 
@@ -936,7 +340,7 @@ export function AdvancedCartSystem() {
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               <AnimatePresence mode="popLayout">
-                {cart.items.map((item, index) => (
+                {cart.items.map((item) => (
                   <motion.div
                     key={item.id}
                     variants={itemVariants}
@@ -946,7 +350,6 @@ export function AdvancedCartSystem() {
                     layout
                     className="group relative overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md"
                   >
-                    {/* Item content */}
                     <div className="flex gap-4">
                       {/* Product image */}
                       <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
@@ -1141,7 +544,7 @@ export function AdvancedCartSystem() {
 
               <Button
                 onClick={handleCheckout}
-                disabled={isProcessing || !isOnline}
+                disabled={isProcessing}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {isProcessing ? (
@@ -1219,7 +622,7 @@ export function AdvancedCartSystem() {
                   </DialogDescription>
                 </div>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  {isOnline ? "Online" : "Offline"}
+                  Online
                 </Badge>
               </div>
 
@@ -1236,7 +639,7 @@ export function AdvancedCartSystem() {
 
             <ScrollArea className="flex-1 p-6">
               <AnimatePresence mode="popLayout">
-                {cart.items.map((item, index) => (
+                {cart.items.map((item) => (
                   <motion.div
                     key={item.id}
                     variants={itemVariants}
@@ -1486,7 +889,7 @@ export function AdvancedCartSystem() {
                     <span className="text-lg font-bold">{formatCurrency(calculations.total)}</span>
                     <Button
                       onClick={handleCheckout}
-                      disabled={isProcessing || !isOnline}
+                      disabled={isProcessing}
                       className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold px-8"
                     >
                       {isProcessing ? (
@@ -1526,33 +929,6 @@ export function AdvancedCartSystem() {
       </DialogContent>
     </Dialog>
   )
-
-  // Performance monitoring
-  useEffect(() => {
-    measurePerformance("cart-render", () => {
-      // Cart rendering performance measurement
-    })
-  }, [cart.items, measurePerformance])
-
-  // Analytics tracking
-  useEffect(() => {
-    if (isOpen) {
-      trackEvent("cart_opened", {
-        item_count: calculations.itemCount,
-        total_value: calculations.total,
-        device_type: isMobile ? "mobile" : isTablet ? "tablet" : "desktop",
-      })
-    }
-  }, [isOpen, calculations, trackEvent, isMobile, isTablet])
-
-  // Accessibility announcements
-  useEffect(() => {
-    if (cart.items.length > 0) {
-      announceToScreenReader(
-        `Cart updated. ${calculations.itemCount} items, total ${formatCurrency(calculations.total)}`,
-      )
-    }
-  }, [cart.items.length, calculations, announceToScreenReader])
 
   // Return appropriate cart component based on device
   return isMobile ? <MobileCart /> : <DesktopCart />

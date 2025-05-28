@@ -2,12 +2,7 @@
 
 import { useState, useCallback } from "react"
 
-interface PaymentMethodData {
-  supportedMethods: string
-  data?: any
-}
-
-interface PaymentDetailsInit {
+interface PaymentDetails {
   total: {
     label: string
     amount: {
@@ -24,65 +19,43 @@ interface PaymentDetailsInit {
   }>
 }
 
-interface PaymentResult {
-  success: boolean
-  paymentResponse?: any
-  error?: string
-}
-
 export function usePaymentRequest() {
   const [isSupported, setIsSupported] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
 
-  useState(() => {
-    setIsSupported("PaymentRequest" in window)
-  })
+  const checkSupport = useCallback(() => {
+    const supported = typeof window !== "undefined" && !!window.PaymentRequest
+    setIsSupported(supported)
+    return supported
+  }, [])
 
   const makePayment = useCallback(
-    async (methodData: PaymentMethodData[], details: PaymentDetailsInit): Promise<PaymentResult> => {
+    async (details: PaymentDetails) => {
       if (!isSupported) {
-        return { success: false, error: "Payment Request API not supported" }
+        throw new Error("Payment Request API not supported")
       }
 
-      setIsProcessing(true)
-
       try {
-        // Mock payment for demo purposes
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-
-        // In a real implementation, you would create and show a PaymentRequest
-        const success = Math.random() > 0.1 // 90% success rate for demo
-
-        setIsProcessing(false)
-
-        if (success) {
-          return {
-            success: true,
-            paymentResponse: {
-              methodName: methodData[0].supportedMethods,
-              details: { transactionId: `txn_${Date.now()}` },
+        const supportedInstruments = [
+          {
+            supportedMethods: "basic-card",
+            data: {
+              supportedNetworks: ["visa", "mastercard", "amex"],
+              supportedTypes: ["debit", "credit"],
             },
-          }
-        } else {
-          return { success: false, error: "Payment failed" }
-        }
-      } catch (error) {
-        setIsProcessing(false)
-        return { success: false, error: "Payment error" }
-      }
-    },
-    [isSupported],
-  )
+          },
+        ]
 
-  const canMakePayment = useCallback(
-    async (methodData: PaymentMethodData[]): Promise<boolean> => {
-      if (!isSupported) return false
+        const paymentRequest = new PaymentRequest(supportedInstruments, details)
 
-      try {
-        // Mock check for demo purposes
-        return true
+        const paymentResponse = await paymentRequest.show()
+
+        // Process payment with your payment processor
+        await paymentResponse.complete("success")
+
+        return paymentResponse
       } catch (error) {
-        return false
+        console.error("Payment Request failed:", error)
+        throw error
       }
     },
     [isSupported],
@@ -90,8 +63,7 @@ export function usePaymentRequest() {
 
   return {
     isSupported,
-    isProcessing,
+    checkSupport,
     makePayment,
-    canMakePayment,
   }
 }

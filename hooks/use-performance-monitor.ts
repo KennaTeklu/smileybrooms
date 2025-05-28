@@ -1,79 +1,54 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-
-interface PerformanceMetrics {
-  loadTime: number
-  renderTime: number
-  memoryUsage: number
-  fps: number
-}
+import { useCallback } from "react"
 
 export function usePerformanceMonitor() {
-  const [metrics, setMetrics] = useState<PerformanceMetrics>({
-    loadTime: 0,
-    renderTime: 0,
-    memoryUsage: 0,
-    fps: 0,
-  })
+  const measurePerformance = useCallback((name: string, fn: () => void) => {
+    if (typeof window === "undefined") return
 
-  const measureRenderTime = useCallback((componentName: string) => {
     const startTime = performance.now()
+    fn()
+    const endTime = performance.now()
+    const duration = endTime - startTime
 
-    return () => {
-      const endTime = performance.now()
-      const renderTime = endTime - startTime
+    console.log(`Performance: ${name} took ${duration.toFixed(2)}ms`)
 
-      setMetrics((prev) => ({
-        ...prev,
-        renderTime,
-      }))
-
-      console.log(`${componentName} render time: ${renderTime.toFixed(2)}ms`)
+    // Send to analytics if needed
+    if (window.gtag) {
+      window.gtag("event", "timing_complete", {
+        name,
+        value: Math.round(duration),
+      })
     }
   }, [])
 
-  useEffect(() => {
-    // Monitor FPS
-    let frameCount = 0
-    let lastTime = performance.now()
-
-    const countFrames = () => {
-      frameCount++
-      const currentTime = performance.now()
-
-      if (currentTime - lastTime >= 1000) {
-        setMetrics((prev) => ({
-          ...prev,
-          fps: frameCount,
-        }))
-        frameCount = 0
-        lastTime = currentTime
-      }
-
-      requestAnimationFrame(countFrames)
+  const markStart = useCallback((name: string) => {
+    if (typeof window !== "undefined" && performance.mark) {
+      performance.mark(`${name}-start`)
     }
+  }, [])
 
-    requestAnimationFrame(countFrames)
-
-    // Monitor memory usage
-    const updateMemoryUsage = () => {
-      if ("memory" in performance) {
-        const memory = (performance as any).memory
-        setMetrics((prev) => ({
-          ...prev,
-          memoryUsage: memory.usedJSHeapSize / 1024 / 1024, // MB
-        }))
-      }
+  const markEnd = useCallback((name: string) => {
+    if (typeof window !== "undefined" && performance.mark && performance.measure) {
+      performance.mark(`${name}-end`)
+      performance.measure(name, `${name}-start`, `${name}-end`)
     }
+  }, [])
 
-    const memoryInterval = setInterval(updateMemoryUsage, 5000)
+  const getMetrics = useCallback(() => {
+    if (typeof window === "undefined") return null
 
-    return () => clearInterval(memoryInterval)
+    return {
+      navigation: performance.getEntriesByType("navigation")[0],
+      paint: performance.getEntriesByType("paint"),
+      resource: performance.getEntriesByType("resource"),
+    }
   }, [])
 
   return {
-    metrics,
-    measureRenderTime,
+    measurePerformance,
+    markStart,
+    markEnd,
+    getMetrics,
   }
 }

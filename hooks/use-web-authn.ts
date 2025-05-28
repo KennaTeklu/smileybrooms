@@ -2,87 +2,79 @@
 
 import { useState, useCallback } from "react"
 
-interface WebAuthnCredential {
-  id: string
-  type: string
-  rawId: ArrayBuffer
-}
-
-interface WebAuthnResult {
-  success: boolean
-  credential?: WebAuthnCredential
-  error?: string
-}
-
 export function useWebAuthn() {
   const [isSupported, setIsSupported] = useState(false)
-  const [isRegistering, setIsRegistering] = useState(false)
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
 
-  useState(() => {
-    setIsSupported("credentials" in navigator && "create" in navigator.credentials)
-  })
+  const checkSupport = useCallback(() => {
+    const supported = typeof window !== "undefined" && !!window.PublicKeyCredential
+    setIsSupported(supported)
+    return supported
+  }, [])
 
   const register = useCallback(
-    async (username: string): Promise<WebAuthnResult> => {
+    async (username: string) => {
       if (!isSupported) {
-        return { success: false, error: "WebAuthn not supported" }
+        throw new Error("WebAuthn not supported")
       }
 
-      setIsRegistering(true)
-
       try {
-        // Mock registration for demo purposes
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // Mock registration - replace with your server implementation
+        const credential = await navigator.credentials.create({
+          publicKey: {
+            challenge: new Uint8Array(32),
+            rp: {
+              name: "SmileyBrooms",
+              id: window.location.hostname,
+            },
+            user: {
+              id: new TextEncoder().encode(username),
+              name: username,
+              displayName: username,
+            },
+            pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              userVerification: "required",
+            },
+            timeout: 60000,
+            attestation: "direct",
+          },
+        })
 
-        // In a real implementation, you would call navigator.credentials.create()
-        const mockCredential: WebAuthnCredential = {
-          id: `credential_${Date.now()}`,
-          type: "public-key",
-          rawId: new ArrayBuffer(32),
-        }
-
-        setIsRegistering(false)
-        return { success: true, credential: mockCredential }
+        return credential
       } catch (error) {
-        setIsRegistering(false)
-        return { success: false, error: "Registration failed" }
+        console.error("WebAuthn registration failed:", error)
+        throw error
       }
     },
     [isSupported],
   )
 
-  const authenticate = useCallback(async (): Promise<WebAuthnResult> => {
+  const authenticate = useCallback(async () => {
     if (!isSupported) {
-      return { success: false, error: "WebAuthn not supported" }
+      throw new Error("WebAuthn not supported")
     }
 
-    setIsAuthenticating(true)
-
     try {
-      // Mock authentication for demo purposes
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Mock authentication - replace with your server implementation
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: new Uint8Array(32),
+          timeout: 60000,
+          userVerification: "required",
+        },
+      })
 
-      // In a real implementation, you would call navigator.credentials.get()
-      const success = Math.random() > 0.1 // 90% success rate for demo
-
-      setIsAuthenticating(false)
-
-      if (success) {
-        return { success: true }
-      } else {
-        return { success: false, error: "Authentication failed" }
-      }
+      return assertion
     } catch (error) {
-      setIsAuthenticating(false)
-      return { success: false, error: "Authentication error" }
+      console.error("WebAuthn authentication failed:", error)
+      throw error
     }
   }, [isSupported])
 
   return {
     isSupported,
-    isRegistering,
-    isAuthenticating,
+    checkSupport,
     register,
     authenticate,
   }

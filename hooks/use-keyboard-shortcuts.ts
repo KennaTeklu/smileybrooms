@@ -1,37 +1,47 @@
 "use client"
 
-import { useEffect, useCallback } from "react"
+import { useEffect } from "react"
 
-interface KeyboardShortcut {
-  key: string
-  ctrlKey?: boolean
-  shiftKey?: boolean
-  altKey?: boolean
-  metaKey?: boolean
-  callback: () => void
+interface KeyboardShortcuts {
+  [key: string]: () => void
 }
 
-export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      shortcuts.forEach(({ key, ctrlKey, shiftKey, altKey, metaKey, callback }) => {
-        if (
-          event.key.toLowerCase() === key.toLowerCase() &&
-          !!event.ctrlKey === !!ctrlKey &&
-          !!event.shiftKey === !!shiftKey &&
-          !!event.altKey === !!altKey &&
-          !!event.metaKey === !!metaKey
-        ) {
-          event.preventDefault()
-          callback()
-        }
-      })
-    },
-    [shortcuts],
-  )
-
+export function useKeyboardShortcuts(shortcuts: KeyboardShortcuts) {
   useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [handleKeyDown])
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key
+      const ctrl = event.ctrlKey
+      const alt = event.altKey
+      const shift = event.shiftKey
+      const meta = event.metaKey
+
+      // Create a key combination string
+      let combination = ""
+      if (ctrl) combination += "Ctrl+"
+      if (alt) combination += "Alt+"
+      if (shift) combination += "Shift+"
+      if (meta) combination += "Meta+"
+      combination += key
+
+      // Check for exact key match first
+      if (shortcuts[key]) {
+        event.preventDefault()
+        shortcuts[key]()
+        return
+      }
+
+      // Check for combination match
+      if (shortcuts[combination]) {
+        event.preventDefault()
+        shortcuts[combination]()
+        return
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [shortcuts])
 }

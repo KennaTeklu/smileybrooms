@@ -13,14 +13,10 @@ interface GestureHandlers {
 }
 
 export function useGestures(handlers: GestureHandlers) {
-  const elementRef = useRef<HTMLElement>(null)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const lastTapRef = useRef<number>(0)
 
   useEffect(() => {
-    const element = elementRef.current
-    if (!element) return
-
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
         const touch = e.touches[0]
@@ -45,18 +41,21 @@ export function useGestures(handlers: GestureHandlers) {
 
       if (deltaTime < maxSwipeTime) {
         if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY)) {
+          // Horizontal swipe
           if (deltaX > 0) {
             handlers.onSwipeRight?.()
           } else {
             handlers.onSwipeLeft?.()
           }
         } else if (Math.abs(deltaY) > minSwipeDistance && Math.abs(deltaY) > Math.abs(deltaX)) {
+          // Vertical swipe
           if (deltaY > 0) {
             handlers.onSwipeDown?.()
           } else {
             handlers.onSwipeUp?.()
           }
         } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+          // Tap
           const now = Date.now()
           if (now - lastTapRef.current < 300) {
             handlers.onDoubleTap?.()
@@ -70,14 +69,14 @@ export function useGestures(handlers: GestureHandlers) {
       touchStartRef.current = null
     }
 
-    element.addEventListener("touchstart", handleTouchStart)
-    element.addEventListener("touchend", handleTouchEnd)
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    document.addEventListener("touchend", handleTouchEnd, { passive: true })
 
     return () => {
-      element.removeEventListener("touchstart", handleTouchStart)
-      element.removeEventListener("touchend", handleTouchEnd)
+      document.removeEventListener("touchstart", handleTouchStart)
+      document.removeEventListener("touchend", handleTouchEnd)
     }
   }, [handlers])
 
-  return elementRef
+  return {}
 }

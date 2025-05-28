@@ -3,32 +3,60 @@
 import { useCallback } from "react"
 
 interface AnalyticsEvent {
-  name: string
-  properties?: Record<string, any>
+  [key: string]: any
 }
 
 export function useAnalytics() {
-  const track = useCallback((event: AnalyticsEvent) => {
+  const trackEvent = useCallback((eventName: string, properties?: AnalyticsEvent) => {
+    // Mock analytics tracking - replace with your analytics provider
     if (typeof window !== "undefined") {
-      // Mock analytics tracking
-      console.log("Analytics Event:", event)
+      console.log("Analytics Event:", eventName, properties)
 
-      // In a real implementation, you would send to your analytics service
-      // Example: gtag('event', event.name, event.properties)
+      // Example: Google Analytics 4
+      if (window.gtag) {
+        window.gtag("event", eventName, properties)
+      }
+
+      // Example: Facebook Pixel
+      if (window.fbq) {
+        window.fbq("track", eventName, properties)
+      }
+
+      // Example: Custom analytics
+      if (window.analytics) {
+        window.analytics.track(eventName, properties)
+      }
     }
   }, [])
 
-  const identify = useCallback((userId: string, traits?: Record<string, any>) => {
-    if (typeof window !== "undefined") {
-      console.log("Analytics Identify:", { userId, traits })
-    }
-  }, [])
+  const trackPageView = useCallback(
+    (page: string) => {
+      trackEvent("page_view", { page })
+    },
+    [trackEvent],
+  )
 
-  const page = useCallback((name: string, properties?: Record<string, any>) => {
-    if (typeof window !== "undefined") {
-      console.log("Analytics Page:", { name, properties })
-    }
-  }, [])
+  const trackPurchase = useCallback(
+    (value: number, currency = "USD") => {
+      trackEvent("purchase", { value, currency })
+    },
+    [trackEvent],
+  )
 
-  return { track, identify, page }
+  return {
+    trackEvent,
+    trackPageView,
+    trackPurchase,
+  }
+}
+
+// Extend window type for analytics
+declare global {
+  interface Window {
+    gtag?: (...args: any[]) => void
+    fbq?: (...args: any[]) => void
+    analytics?: {
+      track: (event: string, properties?: any) => void
+    }
+  }
 }

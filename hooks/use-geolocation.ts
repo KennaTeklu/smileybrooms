@@ -1,52 +1,41 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 
-interface GeolocationState {
-  latitude: number | null
-  longitude: number | null
-  accuracy: number | null
-  error: string | null
-  loading: boolean
+interface Position {
+  latitude: number
+  longitude: number
+  accuracy: number
+  timestamp: number
 }
 
 export function useGeolocation() {
-  const [state, setState] = useState<GeolocationState>({
-    latitude: null,
-    longitude: null,
-    accuracy: null,
-    error: null,
-    loading: false,
-  })
+  const [position, setPosition] = useState<Position | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const getCurrentPosition = useCallback(() => {
-    if (!navigator.geolocation) {
-      setState((prev) => ({
-        ...prev,
-        error: "Geolocation is not supported",
-        loading: false,
-      }))
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setError("Geolocation is not supported")
       return
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }))
+    setLoading(true)
+    setError(null)
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setState({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          error: null,
-          loading: false,
+      (pos) => {
+        setPosition({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
         })
+        setLoading(false)
       },
-      (error) => {
-        setState((prev) => ({
-          ...prev,
-          error: error.message,
-          loading: false,
-        }))
+      (err) => {
+        setError(err.message)
+        setLoading(false)
       },
       {
         enableHighAccuracy: true,
@@ -56,8 +45,14 @@ export function useGeolocation() {
     )
   }, [])
 
+  useEffect(() => {
+    getCurrentPosition()
+  }, [getCurrentPosition])
+
   return {
-    ...state,
+    position,
+    error,
+    loading,
     getCurrentPosition,
   }
 }

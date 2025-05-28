@@ -2,52 +2,55 @@
 
 import { useState, useEffect } from "react"
 
-interface BatteryStatus {
-  level: number | null
-  charging: boolean | null
-  chargingTime: number | null
-  dischargingTime: number | null
-  supported: boolean
-}
-
 export function useBatteryStatus() {
-  const [batteryStatus, setBatteryStatus] = useState<BatteryStatus>({
-    level: null,
-    charging: null,
-    chargingTime: null,
-    dischargingTime: null,
-    supported: false,
-  })
+  const [batteryLevel, setBatteryLevel] = useState<number>(1)
+  const [isCharging, setIsCharging] = useState<boolean>(false)
+  const [chargingTime, setChargingTime] = useState<number>(0)
+  const [dischargingTime, setDischargingTime] = useState<number>(Number.POSITIVE_INFINITY)
 
   useEffect(() => {
-    if ("getBattery" in navigator) {
-      ;(navigator as any).getBattery().then((battery: any) => {
-        const updateBatteryInfo = () => {
-          setBatteryStatus({
-            level: battery.level,
-            charging: battery.charging,
-            chargingTime: battery.chargingTime,
-            dischargingTime: battery.dischargingTime,
-            supported: true,
-          })
+    if (typeof window === "undefined") return
+
+    const getBatteryInfo = async () => {
+      try {
+        const battery = await (navigator as any).getBattery?.()
+        if (battery) {
+          setBatteryLevel(battery.level)
+          setIsCharging(battery.charging)
+          setChargingTime(battery.chargingTime)
+          setDischargingTime(battery.dischargingTime)
+
+          const updateBatteryInfo = () => {
+            setBatteryLevel(battery.level)
+            setIsCharging(battery.charging)
+            setChargingTime(battery.chargingTime)
+            setDischargingTime(battery.dischargingTime)
+          }
+
+          battery.addEventListener("chargingchange", updateBatteryInfo)
+          battery.addEventListener("levelchange", updateBatteryInfo)
+          battery.addEventListener("chargingtimechange", updateBatteryInfo)
+          battery.addEventListener("dischargingtimechange", updateBatteryInfo)
+
+          return () => {
+            battery.removeEventListener("chargingchange", updateBatteryInfo)
+            battery.removeEventListener("levelchange", updateBatteryInfo)
+            battery.removeEventListener("chargingtimechange", updateBatteryInfo)
+            battery.removeEventListener("dischargingtimechange", updateBatteryInfo)
+          }
         }
-
-        updateBatteryInfo()
-
-        battery.addEventListener("chargingchange", updateBatteryInfo)
-        battery.addEventListener("levelchange", updateBatteryInfo)
-        battery.addEventListener("chargingtimechange", updateBatteryInfo)
-        battery.addEventListener("dischargingtimechange", updateBatteryInfo)
-
-        return () => {
-          battery.removeEventListener("chargingchange", updateBatteryInfo)
-          battery.removeEventListener("levelchange", updateBatteryInfo)
-          battery.removeEventListener("chargingtimechange", updateBatteryInfo)
-          battery.removeEventListener("dischargingtimechange", updateBatteryInfo)
-        }
-      })
+      } catch (error) {
+        console.log("Battery API not supported")
+      }
     }
+
+    getBatteryInfo()
   }, [])
 
-  return batteryStatus
+  return {
+    batteryLevel,
+    isCharging,
+    chargingTime,
+    dischargingTime,
+  }
 }

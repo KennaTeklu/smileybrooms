@@ -1,68 +1,44 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-
-interface NotificationOptions {
-  title: string
-  body?: string
-  icon?: string
-  badge?: string
-  tag?: string
-  requireInteraction?: boolean
-}
+import { useState, useCallback } from "react"
 
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermission>("default")
-  const [isSupported, setIsSupported] = useState(false)
-
-  useEffect(() => {
-    if ("Notification" in window) {
-      setIsSupported(true)
-      setPermission(Notification.permission)
-    }
-  }, [])
 
   const requestPermission = useCallback(async () => {
-    if (!isSupported) return false
-
-    try {
-      const result = await Notification.requestPermission()
-      setPermission(result)
-      return result === "granted"
-    } catch (error) {
-      console.error("Error requesting notification permission:", error)
-      return false
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return "denied"
     }
-  }, [isSupported])
+
+    const result = await Notification.requestPermission()
+    setPermission(result)
+    return result
+  }, [])
 
   const showNotification = useCallback(
-    async (options: NotificationOptions) => {
-      if (!isSupported || permission !== "granted") {
+    async (title: string, options?: NotificationOptions) => {
+      if (typeof window === "undefined" || !("Notification" in window)) {
         return null
       }
 
-      try {
-        const notification = new Notification(options.title, {
-          body: options.body,
-          icon: options.icon,
-          badge: options.badge,
-          tag: options.tag,
-          requireInteraction: options.requireInteraction,
-        })
-
-        return notification
-      } catch (error) {
-        console.error("Error showing notification:", error)
-        return null
+      if (permission === "granted") {
+        return new Notification(title, options)
+      } else if (permission === "default") {
+        const newPermission = await requestPermission()
+        if (newPermission === "granted") {
+          return new Notification(title, options)
+        }
       }
+
+      return null
     },
-    [isSupported, permission],
+    [permission, requestPermission],
   )
 
   return {
     permission,
-    isSupported,
     requestPermission,
     showNotification,
+    isSupported: typeof window !== "undefined" && "Notification" in window,
   }
 }

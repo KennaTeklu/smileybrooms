@@ -2,59 +2,51 @@
 
 import { useState, useCallback } from "react"
 
-interface BiometricAuthResult {
-  success: boolean
-  error?: string
-}
-
 export function useBiometrics() {
   const [isSupported, setIsSupported] = useState(false)
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [isAvailable, setIsAvailable] = useState(false)
 
   const checkSupport = useCallback(async () => {
-    if (typeof window !== "undefined" && "PublicKeyCredential" in window) {
-      try {
+    if (typeof window === "undefined") return false
+
+    try {
+      // Check for WebAuthn support
+      const supported = !!window.PublicKeyCredential
+      setIsSupported(supported)
+
+      if (supported) {
         const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        setIsSupported(available)
+        setIsAvailable(available)
         return available
-      } catch (error) {
-        console.warn("Biometric support check failed:", error)
-        return false
       }
+    } catch (error) {
+      console.error("Biometrics check failed:", error)
     }
+
     return false
   }, [])
 
-  const authenticate = useCallback(async (): Promise<BiometricAuthResult> => {
-    if (!isSupported) {
-      return { success: false, error: "Biometric authentication not supported" }
+  const authenticate = useCallback(async () => {
+    if (!isSupported || !isAvailable) {
+      throw new Error("Biometric authentication not available")
     }
-
-    setIsAuthenticating(true)
 
     try {
       // Mock biometric authentication
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // In a real implementation, you would use WebAuthn API
-      const success = Math.random() > 0.1 // 90% success rate for demo
-
-      setIsAuthenticating(false)
-
-      if (success) {
-        return { success: true }
-      } else {
-        return { success: false, error: "Authentication failed" }
-      }
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true, userId: "mock-user-id" })
+        }, 1000)
+      })
     } catch (error) {
-      setIsAuthenticating(false)
-      return { success: false, error: "Authentication error" }
+      console.error("Biometric authentication failed:", error)
+      throw error
     }
-  }, [isSupported])
+  }, [isSupported, isAvailable])
 
   return {
     isSupported,
-    isAuthenticating,
+    isAvailable,
     checkSupport,
     authenticate,
   }
