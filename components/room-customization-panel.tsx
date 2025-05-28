@@ -496,6 +496,7 @@ export function RoomCustomizationPanel({
           "w-full sm:w-[480px] lg:w-[520px] xl:w-[600px]",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
+        data-tour="customization-panel"
       >
         <div className="flex flex-col h-full">
           {/* Header - Fixed at the top */}
@@ -524,7 +525,11 @@ export function RoomCustomizationPanel({
           {/* Tabs - Fixed below header */}
           <div className="border-b bg-white z-10">
             <Tabs defaultValue="basic" value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-3" aria-label="Room customization options">
+              <TabsList
+                className="grid w-full grid-cols-3"
+                aria-label="Room customization options"
+                data-tour="service-tabs"
+              >
                 <TabsTrigger value="basic" className="text-xs sm:text-sm" id="tab-basic" aria-controls="panel-basic">
                   <Settings className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
                   <span>Basic</span>
@@ -586,6 +591,7 @@ export function RoomCustomizationPanel({
                             onValueChange={handleTierChange}
                             className="space-y-3"
                             aria-label="Service tier options"
+                            data-tour="tier-selection"
                           >
                             {tiers.map((tier, index) => (
                               <div
@@ -691,7 +697,12 @@ export function RoomCustomizationPanel({
                         </CardHeader>
                         {expandedSections.addOns && (
                           <CardContent id="addons-content">
-                            <div className="space-y-3" role="group" aria-label="Additional services options">
+                            <div
+                              className="space-y-3"
+                              role="group"
+                              aria-label="Additional services options"
+                              data-tour="add-ons"
+                            >
                               {addOns.map((addOn) => (
                                 <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
                                   <Checkbox

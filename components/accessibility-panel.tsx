@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useSpring } from "framer-motion"
-import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react'
+import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
@@ -74,16 +74,16 @@ export default function AccessibilityPanel() {
     }
   }, [contrast, saturation])
 
-    // Apply high contrast mode
-    useEffect(() => {
-      if (typeof document !== "undefined") {
-        if (highContrast) {
-          document.body.classList.add("high-contrast")
-        } else {
-          document.body.classList.remove("high-contrast")
-        }
+  // Apply high contrast mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (highContrast) {
+        document.body.classList.add("high-contrast")
+      } else {
+        document.body.classList.remove("high-contrast")
       }
-    }, [highContrast])
+    }
+  }, [highContrast])
 
   // Apply dyslexic font
   useEffect(() => {
@@ -162,16 +162,16 @@ export default function AccessibilityPanel() {
                   <Settings className="h-5 w-5" />
                   Accessibility
                 </h2>
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="Close accessibility settings">
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
               </div>
 
               <Tabs defaultValue="vision" className="w-full">
                 <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="vision" aria-label="Vision settings">Vision</TabsTrigger>
-                  <TabsTrigger value="motion" aria-label="Motion settings">Motion</TabsTrigger>
-                  <TabsTrigger value="input" aria-label="Input settings">Input</TabsTrigger>
+                  <TabsTrigger value="vision">Vision</TabsTrigger>
+                  <TabsTrigger value="motion">Motion</TabsTrigger>
+                  <TabsTrigger value="input">Input</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="vision" className="space-y-4">
@@ -183,7 +183,6 @@ export default function AccessibilityPanel() {
                           variant="outline"
                           size="icon"
                           onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
-                          aria-label="Decrease text size"
                         >
                           <ZoomOut className="h-4 w-4" />
                         </Button>
@@ -191,7 +190,6 @@ export default function AccessibilityPanel() {
                           variant="outline"
                           size="icon"
                           onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
-                          aria-label="Increase text size"
                         >
                           <ZoomIn className="h-4 w-4" />
                         </Button>
@@ -239,7 +237,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="high-contrast">High Contrast</Label>
                       <p className="text-xs text-muted-foreground">Increase text/background contrast</p>
                     </div>
-                    <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} aria-label="Toggle high contrast mode" />
+                    <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -247,7 +245,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="dyslexic-font">Dyslexia Friendly</Label>
                       <p className="text-xs text-muted-foreground">Use dyslexia-friendly font</p>
                     </div>
-                    <Switch id="dyslexic-font" checked={dyslexicFont} onCheckedChange={setDyslexicFont} aria-label="Toggle dyslexia friendly font" />
+                    <Switch id="dyslexic-font" checked={dyslexicFont} onCheckedChange={setDyslexicFont} />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -259,7 +257,6 @@ export default function AccessibilityPanel() {
                       id="dark-mode"
                       checked={theme === "dark"}
                       onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                      aria-label="Toggle dark mode"
                     />
                   </div>
                 </TabsContent>
@@ -270,7 +267,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="reduce-motion">Reduce Motion</Label>
                       <p className="text-xs text-muted-foreground">Minimize animations</p>
                     </div>
-                    <Switch id="reduce-motion" checked={motionReduced} onCheckedChange={setMotionReduced} aria-label="Toggle reduce motion" />
+                    <Switch id="reduce-motion" checked={motionReduced} onCheckedChange={setMotionReduced} />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -278,7 +275,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="sound-effects">Sound Effects</Label>
                       <p className="text-xs text-muted-foreground">Enable interface sounds</p>
                     </div>
-                    <Switch id="sound-effects" checked={soundEffects} onCheckedChange={setSoundEffects} aria-label="Toggle sound effects" />
+                    <Switch id="sound-effects" checked={soundEffects} onCheckedChange={setSoundEffects} />
                   </div>
                 </TabsContent>
 
@@ -301,7 +298,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="keyboard-mode">Keyboard Navigation</Label>
                       <p className="text-xs text-muted-foreground">Optimize for keyboard use</p>
                     </div>
-                    <Switch id="keyboard-mode" checked={keyboardMode} onCheckedChange={setKeyboardMode} aria-label="Toggle keyboard navigation" />
+                    <Switch id="keyboard-mode" checked={keyboardMode} onCheckedChange={setKeyboardMode} />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -309,7 +306,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="focus-indicators">Focus Indicators</Label>
                       <p className="text-xs text-muted-foreground">Highlight focused elements</p>
                     </div>
-                    <Switch id="focus-indicators" checked={focusIndicators} onCheckedChange={setFocusIndicators} aria-label="Toggle focus indicators" />
+                    <Switch id="focus-indicators" checked={focusIndicators} onCheckedChange={setFocusIndicators} />
                   </div>
                 </TabsContent>
               </Tabs>
@@ -331,7 +328,6 @@ export default function AccessibilityPanel() {
                     setKeyboardMode(false)
                     setFocusIndicators(false)
                   }}
-                  aria-label="Reset all accessibility settings"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Reset All Settings
@@ -341,9 +337,9 @@ export default function AccessibilityPanel() {
           </motion.div>
         ) : (
           <motion.button
-            initial={{ x: "100%", opacity: 0 }}
+            initial={{ x: "-100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
+            exit={{ x: "-100%", opacity: 0 }}
             transition={{ delay: 0.2 }}
             onClick={() => setIsOpen(true)}
             className={cn(

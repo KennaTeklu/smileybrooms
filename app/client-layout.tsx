@@ -43,7 +43,7 @@ export default function ClientLayout({
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <CartProvider>
         <ConditionalHeaderWrapper />
-        <main>{children}</main>
+        {children}
         <PersistentBookNowButton />
         <AccessibilityPanel />
         <SharePanel />

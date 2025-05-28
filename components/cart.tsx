@@ -6,8 +6,16 @@ import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart } from "lucide-react"
-import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, X, ArrowRight } from "lucide-react"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -148,13 +156,6 @@ export function Cart({ showLabel = false }: CartProps) {
 
       // Calculate order metrics
       const calculateOrderMetrics = () => {
-        // Calculate video discount (10% or $25, whichever is less)
-        let discountAmount = 0
-        if (customerData?.allowVideoRecording) {
-          const percentDiscount = cart.totalPrice * 0.1 // 10% discount
-          discountAmount = Math.min(25, percentDiscount) // $25 or 10%, whichever is less
-        }
-
         return {
           totalItems: cart.items.length,
           totalQuantity: cart.totalItems,
@@ -162,8 +163,7 @@ export function Cart({ showLabel = false }: CartProps) {
           hasCustomService: customItems.length > 0,
           hasRecurringService: customItems.some((item) => item.metadata?.isRecurring),
           itemCategories: cart.items.map((item) => item.priceId).join(","),
-          discountsApplied: customerData?.allowVideoRecording ? `video_recording_${discountAmount.toFixed(2)}` : "none",
-          discountAmount: discountAmount,
+          discountsApplied: customerData?.allowVideoRecording ? "video_recording" : "none",
         }
       }
 
@@ -230,7 +230,6 @@ export function Cart({ showLabel = false }: CartProps) {
         }
       }
 
-      const orderMetrics = calculateOrderMetrics()
       const checkoutUrl = await createCheckoutSession({
         lineItems,
         customLineItems,
@@ -252,13 +251,6 @@ export function Cart({ showLabel = false }: CartProps) {
             }
           : undefined,
         isRecurring: false,
-        discount:
-          orderMetrics.discountAmount > 0
-            ? {
-                amount: orderMetrics.discountAmount,
-                reason: "Video Recording Permission",
-              }
-            : undefined,
       })
 
       if (checkoutUrl) {
@@ -293,49 +285,34 @@ export function Cart({ showLabel = false }: CartProps) {
   const totalPrice = cart.totalPrice
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size="icon"
-        className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
-        onClick={() => setIsOpen(true)}
-        aria-label="Open shopping cart"
-      >
-        <ShoppingCart className="h-5 w-5" />
-        {totalItems > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-            {totalItems}
-          </span>
-        )}
-        {showLabel && <span className="ml-2">Cart</span>}
-      </Button>
+    <Drawer open={isOpen} onOpenChange={handleOpenChange}>
+      <DrawerTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
+          onClick={() => setIsOpen(true)}
+          data-tour="cart"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+              {totalItems}
+            </span>
+          )}
+          {showLabel && <span className="ml-2">Cart</span>}
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[85vh] overflow-y-auto">
+        <DrawerHeader className="flex items-center justify-between">
+          <DrawerTitle>Your Cart</DrawerTitle>
+          <DrawerClose asChild>
+            <Button variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+          </DrawerClose>
+        </DrawerHeader>
 
-      <AdvancedSidePanel
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Your Cart"
-        width="md"
-        position="right"
-        primaryAction={
-          cart.items.length > 0
-            ? {
-                label: isCheckingOut ? "Processing..." : "Checkout",
-                onClick: handleCheckout,
-                disabled: cart.items.length === 0 || isCheckingOut,
-                loading: isCheckingOut,
-              }
-            : undefined
-        }
-        secondaryAction={
-          cart.items.length > 0
-            ? {
-                label: "Clear Cart",
-                onClick: handleClearCart,
-                disabled: cart.items.length === 0,
-              }
-            : undefined
-        }
-      >
         <div className="px-4">
           {cart.items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8">
@@ -373,7 +350,6 @@ export function Cart({ showLabel = false }: CartProps) {
                         className="h-7 w-7"
                         onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
                         disabled={item.quantity <= 1}
-                        aria-label="Decrease quantity"
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -383,7 +359,6 @@ export function Cart({ showLabel = false }: CartProps) {
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        aria-label="Increase quantity"
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -392,7 +367,6 @@ export function Cart({ showLabel = false }: CartProps) {
                         size="icon"
                         className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
                         onClick={() => handleRemoveItem(item.id)}
-                        aria-label="Remove item"
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -459,7 +433,18 @@ export function Cart({ showLabel = false }: CartProps) {
             </>
           )}
         </div>
-      </AdvancedSidePanel>
-    </>
+
+        <DrawerFooter className="border-t">
+          <Button onClick={handleCheckout} disabled={cart.items.length === 0 || isCheckingOut} className="w-full">
+            {isCheckingOut ? "Processing..." : "Checkout"} {!isCheckingOut && <ArrowRight className="ml-2 h-4 w-4" />}
+          </Button>
+          {cart.items.length > 0 && (
+            <Button variant="outline" onClick={handleClearCart}>
+              Clear Cart
+            </Button>
+          )}
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }

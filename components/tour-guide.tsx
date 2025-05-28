@@ -225,7 +225,6 @@ export function TourGuide({ tourConfig, onComplete, onSkip, autoStart = false, c
     isActive,
     isVisible,
     currentStep,
-    currentStepIndex,
     isFirstStep,
     isLastStep,
     progress,

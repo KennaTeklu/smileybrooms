@@ -2,6 +2,8 @@
  * Utilities for handling form field dependencies
  */
 
+import type { FormState } from "../../hooks/use-form"
+
 /**
  * Represents a dependency between form fields
  */
@@ -176,4 +178,52 @@ export function getAffectedFields(field: string, dependencyGraph: Record<string,
 
   traverse(field)
   return affected
+}
+
+/**
+ * Hook factory for creating a hook that manages field dependencies
+ * @param dependencies - Array of field dependencies
+ * @param validationDependencies - Array of validation dependencies
+ * @returns A hook for managing field dependencies
+ */
+export function createDependencyHook(
+  dependencies: FieldDependency[],
+  validationDependencies: ValidationDependency[] = [],
+) {
+  const dependencyGraph = createDependencyGraph(dependencies)
+
+  return function useDependencies(formState: FormState, setValues: (values: Record<string, string>) => void) {
+    /**
+     * Updates dependent fields when a field changes
+     * @param field - The field that changed
+     * @param value - The new value of the field
+     */
+    const updateDependentFields = (field: string, value: string) => {
+      const affectedFields = getAffectedFields(field, dependencyGraph)
+
+      if (affectedFields.length === 0) return
+
+      const relevantDependencies = dependencies.filter(
+        (dep) => dep.field === field || affectedFields.includes(dep.field),
+      )
+
+      const updatedValues = resolveDependencies({ ...formState.values, [field]: value }, relevantDependencies)
+
+      setValues(updatedValues)
+    }
+
+    /**
+     * Validates fields with dependencies
+     * @returns Object containing validation errors
+     */
+    const validateDependencies = () => {
+      return validateDependentFields(formState.values, validationDependencies)
+    }
+
+    return {
+      updateDependentFields,
+      validateDependencies,
+      dependencyGraph,
+    }
+  }
 }

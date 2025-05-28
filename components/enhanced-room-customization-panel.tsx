@@ -2,23 +2,27 @@
 
 import { useState, useEffect } from "react"
 import { AdvancedSidePanel } from "./sidepanel/advanced-sidepanel"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Undo2, Redo2, Shield, Zap, Star } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { Check, Star, Zap, Shield, Clock, Undo2, Redo2 } from "lucide-react"
+import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
+  reductionsPrice: number
   totalPrice: number
 }
 
@@ -59,6 +63,7 @@ export function EnhancedRoomCustomizationPanel({
   // Get room data
   const tiers = getRoomTiers(roomType)
   const addOns = getRoomAddOns(roomType)
+  const reductions = getRoomReductions(roomType)
 
   // Update local config when prop changes
   useEffect(() => {
@@ -72,8 +77,8 @@ export function EnhancedRoomCustomizationPanel({
       const newConfigs = prev.configs.slice(0, prev.currentIndex + 1)
       newConfigs.push(newConfig)
       return {
-        configs: newConfigs,
-        currentIndex: newConfigs.length - 1,
+        configs: newConfigs.slice(-10), // Keep last 10 states
+        currentIndex: Math.min(newConfigs.length - 1, 9),
       }
     })
   }
@@ -117,13 +122,20 @@ export function EnhancedRoomCustomizationPanel({
       return total + (addOn?.price || 0)
     }, 0)
 
-    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice
+    // Calculate reductions
+    const reductionsPrice = updatedConfig.selectedReductions.reduce((total, reductionId) => {
+      const reduction = reductions.find((r) => r.id === reductionId)
+      return total - (reduction?.discount || 0)
+    }, 0)
+
+    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + reductionsPrice
 
     return {
       ...updatedConfig,
       basePrice,
       tierUpgradePrice,
       addOnsPrice,
+      reductionsPrice,
       totalPrice: Math.max(0, totalPrice),
     }
   }
@@ -148,6 +160,18 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(true)
   }
 
+  // Handle reduction toggle
+  const handleReductionToggle = (reductionId: string, checked: boolean) => {
+    const newReductions = checked
+      ? [...localConfig.selectedReductions, reductionId]
+      : localConfig.selectedReductions.filter((id) => id !== reductionId)
+
+    const newConfig = calculatePricing({ selectedReductions: newReductions })
+    setLocalConfig(newConfig)
+    addToHistory(newConfig)
+    setHasUnsavedChanges(true)
+  }
+
   // Save changes
   const handleSave = () => {
     onConfigChange(localConfig)
@@ -155,6 +179,7 @@ export function EnhancedRoomCustomizationPanel({
     toast({
       title: "Configuration saved",
       description: `${roomName} customization has been updated`,
+      duration: 3000,
     })
   }
 
@@ -165,14 +190,16 @@ export function EnhancedRoomCustomizationPanel({
     toast({
       title: "Configuration reset",
       description: `${roomName} customization has been reset`,
+      duration: 3000,
     })
   }
 
   // Calculate progress (based on selections made)
   const calculateProgress = () => {
     let progress = 0
-    if (localConfig.selectedTier !== tiers[0].name) progress += 50
-    if (localConfig.selectedAddOns.length > 0) progress += 50
+    if (localConfig.selectedTier !== tiers[0].name) progress += 40
+    if (localConfig.selectedAddOns.length > 0) progress += 30
+    if (localConfig.selectedReductions.length > 0) progress += 30
     return Math.min(progress, 100)
   }
 
@@ -191,6 +218,8 @@ export function EnhancedRoomCustomizationPanel({
       width="lg"
       showProgress={true}
       progress={calculateProgress()}
+      preserveScrollPosition={true}
+      scrollKey={`room-${roomType}`}
       headerActions={
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} className="h-8 w-8" title="Undo">
@@ -223,66 +252,183 @@ export function EnhancedRoomCustomizationPanel({
       <div className="space-y-6">
         {/* Room Overview */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {roomIcon}
-              Application Form: {roomName}
-            </CardTitle>
-            <CardDescription>Fill out the form below to apply for this position at Smiley Brooms</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p>
-                <strong>Selected Tier:</strong> {localConfig.selectedTier}
-              </p>
-              <p>
-                <strong>Base Price:</strong> ${localConfig.basePrice.toFixed(2)}
-              </p>
-              <p>
-                <strong>Tier Upgrade Price:</strong> ${localConfig.tierUpgradePrice.toFixed(2)}
-              </p>
-              <p>
-                <strong>Add-ons Price:</strong> ${localConfig.addOnsPrice.toFixed(2)}
-              </p>
-              <p>
-                <strong>Total Price:</strong> ${localConfig.totalPrice.toFixed(2)}
-              </p>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{roomIcon}</div>
+              <div>
+                <CardTitle className="text-lg">{roomName}</CardTitle>
+                <CardDescription>
+                  Configure cleaning options for {roomCount} room{roomCount > 1 ? "s" : ""}
+                </CardDescription>
+              </div>
             </div>
-          </CardContent>
+          </CardHeader>
         </Card>
 
         <Tabs defaultValue="tiers" className="w-full">
-          <TabsList className="grid grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="tiers">Service Tiers</TabsTrigger>
             <TabsTrigger value="addons">Add-ons</TabsTrigger>
+            <TabsTrigger value="reductions">Reductions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tiers" className="space-y-4">
             <RadioGroup value={localConfig.selectedTier} onValueChange={handleTierChange}>
               {tiers.map((tier) => (
-                <div key={tier.name} className="flex items-center space-x-2">
-                  <RadioGroupItem value={tier.name} id={tier.name} />
-                  <Label htmlFor={tier.name}>
-                    {getTierIcon(tier.name)} {tier.name}
-                  </Label>
-                </div>
+                <Card
+                  key={tier.name}
+                  className={`cursor-pointer transition-colors ${
+                    localConfig.selectedTier === tier.name
+                      ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  }`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <RadioGroupItem value={tier.name} id={tier.name} className="mt-1" />
+                      <div className="flex-1">
+                        <Label htmlFor={tier.name} className="cursor-pointer">
+                          <div className="flex items-center gap-2 mb-2">
+                            {getTierIcon(tier.name)}
+                            <span className="font-medium">{tier.name}</span>
+                            <Badge variant="secondary">${tier.price}</Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{tier.description}</p>
+                          {tier.features && (
+                            <ul className="mt-2 space-y-1">
+                              {tier.features.map((feature, index) => (
+                                <li key={index} className="flex items-center gap-2 text-xs text-gray-500">
+                                  <Check className="h-3 w-3 text-green-500" />
+                                  {feature}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </Label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </RadioGroup>
           </TabsContent>
 
           <TabsContent value="addons" className="space-y-4">
-            {addOns.map((addOn) => (
-              <div key={addOn.id} className="flex items-center justify-between">
-                <Label htmlFor={addOn.id}>{addOn.name}</Label>
-                <Checkbox
-                  id={addOn.id}
-                  checked={localConfig.selectedAddOns.includes(addOn.id)}
-                  onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked as boolean)}
-                />
+            {addOns.length > 0 ? (
+              <div className="space-y-3">
+                {addOns.map((addOn) => (
+                  <Card key={addOn.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id={addOn.id}
+                          checked={localConfig.selectedAddOns.includes(addOn.id)}
+                          onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor={addOn.id} className="cursor-pointer">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{addOn.name}</span>
+                              <Badge variant="outline">+${addOn.price}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
+                          </Label>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            ))}
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500">No add-ons available for this room type</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reductions" className="space-y-4">
+            {reductions.length > 0 ? (
+              <div className="space-y-3">
+                {reductions.map((reduction) => (
+                  <Card key={reduction.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id={reduction.id}
+                          checked={localConfig.selectedReductions.includes(reduction.id)}
+                          onCheckedChange={(checked) => handleReductionToggle(reduction.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor={reduction.id} className="cursor-pointer">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{reduction.name}</span>
+                              <Badge variant="destructive">-${reduction.discount}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{reduction.description}</p>
+                          </Label>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500">No reductions available for this room type</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
+
+        {/* Price Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Price Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between">
+              <span>Base Price</span>
+              <span>${localConfig.basePrice.toFixed(2)}</span>
+            </div>
+            {localConfig.tierUpgradePrice > 0 && (
+              <div className="flex justify-between">
+                <span>Tier Upgrade</span>
+                <span>+${localConfig.tierUpgradePrice.toFixed(2)}</span>
+              </div>
+            )}
+            {localConfig.addOnsPrice > 0 && (
+              <div className="flex justify-between">
+                <span>Add-ons</span>
+                <span>+${localConfig.addOnsPrice.toFixed(2)}</span>
+              </div>
+            )}
+            {localConfig.reductionsPrice < 0 && (
+              <div className="flex justify-between">
+                <span>Reductions</span>
+                <span>${localConfig.reductionsPrice.toFixed(2)}</span>
+              </div>
+            )}
+            <Separator />
+            <div className="flex justify-between font-medium">
+              <span>Per Room</span>
+              <span>${localConfig.totalPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg">
+              <span>
+                Total ({roomCount} room{roomCount > 1 ? "s" : ""})
+              </span>
+              <span>${(localConfig.totalPrice * roomCount).toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AdvancedSidePanel>
   )

@@ -46,3 +46,37 @@ export function isolateScrolling(element: HTMLElement): () => void {
     element.removeEventListener("wheel", handleWheel)
   }
 }
+
+/**
+ * Tracks scroll position and provides information about the scroll state
+ */
+export function useScrollTracking(element: HTMLElement | null): {
+  position: number
+  percentage: number
+  isAtTop: boolean
+  isAtBottom: boolean
+  maxScroll: number
+} {
+  if (!element) {
+    return {
+      position: 0,
+      percentage: 0,
+      isAtTop: true,
+      isAtBottom: false,
+      maxScroll: 0,
+    }
+  }
+
+  const scrollTop = element.scrollTop
+  const scrollHeight = element.scrollHeight
+  const clientHeight = element.clientHeight
+  const maxScroll = scrollHeight - clientHeight
+
+  return {
+    position: scrollTop,
+    percentage: maxScroll > 0 ? scrollTop / maxScroll : 0,
+    isAtTop: scrollTop <= 0,
+    isAtBottom: Math.abs(scrollTop + clientHeight - scrollHeight) < 1,
+    maxScroll,
+  }
+}

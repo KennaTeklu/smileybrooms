@@ -1,37 +1,65 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
-import { isClient } from "@/lib/utils"
-
-// Dynamically import components that use CartProvider to prevent SSR issues
-const AdvancedCartSystem = dynamic(() => import("@/components/advanced-cart-system").then((mod) => mod.default), {
-  ssr: false,
-})
-
-function AdvancedCartLoading() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="w-full h-[500px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading advanced cart...</p>
-        </div>
-      </div>
-    </div>
-  )
-}
+import { Suspense } from "react"
+import AdvancedCartSystem from "@/components/advanced-cart-system"
+import { CartProvider } from "@/lib/cart-context"
+import { Toaster } from "@/components/ui/toaster"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import ErrorBoundary from "@/components/error-boundary"
+import LoadingAnimation from "@/components/loading-animation"
 
 export default function AdvancedCartPage() {
-  const [isMounted, setIsMounted] = useState(false)
+  return (
+    <ErrorBoundary>
+      <CartProvider>
+        <TooltipProvider>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <div className="container mx-auto px-4 py-8">
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold text-gray-900 mb-4">Advanced Shopping Cart System</h1>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                  Experience our next-generation cart with advanced features, seamless checkout, and intelligent
+                  recommendations powered by modern web technologies.
+                </p>
+              </div>
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
+              <div className="flex justify-center">
+                <Suspense fallback={<LoadingAnimation />}>
+                  <AdvancedCartSystem />
+                </Suspense>
+              </div>
 
-  if (!isMounted || !isClient()) {
-    return <AdvancedCartLoading />
-  }
+              {/* Feature highlights */}
+              <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🚀</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Lightning Fast</h3>
+                  <p className="text-gray-600">Optimized performance with advanced caching and virtualization</p>
+                </div>
 
-  return <AdvancedCartSystem />
+                <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🔒</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Secure Checkout</h3>
+                  <p className="text-gray-600">Bank-grade security with biometric authentication support</p>
+                </div>
+
+                <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">🎯</span>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Smart Features</h3>
+                  <p className="text-gray-600">AI-powered recommendations and intelligent pricing</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Toaster />
+        </TooltipProvider>
+      </CartProvider>
+    </ErrorBoundary>
+  )
 }
