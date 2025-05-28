@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import EmailFormData from "@/components/email-form-data"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { BoxIcon as Button } from 'lucide-react'
 import { Mail } from 'lucide-react'
 
 type CalculatedService = {
