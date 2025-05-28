@@ -9,11 +9,10 @@ import AddressCollectionModal, { type AddressData } from "@/components/address-c
 import TermsAgreementPopup from "@/components/terms-agreement-popup"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
-import StickyCartButton from "@/components/sticky-cart-button"
 import EmailFormData from "@/components/email-form-data"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Mail } from "lucide-react"
+import { Mail } from 'lucide-react'
 
 type CalculatedService = {
   rooms: Record<string, number>
@@ -34,7 +33,6 @@ export default function CalculatorPage() {
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [calculatorKey, setCalculatorKey] = useState(0) // Used to reset calculator
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [showStickyButton, setShowStickyButton] = useState(true)
   const [formDataForEmail, setFormDataForEmail] = useState<Record<string, any> | null>(null)
 
   const { addItem } = useCart()
@@ -239,16 +237,6 @@ export default function CalculatorPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sticky Add to Cart Button */}
-      {calculatedService && calculatedService.totalPrice > 0 && (
-        <StickyCartButton
-          totalPrice={calculatedService.totalPrice}
-          isServiceAvailable={calculatedService.isServiceAvailable}
-          onAddToCart={handleAddToCart}
-          visible={showStickyButton}
-        />
-      )}
-
       <div className="container mx-auto px-4 py-8 flex-1">
         <h1 className="text-3xl font-bold text-center mb-8">Cleaning Price Calculator</h1>
 
