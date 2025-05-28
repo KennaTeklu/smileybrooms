@@ -53,7 +53,7 @@ export interface RoomConfiguration {
   totalPrice: number
 }
 
-export function RoomConfigurator({
+export default function RoomConfigurator({
   roomName,
   roomIcon,
   baseTier,
