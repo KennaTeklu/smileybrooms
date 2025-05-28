@@ -292,7 +292,6 @@ export function Cart({ showLabel = false }: CartProps) {
           size="icon"
           className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
           onClick={() => setIsOpen(true)}
-          data-tour="cart"
         >
           <ShoppingCart className="h-5 w-5" />
           {totalItems > 0 && (

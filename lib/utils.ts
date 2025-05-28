@@ -126,3 +126,5 @@ export function formatCurrency(amount: number) {
     minimumFractionDigits: 2,
   }).format(amount)
 }
+
+export const isClient = () => typeof window !== "undefined"

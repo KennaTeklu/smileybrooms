@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { AnimatedDownloadButton } from "@/components/animated-download-button"
-import { TourManager } from "@/components/tour-manager"
 
 export default function Header() {
   const pathname = usePathname()
@@ -42,11 +41,6 @@ export default function Header() {
           {/* Animated Download Button */}
           <div className="hidden md:block">
             <AnimatedDownloadButton />
-          </div>
-
-          {/* Tour Manager */}
-          <div className="hidden md:block">
-            <TourManager showAllTours={true} />
           </div>
 
           <Sheet>
