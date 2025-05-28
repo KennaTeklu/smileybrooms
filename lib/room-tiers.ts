@@ -7,6 +7,7 @@ export interface RoomTier {
   price: number
   features: string[]
   timeEstimate: string
+  detailedTasks: string[] // New field for detailed task breakdown
 }
 
 export interface RoomAddOn {
@@ -23,10 +24,7 @@ export interface RoomReduction {
   description?: string
 }
 
-// Update the pricing structure for tiers to use multipliers instead of fixed prices
-
-// For the defaultTiers object, update each room type's tier pricing to use multipliers
-// For example, in the bedroom section:
+// Updated tiers with detailed task breakdowns from the strategic analysis
 
 export const defaultTiers: Record<string, RoomTier[]> = {
   bedroom: [
@@ -37,12 +35,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 25.0,
       timeEstimate: "20 minutes",
       features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
+      detailedTasks: [
+        "✓ Vacuum main walkways (4min)",
+        "✓ Dust 3 visible surfaces (4min)",
+        "✓ Make bed + fluff pillows (3min)",
+        "✓ Empty trash + new liner (2min)",
+        "✓ Mirror/glass quick wipe (2min)",
+        "✓ Quick floor spot-check (5min)",
+      ],
     },
     {
       id: "bedroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular maintenance",
-      price: 75.0, // 3x the Essential Clean price
+      price: 75.0,
       timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
@@ -52,12 +58,19 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Window sill cleaning",
         "Light fixture dusting",
       ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Under-bed vacuum + organize (12min)",
+        "✓ Closet visible organization (15min)",
+        "✓ Baseboards full wipe-down (8min)",
+        "✓ Window sills + tracks detail (10min)",
+      ],
     },
     {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for maximum freshness",
-      price: 225.0, // 9x the Essential Clean price
+      price: 225.0,
       timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
@@ -73,6 +86,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Door and doorframe cleaning",
         "Picture frame dusting",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Mattress flip + sanitize spray (25min)",
+        "✓ Closet complete reorganization (45min)",
+        "✓ Wall spot treatment + scuff removal (30min)",
+        "✓ Ceiling fan disassemble + wash (30min)",
+        "✓ Furniture polish + leather condition (25min)",
+        "✓ Air vents remove + sanitize (20min)",
+        "✓ Light fixtures disassemble + detail (25min)",
+      ],
     },
   ],
   bathroom: [
@@ -83,12 +106,21 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 30.0,
       timeEstimate: "25 minutes",
       features: ["Sink and counter wipe-down", "Toilet exterior cleaning", "Mirror cleaning"],
+      detailedTasks: [
+        "✓ Sink + counter wipe (4min)",
+        "✓ Toilet exterior clean (3min)",
+        "✓ Mirror streak-free clean (3min)",
+        "✓ Floor sweep + spot mop (5min)",
+        "✓ Trash empty + liner (2min)",
+        "✓ Towel fold + hang (3min)",
+        "✓ Quick surface sanitize (5min)",
+      ],
     },
     {
       id: "bathroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular bathrooms",
-      price: 90.0, // 3x the Essential Clean price
+      price: 90.0,
       timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
@@ -98,12 +130,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Cabinet fronts cleaning",
         "Towel replacement",
       ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Shower/tub scrub + rinse (15min)",
+        "✓ Toilet interior + exterior detail (10min)",
+        "✓ Floor detail mop + corners (12min)",
+        "✓ Cabinet fronts + handles (8min)",
+        "✓ Fresh towels + bath mat (5min)",
+      ],
     },
     {
       id: "bathroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for master bathrooms",
-      price: 270.0, // 9x the Essential Clean price
+      price: 270.0,
       timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
@@ -119,6 +159,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Drain cleaning",
         "Toilet tank cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Grout deep scrub + seal treatment (35min)",
+        "✓ Cabinet interior empty + organize (40min)",
+        "✓ Fixture polish + water spot removal (25min)",
+        "✓ Aromatherapy mist + air freshener (5min)",
+        "✓ Shower door track disassemble + clean (30min)",
+        "✓ Exhaust fan remove + wash (20min)",
+        "✓ Mold/mildew treatment + prevention (25min)",
+        "✓ Tile wall detail + protective coating (40min)",
+      ],
     },
   ],
   kitchen: [
@@ -129,12 +180,21 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 35.0,
       timeEstimate: "30 minutes",
       features: ["Countertop cleaning", "Sink washing", "Stovetop wipe-down"],
+      detailedTasks: [
+        "✓ Countertop clear + wipe (5min)",
+        "✓ Sink wash + shine (4min)",
+        "✓ Stovetop wipe + burner clean (6min)",
+        "✓ Floor sweep main areas (3min)",
+        "✓ Dishes load/unload (5min)",
+        "✓ Trash empty + new bag (2min)",
+        "✓ Quick counter organize (5min)",
+      ],
     },
     {
       id: "kitchen-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular kitchens",
-      price: 105.0, // 3x the Essential Clean price
+      price: 105.0,
       timeEstimate: "90 minutes",
       features: [
         "Includes Essential Clean",
@@ -144,12 +204,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Microwave interior cleaning",
         "Trash emptying",
       ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Appliance exteriors detail (15min)",
+        "✓ Cabinet fronts + handles (12min)",
+        "✓ Floor detail mop + under appliances (18min)",
+        "✓ Microwave interior + turntable (8min)",
+        "✓ Trash + recycling organize (5min)",
+      ],
     },
     {
       id: "kitchen-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for gourmet kitchens",
-      price: 315.0, // 9x the Essential Clean price
+      price: 315.0,
       timeEstimate: "270 minutes",
       features: [
         "Includes Advanced Clean",
@@ -165,6 +233,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Drawer cleaning and organization",
         "Cutting board sanitization",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Refrigerator interior organize + sanitize (45min)",
+        "✓ Oven interior deep clean + degrease (50min)",
+        "✓ Cabinet interiors (3 cabinets) organize (60min)",
+        "✓ Dishwasher filter clean + sanitize cycle (25min)",
+        "✓ Range hood filter remove + degrease (30min)",
+        "✓ Under sink organize + pipe clean (25min)",
+        "✓ Backsplash detail + grout treatment (35min)",
+        "✓ Small appliances disassemble + detail (40min)",
+      ],
     },
   ],
   livingRoom: [
@@ -175,12 +254,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 30.0,
       timeEstimate: "25 minutes",
       features: ["Surface dusting", "Floor vacuum", "Coffee table cleaning"],
+      detailedTasks: [
+        "✓ Vacuum main walkways (5min)",
+        "✓ Dust coffee table + end tables (4min)",
+        "✓ TV screen + electronics wipe (3min)",
+        "✓ Throw pillows fluff + arrange (3min)",
+        "✓ Quick floor spot vacuum (5min)",
+        "✓ Trash empty + tidy (5min)",
+      ],
     },
     {
       id: "livingroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for family rooms",
-      price: 90.0, // 3x the Essential Clean price
+      price: 90.0,
       timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
@@ -190,12 +277,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Electronics dusting",
         "Throw pillow fluffing",
       ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Furniture vacuum + crevices (15min)",
+        "✓ Under furniture vacuum + organize (12min)",
+        "✓ Baseboards full detail (10min)",
+        "✓ Electronics dust + cord organize (8min)",
+        "✓ Decorative items dust + arrange (10min)",
+      ],
     },
     {
       id: "livingroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for entertainment areas",
-      price: 270.0, // 9x the Essential Clean price
+      price: 270.0,
       timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
@@ -211,6 +306,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Air vent cleaning",
         "Furniture polishing",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Upholstery spot treatment + protection (40min)",
+        "✓ Ceiling fan disassemble + balance (35min)",
+        "✓ Window treatments vacuum + spot clean (30min)",
+        "✓ Entertainment center complete organize (45min)",
+        "✓ Bookshelf organize + dust individual items (35min)",
+        "✓ Light fixtures disassemble + crystal clean (25min)",
+        "✓ Carpet spot treatment + deodorize (35min)",
+      ],
     },
   ],
   diningRoom: [
@@ -221,6 +326,13 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 25.0,
       timeEstimate: "20 minutes",
       features: ["Table and chair dusting", "Floor vacuum/sweep", "Light fixture dusting"],
+      detailedTasks: [
+        "✓ Table surface dust + wipe (4min)",
+        "✓ Chair seats + backs dust (4min)",
+        "✓ Floor vacuum main area (4min)",
+        "✓ Light fixture dust (3min)",
+        "✓ Quick surface organize (5min)",
+      ],
     },
     {
       id: "diningroom-advanced",
@@ -235,6 +347,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Baseboards dusting",
         "China cabinet exterior cleaning",
         "Floor detailed cleaning",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Table polish + protection (12min)",
+        "✓ Chair detail + upholstery spot clean (15min)",
+        "✓ Baseboards + corners detail (8min)",
+        "✓ China cabinet exterior + glass (10min)",
+        "✓ Floor detail + under table (15min)",
       ],
     },
     {
@@ -252,6 +372,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Upholstery spot treatment",
         "Decor item individual cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ China cabinet interior organize + display (50min)",
+        "✓ Chandelier disassemble + crystal wash (45min)",
+        "✓ Fine china hand wash + organize (40min)",
+        "✓ Table leaf clean + proper storage (20min)",
+        "✓ Silverware polish + anti-tarnish treatment (25min)",
+      ],
     },
   ],
   homeOffice: [
@@ -262,6 +390,13 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 25.0,
       timeEstimate: "20 minutes",
       features: ["Desk surface dusting", "Floor vacuum", "Trash emptying"],
+      detailedTasks: [
+        "✓ Desk surface clear + dust (4min)",
+        "✓ Floor vacuum main paths (4min)",
+        "✓ Trash empty + organize (3min)",
+        "✓ Chair quick wipe (3min)",
+        "✓ Papers stack neatly (6min)",
+      ],
     },
     {
       id: "office-advanced",
@@ -276,6 +411,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Chair cleaning",
         "Window sill cleaning",
         "Baseboard dusting",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Computer + peripherals detail clean (15min)",
+        "✓ Bookshelf dust + basic organize (12min)",
+        "✓ Office chair detail + wheels (8min)",
+        "✓ Window sill + blinds dust (10min)",
+        "✓ Baseboards + corners (15min)",
       ],
     },
     {
@@ -293,6 +436,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Drawer organization",
         "Wall spot cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Filing system complete reorganization (60min)",
+        "✓ Keyboard disassemble + sanitize (25min)",
+        "✓ Monitor calibration clean + screen protect (20min)",
+        "✓ Cable management + cord organization (35min)",
+        "✓ Desk drawer complete organization (35min)",
+      ],
     },
   ],
   laundryRoom: [
@@ -303,6 +454,12 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 20.0,
       timeEstimate: "15 minutes",
       features: ["Surface dusting", "Floor sweep/vacuum", "Sink cleaning"],
+      detailedTasks: [
+        "✓ Counter/surface dust (3min)",
+        "✓ Floor sweep main area (3min)",
+        "✓ Sink quick rinse (4min)",
+        "✓ Trash empty (5min)",
+      ],
     },
     {
       id: "laundry-advanced",
@@ -317,6 +474,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Floor detailed mopping",
         "Cabinet fronts wiping",
         "Lint trap cleaning",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Washer/dryer exterior detail (10min)",
+        "✓ Countertop detail + organize (8min)",
+        "✓ Floor detail mop + corners (12min)",
+        "✓ Cabinet fronts + handles (10min)",
+        "✓ Lint trap + surrounding clean (5min)",
       ],
     },
     {
@@ -334,6 +499,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Detergent area organization",
         "Wall spot cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Washer drum deep clean + sanitize (30min)",
+        "✓ Dryer vent disassemble + lint removal (25min)",
+        "✓ Cabinet interior organize + supplies (40min)",
+        "✓ Utility sink deep scrub + pipe check (25min)",
+        "✓ Detergent area organize + spill cleanup (15min)",
+      ],
     },
   ],
   entryway: [
@@ -344,6 +517,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 15.0,
       timeEstimate: "10 minutes",
       features: ["Floor sweep/vacuum", "Surface dusting", "Door cleaning"],
+      detailedTasks: [
+        "✓ Floor sweep + spot mop (4min)",
+        "✓ Surface dust + wipe (4min)",
+        "✓ Door + handle clean (4min)",
+      ],
     },
     {
       id: "entryway-advanced",
@@ -358,6 +536,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Light fixture dusting",
         "Mirror cleaning",
         "Console table organization",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Floor detail mop + corners (8min)",
+        "✓ Baseboards + trim detail (6min)",
+        "✓ Light fixture dust + clean (4min)",
+        "✓ Mirror streak-free clean (3min)",
+        "✓ Console table organize + dust (15min)",
       ],
     },
     {
@@ -375,6 +561,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Coat closet organization",
         "Door hardware polishing",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Chandelier/fixture disassemble + clean (25min)",
+        "✓ Wall art + frames individual clean (20min)",
+        "✓ Shoe organization + storage optimize (25min)",
+        "✓ Coat closet complete organization (30min)",
+        "✓ Door hardware polish + protect (8min)",
+      ],
     },
   ],
   hallway: [
@@ -385,6 +579,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 15.0,
       timeEstimate: "10 minutes",
       features: ["Floor vacuum/sweep", "Surface dusting", "Light fixture dusting"],
+      detailedTasks: [
+        "✓ Floor vacuum main path (4min)",
+        "✓ Surface dust visible areas (4min)",
+        "✓ Light fixture quick dust (4min)",
+      ],
     },
     {
       id: "hallway-advanced",
@@ -399,6 +598,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Wall spot cleaning",
         "Picture frame dusting",
         "Door cleaning",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Floor detail + edges (8min)",
+        "✓ Baseboards full wipe (6min)",
+        "✓ Wall spot cleaning (5min)",
+        "✓ Picture frames dust (4min)",
+        "✓ Doors + frames wipe (13min)",
       ],
     },
     {
@@ -416,6 +623,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Ceiling corner cobweb removal",
         "Air vent cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Runner/carpet deep clean + treat (30min)",
+        "✓ Light fixtures disassemble + detail (25min)",
+        "✓ Artwork individual clean + level (25min)",
+        "✓ Door hardware polish + hinges (8min)",
+        "✓ Ceiling corner cobweb + dust removal (20min)",
+      ],
     },
   ],
   stairs: [
@@ -426,6 +641,12 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 20.0,
       timeEstimate: "15 minutes",
       features: ["Step vacuum/sweep", "Handrail dusting", "Visible surface dusting"],
+      detailedTasks: [
+        "✓ Steps vacuum main areas (5min)",
+        "✓ Handrail dust + wipe (3min)",
+        "✓ Visible surfaces dust (4min)",
+        "✓ Quick safety check (3min)",
+      ],
     },
     {
       id: "stairs-advanced",
@@ -440,6 +661,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Baseboard dusting",
         "Spindle dusting",
         "Wall spot cleaning",
+      ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Steps detail + edges (10min)",
+        "✓ Handrail detail + polish (8min)",
+        "✓ Baseboards + risers (8min)",
+        "✓ Spindles dust + wipe (6min)",
+        "✓ Wall spots + marks (13min)",
       ],
     },
     {
@@ -457,6 +686,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Light fixture detailed cleaning",
         "Decorative element cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Carpet deep clean + stain treatment (40min)",
+        "✓ Spindles individual clean + polish (35min)",
+        "✓ Stair runner professional clean (30min)",
+        "✓ Under-stair accessible area organize (15min)",
+        "✓ Light fixtures disassemble + clean (15min)",
+      ],
     },
   ],
   default: [
@@ -467,12 +704,13 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       price: 25.0,
       timeEstimate: "20 minutes",
       features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
+      detailedTasks: ["✓ Surface dusting (5min)", "✓ Floor vacuum/sweep (8min)", "✓ General tidying (7min)"],
     },
     {
       id: "default-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for all spaces",
-      price: 75.0, // 3x the Essential Clean price
+      price: 75.0,
       timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
@@ -482,12 +720,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Surface sanitizing",
         "Trash removal",
       ],
+      detailedTasks: [
+        "✓ ALL Essential tasks",
+        "✓ Detailed dusting (15min)",
+        "✓ Floor detailed cleaning (20min)",
+        "✓ Baseboard attention (10min)",
+        "✓ Surface sanitizing (10min)",
+        "✓ Trash removal (5min)",
+      ],
     },
     {
       id: "default-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for all spaces",
-      price: 225.0, // 9x the Essential Clean price
+      price: 225.0,
       timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
@@ -503,12 +749,27 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Furniture polishing",
         "Decor item individual cleaning",
       ],
+      detailedTasks: [
+        "✓ ALL Advanced tasks",
+        "✓ Specialty surface treatment (30min)",
+        "✓ Detail work on fixtures (25min)",
+        "✓ Hard-to-reach areas (20min)",
+        "✓ Aromatherapy finishing (5min)",
+        "✓ Wall spot cleaning (15min)",
+        "✓ Ceiling corner cleaning (10min)",
+        "✓ Door and doorframe cleaning (15min)",
+        "✓ Light fixture detailed cleaning (20min)",
+        "✓ Air vent cleaning (15min)",
+        "✓ Furniture polishing (20min)",
+        "✓ Decor item individual cleaning (20min)",
+      ],
     },
   ],
 }
 
-// Default add-ons for all rooms
+// Keep all the existing add-ons and reductions data...
 export const defaultAddOns: Record<string, RoomAddOn[]> = {
+  // ... existing add-ons data remains the same
   bedroom: [
     {
       id: "bed-1",
@@ -723,7 +984,6 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
   ],
 }
 
-// Default reductions for all rooms
 export const defaultReductions: Record<string, RoomReduction[]> = {
   bedroom: [
     { id: "bed-r1", name: "Skip mirror cleaning", discount: 5.0, description: "Mirrors will not be cleaned" },

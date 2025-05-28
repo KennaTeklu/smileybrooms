@@ -17,6 +17,7 @@ export interface RoomTier {
   price: number
   features: string[]
   timeEstimate?: string
+  detailedTasks?: string[]
 }
 
 export interface RoomAddOn {
@@ -185,25 +186,32 @@ export function RoomConfigurator({
                                   <Info className="h-3 w-3" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                <div className="space-y-2">
-                                  <p className="font-medium">{tier.name}</p>
-                                  <p className="text-xs">{tier.description}</p>
-                                  {tier.timeEstimate && (
-                                    <p className="text-xs text-muted-foreground">Estimated time: {tier.timeEstimate}</p>
-                                  )}
-                                  <div className="space-y-1">
-                                    {tier.features.slice(0, 3).map((feature, i) => (
-                                      <p key={i} className="text-xs flex items-start">
-                                        <span className="text-green-500 mr-1">✓</span>
-                                        {feature}
-                                      </p>
-                                    ))}
-                                    {tier.features.length > 3 && (
-                                      <p className="text-xs text-muted-foreground">
-                                        +{tier.features.length - 3} more tasks...
-                                      </p>
+                              <TooltipContent side="top" className="max-w-sm">
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="font-medium text-sm">{tier.name}</p>
+                                    <p className="text-xs text-muted-foreground">{tier.description}</p>
+                                    {tier.timeEstimate && (
+                                      <p className="text-xs text-blue-600 font-medium">⏱️ {tier.timeEstimate}</p>
                                     )}
+                                  </div>
+
+                                  <div>
+                                    <p className="text-xs font-medium mb-2">What's Included:</p>
+                                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                                      {tier.detailedTasks
+                                        ? tier.detailedTasks.map((task, i) => (
+                                            <p key={i} className="text-xs text-green-700">
+                                              {task}
+                                            </p>
+                                          ))
+                                        : tier.features.map((feature, i) => (
+                                            <p key={i} className="text-xs flex items-start">
+                                              <span className="text-green-500 mr-1">✓</span>
+                                              {feature}
+                                            </p>
+                                          ))}
+                                    </div>
                                   </div>
                                 </div>
                               </TooltipContent>
@@ -212,6 +220,9 @@ export function RoomConfigurator({
                           <Badge className={getTierBadgeColor(tier.name)}>${tier.price}</Badge>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">{tier.description}</p>
+                        {tier.timeEstimate && (
+                          <p className="text-xs text-blue-600 mt-1">⏱️ Estimated time: {tier.timeEstimate}</p>
+                        )}
                       </div>
                     </div>
                   </div>
