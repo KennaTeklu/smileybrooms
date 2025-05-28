@@ -11,7 +11,7 @@ const navigation = [
   { name: "Company", href: "#" },
 ]
 
-export default function ResponsiveHeader() {
+export function ResponsiveHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { items } = useCart()
   const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)
