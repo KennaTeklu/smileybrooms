@@ -3,7 +3,7 @@
 import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import EnhancedNavigation from "@/components/enhanced-navigation"
+import { ResponsiveHeader } from "@/components/responsive-header"
 import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
 import UnifiedFooter from "@/components/unified-footer"
 import AccessibilityPanel from "@/components/accessibility-panel"
@@ -20,7 +20,7 @@ function ConditionalHeader() {
 
   return (
     <>
-      <EnhancedNavigation />
+      <ResponsiveHeader />
       <div className="pt-16" />
     </>
   )
