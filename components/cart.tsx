@@ -6,7 +6,7 @@ import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, Video } from "lucide-react"
+import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, Video, Info } from "lucide-react"
 import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
 import { Card } from "@/components/ui/card"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -14,6 +14,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -28,7 +30,9 @@ export function Cart({ isOpen, onClose }: CartProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
-  const [allowVideoRecording, setAllowVideoRecording] = useState(false) // State for video recording
+  const [allowVideoRecording, setAllowVideoRecording] = useState(false)
+  const [showAddressModal, setShowAddressModal] = useState(false)
+  const [customerAddressData, setCustomerAddressData] = useState<AddressData | null>(null)
 
   const createGoogleMapsLink = (address: string) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
@@ -81,6 +85,12 @@ export function Cart({ isOpen, onClose }: CartProps) {
       return
     }
 
+    // If no address data, open the address collection modal
+    if (!customerAddressData) {
+      setShowAddressModal(true)
+      return
+    }
+
     setIsCheckingOut(true)
     setCheckoutError(null)
     setCheckoutSuccess(false)
@@ -120,8 +130,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         },
       }))
 
-      const customerItem = customItems.find((item) => item.metadata?.customer)
-      const customerData = customerItem?.metadata?.customer
+      const customerData = customerAddressData // Use the collected address data
 
       const calculateOrderMetrics = () => {
         return {
@@ -144,7 +153,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         const emoji = "🔵"
 
         const waitlistData = {
-          name: customerData.name,
+          name: customerData.fullName, // Use fullName from collected data
           email: customerData.email,
           phone: customerData.phone,
           message: `${emoji} Order received: ${customItems.map((item) => item.name).join(", ")}. Address: ${customerData.address}.`,
@@ -165,10 +174,10 @@ export function Cart({ isOpen, onClose }: CartProps) {
             customerState: customerData?.state || "",
             customerZip: customerData?.zipCode || "",
             serviceLocation: `${customerData.address}, ${customerData?.city || ""}, ${customerData?.state || ""} ${customerData?.zipCode || ""}`,
-            mapsLink: customerData.googleMapsLink || createGoogleMapsLink(customerData.address),
+            mapsLink: createGoogleMapsLink(customerData.address), // Use collected address
             paymentMethod: paymentMethod,
             specialInstructions: customerData.specialInstructions || "None",
-            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No",
+            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No", // Use cart's allowVideoRecording state
             orderMetrics: calculateOrderMetrics(),
           },
         }
@@ -188,6 +197,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         })
 
         if (allowVideoRecording) {
+          // Use cart's allowVideoRecording state
           const fullAddress = `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
           const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
           localStorage.setItem(addressKey, "permanent")
@@ -207,7 +217,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         customerEmail: customerData?.email,
         customerData: customerData
           ? {
-              name: customerData.name,
+              name: customerData.fullName, // Use fullName from collected data
               email: customerData.email,
               phone: customerData.phone,
               address: {
@@ -262,6 +272,13 @@ export function Cart({ isOpen, onClose }: CartProps) {
     setPaymentMethod(method)
   }
 
+  const handleAddressSubmit = (data: AddressData) => {
+    setCustomerAddressData(data)
+    setShowAddressModal(false)
+    // Automatically trigger checkout after address is submitted
+    handleCheckout()
+  }
+
   return (
     <AdvancedSidePanel
       isOpen={isOpen}
@@ -272,7 +289,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
       primaryAction={
         cart.items.length > 0
           ? {
-              label: isCheckingOut ? "Processing..." : "Checkout",
+              label: isCheckingOut ? "Processing..." : customerAddressData ? "Checkout" : "Proceed to Checkout",
               onClick: handleCheckout,
               disabled: cart.items.length === 0 || isCheckingOut,
               loading: isCheckingOut,
@@ -325,12 +342,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                     <p className="text-sm text-gray-500">
                       {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
                     </p>
-                    {item.metadata?.customer && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {item.metadata.customer.address}, {item.metadata.customer.city || ""}{" "}
-                        {item.metadata.customer.state || ""} {item.metadata.customer.zipCode || ""}
-                      </p>
-                    )}
+                    {/* Remove customer address display from here as it's now collected at checkout */}
                     {item.metadata?.rooms && (
                       <p className="mt-1 text-xs text-gray-500">
                         Rooms:{" "}
@@ -425,11 +437,21 @@ export function Cart({ isOpen, onClose }: CartProps) {
                 <Label htmlFor="allowVideoRecording" className="flex items-center gap-2 text-sm font-medium">
                   <Video className="h-4 w-4 text-blue-600" />
                   Allow video recording for a discount
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        We may record cleaning sessions for training and social media purposes. By allowing this, you'll
+                        receive a discount on your order.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Label>
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                We may record cleaning sessions for training and social media purposes. By allowing this, you'll receive
-                a discount on your order.
+                We'll record parts of the cleaning process for our social media and training.
               </p>
             </div>
 
@@ -441,6 +463,14 @@ export function Cart({ isOpen, onClose }: CartProps) {
           </>
         )}
       </div>
+
+      {showAddressModal && (
+        <AddressCollectionModal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          onSubmit={handleAddressSubmit}
+        />
+      )}
     </AdvancedSidePanel>
   )
 }

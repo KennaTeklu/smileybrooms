@@ -7,8 +7,8 @@ import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
 import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import Image from "next/image"
-import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import { useCart } from "@/lib/cart-context"
+import { toast } from "@/components/ui/use-toast"
 
 interface RoomCount {
   [key: string]: number
@@ -50,8 +50,6 @@ export function RoomCategory({
   onRoomSelect,
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
-  const [showAddressModal, setShowAddressModal] = useState(false)
-  const [activeRoomForCart, setActiveRoomForCart] = useState<string | null>(null)
   const { addItem } = useCart()
 
   const handleOpenWizard = (roomType: string) => {
@@ -80,30 +78,35 @@ export function RoomCategory({
   }
 
   const handleAddToCartClick = (roomType: string) => {
-    setActiveRoomForCart(roomType)
-    setShowAddressModal(true)
-  }
-
-  const handleAddressSubmit = (addressData: AddressData) => {
-    if (activeRoomForCart) {
-      const currentRoomConfig = safeGetRoomConfig(activeRoomForCart)
+    try {
+      const currentRoomConfig = safeGetRoomConfig(roomType)
       addItem({
-        id: `custom-cleaning-${activeRoomForCart}-${Date.now()}`,
-        name: `${roomDisplayNames[activeRoomForCart] || activeRoomForCart} Cleaning`,
+        id: `custom-cleaning-${roomType}-${Date.now()}`,
+        name: `${roomDisplayNames[roomType] || roomType} Cleaning`,
         price: currentRoomConfig.totalPrice, // Per-room price
         priceId: "price_custom_cleaning", // Generic price ID for custom services
-        quantity: roomCounts[activeRoomForCart], // Number of rooms
-        image: roomImages[activeRoomForCart] || "/placeholder.svg",
+        quantity: roomCounts[roomType], // Number of rooms
+        image: roomImages[roomType] || "/placeholder.svg",
         metadata: {
-          customer: addressData,
-          roomType: activeRoomForCart,
+          roomType: roomType,
           roomConfig: currentRoomConfig,
           isRecurring: false, // Default, can be updated if recurring options are added later
           frequency: "one_time", // Default
         },
       })
-      setShowAddressModal(false)
-      setActiveRoomForCart(null)
+      toast({
+        title: "Item added to cart",
+        description: `${roomDisplayNames[roomType] || roomType} has been added to your cart.`,
+        duration: 3000,
+      })
+    } catch (error) {
+      console.error("Error adding item to cart:", error)
+      toast({
+        title: "Failed to add to cart",
+        description: "There was an error adding the item to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
   }
 
@@ -298,15 +301,6 @@ export function RoomCategory({
           roomCount={roomCounts[activeWizard] || 0}
           config={safeGetRoomConfig(activeWizard)}
           onConfigChange={handleRoomConfigChange}
-        />
-      )}
-
-      {activeRoomForCart && showAddressModal && (
-        <AddressCollectionModal
-          isOpen={showAddressModal}
-          onClose={() => setShowAddressModal(false)}
-          onSubmit={handleAddressSubmit}
-          calculatedPrice={safeGetRoomConfig(activeRoomForCart).totalPrice * roomCounts[activeRoomForCart]}
         />
       )}
     </>

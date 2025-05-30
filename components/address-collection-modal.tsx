@@ -15,9 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { MapPin, CreditCard, Info } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { MapPin, CreditCard } from "lucide-react"
 import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -30,24 +28,16 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
-  allowVideoRecording: boolean
-  videoRecordingDiscount: number
 }
 
 interface AddressCollectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: AddressData) => void
-  calculatedPrice: number
 }
 
-export default function AddressCollectionModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  calculatedPrice,
-}: AddressCollectionModalProps) {
-  const [formData, setFormData] = useState<Omit<AddressData, "videoRecordingDiscount">>({
+export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: AddressCollectionModalProps) {
+  const [formData, setFormData] = useState<AddressData>({
     fullName: "",
     email: "",
     phone: "",
@@ -56,7 +46,6 @@ export default function AddressCollectionModal({
     state: "",
     zipCode: "",
     specialInstructions: "",
-    allowVideoRecording: false,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -73,10 +62,6 @@ export default function AddressCollectionModal({
         return newErrors
       })
     }
-  }
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, allowVideoRecording: checked }))
   }
 
   const validateForm = () => {
@@ -100,14 +85,7 @@ export default function AddressCollectionModal({
     e.preventDefault()
 
     if (validateForm()) {
-      // Calculate video recording discount (10% or $25, whichever is less)
-      const percentDiscount = calculatedPrice * 0.1
-      const videoRecordingDiscount = formData.allowVideoRecording ? Math.min(25, percentDiscount) : 0
-
-      onSubmit({
-        ...formData,
-        videoRecordingDiscount,
-      })
+      onSubmit(formData)
 
       // Reset form
       setFormData({
@@ -119,7 +97,6 @@ export default function AddressCollectionModal({
         state: "",
         zipCode: "",
         specialInstructions: "",
-        allowVideoRecording: false,
       })
 
       onClose()
@@ -275,48 +252,13 @@ export default function AddressCollectionModal({
                 className="h-20"
               />
             </div>
-
-            {/* Video Recording Discount */}
-            <div className="flex items-start space-x-3 pt-2">
-              <Checkbox
-                id="allowVideoRecording"
-                checked={formData.allowVideoRecording}
-                onCheckedChange={handleCheckboxChange}
-              />
-              <div>
-                <div className="flex items-center">
-                  <Label htmlFor="allowVideoRecording" className="font-medium cursor-pointer">
-                    Allow video recording for $25 off
-                  </Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        We may record cleaning sessions for training and social media purposes. By allowing this, you'll
-                        receive $25 off your order.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  We'll record parts of the cleaning process for our social media and training.
-                </p>
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="pt-4">
             <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-left">
                 <p className="text-sm text-gray-600">Total Price:</p>
-                <p className="text-xl font-bold">
-                  $
-                  {(calculatedPrice - (formData.allowVideoRecording ? Math.min(25, calculatedPrice * 0.1) : 0)).toFixed(
-                    2,
-                  )}
-                </p>
+                <p className="text-xl font-bold">{/* Price will be displayed in the cart component */}</p>
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
