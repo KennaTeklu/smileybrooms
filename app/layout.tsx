@@ -1,26 +1,24 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-import ClientLayout from "./client-layout"
-
-const inter = Inter({ subsets: ["latin"] })
+import { CombinedCartButton } from "@/components/combined-cart-button"
 
 export const metadata: Metadata = {
-  title: "smileybrooms - Professional Cleaning Services",
-  description: "Professional cleaning services for homes and offices with a smile.",
+  title: "v0 App",
+  description: "Created with v0",
   generator: "v0.dev",
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
+    <html lang="en">
+      <body>
+        {children}
+        <CombinedCartButton onCheckout={() => console.log("Checkout clicked!")} />
       </body>
     </html>
   )
