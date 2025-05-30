@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, MinusCircle, Settings } from "lucide-react"
+import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
 import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import Image from "next/image"
+import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
+import { useCart } from "@/lib/cart-context"
 
 interface RoomCount {
   [key: string]: number
@@ -48,10 +50,12 @@ export function RoomCategory({
   onRoomSelect,
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
+  const [showAddressModal, setShowAddressModal] = useState(false)
+  const [activeRoomForCart, setActiveRoomForCart] = useState<string | null>(null)
+  const { addItem } = useCart()
 
   const handleOpenWizard = (roomType: string) => {
     try {
-      // Ensure at least one room is selected before customizing
       if (roomCounts[roomType] === 0) {
         onRoomCountChange(roomType, 1)
       }
@@ -72,6 +76,34 @@ export function RoomCategory({
       }
     } catch (error) {
       console.error("Error updating room config:", error)
+    }
+  }
+
+  const handleAddToCartClick = (roomType: string) => {
+    setActiveRoomForCart(roomType)
+    setShowAddressModal(true)
+  }
+
+  const handleAddressSubmit = (addressData: AddressData) => {
+    if (activeRoomForCart) {
+      const currentRoomConfig = safeGetRoomConfig(activeRoomForCart)
+      addItem({
+        id: `custom-cleaning-${activeRoomForCart}-${Date.now()}`,
+        name: `${roomDisplayNames[activeRoomForCart] || activeRoomForCart} Cleaning`,
+        price: currentRoomConfig.totalPrice, // Per-room price
+        priceId: "price_custom_cleaning", // Generic price ID for custom services
+        quantity: roomCounts[activeRoomForCart], // Number of rooms
+        image: roomImages[activeRoomForCart] || "/placeholder.svg",
+        metadata: {
+          customer: addressData,
+          roomType: activeRoomForCart,
+          roomConfig: currentRoomConfig,
+          isRecurring: false, // Default, can be updated if recurring options are added later
+          frequency: "one_time", // Default
+        },
+      })
+      setShowAddressModal(false)
+      setActiveRoomForCart(null)
     }
   }
 
@@ -108,7 +140,6 @@ export function RoomCategory({
       return getRoomConfig(roomType)
     } catch (error) {
       console.error("Error getting room config:", error)
-      // Return a safe default config
       return {
         roomName: roomType,
         selectedTier: "ESSENTIAL CLEAN",
@@ -171,7 +202,6 @@ export function RoomCategory({
                 }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
-                  {/* Professional Image */}
                   <div className="w-full h-24 mb-3 relative rounded-lg overflow-hidden">
                     <Image
                       src={roomImages[roomType] || roomImages.bedroom}
@@ -219,22 +249,37 @@ export function RoomCategory({
                       <PlusCircle className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
-                  {/* Only show Customize button when rooms are selected */}
                   {roomCounts[roomType] > 0 && (
-                    <Button
-                      id={`customize-${roomType}`}
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 w-full"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenWizard(roomType)
-                      }}
-                      aria-label={`Customize ${roomDisplayNames[roomType] || roomType}`}
-                    >
-                      <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
-                      Customize
-                    </Button>
+                    <div className="flex flex-col gap-2 mt-3 w-full">
+                      <Button
+                        id={`customize-${roomType}`}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenWizard(roomType)
+                        }}
+                        aria-label={`Customize ${roomDisplayNames[roomType] || roomType}`}
+                      >
+                        <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
+                        Customize
+                      </Button>
+                      <Button
+                        id={`add-to-cart-${roomType}`}
+                        variant="default"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAddToCartClick(roomType)
+                        }}
+                        aria-label={`Add ${roomDisplayNames[roomType] || roomType} to cart`}
+                      >
+                        <ShoppingCart className="h-3 w-3 mr-1" aria-hidden="true" />
+                        Add to Cart
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -243,7 +288,6 @@ export function RoomCategory({
         </CardContent>
       </Card>
 
-      {/* Multi-Step Customization Wizard */}
       {activeWizard && (
         <MultiStepCustomizationWizard
           isOpen={activeWizard !== null}
@@ -254,6 +298,15 @@ export function RoomCategory({
           roomCount={roomCounts[activeWizard] || 0}
           config={safeGetRoomConfig(activeWizard)}
           onConfigChange={handleRoomConfigChange}
+        />
+      )}
+
+      {activeRoomForCart && showAddressModal && (
+        <AddressCollectionModal
+          isOpen={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          onSubmit={handleAddressSubmit}
+          calculatedPrice={safeGetRoomConfig(activeRoomForCart).totalPrice * roomCounts[activeRoomForCart]}
         />
       )}
     </>

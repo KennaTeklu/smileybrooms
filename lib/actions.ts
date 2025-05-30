@@ -34,7 +34,7 @@ interface CheckoutSessionParams {
     }
   }
   isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year" // Updated type to include "day"
+  recurringInterval?: "day" | "week" | "month" | "year"
   discount?: {
     amount: number
     reason: string

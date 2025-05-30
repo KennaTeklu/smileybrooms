@@ -100,8 +100,9 @@ export default function AddressCollectionModal({
     e.preventDefault()
 
     if (validateForm()) {
-      // Calculate video recording discount
-      const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
+      // Calculate video recording discount (10% or $25, whichever is less)
+      const percentDiscount = calculatedPrice * 0.1
+      const videoRecordingDiscount = formData.allowVideoRecording ? Math.min(25, percentDiscount) : 0
 
       onSubmit({
         ...formData,
@@ -311,7 +312,10 @@ export default function AddressCollectionModal({
               <div className="text-left">
                 <p className="text-sm text-gray-600">Total Price:</p>
                 <p className="text-xl font-bold">
-                  ${(formData.allowVideoRecording ? calculatedPrice - 25 : calculatedPrice).toFixed(2)}
+                  $
+                  {(calculatedPrice - (formData.allowVideoRecording ? Math.min(25, calculatedPrice * 0.1) : 0)).toFixed(
+                    2,
+                  )}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -320,7 +324,7 @@ export default function AddressCollectionModal({
                 </Button>
                 <Button type="submit" className="gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Continue to Checkout
+                  Add to Cart
                 </Button>
               </div>
             </div>

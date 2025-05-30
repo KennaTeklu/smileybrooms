@@ -17,7 +17,7 @@ interface CheckoutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
   isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year" // Updated type
+  recurringInterval?: "day" | "week" | "month" | "year"
   paymentMethod?: "card" | "bank" | "wallet"
   customerData?: {
     name?: string
