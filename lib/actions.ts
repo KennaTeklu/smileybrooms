@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 })
 
 interface CheckoutSessionParams {
-  lineItems: Array<{
+  lineItems?: Array<{
     price: string
     quantity: number
   }>
@@ -14,28 +14,37 @@ interface CheckoutSessionParams {
     name: string
     amount: number
     quantity: number
+    description?: string // Added description
+    images?: string[] // Added images
     metadata?: Record<string, any>
   }>
   successUrl: string
   cancelUrl: string
   customerEmail?: string
   customerData?: {
-    name: string
-    email: string
-    phone: string
-    address: {
-      line1: string
-      city: string
-      state: string
-      postal_code: string
-      country: string
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
     }
   }
-  isRecurring: boolean
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
   discount?: {
     amount: number
     reason: string
   }
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
 export async function createCheckoutSession(params: CheckoutSessionParams) {
@@ -47,114 +56,95 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       customerEmail,
       customerData,
       isRecurring,
+      recurringInterval,
       customLineItems: initialCustomLineItems,
+      discount,
+      shippingAddressCollection,
+      automaticTax,
+      paymentMethodTypes,
+      trialPeriodDays,
+      cancelAtPeriodEnd,
+      allowPromotions,
     } = params
 
-    const customLineItems: any[] = initialCustomLineItems || []
+    const customLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (initialCustomLineItems || []).map(
+      (item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            description: item.description,
+            images: item.images,
+            metadata: item.metadata,
+          },
+          unit_amount: Math.round(item.amount * 100), // Convert to cents
+          recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
+        },
+        quantity: item.quantity,
+      }),
+    )
 
     // Apply discount if provided
-    let discountedAmount = 0
-    if (params.discount && params.discount.amount > 0) {
-      discountedAmount = params.discount.amount
-
-      // Add discount as a negative line item
+    if (discount && discount.amount > 0) {
       customLineItems.push({
-        name: `Discount: ${params.discount.reason}`,
-        amount: -discountedAmount, // Negative amount for discount
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Discount: ${discount.reason}`,
+          },
+          unit_amount: -Math.round(discount.amount * 100), // Negative amount for discount
+        },
         quantity: 1,
       })
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: lineItems,
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      payment_method_types: paymentMethodTypes || ["card"],
       mode: isRecurring ? "subscription" : "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail,
       customer_creation: customerEmail ? "always" : undefined,
-      custom_fields: customerData
-        ? [
-            {
-              key: "name",
-              label: {
-                type: "custom",
-                custom: "Full Name",
-              },
-              type: "text",
-            },
-            {
-              key: "phone",
-              label: {
-                type: "custom",
-                custom: "Phone Number",
-              },
-              type: "text",
-            },
-            {
-              key: "address",
-              label: {
-                type: "custom",
-                custom: "Address",
-              },
-              type: "text",
-            },
-            {
-              key: "city",
-              label: {
-                type: "custom",
-                custom: "City",
-              },
-              type: "text",
-            },
-            {
-              key: "state",
-              label: {
-                type: "custom",
-                custom: "State",
-              },
-              type: "text",
-            },
-            {
-              key: "postal_code",
-              label: {
-                type: "custom",
-                custom: "Postal Code",
-              },
-              type: "text",
-            },
-            {
-              key: "country",
-              label: {
-                type: "custom",
-                custom: "Country",
-              },
-              type: "text",
-            },
-          ]
+      shipping_address_collection: shippingAddressCollection,
+      automatic_tax: automaticTax,
+      allow_promotion_codes: allowPromotions,
+      line_items: lineItems || customLineItems, // Use lineItems if provided, else customLineItems
+      subscription_data: isRecurring
+        ? {
+            trial_period_days: trialPeriodDays,
+            cancel_at_period_end: cancelAtPeriodEnd,
+          }
         : undefined,
+      // Customer object and address collection via custom_fields is deprecated for new checkouts.
+      // Stripe recommends using customer_update.address and shipping_address_collection.
+      // For pre-filling, customer_email and customer_data are used.
       customer_update: customerData
         ? {
-            address: "auto",
+            address: "auto", // Allow Stripe to update customer address if provided
+            name: "auto",
           }
         : undefined,
       metadata: customerData
         ? {
-            name: customerData.name,
-            email: customerData.email,
-            phone: customerData.phone,
-            address: customerData.address.line1,
-            city: customerData.address.city,
-            state: customerData.address.state,
-            postal_code: customerData.address.postal_code,
-            country: customerData.address.country,
+            customer_name: customerData.name,
+            customer_email: customerData.email,
+            customer_phone: customerData.phone,
+            customer_address_line1: customerData.address?.line1,
+            customer_address_city: customerData.address?.city,
+            customer_address_state: customerData.address?.state,
+            customer_address_postal_code: customerData.address?.postal_code,
+            customer_address_country: customerData.address?.country,
+            // Add any other relevant metadata from customerData or cart
           }
         : undefined,
-    })
+    }
 
-    return JSON.stringify({ url: session.url })
+    const session = await stripe.checkout.sessions.create(sessionParams)
+
+    return session.url
   } catch (error: any) {
     console.error("Error creating checkout session:", error)
-    return JSON.stringify({ error: error.message })
+    // Return a more descriptive error message
+    throw new Error(`Failed to create checkout session: ${error.message || "Unknown error"}`)
   }
 }

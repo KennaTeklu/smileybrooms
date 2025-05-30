@@ -143,6 +143,8 @@ export function Cart({ showLabel = false }: CartProps) {
         name: item.name,
         amount: Math.round(item.price * 100) / 100,
         quantity: item.quantity,
+        description: item.metadata?.description || `Service: ${item.name}`, // Added description
+        images: item.image ? [item.image] : undefined, // Added image
         metadata: {
           ...item.metadata,
           paymentMethod,
@@ -244,7 +246,8 @@ export function Cart({ showLabel = false }: CartProps) {
               },
             }
           : undefined,
-        isRecurring: false,
+        isRecurring: customItems.some((item) => item.metadata?.isRecurring), // Determine if any item is recurring
+        recurringInterval: customItems.find((item) => item.metadata?.recurringInterval)?.metadata?.recurringInterval, // Get interval from a recurring item
         discount:
           orderMetrics.discountAmount > 0
             ? {
@@ -252,6 +255,12 @@ export function Cart({ showLabel = false }: CartProps) {
                 reason: "Video Recording Permission",
               }
             : undefined,
+        shippingAddressCollection: { allowed_countries: ["US"] }, // Enable shipping address collection
+        automaticTax: { enabled: true }, // Enable automatic tax
+        paymentMethodTypes: [paymentMethod], // Pass selected payment method
+        trialPeriodDays: customItems.some((item) => item.metadata?.trialPeriodDays) ? 7 : undefined, // Example trial period
+        cancelAtPeriodEnd: customItems.some((item) => item.metadata?.cancelAtPeriodEnd) ? true : undefined, // Example cancel at end
+        allowPromotions: true, // Enable promotions
       })
 
       if (checkoutUrl) {

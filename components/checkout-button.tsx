@@ -31,6 +31,11 @@ interface CheckoutButtonProps {
       country?: string
     }
   }
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
 export default function CheckoutButton({
@@ -46,6 +51,11 @@ export default function CheckoutButton({
   recurringInterval = "month",
   paymentMethod = "card",
   customerData,
+  shippingAddressCollection,
+  automaticTax,
+  trialPeriodDays,
+  cancelAtPeriodEnd,
+  allowPromotions,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -56,18 +66,27 @@ export default function CheckoutButton({
     try {
       let checkoutUrl: string | undefined
 
+      const commonParams = {
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
+        isRecurring,
+        recurringInterval,
+        customerEmail: customerData?.email,
+        customerData,
+        shippingAddressCollection,
+        automaticTax,
+        trialPeriodDays,
+        cancelAtPeriodEnd,
+        allowPromotions,
+        paymentMethodTypes: [paymentMethod],
+      }
+
       if (priceId) {
-        // Use price ID for standard products
         checkoutUrl = await createCheckoutSession({
           lineItems: [{ price: priceId, quantity }],
-          successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/canceled`,
-          isRecurring,
-          recurringInterval,
-          customerData,
+          ...commonParams,
         })
       } else if (productName && productPrice) {
-        // Use custom line items for custom products
         checkoutUrl = await createCheckoutSession({
           customLineItems: [
             {
@@ -80,11 +99,7 @@ export default function CheckoutButton({
               },
             },
           ],
-          successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/canceled`,
-          isRecurring,
-          recurringInterval,
-          customerData,
+          ...commonParams,
         })
       } else {
         throw new Error("Either priceId or productName and productPrice must be provided")
