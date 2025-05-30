@@ -14,8 +14,8 @@ interface CheckoutSessionParams {
     name: string
     amount: number
     quantity: number
-    description?: string // Added description
-    images?: string[] // Added images
+    description?: string
+    images?: string[]
     metadata?: Record<string, any>
   }>
   successUrl: string
@@ -34,7 +34,7 @@ interface CheckoutSessionParams {
     }
   }
   isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year"
+  recurringInterval?: "day" | "week" | "month" | "year" // Updated type to include "day"
   discount?: {
     amount: number
     reason: string
@@ -108,19 +108,16 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       shipping_address_collection: shippingAddressCollection,
       automatic_tax: automaticTax,
       allow_promotion_codes: allowPromotions,
-      line_items: lineItems || customLineItems, // Use lineItems if provided, else customLineItems
+      line_items: lineItems && lineItems.length > 0 ? lineItems : customLineItems, // Prioritize priceId lineItems if present
       subscription_data: isRecurring
         ? {
             trial_period_days: trialPeriodDays,
             cancel_at_period_end: cancelAtPeriodEnd,
           }
         : undefined,
-      // Customer object and address collection via custom_fields is deprecated for new checkouts.
-      // Stripe recommends using customer_update.address and shipping_address_collection.
-      // For pre-filling, customer_email and customer_data are used.
       customer_update: customerData
         ? {
-            address: "auto", // Allow Stripe to update customer address if provided
+            address: "auto",
             name: "auto",
           }
         : undefined,
@@ -134,7 +131,6 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             customer_address_state: customerData.address?.state,
             customer_address_postal_code: customerData.address?.postal_code,
             customer_address_country: customerData.address?.country,
-            // Add any other relevant metadata from customerData or cart
           }
         : undefined,
     }
@@ -144,7 +140,6 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
     return session.url
   } catch (error: any) {
     console.error("Error creating checkout session:", error)
-    // Return a more descriptive error message
     throw new Error(`Failed to create checkout session: ${error.message || "Unknown error"}`)
   }
 }
