@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
 import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
-import { calculateVideoDiscount } from "@/lib/utils" // Import the discount utility
 
 interface RoomConfig {
   roomName: string
@@ -15,7 +14,6 @@ interface RoomConfig {
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
-  videoDiscountAmount?: number // Add video discount to config
 }
 
 interface SimpleCustomizationPanelProps {
@@ -27,7 +25,6 @@ interface SimpleCustomizationPanelProps {
   roomCount?: number
   config: RoomConfig
   onConfigChange: (config: RoomConfig) => void
-  allowVideoRecording?: boolean // Prop to indicate if video recording is allowed
 }
 
 export function SimpleCustomizationPanel({
@@ -39,13 +36,10 @@ export function SimpleCustomizationPanel({
   roomCount = 1,
   config,
   onConfigChange,
-  allowVideoRecording = false, // Default to false
 }: SimpleCustomizationPanelProps) {
-  // Initialize with config values
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
 
-  // Memoize room data
   const roomData = useMemo(() => {
     try {
       return {
@@ -61,7 +55,6 @@ export function SimpleCustomizationPanel({
     }
   }, [roomType])
 
-  // Calculate pricing
   const pricing = useMemo(() => {
     try {
       if (roomData.tiers.length === 0) {
@@ -70,7 +63,6 @@ export function SimpleCustomizationPanel({
           tierUpgradePrice: 0,
           addOnsPrice: 0,
           totalPrice: 0,
-          videoDiscountAmount: 0,
         }
       }
 
@@ -84,18 +76,13 @@ export function SimpleCustomizationPanel({
         return sum + (addOn?.price || 0)
       }, 0)
 
-      let currentSubtotal = currentTier.price + addOnsPrice
-
-      // Apply video recording discount if allowed
-      const videoDiscountAmount = allowVideoRecording ? calculateVideoDiscount(currentSubtotal) : 0
-      currentSubtotal = Math.max(0, currentSubtotal - videoDiscountAmount)
+      const totalPrice = currentTier.price + addOnsPrice
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
-        totalPrice: currentSubtotal,
-        videoDiscountAmount,
+        totalPrice: Math.max(0, totalPrice),
       }
     } catch (error) {
       console.error("Error calculating pricing:", error)
@@ -104,12 +91,10 @@ export function SimpleCustomizationPanel({
         tierUpgradePrice: 0,
         addOnsPrice: 0,
         totalPrice: 0,
-        videoDiscountAmount: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, roomData, allowVideoRecording])
+  }, [selectedTier, selectedAddOns, roomData])
 
-  // Create config object
   const currentConfig = useMemo(
     () => ({
       roomName: roomType,
@@ -120,17 +105,14 @@ export function SimpleCustomizationPanel({
     [roomType, selectedTier, selectedAddOns, pricing],
   )
 
-  // Handle tier selection
   const handleTierSelect = useCallback((tierName: string) => {
     setSelectedTier(tierName)
   }, [])
 
-  // Handle add-on toggle
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
 
-  // Handle apply changes - only call onConfigChange when user clicks apply
   const handleApplyChanges = useCallback(() => {
     try {
       if (onConfigChange) {
@@ -147,13 +129,10 @@ export function SimpleCustomizationPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Panel */}
       <div className="relative ml-auto w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
         <div className="flex h-full flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between border-b p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{roomIcon}</span>
@@ -169,9 +148,7 @@ export function SimpleCustomizationPanel({
             </Button>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {/* Cleaning Tiers */}
             {roomData.tiers.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Cleaning Level</h3>
@@ -204,7 +181,6 @@ export function SimpleCustomizationPanel({
               </div>
             )}
 
-            {/* Add-ons */}
             {roomData.addOns.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Add-ons</h3>
@@ -237,7 +213,6 @@ export function SimpleCustomizationPanel({
               </div>
             )}
 
-            {/* Fallback if no data */}
             {roomData.tiers.length === 0 && roomData.addOns.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">No customization options available for this room type.</p>
@@ -246,7 +221,6 @@ export function SimpleCustomizationPanel({
             )}
           </div>
 
-          {/* Footer */}
           <div className="border-t p-4">
             <div className="flex items-center justify-between mb-4">
               <span className="font-medium">Total per room:</span>

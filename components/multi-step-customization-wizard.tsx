@@ -10,7 +10,6 @@ import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
-import { calculateVideoDiscount } from "@/lib/utils" // Import the discount utility
 
 interface RoomConfig {
   roomName: string
@@ -20,7 +19,6 @@ interface RoomConfig {
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
-  videoDiscountAmount?: number // Add video discount to config
 }
 
 interface WizardProps {
@@ -72,7 +70,6 @@ export function MultiStepCustomizationWizard({
   const { addItem } = useCart()
   const { toast } = useToast()
 
-  // Auto-scroll to top when wizard opens for better visibility
   useEffect(() => {
     if (isOpen) {
       window.scrollTo({
@@ -82,7 +79,6 @@ export function MultiStepCustomizationWizard({
     }
   }, [isOpen])
 
-  // Get room data
   const roomData = useMemo(() => {
     try {
       return {
@@ -95,7 +91,6 @@ export function MultiStepCustomizationWizard({
     }
   }, [roomType])
 
-  // Calculate pricing
   const pricing = useMemo(() => {
     try {
       if (roomData.tiers.length === 0) {
@@ -104,7 +99,6 @@ export function MultiStepCustomizationWizard({
           tierUpgradePrice: 0,
           addOnsPrice: 0,
           totalPrice: 0,
-          videoDiscountAmount: 0,
         }
       }
 
@@ -117,20 +111,15 @@ export function MultiStepCustomizationWizard({
         return sum + (addOn?.price || 0)
       }, 0)
 
-      let subtotal = currentTier.price + addOnsPrice
-      const discountAmount = subtotal * (frequencyDiscount / 100)
-      subtotal = Math.max(0, subtotal - discountAmount)
-
-      // Apply video recording discount if applicable
-      const videoDiscountAmount = addressData?.allowVideoRecording ? calculateVideoDiscount(subtotal) : 0
-      const totalPrice = Math.max(0, subtotal - videoDiscountAmount)
+      let totalPrice = currentTier.price + addOnsPrice
+      const discountAmount = totalPrice * (frequencyDiscount / 100)
+      totalPrice = Math.max(0, totalPrice - discountAmount)
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
         totalPrice,
-        videoDiscountAmount,
       }
     } catch (error) {
       console.error("Error calculating pricing:", error)
@@ -139,18 +128,15 @@ export function MultiStepCustomizationWizard({
         tierUpgradePrice: 0,
         addOnsPrice: 0,
         totalPrice: 0,
-        videoDiscountAmount: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, frequencyDiscount, roomData, addressData])
+  }, [selectedTier, selectedAddOns, frequencyDiscount, roomData])
 
-  // Steps configuration
   const steps: WizardStep[] = ["room-config", "frequency", "configuration-manager", "address", "review"]
   const currentStepIndex = steps.indexOf(currentStep)
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === steps.length - 1
 
-  // Navigation handlers
   const goToNextStep = useCallback(() => {
     if (!isLastStep) {
       setCurrentStep(steps[currentStepIndex + 1])
@@ -163,7 +149,6 @@ export function MultiStepCustomizationWizard({
     }
   }, [currentStepIndex, isFirstStep, steps])
 
-  // Event handlers
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
@@ -174,17 +159,14 @@ export function MultiStepCustomizationWizard({
   }, [])
 
   const handleLoadConfig = useCallback((loadedConfig: any) => {
-    // Apply loaded configuration
     if (loadedConfig.rooms && loadedConfig.rooms.length > 0) {
       const roomConfig = loadedConfig.rooms[0]
       setSelectedTier(roomConfig.tier || "ESSENTIAL CLEAN")
-      // You can extend this to load other settings
     }
   }, [])
 
   const handleAddressSubmit = useCallback((data: any) => {
     setAddressData(data)
-    // Don't auto-advance to next step, let user click Next
   }, [])
 
   const handleAddToCart = useCallback(() => {
@@ -202,7 +184,6 @@ export function MultiStepCustomizationWizard({
           frequency: selectedFrequency,
           customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
-          videoDiscountApplied: pricing.videoDiscountAmount || 0,
         },
       }
 
@@ -236,10 +217,8 @@ export function MultiStepCustomizationWizard({
     addItem,
     toast,
     onClose,
-    pricing.videoDiscountAmount,
   ])
 
-  // Validation for next button
   const canProceedToNext = useMemo(() => {
     switch (currentStep) {
       case "room-config":
@@ -247,11 +226,11 @@ export function MultiStepCustomizationWizard({
       case "frequency":
         return selectedFrequency !== ""
       case "configuration-manager":
-        return true // Always can proceed
+        return true
       case "address":
-        return true // Always can proceed - user can skip address for now
+        return true
       case "review":
-        return false // Last step
+        return false
       default:
         return false
     }
@@ -262,12 +241,9 @@ export function MultiStepCustomizationWizard({
   return (
     <>
       <div className="fixed inset-0 z-50 flex">
-        {/* Backdrop */}
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-        {/* Panel - Content-aware height */}
         <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
-          {/* Header - Fixed */}
           <div className="flex-shrink-0 border-b p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -282,7 +258,6 @@ export function MultiStepCustomizationWizard({
               </Button>
             </div>
 
-            {/* Progress indicator */}
             <div className="flex items-center gap-2">
               {steps.map((step, index) => (
                 <div
@@ -299,11 +274,9 @@ export function MultiStepCustomizationWizard({
             </div>
           </div>
 
-          {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
             {currentStep === "room-config" && (
               <div className="space-y-6">
-                {/* Cleaning Tiers */}
                 {roomData.tiers.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">Cleaning Level</h3>
@@ -336,7 +309,6 @@ export function MultiStepCustomizationWizard({
                   </div>
                 )}
 
-                {/* Add-ons */}
                 {roomData.addOns.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">Add-ons</h3>
@@ -452,14 +424,6 @@ export function MultiStepCustomizationWizard({
                                 {addressData.city}, {addressData.state}
                               </span>
                             </div>
-                            {addressData.allowVideoRecording &&
-                              pricing.videoDiscountAmount &&
-                              pricing.videoDiscountAmount > 0 && (
-                                <div className="flex justify-between text-green-600">
-                                  <span>Video Recording Discount:</span>
-                                  <span className="font-medium">-${pricing.videoDiscountAmount.toFixed(2)}</span>
-                                </div>
-                              )}
                           </>
                         )}
                         <div className="border-t pt-3">
@@ -485,9 +449,7 @@ export function MultiStepCustomizationWizard({
             )}
           </div>
 
-          {/* Footer - Fixed at bottom, always visible */}
           <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900 p-4">
-            {/* Only show total on review step */}
             {currentStep === "review" && (
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium">Total:</span>

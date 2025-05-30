@@ -11,9 +11,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Star, Zap, Shield, Clock, Undo2, Redo2 } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers" // Removed getRoomReductions
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
-import { calculateVideoDiscount } from "@/lib/utils" // Import the discount utility
 
 interface RoomConfig {
   roomName: string
@@ -23,7 +22,6 @@ interface RoomConfig {
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
-  videoDiscountAmount?: number // Add video discount to config
 }
 
 interface EnhancedRoomCustomizationPanelProps {
@@ -35,7 +33,6 @@ interface EnhancedRoomCustomizationPanelProps {
   roomCount: number
   config: RoomConfig
   onConfigChange: (config: RoomConfig) => void
-  allowVideoRecording?: boolean // Prop to indicate if video recording is allowed
 }
 
 interface ConfigHistory {
@@ -52,7 +49,6 @@ export function EnhancedRoomCustomizationPanel({
   roomCount,
   config,
   onConfigChange,
-  allowVideoRecording = false, // Default to false
 }: EnhancedRoomCustomizationPanelProps) {
   const { toast } = useToast()
   const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
@@ -62,29 +58,25 @@ export function EnhancedRoomCustomizationPanel({
   })
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
-  // Get room data
   const tiers = getRoomTiers(roomType)
   const addOns = getRoomAddOns(roomType)
 
-  // Update local config when prop changes
   useEffect(() => {
     setLocalConfig(config)
     setHasUnsavedChanges(false)
   }, [config])
 
-  // Add to history when config changes
   const addToHistory = (newConfig: RoomConfig) => {
     setHistory((prev) => {
       const newConfigs = prev.configs.slice(0, prev.currentIndex + 1)
       newConfigs.push(newConfig)
       return {
-        configs: newConfigs.slice(-10), // Keep last 10 states
+        configs: newConfigs.slice(-10),
         currentIndex: Math.min(newConfigs.length - 1, 9),
       }
     })
   }
 
-  // Undo/Redo functionality
   const canUndo = history.currentIndex > 0
   const canRedo = history.currentIndex < history.configs.length - 1
 
@@ -108,39 +100,29 @@ export function EnhancedRoomCustomizationPanel({
     }
   }
 
-  // Calculate pricing
   const calculatePricing = (newConfig: Partial<RoomConfig>) => {
     const updatedConfig = { ...localConfig, ...newConfig }
 
-    // Get base tier price
     const selectedTier = tiers.find((tier) => tier.name === updatedConfig.selectedTier)
     const basePrice = tiers[0].price
     const tierUpgradePrice = selectedTier ? selectedTier.price - basePrice : 0
 
-    // Calculate add-ons price
     const addOnsPrice = updatedConfig.selectedAddOns.reduce((total, addOnId) => {
       const addOn = addOns.find((a) => a.id === addOnId)
       return total + (addOn?.price || 0)
     }, 0)
 
-    // Calculate subtotal before video discount
-    let currentSubtotal = basePrice + tierUpgradePrice + addOnsPrice
-
-    // Apply video recording discount if allowed
-    const videoDiscountAmount = allowVideoRecording ? calculateVideoDiscount(currentSubtotal) : 0
-    currentSubtotal = Math.max(0, currentSubtotal - videoDiscountAmount)
+    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice
 
     return {
       ...updatedConfig,
       basePrice,
       tierUpgradePrice,
       addOnsPrice,
-      totalPrice: currentSubtotal,
-      videoDiscountAmount,
+      totalPrice: Math.max(0, totalPrice),
     }
   }
 
-  // Handle tier change
   const handleTierChange = (tierName: string) => {
     const newConfig = calculatePricing({ selectedTier: tierName })
     setLocalConfig(newConfig)
@@ -148,7 +130,6 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(true)
   }
 
-  // Handle add-on toggle
   const handleAddOnToggle = (addOnId: string, checked: boolean) => {
     const newAddOns = checked
       ? [...localConfig.selectedAddOns, addOnId]
@@ -160,7 +141,6 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(true)
   }
 
-  // Save changes
   const handleSave = () => {
     onConfigChange(localConfig)
     setHasUnsavedChanges(false)
@@ -171,7 +151,6 @@ export function EnhancedRoomCustomizationPanel({
     })
   }
 
-  // Reset to original
   const handleReset = () => {
     setLocalConfig(config)
     setHasUnsavedChanges(false)
@@ -182,7 +161,6 @@ export function EnhancedRoomCustomizationPanel({
     })
   }
 
-  // Calculate progress (based on selections made)
   const calculateProgress = () => {
     let progress = 0
     if (localConfig.selectedTier !== tiers[0].name) progress += 50
@@ -237,7 +215,6 @@ export function EnhancedRoomCustomizationPanel({
       }}
     >
       <div className="space-y-6">
-        {/* Room Overview */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
@@ -337,7 +314,6 @@ export function EnhancedRoomCustomizationPanel({
           </TabsContent>
         </Tabs>
 
-        {/* Price Breakdown */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Price Breakdown</CardTitle>
@@ -357,12 +333,6 @@ export function EnhancedRoomCustomizationPanel({
               <div className="flex justify-between">
                 <span>Add-ons</span>
                 <span>+${localConfig.addOnsPrice.toFixed(2)}</span>
-              </div>
-            )}
-            {localConfig.videoDiscountAmount && localConfig.videoDiscountAmount > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Video Recording Discount</span>
-                <span>-${localConfig.videoDiscountAmount.toFixed(2)}</span>
               </div>
             )}
             <Separator />

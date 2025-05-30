@@ -2,15 +2,13 @@
 
 import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Minus, Trash2, Settings, Video } from "lucide-react"
+import { Card, CardContent, CardTitle } from "@/components/ui/card"
+import { Plus, Minus, Trash2, Settings } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
-import { getRoomTiers } from "@/lib/room-tiers" // Removed getRoomReductions
+import { getRoomTiers } from "@/lib/room-tiers"
 import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import { SimpleCustomizationPanel } from "./simple-customization-panel"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 
 interface RoomConfig {
   roomName: string
@@ -20,7 +18,6 @@ interface RoomConfig {
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
-  videoDiscountAmount?: number
 }
 
 interface RoomItem {
@@ -42,9 +39,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   const [rooms, setRooms] = useState<RoomItem[]>(initialRooms)
   const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<RoomItem | null>(null)
-  const [allowVideoRecording, setAllowVideoRecording] = useState(false) // State for video recording
 
-  // Memoize room types and their default configurations
   const availableRoomTypes = useMemo(
     () => [
       {
@@ -191,12 +186,10 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     [],
   )
 
-  // Calculate total price of all rooms
   const overallTotalPrice = useMemo(() => {
     return rooms.reduce((total, room) => total + room.config.totalPrice * room.count, 0)
   }, [rooms])
 
-  // Add a room to the list
   const addRoom = useCallback(
     (roomType: string) => {
       const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
@@ -204,7 +197,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         setRooms((prevRooms) => {
           const existingRoomIndex = prevRooms.findIndex((r) => r.roomType === roomType)
           if (existingRoomIndex > -1) {
-            // If room type already exists, increment count
             const updatedRooms = [...prevRooms]
             updatedRooms[existingRoomIndex] = {
               ...updatedRooms[existingRoomIndex],
@@ -213,7 +205,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
             onRoomsChange?.(updatedRooms)
             return updatedRooms
           } else {
-            // Otherwise, add new room
             const newRoom: RoomItem = {
               id: `room-${Date.now()}`,
               roomType: roomInfo.type,
@@ -232,7 +223,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     [availableRoomTypes, onRoomsChange],
   )
 
-  // Remove a room from the list
   const removeRoom = useCallback(
     (id: string) => {
       setRooms((prevRooms) => {
@@ -244,7 +234,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     [onRoomsChange],
   )
 
-  // Decrement room count or remove if count is 1
   const decrementRoomCount = useCallback(
     (id: string) => {
       setRooms((prevRooms) => {
@@ -255,7 +244,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
             }
             return room
           })
-          .filter((room) => room.count > 0) // Remove if count becomes 0
+          .filter((room) => room.count > 0)
         onRoomsChange?.(updatedRooms)
         return updatedRooms
       })
@@ -263,7 +252,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     [onRoomsChange],
   )
 
-  // Increment room count
   const incrementRoomCount = useCallback(
     (id: string) => {
       setRooms((prevRooms) => {
@@ -280,13 +268,11 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     [onRoomsChange],
   )
 
-  // Open customization panel for a specific room
   const openCustomizationPanel = useCallback((room: RoomItem) => {
     setCurrentRoomToCustomize(room)
     setIsCustomizationPanelOpen(true)
   }, [])
 
-  // Handle configuration change from customization panel
   const handleConfigChange = useCallback(
     (updatedConfig: RoomConfig) => {
       setRooms((prevRooms) => {
@@ -367,25 +353,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         </div>
       )}
 
-      <Card className="p-4 mb-8">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Additional Options</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="allowVideoRecording"
-              checked={allowVideoRecording}
-              onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
-            />
-            <Label htmlFor="allowVideoRecording" className="flex items-center gap-2">
-              <Video className="h-4 w-4" />
-              Allow video recording for a discount
-            </Label>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="flex justify-between items-center text-2xl font-bold mb-8">
         <span>Total Estimated Price:</span>
         <span>{formatCurrency(overallTotalPrice)}</span>
@@ -401,7 +368,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           roomCount={currentRoomToCustomize.count}
           config={currentRoomToCustomize.config}
           onConfigChange={handleConfigChange}
-          allowVideoRecording={allowVideoRecording} // Pass the prop
         />
       )}
     </div>

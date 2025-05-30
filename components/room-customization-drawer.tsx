@@ -18,10 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { formatCurrency, calculateVideoDiscount } from "@/lib/utils" // Import the discount utility
+import { formatCurrency } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Check, X, AlertCircle } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers" // Removed getRoomReductions
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { getMatrixServices } from "@/lib/matrix-services"
 
 interface RoomConfig {
@@ -32,7 +32,6 @@ interface RoomConfig {
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
-  videoDiscountAmount?: number // Add video discount to config
 }
 
 interface RoomCustomizationDrawerProps {
@@ -44,7 +43,6 @@ interface RoomCustomizationDrawerProps {
   roomCount: number
   config: RoomConfig
   onConfigChange: (config: RoomConfig) => void
-  allowVideoRecording?: boolean // Prop to indicate if video recording is allowed
 }
 
 export function RoomCustomizationDrawer({
@@ -56,7 +54,6 @@ export function RoomCustomizationDrawer({
   roomCount,
   config,
   onConfigChange,
-  allowVideoRecording = false, // Default to false
 }: RoomCustomizationDrawerProps) {
   const [activeTab, setActiveTab] = useState("basic")
   const [selectedTier, setSelectedTier] = useState(config.selectedTier)
@@ -66,55 +63,41 @@ export function RoomCustomizationDrawer({
   const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
   const [error, setError] = useState<string | null>(null)
 
-  // Get room tiers, add-ons, and reductions
   const tiers = getRoomTiers(roomType) || []
   const addOns = getRoomAddOns(roomType) || []
   const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
 
-  // Get base tier (Essential Clean)
   const baseTier = tiers[0] || { name: "ESSENTIAL CLEAN", price: 25, description: "Basic cleaning", features: [] }
 
-  // Calculate prices - memoized to prevent recalculation on every render
   const calculatePrices = useCallback(() => {
     try {
-      // Base price is always the price of the Essential Clean tier
       const basePrice = baseTier.price
 
-      // Calculate tier upgrade price (difference between selected tier and base tier)
       const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
       const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
 
-      // Calculate add-ons price
       const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
         const addOn = addOns.find((a) => a.id === addOnId)
         return total + (addOn?.price || 0)
       }, 0)
 
-      // Calculate matrix add services price
       const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
         const service = matrixServices.add.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
-      // Calculate matrix remove services price
       const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
         const service = matrixServices.remove.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
-      // Calculate subtotal before video discount
-      let currentSubtotal = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
-
-      // Apply video recording discount if allowed
-      const videoDiscountAmount = allowVideoRecording ? calculateVideoDiscount(currentSubtotal) : 0
-      currentSubtotal = Math.max(0, currentSubtotal - videoDiscountAmount)
+      const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
 
       return {
         basePrice,
         tierUpgradePrice,
         addOnsPrice: addOnsPrice + matrixAddPrice,
-        totalPrice: currentSubtotal,
-        videoDiscountAmount,
+        totalPrice: Math.max(0, totalPrice),
       }
     } catch (err) {
       console.error("Error calculating prices:", err)
@@ -124,7 +107,6 @@ export function RoomCustomizationDrawer({
         tierUpgradePrice: 0,
         addOnsPrice: 0,
         totalPrice: baseTier.price,
-        videoDiscountAmount: 0,
       }
     }
   }, [
@@ -137,10 +119,8 @@ export function RoomCustomizationDrawer({
     addOns,
     matrixServices.add,
     matrixServices.remove,
-    allowVideoRecording,
   ])
 
-  // Update local config when selections change
   useEffect(() => {
     try {
       const prices = calculatePrices()
@@ -157,7 +137,6 @@ export function RoomCustomizationDrawer({
     }
   }, [selectedTier, selectedAddOns, matrixAddServices, matrixRemoveServices, calculatePrices, config])
 
-  // Reset selections when drawer opens with new config
   useEffect(() => {
     if (isOpen) {
       try {
@@ -175,12 +154,10 @@ export function RoomCustomizationDrawer({
     }
   }, [isOpen, config])
 
-  // Handle tier selection
   const handleTierChange = (tier: string) => {
     setSelectedTier(tier)
   }
 
-  // Handle add-on selection
   const handleAddOnChange = (addOnId: string, checked: boolean) => {
     if (checked) {
       setSelectedAddOns((prev) => [...prev, addOnId])
@@ -189,7 +166,6 @@ export function RoomCustomizationDrawer({
     }
   }
 
-  // Handle matrix add service selection
   const handleMatrixAddServiceChange = (serviceId: string, checked: boolean) => {
     if (checked) {
       setMatrixAddServices((prev) => [...prev, serviceId])
@@ -198,7 +174,6 @@ export function RoomCustomizationDrawer({
     }
   }
 
-  // Handle matrix remove service selection
   const handleMatrixRemoveServiceChange = (serviceId: string, checked: boolean) => {
     if (checked) {
       setMatrixRemoveServices((prev) => [...prev, serviceId])
@@ -207,7 +182,6 @@ export function RoomCustomizationDrawer({
     }
   }
 
-  // Handle apply changes - only call parent's onConfigChange when the user explicitly applies changes
   const handleApplyChanges = () => {
     try {
       onConfigChange(localConfig)
@@ -218,7 +192,6 @@ export function RoomCustomizationDrawer({
     }
   }
 
-  // Generate unique IDs for accessibility
   const drawerTitleId = `drawer-title-${roomType}`
   const drawerDescId = `drawer-desc-${roomType}`
 
@@ -433,12 +406,6 @@ export function RoomCustomizationDrawer({
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Add-ons:</span>
               <span>+{formatCurrency(localConfig.addOnsPrice)}</span>
-            </div>
-          )}
-          {localConfig.videoDiscountAmount && localConfig.videoDiscountAmount > 0 && (
-            <div className="flex justify-between items-center mb-2 text-green-600">
-              <span className="font-medium">Video Recording Discount:</span>
-              <span>-{formatCurrency(localConfig.videoDiscountAmount)}</span>
             </div>
           )}
           <Separator className="my-2" />

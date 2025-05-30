@@ -6,12 +6,14 @@ import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart } from "lucide-react"
+import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, Video } from "lucide-react"
 import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
 import { Card } from "@/components/ui/card"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import Image from "next/image"
 import Link from "next/link"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -26,6 +28,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
+  const [allowVideoRecording, setAllowVideoRecording] = useState(false) // State for video recording
 
   const createGoogleMapsLink = (address: string) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
@@ -55,14 +58,15 @@ export function Cart({ isOpen, onClose }: CartProps) {
   }
 
   const videoDiscountAmount = useMemo(() => {
-    const hasVideoRecordingOptIn = cart.items.some((item) => item.metadata?.customer?.allowVideoRecording)
-    if (hasVideoRecordingOptIn) {
-      const percentDiscount = cart.totalPrice * 0.1 // 10% discount
-      const maxDiscount = cart.totalPrice * 0.25 // 25% discount
-      return Math.min(maxDiscount, percentDiscount) // 25% or 10%, whichever is less
+    if (allowVideoRecording) {
+      if (cart.totalPrice >= 250) {
+        return 25 // $25 discount for orders $250 or more
+      } else {
+        return cart.totalPrice * 0.1 // 10% discount for orders under $250
+      }
     }
     return 0
-  }, [cart.items, cart.totalPrice])
+  }, [allowVideoRecording, cart.totalPrice])
 
   const finalTotalPrice = cart.totalPrice - videoDiscountAmount
 
@@ -111,6 +115,8 @@ export function Cart({ isOpen, onClose }: CartProps) {
         metadata: {
           ...item.metadata,
           paymentMethod,
+          allowVideoRecording: allowVideoRecording, // Pass video recording status
+          videoDiscountApplied: videoDiscountAmount, // Pass the calculated discount
         },
       }))
 
@@ -162,7 +168,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
             mapsLink: customerData.googleMapsLink || createGoogleMapsLink(customerData.address),
             paymentMethod: paymentMethod,
             specialInstructions: customerData.specialInstructions || "None",
-            videoRecordingAllowed: customerData.allowVideoRecording ? "Yes" : "No",
+            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No",
             orderMetrics: calculateOrderMetrics(),
           },
         }
@@ -181,7 +187,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
           console.error("Error submitting to waitlist:", error)
         })
 
-        if (customerData.allowVideoRecording) {
+        if (allowVideoRecording) {
           const fullAddress = `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
           const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
           localStorage.setItem(addressKey, "permanent")
@@ -407,6 +413,24 @@ export function Cart({ isOpen, onClose }: CartProps) {
                   Wallet
                 </ToggleGroupItem>
               </ToggleGroup>
+            </div>
+
+            <div className="mt-6 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="allowVideoRecording"
+                  checked={allowVideoRecording}
+                  onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+                />
+                <Label htmlFor="allowVideoRecording" className="flex items-center gap-2 text-sm font-medium">
+                  <Video className="h-4 w-4 text-blue-600" />
+                  Allow video recording for a discount
+                </Label>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                We may record cleaning sessions for training and social media purposes. By allowing this, you'll receive
+                a discount on your order.
+              </p>
             </div>
 
             {checkoutError && (

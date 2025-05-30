@@ -11,9 +11,3 @@ export function formatCurrency(amount: number): string {
     currency: "USD",
   }).format(amount)
 }
-
-export function calculateVideoDiscount(totalPrice: number): number {
-  const percentageDiscount = totalPrice * 0.1 // 10% of total
-  const fixedDiscount = 25 // $25 fixed
-  return Math.min(percentageDiscount, fixedDiscount)
-}
