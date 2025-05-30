@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
@@ -52,6 +52,11 @@ export function RoomCategory({
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { addItem } = useCart()
 
+  // Calculate the number of distinct room types that have a count > 0
+  const numberOfSelectedRoomTypes = useMemo(() => {
+    return rooms.filter((roomType) => roomCounts[roomType] > 0).length
+  }, [rooms, roomCounts])
+
   const handleOpenWizard = (roomType: string) => {
     try {
       if (roomCounts[roomType] === 0) {
@@ -99,11 +104,63 @@ export function RoomCategory({
         description: `${roomDisplayNames[roomType] || roomType} has been added to your cart.`,
         duration: 3000,
       })
+      // Reset the count for the added room
+      onRoomCountChange(roomType, 0)
     } catch (error) {
       console.error("Error adding item to cart:", error)
       toast({
         title: "Failed to add to cart",
         description: "There was an error adding the item to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
+  const handleAddAllToCartClick = () => {
+    try {
+      let addedCount = 0
+      rooms.forEach((roomType) => {
+        if (roomCounts[roomType] > 0) {
+          const currentRoomConfig = safeGetRoomConfig(roomType)
+          addItem({
+            id: `custom-cleaning-${roomType}-${Date.now()}`,
+            name: `${roomDisplayNames[roomType] || roomType} Cleaning`,
+            price: currentRoomConfig.totalPrice,
+            priceId: "price_custom_cleaning",
+            quantity: roomCounts[roomType],
+            image: roomImages[roomType] || "/placeholder.svg",
+            metadata: {
+              roomType: roomType,
+              roomConfig: currentRoomConfig,
+              isRecurring: false,
+              frequency: "one_time",
+            },
+          })
+          onRoomCountChange(roomType, 0) // Reset count after adding
+          addedCount++
+        }
+      })
+
+      if (addedCount > 0) {
+        toast({
+          title: "Items added to cart",
+          description: `${addedCount} room type(s) have been added to your cart.`,
+          duration: 3000,
+        })
+      } else {
+        toast({
+          title: "No items to add",
+          description: "Please select rooms before adding to cart.",
+          variant: "info",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      console.error("Error adding all items to cart:", error)
+      toast({
+        title: "Failed to add all to cart",
+        description: "There was an error adding all items to your cart. Please try again.",
         variant: "destructive",
         duration: 3000,
       })
@@ -268,20 +325,22 @@ export function RoomCategory({
                         <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                         Customize
                       </Button>
-                      <Button
-                        id={`add-to-cart-${roomType}`}
-                        variant="default"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleAddToCartClick(roomType)
-                        }}
-                        aria-label={`Add ${roomDisplayNames[roomType] || roomType} to cart`}
-                      >
-                        <ShoppingCart className="h-3 w-3 mr-1" aria-hidden="true" />
-                        Add to Cart
-                      </Button>
+                      {numberOfSelectedRoomTypes <= 1 && ( // Only show individual add to cart if 1 or 0 room types selected
+                        <Button
+                          id={`add-to-cart-${roomType}`}
+                          variant="default"
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAddToCartClick(roomType)
+                          }}
+                          aria-label={`Add ${roomDisplayNames[roomType] || roomType} to cart`}
+                        >
+                          <ShoppingCart className="h-3 w-3 mr-1" aria-hidden="true" />
+                          Add to Cart
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -290,6 +349,22 @@ export function RoomCategory({
           </div>
         </CardContent>
       </Card>
+
+      {numberOfSelectedRoomTypes > 1 && (
+        <div className="mt-8 text-center">
+          <Button
+            id="add-all-to-cart"
+            variant="default"
+            size="lg"
+            className="w-full max-w-sm"
+            onClick={handleAddAllToCartClick}
+            aria-label="Add all selected rooms to cart"
+          >
+            <ShoppingCart className="h-5 w-5 mr-2" aria-hidden="true" />
+            Add All Selected Rooms to Cart
+          </Button>
+        </div>
+      )}
 
       {activeWizard && (
         <MultiStepCustomizationWizard
