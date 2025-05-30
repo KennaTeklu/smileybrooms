@@ -4,16 +4,17 @@ import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Sheet, SheetTrigger } from "@/components/ui/sheet"
 import { Cart } from "@/components/cart"
+import { formatCurrency } from "@/lib/utils"
 
-interface CombinedCartButtonProps {
+interface CartButtonProps {
   onCheckout: () => void
 }
 
-export default function CombinedCartButton({ onCheckout }: CombinedCartButtonProps) {
+export default function CartButton({ onCheckout }: CartButtonProps) {
   const { cart } = useCart()
   const [isClient, setIsClient] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -43,7 +44,7 @@ export default function CombinedCartButton({ onCheckout }: CombinedCartButtonPro
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
-      <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+      <div className="flex items-center justify-between">
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="default" className={cn("relative", isAnimating && "animate-bounce-once")}>
@@ -61,6 +62,7 @@ export default function CombinedCartButton({ onCheckout }: CombinedCartButtonPro
           </SheetTrigger>
           <Cart />
         </Sheet>
+
         <div className="flex items-center gap-4">
           <div className="text-lg font-bold">{formattedPrice(cart.totalPrice)}</div>
           <Button
