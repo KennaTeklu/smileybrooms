@@ -44,14 +44,6 @@ export default function Header() {
             <AnimatedDownloadButton />
           </div>
 
-          {/* Cart Button with text */}
-          <div className="hidden md:block">
-            <CartButton className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              <span>adfdfadsfadfCart</span>
-            </CartButton>
-          </div>
-
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
