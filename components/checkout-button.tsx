@@ -1,73 +1,123 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
+import { createCheckoutSession } from "@/lib/actions"
+import { Loader2, CreditCard } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { useCart } from "@/lib/cart-context"
 
 interface CheckoutButtonProps {
-  items: {
-    name: string
-    description?: string
-    price: number // in dollars
-    quantity: number
-    recurring?: { interval: "day" | "week" | "month" | "year" }
-  }[]
-  mode?: "payment" | "subscription"
-  customerEmail?: string
-  metadata?: Record<string, string>
-  subscriptionData?: {
-    trial_period_days?: number
-    cancel_at_period_end?: boolean
+  priceId?: string
+  productName?: string
+  productPrice?: number
+  quantity?: number
+  metadata?: Record<string, any>
+  className?: string
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  size?: "default" | "sm" | "lg" | "icon"
+  isRecurring?: boolean
+  recurringInterval?: "week" | "month" | "year"
+  paymentMethod?: "card" | "bank" | "wallet"
+  customerData?: {
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+    }
   }
 }
 
-export function CheckoutButton({
-  items,
-  mode = "payment",
-  customerEmail,
-  metadata,
-  subscriptionData,
+export default function CheckoutButton({
+  priceId,
+  productName,
+  productPrice,
+  quantity = 1,
+  metadata = {},
+  className,
+  variant = "default",
+  size = "default",
+  isRecurring = false,
+  recurringInterval = "month",
+  paymentMethod = "card",
+  customerData,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { cart } = useCart()
 
   const handleCheckout = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/checkout-sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          lineItems: items,
-          mode,
-          customerEmail,
-          metadata,
-          subscriptionData,
-        }),
-      })
+      let checkoutUrl: string | undefined
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to create checkout session")
+      if (priceId) {
+        // Use price ID for standard products
+        checkoutUrl = await createCheckoutSession({
+          lineItems: [{ price: priceId, quantity }],
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/canceled`,
+          isRecurring,
+          recurringInterval,
+          customerData,
+        })
+      } else if (productName && productPrice) {
+        // Use custom line items for custom products
+        checkoutUrl = await createCheckoutSession({
+          customLineItems: [
+            {
+              name: productName,
+              amount: productPrice,
+              quantity,
+              metadata: {
+                ...metadata,
+                paymentMethod,
+              },
+            },
+          ],
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/canceled`,
+          isRecurring,
+          recurringInterval,
+          customerData,
+        })
+      } else {
+        throw new Error("Either priceId or productName and productPrice must be provided")
       }
 
-      const { url } = await response.json()
-      window.location.href = url
-    } catch (error: any) {
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+      }
+    } catch (error) {
+      console.error("Error during checkout:", error)
       toast({
-        title: "Checkout Error",
-        description: error.message || "An unexpected error occurred during checkout.",
+        title: "Checkout failed",
+        description: "There was an error processing your payment. Please try again.",
         variant: "destructive",
       })
+    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Button onClick={handleCheckout} disabled={isLoading}>
-      {isLoading ? "Redirecting..." : "Proceed to Checkout"}
+    <Button className={className} variant={variant} size={size} onClick={handleCheckout} disabled={isLoading}>
+      {isLoading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Processing...
+        </>
+      ) : (
+        <>
+          <CreditCard className="mr-2 h-4 w-4" />
+          Checkout Now
+        </>
+      )}
     </Button>
   )
 }
