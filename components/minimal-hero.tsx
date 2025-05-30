@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { ShoppingCart } from "lucide-react"
 import { useShoppingCart } from "use-shopping-cart"
-import AdvancedSidePanel from "./advanced-side-panel"
+import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel" // Corrected import path
 
 const MinimalHero = () => {
   const { cartCount, cartDetails } = useShoppingCart()
