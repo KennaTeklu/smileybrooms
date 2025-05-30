@@ -3,12 +3,15 @@
 import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
-import { Plus, Minus, Trash2, Settings } from "lucide-react"
+import { Plus, Minus, Trash2, Settings, ShoppingCart } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getRoomTiers } from "@/lib/room-tiers"
 import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import { SimpleCustomizationPanel } from "./simple-customization-panel"
+import { useCart } from "@/lib/cart-context" // Import useCart
+import { toast } from "@/components/ui/use-toast" // Import toast
+import { RoomCategory } from "./room-category" // Import RoomCategory
 
 interface RoomConfig {
   roomName: string
@@ -39,6 +42,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   const [rooms, setRooms] = useState<RoomItem[]>(initialRooms)
   const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<RoomItem | null>(null)
+  const { addItem } = useCart() // Use the cart context
 
   const availableRoomTypes = useMemo(
     () => [
@@ -190,6 +194,20 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     return rooms.reduce((total, room) => total + room.config.totalPrice * room.count, 0)
   }, [rooms])
 
+  const roomCountsMap = useMemo(() => {
+    return rooms.reduce(
+      (acc, room) => {
+        acc[room.roomType] = room.count
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+  }, [rooms])
+
+  const numberOfDistinctSelectedRoomTypes = useMemo(() => {
+    return rooms.filter((room) => room.count > 0).length
+  }, [rooms])
+
   const addRoom = useCallback(
     (roomType: string) => {
       const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
@@ -294,20 +312,192 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
     return SimpleCustomizationPanel
   }, [panelType])
 
+  const handleAddAllToCartClick = () => {
+    try {
+      let addedCount = 0
+      const updatedRoomsAfterAdd = rooms.map((room) => {
+        if (room.count > 0) {
+          addItem({
+            id: `custom-cleaning-${room.roomType}-${Date.now()}`,
+            name: `${room.roomName} Cleaning`,
+            price: room.config.totalPrice,
+            priceId: "price_custom_cleaning",
+            quantity: room.count,
+            image: room.roomIcon, // Using roomIcon as a placeholder for image
+            metadata: {
+              roomType: room.roomType,
+              roomConfig: room.config,
+              isRecurring: false,
+              frequency: "one_time",
+            },
+          })
+          addedCount++
+          return { ...room, count: 0 } // Reset count after adding to cart
+        }
+        return room
+      })
+
+      setRooms(updatedRoomsAfterAdd.filter((room) => room.count > 0)) // Filter out rooms with 0 count
+      onRoomsChange?.(updatedRoomsAfterAdd.filter((room) => room.count > 0))
+
+      if (addedCount > 0) {
+        toast({
+          title: "Items added to cart",
+          description: `${addedCount} room type(s) have been added to your cart.`,
+          duration: 3000,
+        })
+      } else {
+        toast({
+          title: "No items to add",
+          description: "Please select rooms before adding to cart.",
+          variant: "info",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      console.error("Error adding all items to cart:", error)
+      toast({
+        title: "Failed to add all to cart",
+        description: "There was an error adding all items to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
+
+  const getRoomConfigForCategory = useCallback(
+    (roomType: string) => {
+      const roomItem = rooms.find((r) => r.roomType === roomType)
+      return roomItem ? roomItem.config : availableRoomTypes.find((r) => r.type === roomType)?.defaultConfig
+    },
+    [rooms, availableRoomTypes],
+  )
+
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-        {availableRoomTypes.map((roomType) => (
-          <Button key={roomType.type} onClick={() => addRoom(roomType.type)} variant="outline" className="h-auto py-4">
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-3xl">{roomType.icon}</span>
-              <span className="text-sm font-medium">{roomType.name}</span>
-              <span className="text-xs text-gray-500">Add to list</span>
-            </div>
-          </Button>
-        ))}
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        {/* Example of how you might group rooms into categories */}
+        <RoomCategory
+          title="Common Areas"
+          description="Select and customize your living spaces."
+          rooms={["living_room", "dining_room", "hallway", "entryway", "stairs"]}
+          roomCounts={roomCountsMap}
+          onRoomCountChange={(roomType, count) => {
+            const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
+            if (roomInfo) {
+              setRooms((prevRooms) => {
+                const existingRoomIndex = prevRooms.findIndex((r) => r.roomType === roomType)
+                if (existingRoomIndex > -1) {
+                  const updatedRooms = [...prevRooms]
+                  updatedRooms[existingRoomIndex] = {
+                    ...updatedRooms[existingRoomIndex],
+                    count: count,
+                  }
+                  onRoomsChange?.(updatedRooms.filter((r) => r.count > 0))
+                  return updatedRooms.filter((r) => r.count > 0)
+                } else if (count > 0) {
+                  const newRoom: RoomItem = {
+                    id: `room-${Date.now()}`,
+                    roomType: roomInfo.type,
+                    roomName: roomInfo.name,
+                    roomIcon: roomInfo.icon,
+                    count: count,
+                    config: roomInfo.defaultConfig,
+                  }
+                  const updatedRooms = [...prevRooms, newRoom]
+                  onRoomsChange?.(updatedRooms)
+                  return updatedRooms
+                }
+                return prevRooms
+              })
+            }
+          }}
+          onRoomConfigChange={handleConfigChange}
+          getRoomConfig={getRoomConfigForCategory}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+        />
+
+        <RoomCategory
+          title="Private Spaces"
+          description="Customize your bedrooms and bathrooms."
+          rooms={["bedroom", "bathroom", "home_office", "laundry_room"]}
+          roomCounts={roomCountsMap}
+          onRoomCountChange={(roomType, count) => {
+            const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
+            if (roomInfo) {
+              setRooms((prevRooms) => {
+                const existingRoomIndex = prevRooms.findIndex((r) => r.roomType === roomType)
+                if (existingRoomIndex > -1) {
+                  const updatedRooms = [...prevRooms]
+                  updatedRooms[existingRoomIndex] = {
+                    ...updatedRooms[existingRoomIndex],
+                    count: count,
+                  }
+                  onRoomsChange?.(updatedRooms.filter((r) => r.count > 0))
+                  return updatedRooms.filter((r) => r.count > 0)
+                } else if (count > 0) {
+                  const newRoom: RoomItem = {
+                    id: `room-${Date.now()}`,
+                    roomType: roomInfo.type,
+                    roomName: roomInfo.name,
+                    roomIcon: roomInfo.icon,
+                    count: count,
+                    config: roomInfo.defaultConfig,
+                  }
+                  const updatedRooms = [...prevRooms, newRoom]
+                  onRoomsChange?.(updatedRooms)
+                  return updatedRooms
+                }
+                return prevRooms
+              })
+            }
+          }}
+          onRoomConfigChange={handleConfigChange}
+          getRoomConfig={getRoomConfigForCategory}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+        />
+
+        <RoomCategory
+          title="Specialty Areas"
+          description="For kitchens and other unique spaces."
+          rooms={["kitchen"]}
+          roomCounts={roomCountsMap}
+          onRoomCountChange={(roomType, count) => {
+            const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
+            if (roomInfo) {
+              setRooms((prevRooms) => {
+                const existingRoomIndex = prevRooms.findIndex((r) => r.roomType === roomType)
+                if (existingRoomIndex > -1) {
+                  const updatedRooms = [...prevRooms]
+                  updatedRooms[existingRoomIndex] = {
+                    ...updatedRooms[existingRoomIndex],
+                    count: count,
+                  }
+                  onRoomsChange?.(updatedRooms.filter((r) => r.count > 0))
+                  return updatedRooms.filter((r) => r.count > 0)
+                } else if (count > 0) {
+                  const newRoom: RoomItem = {
+                    id: `room-${Date.now()}`,
+                    roomType: roomInfo.type,
+                    roomName: roomInfo.name,
+                    roomIcon: roomInfo.icon,
+                    count: count,
+                    config: roomInfo.defaultConfig,
+                  }
+                  const updatedRooms = [...prevRooms, newRoom]
+                  onRoomsChange?.(updatedRooms)
+                  return updatedRooms
+                }
+                return prevRooms
+              })
+            }
+          }}
+          onRoomConfigChange={handleConfigChange}
+          getRoomConfig={getRoomConfigForCategory}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+        />
       </div>
 
       {rooms.length > 0 && (
@@ -357,6 +547,22 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         <span>Total Estimated Price:</span>
         <span>{formatCurrency(overallTotalPrice)}</span>
       </div>
+
+      {numberOfDistinctSelectedRoomTypes > 1 && (
+        <div className="mt-8 text-center">
+          <Button
+            id="add-all-to-cart"
+            variant="default"
+            size="lg"
+            className="w-full max-w-sm"
+            onClick={handleAddAllToCartClick}
+            aria-label="Add all selected rooms to cart"
+          >
+            <ShoppingCart className="h-5 w-5 mr-2" aria-hidden="true" />
+            Add All Selected Rooms to Cart
+          </Button>
+        </div>
+      )}
 
       {currentRoomToCustomize && (
         <CustomizationPanelComponent
