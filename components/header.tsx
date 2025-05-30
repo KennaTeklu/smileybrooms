@@ -48,7 +48,7 @@ export default function Header() {
           <div className="hidden md:block">
             <CartButton className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              <span>Cart</span>
+              <span>adfdfadsfadfCart</span>
             </CartButton>
           </div>
 
