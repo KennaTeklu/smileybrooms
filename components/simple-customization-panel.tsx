@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
 import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { calculateVideoDiscount } from "@/lib/utils" // Import calculateVideoDiscount
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  // selectedReductions: string[] // Removed
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
   totalPrice: number
+  allowVideoRecording?: boolean // Added for discount logic
 }
 
 interface SimpleCustomizationPanelProps {
@@ -40,6 +43,7 @@ export function SimpleCustomizationPanel({
   // Initialize with config values
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
+  // const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || []) // Removed
 
   // Memoize room data
   const roomData = useMemo(() => {
@@ -47,6 +51,7 @@ export function SimpleCustomizationPanel({
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
+        // reductions: getRoomReductions(roomType) || [], // Removed
       }
     } catch (error) {
       console.error("Error getting room data:", error)
@@ -79,7 +84,13 @@ export function SimpleCustomizationPanel({
         return sum + (addOn?.price || 0)
       }, 0)
 
-      const totalPrice = Math.max(0, currentTier.price + addOnsPrice)
+      let totalPrice = Math.max(0, currentTier.price + addOnsPrice)
+
+      // Apply video recording discount if applicable
+      if (config.allowVideoRecording) {
+        // Use config.allowVideoRecording as it's passed from parent
+        totalPrice -= calculateVideoDiscount(totalPrice)
+      }
 
       return {
         basePrice: baseTier.price,
@@ -96,7 +107,7 @@ export function SimpleCustomizationPanel({
         totalPrice: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, roomData])
+  }, [selectedTier, selectedAddOns, roomData, config.allowVideoRecording]) // Added config.allowVideoRecording to dependencies
 
   // Create config object
   const currentConfig = useMemo(
@@ -104,6 +115,7 @@ export function SimpleCustomizationPanel({
       roomName: roomType,
       selectedTier,
       selectedAddOns,
+      // selectedReductions, // Removed
       ...pricing,
     }),
     [roomType, selectedTier, selectedAddOns, pricing],
@@ -118,6 +130,8 @@ export function SimpleCustomizationPanel({
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
+
+  // toggleReduction removed
 
   // Handle apply changes - only call onConfigChange when user clicks apply
   const handleApplyChanges = useCallback(() => {
@@ -225,6 +239,8 @@ export function SimpleCustomizationPanel({
                 </div>
               </div>
             )}
+
+            {/* Reductions section removed */}
 
             {/* Fallback if no data */}
             {roomData.tiers.length === 0 && roomData.addOns.length === 0 && (

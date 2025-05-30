@@ -18,21 +18,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, calculateVideoDiscount } from "@/lib/utils" // Import calculateVideoDiscount
 import { Separator } from "@/components/ui/separator"
 import { Check, X, AlertCircle } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers" // Removed getRoomReductions
 import { getMatrixServices } from "@/lib/matrix-services"
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  // selectedReductions: string[] // Removed
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
-  reductionsPrice: number
+  reductionsPrice: number // Still include in type, but will be 0
   totalPrice: number
+  allowVideoRecording?: boolean // Added for discount logic
 }
 
 interface RoomCustomizationDrawerProps {
@@ -67,6 +69,7 @@ export function RoomCustomizationDrawer({
   // Get room tiers, add-ons, and reductions
   const tiers = getRoomTiers(roomType) || []
   const addOns = getRoomAddOns(roomType) || []
+  // const reductions = getRoomReductions(roomType) || [] // Removed
   const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
 
   // Get base tier (Essential Clean)
@@ -94,20 +97,28 @@ export function RoomCustomizationDrawer({
         return total + (service?.price || 0)
       }, 0)
 
-      // Calculate reductions price
+      // Reductions are removed, so reductionsPrice is 0
+      const reductionsPrice = 0
+
+      // Calculate matrix remove services price
       const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
         const service = matrixServices.remove.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
-      // Calculate total price
-      const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
+      let totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - reductionsPrice - matrixRemovePrice
+
+      // Apply video recording discount if applicable
+      if (config.allowVideoRecording) {
+        // Use config.allowVideoRecording as it's passed from parent
+        totalPrice -= calculateVideoDiscount(totalPrice)
+      }
 
       return {
         basePrice,
         tierUpgradePrice,
         addOnsPrice: addOnsPrice + matrixAddPrice,
-        reductionsPrice: matrixRemovePrice,
+        reductionsPrice: reductionsPrice + matrixRemovePrice, // Still include in type, but will be 0
         totalPrice,
       }
     } catch (err) {
@@ -131,6 +142,7 @@ export function RoomCustomizationDrawer({
     addOns,
     matrixServices.add,
     matrixServices.remove,
+    config.allowVideoRecording, // Added to dependencies
   ])
 
   // Update local config when selections change
@@ -156,6 +168,7 @@ export function RoomCustomizationDrawer({
       try {
         setSelectedTier(config.selectedTier)
         setSelectedAddOns([...config.selectedAddOns])
+        // setSelectedReductions([...config.selectedReductions]) // Removed
         setMatrixAddServices([])
         setMatrixRemoveServices([])
         setActiveTab("basic")
@@ -181,6 +194,8 @@ export function RoomCustomizationDrawer({
       setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
     }
   }
+
+  // handleReductionChange removed
 
   // Handle matrix add service selection
   const handleMatrixAddServiceChange = (serviceId: string, checked: boolean) => {
@@ -314,6 +329,8 @@ export function RoomCustomizationDrawer({
                       </div>
                     </div>
                   )}
+
+                  {/* Reductions section removed */}
                 </div>
               </TabsContent>
 
@@ -432,6 +449,12 @@ export function RoomCustomizationDrawer({
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Reductions:</span>
               <span>-{formatCurrency(localConfig.reductionsPrice)}</span>
+            </div>
+          )}
+          {config.allowVideoRecording && ( // Display video discount if applicable
+            <div className="flex justify-between items-center mb-2 text-green-600">
+              <span className="font-medium">Video Recording Discount:</span>
+              <span>-{formatCurrency(calculateVideoDiscount(localConfig.totalPrice))}</span>
             </div>
           )}
           <Separator className="my-2" />

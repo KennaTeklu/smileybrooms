@@ -11,19 +11,21 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Star, Zap, Shield, Clock, Undo2, Redo2 } from "lucide-react"
-import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers" // Removed getRoomReductions
 import { useToast } from "@/components/ui/use-toast"
+import { calculateVideoDiscount } from "@/lib/utils" // Import calculateVideoDiscount
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
-  selectedReductions: string[]
+  // selectedReductions: string[] // Removed
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
-  reductionsPrice: number
+  // reductionsPrice: number // Removed
   totalPrice: number
+  allowVideoRecording?: boolean // Added for discount logic
 }
 
 interface EnhancedRoomCustomizationPanelProps {
@@ -63,7 +65,7 @@ export function EnhancedRoomCustomizationPanel({
   // Get room data
   const tiers = getRoomTiers(roomType)
   const addOns = getRoomAddOns(roomType)
-  const reductions = getRoomReductions(roomType)
+  // const reductions = getRoomReductions(roomType) // Removed
 
   // Update local config when prop changes
   useEffect(() => {
@@ -122,20 +124,22 @@ export function EnhancedRoomCustomizationPanel({
       return total + (addOn?.price || 0)
     }, 0)
 
-    // Calculate reductions
-    const reductionsPrice = updatedConfig.selectedReductions.reduce((total, reductionId) => {
-      const reduction = reductions.find((r) => r.id === reductionId)
-      return total - (reduction?.discount || 0)
-    }, 0)
+    // Reductions are removed, so reductionsPrice is 0
+    const reductionsPrice = 0
 
-    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + reductionsPrice
+    let totalPrice = basePrice + tierUpgradePrice + addOnsPrice + reductionsPrice
+
+    // Apply video recording discount if applicable
+    if (updatedConfig.allowVideoRecording) {
+      totalPrice -= calculateVideoDiscount(totalPrice)
+    }
 
     return {
       ...updatedConfig,
       basePrice,
       tierUpgradePrice,
       addOnsPrice,
-      reductionsPrice,
+      reductionsPrice, // Still include in type, but always 0
       totalPrice: Math.max(0, totalPrice),
     }
   }
@@ -160,8 +164,10 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(true)
   }
 
-  // Handle reduction toggle
+  // Handle reduction toggle (removed from UI, but keeping function for now if needed elsewhere)
   const handleReductionToggle = (reductionId: string, checked: boolean) => {
+    // This function is no longer used for UI interaction, but keeping it for type consistency if needed.
+    // The reductionsPrice calculation in calculatePricing is now always 0.
     const newReductions = checked
       ? [...localConfig.selectedReductions, reductionId]
       : localConfig.selectedReductions.filter((id) => id !== reductionId)
@@ -197,9 +203,8 @@ export function EnhancedRoomCustomizationPanel({
   // Calculate progress (based on selections made)
   const calculateProgress = () => {
     let progress = 0
-    if (localConfig.selectedTier !== tiers[0].name) progress += 40
-    if (localConfig.selectedAddOns.length > 0) progress += 30
-    if (localConfig.selectedReductions.length > 0) progress += 30
+    if (localConfig.selectedTier !== tiers[0].name) progress += 50 // Adjusted for 2 tabs
+    if (localConfig.selectedAddOns.length > 0) progress += 50 // Adjusted for 2 tabs
     return Math.min(progress, 100)
   }
 
@@ -267,8 +272,11 @@ export function EnhancedRoomCustomizationPanel({
 
         <Tabs defaultValue="tiers" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
+            {" "}
+            {/* Changed grid-cols-3 to grid-cols-2 */}
             <TabsTrigger value="tiers">Service Tiers</TabsTrigger>
             <TabsTrigger value="addons">Add-ons</TabsTrigger>
+            {/* <TabsTrigger value="reductions">Reductions</TabsTrigger> Removed */}
           </TabsList>
 
           <TabsContent value="tiers" className="space-y-4">
@@ -348,6 +356,44 @@ export function EnhancedRoomCustomizationPanel({
               </Card>
             )}
           </TabsContent>
+
+          {/* Reductions tab removed */}
+          {/* <TabsContent value="reductions" className="space-y-4">
+            {reductions.length > 0 ? (
+              <div className="space-y-3">
+                {reductions.map((reduction) => (
+                  <Card key={reduction.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id={reduction.id}
+                          checked={localConfig.selectedReductions.includes(reduction.id)}
+                          onCheckedChange={(checked) => handleReductionToggle(reduction.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor={reduction.id} className="cursor-pointer">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{reduction.name}</span>
+                              <Badge variant="destructive">-${reduction.discount}</Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{reduction.description}</p>
+                          </Label>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500">No reductions available for this room type</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent> */}
         </Tabs>
 
         {/* Price Breakdown */}
@@ -372,12 +418,19 @@ export function EnhancedRoomCustomizationPanel({
                 <span>+${localConfig.addOnsPrice.toFixed(2)}</span>
               </div>
             )}
-            {/*{localConfig.reductionsPrice < 0 && (*/}
-            {/*  <div className="flex justify-between">*/}
-            {/*    <span>Reductions</span>*/}
-            {/*    <span>${localConfig.reductionsPrice.toFixed(2)}</span>*/}
-            {/*  </div>*/}
-            {/*)}*/}
+            {/* Removed reductions display */}
+            {/* {localConfig.reductionsPrice < 0 && (
+              <div className="flex justify-between">
+                <span>Reductions</span>
+                <span>${localConfig.reductionsPrice.toFixed(2)}</span>
+              </div>
+            )} */}
+            {localConfig.allowVideoRecording && (
+              <div className="flex justify-between text-green-600">
+                <span>Video Recording Discount</span>
+                <span>-${calculateVideoDiscount(localConfig.totalPrice).toFixed(2)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between font-medium">
               <span>Per Room</span>

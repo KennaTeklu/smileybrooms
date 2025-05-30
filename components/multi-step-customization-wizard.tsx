@@ -10,16 +10,19 @@ import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
+import { calculateVideoDiscount } from "@/lib/utils" // Import calculateVideoDiscount
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  // selectedReductions: string[] // Removed
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
   reductionsPrice: number
   totalPrice: number
+  allowVideoRecording?: boolean // Added for discount logic
 }
 
 interface WizardProps {
@@ -64,6 +67,7 @@ export function MultiStepCustomizationWizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
+  // const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || []) // Removed
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
@@ -87,6 +91,7 @@ export function MultiStepCustomizationWizard({
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
+        // reductions: getRoomReductions(roomType) || [], // Removed
       }
     } catch (error) {
       console.error("Error getting room data:", error)
@@ -115,6 +120,7 @@ export function MultiStepCustomizationWizard({
         const addOn = roomData.addOns.find((a) => a.id === addOnId)
         return sum + (addOn?.price || 0)
       }, 0)
+      // Reductions are removed, so reductionsPrice is 0
       const reductionsPrice = 0
 
       const subtotal = currentTier.price + addOnsPrice - reductionsPrice
@@ -123,14 +129,14 @@ export function MultiStepCustomizationWizard({
 
       // Apply video recording discount if applicable
       if (addressData?.allowVideoRecording) {
-        totalPrice = Math.max(0, totalPrice - 25)
+        totalPrice -= calculateVideoDiscount(totalPrice)
       }
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
-        reductionsPrice,
+        reductionsPrice, // Still include in type, but always 0
         totalPrice,
       }
     } catch (error) {
@@ -169,6 +175,8 @@ export function MultiStepCustomizationWizard({
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
 
+  // toggleReduction removed
+
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
     setSelectedFrequency(frequency)
     setFrequencyDiscount(discount)
@@ -200,6 +208,7 @@ export function MultiStepCustomizationWizard({
           roomType,
           selectedTier,
           selectedAddOns,
+          // selectedReductions, // Removed
           frequency: selectedFrequency,
           customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
@@ -231,6 +240,7 @@ export function MultiStepCustomizationWizard({
     roomType,
     selectedTier,
     selectedAddOns,
+    // selectedReductions, // Removed
     selectedFrequency,
     addressData,
     addItem,
@@ -367,6 +377,8 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
+
+                {/* Reductions section removed */}
               </div>
             )}
 
@@ -404,6 +416,7 @@ export function MultiStepCustomizationWizard({
                     roomCount,
                     selectedTier,
                     selectedAddOns,
+                    // selectedReductions, // Removed
                     frequency: selectedFrequency,
                   }}
                 />
@@ -454,7 +467,9 @@ export function MultiStepCustomizationWizard({
                             {addressData.allowVideoRecording && (
                               <div className="flex justify-between text-green-600">
                                 <span>Video Recording Discount:</span>
-                                <span className="font-medium">-$25.00</span>
+                                <span className="font-medium">
+                                  -${calculateVideoDiscount(pricing.totalPrice).toFixed(2)}
+                                </span>
                               </div>
                             )}
                           </>
