@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Download } from "lucide-react"
+import { Menu, Download, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import { AnimatedDownloadButton } from "@/components/animated-download-button"
+import CartButton from "@/components/cart-button"
 
 export default function Header() {
   const pathname = usePathname()
@@ -41,6 +42,14 @@ export default function Header() {
           {/* Animated Download Button */}
           <div className="hidden md:block">
             <AnimatedDownloadButton />
+          </div>
+
+          {/* Cart Button with text */}
+          <div className="hidden md:block">
+            <CartButton className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              <span>Cart</span>
+            </CartButton>
           </div>
 
           <Sheet>
