@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Download, ShoppingCart } from "lucide-react"
+import { Menu, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import { AnimatedDownloadButton } from "@/components/animated-download-button"
 import CartButton from "@/components/cart-button"
 
 export default function Header() {
@@ -40,9 +39,7 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           {/* Animated Download Button */}
-          <div className="hidden md:block">
-            <AnimatedDownloadButton />
-          </div>
+          <CartButton className="hidden md:flex" />
 
           <Sheet>
             <SheetTrigger asChild>
