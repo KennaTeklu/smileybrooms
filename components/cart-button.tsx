@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Sheet, SheetTrigger } from "@/components/ui/sheet"
 import { Cart } from "@/components/cart"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils" // Assuming formatCurrency is in utils
 
 interface CartButtonProps {
   onCheckout: () => void
@@ -24,6 +24,7 @@ export default function CartButton({ onCheckout }: CartButtonProps) {
     setIsClient(true)
   }, [])
 
+  // Add animation when items are added to cart
   useEffect(() => {
     if (isClient && cart.totalItems > prevCount) {
       setIsAnimating(true)
@@ -38,41 +39,43 @@ export default function CartButton({ onCheckout }: CartButtonProps) {
       return formatCurrency(price)
     } catch (error) {
       console.error("Error formatting price:", error)
-      return "$0.00"
+      return "$0.00" // Fallback value
     }
   }
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50">
-      <div className="flex items-center justify-between">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="default" className={cn("relative", isAnimating && "animate-bounce-once")}>
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              <span>Cart</span>
+    <Sheet>
+      <SheetTrigger asChild>
+        <div
+          className={cn(
+            "fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 py-2 px-4 sm:px-6 lg:px-8 z-50 cursor-pointer",
+            isAnimating && "animate-bounce-once",
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              <span className="font-medium">Cart ({isClient ? cart.totalItems : 0})</span>
               {isClient && cart.totalItems > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
+                <Badge variant="destructive" className="h-5 w-5 flex items-center justify-center p-0 text-xs">
                   {cart.totalItems}
                 </Badge>
               )}
+              <div className="text-lg font-bold ml-4">{formattedPrice(cart.totalPrice)}</div>
+            </div>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation() // Prevent Sheet from opening when checkout button is clicked
+                onCheckout()
+              }}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Checkout
             </Button>
-          </SheetTrigger>
-          <Cart />
-        </Sheet>
-
-        <div className="flex items-center gap-4">
-          <div className="text-lg font-bold">{formattedPrice(cart.totalPrice)}</div>
-          <Button
-            onClick={onCheckout}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
-            Checkout
-          </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </SheetTrigger>
+      <Cart />
+    </Sheet>
   )
 }
