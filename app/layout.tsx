@@ -1,12 +1,10 @@
-"use client"
-
 import type React from "react"
 
 import "./globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
+import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { CartProvider } from "@/lib/cart-context" // Import CartProvider
 
@@ -17,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <QueryClientProviderWrapper>
+          <QueryClientProvider>
             <AccessibilityProvider>
               <CartProvider>
                 {" "}
@@ -25,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </CartProvider>
             </AccessibilityProvider>
-          </QueryClientProviderWrapper>
+          </QueryClientProvider>
           <Toaster />
         </ThemeProvider>
       </body>
