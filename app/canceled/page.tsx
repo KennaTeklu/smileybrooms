@@ -1,43 +1,22 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { XCircle, ShoppingCart, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { XCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function CanceledPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
-            <XCircle className="h-12 w-12 text-red-500" />
-          </div>
-          <CardTitle>Payment Canceled</CardTitle>
-          <CardDescription>Your payment was not completed</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p>The payment process was canceled. No charges were made.</p>
-          <p className="mt-2">If you experienced any issues, please try again or contact our support team.</p>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <Button asChild className="w-full">
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Return to Home
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/services">
-              <ShoppingCart className="mr-2 h-4 w-4" /> Continue Shopping
-            </Link>
-          </Button>
-          <Button asChild className="mt-4">
-            <Link href="/pricing">Book a new service</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Accessibility Toolbar */}
-      <AccessibilityToolbar />
+    <div className="flex min-h-[calc(100vh-14rem)] flex-col items-center justify-center bg-gray-100 px-4 py-12 dark:bg-gray-900">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-lg dark:bg-gray-800">
+        <XCircle className="mx-auto h-16 w-16 text-red-500" />
+        <h1 className="mt-6 text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50">Payment Canceled</h1>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">
+          Your payment was canceled. You can try again or contact support if you have any questions.
+        </p>
+        <div className="mt-8">
+          <Link href="/" passHref>
+            <Button className="w-full">Go to Homepage</Button>
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

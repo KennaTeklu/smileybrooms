@@ -60,82 +60,69 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       // Add discount as a negative line item
       customLineItems.push({
         name: `Discount: ${params.discount.reason}`,
-        amount: -discountedAmount, // Negative amount for discount
+        amount: -Math.round(discountedAmount * 100), // Convert to cents and make negative
         quantity: 1,
+        currency: "usd", // Specify currency for custom line items
       })
     }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: lineItems,
+      line_items: lineItems.length > 0 ? lineItems : undefined, // Only include if not empty
       mode: isRecurring ? "subscription" : "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail,
       customer_creation: customerEmail ? "always" : undefined,
-      custom_fields: customerData
+      // Use Stripe's built-in address collection
+      billing_address_collection: "auto",
+      shipping_address_collection: customerData?.address ? "required" : "off", // Collect shipping if customer data has address
+      shipping_options: customerData?.address
         ? [
             {
-              key: "name",
-              label: {
-                type: "custom",
-                custom: "Full Name",
+              shipping_rate_data: {
+                type: "fixed_amount",
+                fixed_amount: {
+                  amount: 0, // Free shipping for now, adjust as needed
+                  currency: "usd",
+                },
+                display_name: "Standard shipping",
+                delivery_estimate: {
+                  minimum: { unit: "business_day", value: 5 },
+                  maximum: { unit: "business_day", value: 7 },
+                },
               },
-              type: "text",
-            },
-            {
-              key: "phone",
-              label: {
-                type: "custom",
-                custom: "Phone Number",
-              },
-              type: "text",
-            },
-            {
-              key: "address",
-              label: {
-                type: "custom",
-                custom: "Address",
-              },
-              type: "text",
-            },
-            {
-              key: "city",
-              label: {
-                type: "custom",
-                custom: "City",
-              },
-              type: "text",
-            },
-            {
-              key: "state",
-              label: {
-                type: "custom",
-                custom: "State",
-              },
-              type: "text",
-            },
-            {
-              key: "postal_code",
-              label: {
-                type: "custom",
-                custom: "Postal Code",
-              },
-              type: "text",
-            },
-            {
-              key: "country",
-              label: {
-                type: "custom",
-                custom: "Country",
-              },
-              type: "text",
             },
           ]
         : undefined,
+      // Enable automatic tax calculation
+      automatic_tax: {
+        enabled: true,
+      },
+      // Allow promotion codes
+      allow_promotion_codes: true,
+      // Add custom line items if any
+      ...(customLineItems.length > 0 && {
+        line_items: [
+          ...(lineItems.length > 0 ? lineItems : []),
+          ...customLineItems.map((item) => ({
+            price_data: {
+              currency: item.currency || "usd",
+              product_data: {
+                name: item.name,
+                metadata: item.metadata,
+              },
+              unit_amount: item.amount,
+            },
+            quantity: item.quantity,
+          })),
+        ],
+      }),
+      // Pre-fill customer information if available
       customer_update: customerData
         ? {
-            address: "auto",
+            address: "auto", // Allow Stripe to pre-fill address if customer exists
+            name: "auto",
           }
         : undefined,
       metadata: customerData
@@ -147,7 +134,7 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             city: customerData.address.city,
             state: customerData.address.state,
             postal_code: customerData.address.postal_code,
-            country: customerData.address.country,
+            country: customerData.country,
           }
         : undefined,
     })
