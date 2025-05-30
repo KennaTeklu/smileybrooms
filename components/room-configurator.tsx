@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, ChevronUp, Plus, Minus, Clock, CheckCircle } from "lucide-react"
+import { ChevronDown, ChevronUp, Plus, Clock, CheckCircle } from "lucide-react"
 
 export interface RoomTier {
   name: string
@@ -66,7 +66,6 @@ export function RoomConfigurator({
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig?.selectedAddOns || [])
   const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig?.selectedReductions || [])
   const [addOnsOpen, setAddOnsOpen] = useState(false)
-  const [reductionsOpen, setReductionsOpen] = useState(false)
   const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set())
 
   // Calculate the total price based on selections
@@ -121,18 +120,6 @@ export function RoomConfigurator({
         return [...prev, addOnId]
       } else {
         return prev.filter((id) => id !== addOnId)
-      }
-    })
-    setTimeout(updateConfiguration, 0)
-  }
-
-  // Handle reduction selection
-  const handleReductionChange = (reductionId: string, checked: boolean) => {
-    setSelectedReductions((prev) => {
-      if (checked) {
-        return [...prev, reductionId]
-      } else {
-        return prev.filter((id) => id !== reductionId)
       }
     })
     setTimeout(updateConfiguration, 0)
@@ -326,50 +313,6 @@ export function RoomConfigurator({
                         </div>
                         <Badge variant="outline" className="text-green-600 border-green-200">
                           +${addOn.price.toFixed(2)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* Reductions Section */}
-          {reductions.length > 0 && (
-            <Collapsible open={reductionsOpen} onOpenChange={setReductionsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <div className="flex items-center gap-2">
-                    <Minus className="h-4 w-4 text-red-600" />
-                    <span className="text-red-700 font-medium">
-                      REMOVE SERVICES ({selectedReductions.length} selected)
-                    </span>
-                  </div>
-                  {reductionsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 mt-3 border-l-4 border-red-200 pl-4">
-                {reductions.map((reduction) => (
-                  <div key={reduction.id} className="flex items-start space-x-3">
-                    <Checkbox
-                      id={`reduction-${reduction.id}`}
-                      checked={selectedReductions.includes(reduction.id)}
-                      onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor={`reduction-${reduction.id}`} className="font-medium">
-                            {reduction.name}
-                          </Label>
-                          {reduction.description && (
-                            <p className="text-xs text-gray-500 mt-1">{reduction.description}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="text-red-600 border-red-200">
-                          -${reduction.discount.toFixed(2)}
                         </Badge>
                       </div>
                     </div>

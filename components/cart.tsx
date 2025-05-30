@@ -58,7 +58,8 @@ export function Cart({ isOpen, onClose }: CartProps) {
     const hasVideoRecordingOptIn = cart.items.some((item) => item.metadata?.customer?.allowVideoRecording)
     if (hasVideoRecordingOptIn) {
       const percentDiscount = cart.totalPrice * 0.1 // 10% discount
-      return Math.min(25, percentDiscount) // $25 or 10%, whichever is less
+      const maxDiscount = cart.totalPrice * 0.25 // 25% discount
+      return Math.min(maxDiscount, percentDiscount) // 25% or 10%, whichever is less
     }
     return 0
   }, [cart.items, cart.totalPrice])
@@ -375,7 +376,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
               </div>
               {videoDiscountAmount > 0 && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span className="text-sm">Discount</span>
+                  <span className="text-sm">Video Recording Discount</span>
                   <span className="font-medium">- {formatCurrency(videoDiscountAmount)}</span>
                 </div>
               )}
