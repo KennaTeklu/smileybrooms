@@ -1,13 +1,10 @@
 "use client"
-
-import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { X, ChevronLeft, ChevronRight, SkipForward, Play } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { X, ChevronLeft, ChevronRight, SkipForward } from "lucide-react"
 import { useTour } from "@/hooks/use-tour"
 import type { TourConfig, TourStep } from "@/lib/tour-config"
 
@@ -78,7 +75,7 @@ function TourTooltip({
           break
         case "left":
           top = targetRect.top + (targetRect.height - tooltipRect.height) / 2
-          left = targetRect.left - tooltipRect.width - 10
+          left = targetRect.left - tooltipRef.width - 10
           break
         case "right":
           top = targetRect.top + (targetRect.height - tooltipRect.height) / 2
@@ -262,31 +259,5 @@ export function TourGuide({ tourConfig, onComplete, onSkip, autoStart = false, c
       progress={progress}
       showProgress={tourConfig.showProgress ?? true}
     />
-  )
-}
-
-// Tour trigger button component
-interface TourTriggerProps {
-  tourConfig: TourConfig
-  children?: React.ReactNode
-  variant?: "default" | "outline" | "ghost"
-  size?: "sm" | "default" | "lg"
-  className?: string
-}
-
-export function TourTrigger({
-  tourConfig,
-  children,
-  variant = "default",
-  size = "default",
-  className,
-}: TourTriggerProps) {
-  const { startTour, hasCompleted } = useTour(tourConfig, { localStorage: true })
-
-  return (
-    <Button variant={variant} size={size} onClick={startTour} className={cn("flex items-center gap-2", className)}>
-      <Play className="h-4 w-4" />
-      {children || (hasCompleted ? "Replay Tour" : "Take Tour")}
-    </Button>
   )
 }

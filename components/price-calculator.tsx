@@ -129,13 +129,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                     <Minus className="h-3 w-3" />
                   </Button>
                   <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => incrementRoom(room.id)}
-                    className="h-7 w-7"
-                    data-tour="room-increment"
-                  >
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
@@ -328,7 +322,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto" data-tour="price-calculator">
+    <div className="w-full max-w-4xl mx-auto">
       <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="standard" className="text-sm md:text-base">
@@ -348,7 +342,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
 
           {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900" data-tour="room-selection">
+          <Card className="border-2 border-blue-100 dark:border-blue-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Home className="h-5 w-5 mr-2 text-blue-600" />
@@ -541,7 +535,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       </Tabs>
 
       {/* Price Summary */}
-      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg" data-tour="price-summary">
+      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-medium">Estimated Price</h3>
@@ -567,12 +561,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
         {onAddToCart && (
           <div className="mt-4">
-            <Button
-              onClick={onAddToCart}
-              disabled={!hasSelectedRooms() || !isServiceAvailable}
-              className="w-full"
-              data-tour="add-to-cart"
-            >
+            <Button onClick={onAddToCart} disabled={!hasSelectedRooms() || !isServiceAvailable} className="w-full">
               Add to Cart
             </Button>
           </div>
