@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useCart } from "@/lib/cart-context"
 import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
@@ -8,6 +8,10 @@ import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart } from "lucide-react"
 import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
+import { Card } from "@/components/ui/card"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import Image from "next/image"
+import Link from "next/link"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
@@ -44,9 +48,7 @@ export function Cart({ showLabel = false }: CartProps) {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
 
-  // This will ensure the cart stays open when other dialogs/popups are closed
   const handleOpenChange = (open: boolean) => {
-    // Only process actual close requests, not side-effects from other popups
     if (!open && isOpen) {
       setIsOpen(false)
     } else if (open) {
@@ -54,7 +56,6 @@ export function Cart({ showLabel = false }: CartProps) {
     }
   }
 
-  // Function to create Google Maps link
   const createGoogleMapsLink = (address: string) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
   }
@@ -69,7 +70,6 @@ export function Cart({ showLabel = false }: CartProps) {
   }
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
-    // Ensure quantity is a valid number and at least 1
     const validQuantity = Math.max(1, isNaN(quantity) ? 1 : Math.floor(quantity))
     updateQuantity(id, validQuantity)
   }
@@ -88,9 +88,20 @@ export function Cart({ showLabel = false }: CartProps) {
     toast({
       title: "Item added",
       description: "The item has been added to your cart",
-      duration: 3000, // Auto-dismiss after 3 seconds
+      duration: 3000,
     })
   }
+
+  const videoDiscountAmount = useMemo(() => {
+    const hasVideoRecordingOptIn = cart.items.some((item) => item.metadata?.customer?.allowVideoRecording)
+    if (hasVideoRecordingOptIn) {
+      const percentDiscount = cart.totalPrice * 0.1 // 10% discount
+      return Math.min(25, percentDiscount) // $25 or 10%, whichever is less
+    }
+    return 0
+  }, [cart.items, cart.totalPrice])
+
+  const finalTotalPrice = cart.totalPrice - videoDiscountAmount
 
   const handleCheckout = async () => {
     if (cart.items.length === 0) {
@@ -108,7 +119,6 @@ export function Cart({ showLabel = false }: CartProps) {
     setCheckoutSuccess(false)
 
     try {
-      // Validate cart items before proceeding
       const invalidItems = cart.items.filter(
         (item) => !item.id || !item.name || typeof item.price !== "number" || item.price <= 0,
       )
@@ -117,7 +127,6 @@ export function Cart({ showLabel = false }: CartProps) {
         throw new Error("Some items in your cart are invalid. Please try removing and adding them again.")
       }
 
-      // Separate regular items from custom cleaning items
       const regularItems = cart.items.filter(
         (item) => item.priceId !== "price_custom_cleaning" && item.priceId !== "price_custom_service",
       )
@@ -125,16 +134,14 @@ export function Cart({ showLabel = false }: CartProps) {
         (item) => item.priceId === "price_custom_cleaning" || item.priceId === "price_custom_service",
       )
 
-      // Create line items for regular products
       const lineItems = regularItems.map((item) => ({
         price: item.priceId,
         quantity: item.quantity,
       }))
 
-      // Create custom line items for custom cleaning services
       const customLineItems = customItems.map((item) => ({
         name: item.name,
-        amount: Math.round(item.price * 100) / 100, // Ensure proper decimal handling
+        amount: Math.round(item.price * 100) / 100,
         quantity: item.quantity,
         metadata: {
           ...item.metadata,
@@ -142,19 +149,10 @@ export function Cart({ showLabel = false }: CartProps) {
         },
       }))
 
-      // Get customer data from the first custom item with customer metadata
       const customerItem = customItems.find((item) => item.metadata?.customer)
       const customerData = customerItem?.metadata?.customer
 
-      // Calculate order metrics
       const calculateOrderMetrics = () => {
-        // Calculate video discount (10% or $25, whichever is less)
-        let discountAmount = 0
-        if (customerData?.allowVideoRecording) {
-          const percentDiscount = cart.totalPrice * 0.1 // 10% discount
-          discountAmount = Math.min(25, percentDiscount) // $25 or 10%, whichever is less
-        }
-
         return {
           totalItems: cart.items.length,
           totalQuantity: cart.totalItems,
@@ -162,21 +160,18 @@ export function Cart({ showLabel = false }: CartProps) {
           hasCustomService: customItems.length > 0,
           hasRecurringService: customItems.some((item) => item.metadata?.isRecurring),
           itemCategories: cart.items.map((item) => item.priceId).join(","),
-          discountsApplied: customerData?.allowVideoRecording ? `video_recording_${discountAmount.toFixed(2)}` : "none",
-          discountAmount: discountAmount,
+          discountsApplied: videoDiscountAmount > 0 ? `video_recording_${videoDiscountAmount.toFixed(2)}` : "none",
+          discountAmount: videoDiscountAmount,
         }
       }
 
-      // Format cart items for better readability in spreadsheet
       const formatCartSummary = (items: any[]) => {
         return items.map((item) => `${item.name} (${formatCurrency(item.price)} x ${item.quantity})`).join("; ")
       }
 
-      // Prepare data for waitlist API with enhanced information
       if (customerData) {
         const emoji = "🔵"
 
-        // Enhanced data structure
         const waitlistData = {
           name: customerData.name,
           email: customerData.email,
@@ -190,7 +185,7 @@ export function Cart({ showLabel = false }: CartProps) {
             page: window.location.pathname,
             referrer: document.referrer || "direct",
             device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
-            totalOrderValue: cart.totalPrice,
+            totalOrderValue: finalTotalPrice,
           },
           data: {
             orderSummary: formatCartSummary(cart.items),
@@ -207,7 +202,6 @@ export function Cart({ showLabel = false }: CartProps) {
           },
         }
 
-        // Submit to waitlist API (using Google Sheets)
         const scriptURL =
           "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
 
@@ -222,7 +216,6 @@ export function Cart({ showLabel = false }: CartProps) {
           console.error("Error submitting to waitlist:", error)
         })
 
-        // Mark video recording discount as permanently used for this address
         if (customerData.allowVideoRecording) {
           const fullAddress = `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
           const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
@@ -283,14 +276,11 @@ export function Cart({ showLabel = false }: CartProps) {
     }
   }
 
-  // Payment method selection
   const handlePaymentMethodChange = (method: PaymentMethod) => {
     setPaymentMethod(method)
   }
 
-  // Calculate total items and price
   const totalItems = cart.totalItems
-  const totalPrice = cart.totalPrice
 
   return (
     <>
@@ -335,21 +325,40 @@ export function Cart({ showLabel = false }: CartProps) {
               }
             : undefined
         }
+        priceDisplay={{
+          label: "Total",
+          amount: finalTotalPrice,
+          currency: "$",
+        }}
       >
         <div className="px-4">
           {cart.items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 text-center">
               <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
               <p className="text-lg font-medium">Your cart is empty</p>
-              <p className="text-sm text-gray-500">Add items to get started</p>
+              <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
+              <Link href="/pricing" passHref>
+                <Button variant="default">Continue Shopping</Button>
+              </Link>
             </div>
           ) : (
             <>
               <div className="space-y-4">
                 {cart.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <Card key={item.id} className="flex items-center p-3">
+                    {item.image && (
+                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border mr-4">
+                        <Image
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          layout="fill"
+                          objectFit="cover"
+                          className="rounded-md"
+                        />
+                      </div>
+                    )}
                     <div className="flex-1">
-                      <h3 className="font-medium">{item.name}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{item.name}</h3>
                       <p className="text-sm text-gray-500">
                         {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
                       </p>
@@ -366,27 +375,29 @@ export function Cart({ showLabel = false }: CartProps) {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-6 text-center">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
+                    <div className="flex flex-col items-end space-y-2 ml-4">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -397,62 +408,54 @@ export function Cart({ showLabel = false }: CartProps) {
                         <Trash className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
 
-              <div className="mt-6 space-y-4 rounded-lg border bg-gray-50 p-4">
+              <div className="mt-6 space-y-3 rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
                 <div className="flex justify-between">
-                  <span className="text-sm">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(totalPrice)}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Subtotal</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {formatCurrency(cart.totalPrice)}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Tax</span>
-                  <span className="font-medium">Calculated at checkout</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between">
-                    <span className="text-base font-medium">Total</span>
-                    <span className="text-lg font-bold">{formatCurrency(totalPrice)}</span>
+                {videoDiscountAmount > 0 && (
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
+                    <span className="text-sm">Discount</span>
+                    <span className="font-medium">- {formatCurrency(videoDiscountAmount)}</span>
                   </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Tax</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">Calculated at checkout</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <p className="mb-2 text-sm font-medium">Payment Method</p>
-                <div className="flex space-x-2">
-                  <Button
-                    variant={paymentMethod === "card" ? "default" : "outline"}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handlePaymentMethodChange("card")}
-                  >
+                <p className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method</p>
+                <ToggleGroup
+                  type="single"
+                  value={paymentMethod}
+                  onValueChange={(value: PaymentMethod) => value && handlePaymentMethodChange(value)}
+                  className="grid grid-cols-3 gap-2"
+                >
+                  <ToggleGroupItem value="card" aria-label="Select card payment">
                     <CreditCard className="mr-2 h-4 w-4" />
                     Card
-                  </Button>
-                  <Button
-                    variant={paymentMethod === "bank" ? "default" : "outline"}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handlePaymentMethodChange("bank")}
-                  >
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="bank" aria-label="Select bank payment">
                     <Bank className="mr-2 h-4 w-4" />
                     Bank
-                  </Button>
-                  <Button
-                    variant={paymentMethod === "wallet" ? "default" : "outline"}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handlePaymentMethodChange("wallet")}
-                  >
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="wallet" aria-label="Select wallet payment">
                     <Wallet className="mr-2 h-4 w-4" />
                     Wallet
-                  </Button>
-                </div>
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               {checkoutError && (
-                <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+                <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
                   <p>{checkoutError}</p>
                 </div>
               )}
