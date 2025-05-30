@@ -1,204 +1,219 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Check, X, Sparkles, Star, Zap, Leaf, Shield, Heart } from "lucide-react"
-import { Cart } from "@/components/cart"
-import { useCart } from "@/lib/cart-context" // Import useCart
+import { CheckCircle } from "lucide-react"
+import { useCart } from "@/lib/cart-context"
+import { formatCurrency } from "@/lib/utils"
+import { RoomCustomizationPanel } from "./room-customization-panel"
+import { useToast } from "@/components/ui/use-toast"
+import { LoadingAnimation } from "./loading-animation" // Ensure correct import
 
-interface FeatureProps {
-  children: React.ReactNode
+interface ServiceOption {
+  id: string
+  name: string
+  price: number
+  description: string
+  features: string[]
+  isPopular?: boolean
+  frequencyOptions?: { label: string; value: string; multiplier: number }[]
+  isCustomizable?: boolean
+  basePriceId?: string // Stripe Price ID for the base service
 }
 
-const Feature = ({ children }: FeatureProps) => (
-  <li className="flex items-center gap-2">
-    <Check className="h-4 w-4 text-green-500" />
-    <span className="text-gray-600 dark:text-gray-400">{children}</span>
-  </li>
-)
+const serviceOptions: ServiceOption[] = [
+  {
+    id: "basic-clean",
+    name: "Basic Clean",
+    price: 99,
+    description: "Perfect for regular upkeep.",
+    features: [
+      "Dusting surfaces",
+      "Vacuuming carpets",
+      "Mopping floors",
+      "Bathroom wipe-down",
+      "Kitchen surface clean",
+    ],
+    basePriceId: "price_12345", // Example Stripe Price ID
+  },
+  {
+    id: "deep-clean",
+    name: "Deep Clean",
+    price: 149,
+    description: "Thorough cleaning for a spotless home.",
+    features: [
+      "All Basic Clean features",
+      "Detailed dusting (baseboards, blinds)",
+      "Scrubbing bathrooms",
+      "Deep kitchen cleaning (appliances exterior)",
+      "Window sills cleaned",
+    ],
+    isPopular: true,
+    basePriceId: "price_67890", // Example Stripe Price ID
+  },
+  {
+    id: "move-in-out",
+    name: "Move-in/out Clean",
+    price: 249,
+    description: "Comprehensive cleaning for empty homes.",
+    features: [
+      "All Deep Clean features",
+      "Inside cabinets and drawers",
+      "Inside oven and refrigerator",
+      "Wall spot cleaning",
+      "Baseboards and trim detailed",
+    ],
+    basePriceId: "price_abcde", // Example Stripe Price ID
+  },
+  {
+    id: "custom-clean",
+    name: "Custom Clean",
+    price: 0, // Price will be determined by customization
+    description: "Tailored to your specific needs.",
+    features: [
+      "Personalized service",
+      "Choose specific rooms",
+      "Select desired add-ons",
+      "Flexible scheduling",
+      "Quote based on requirements",
+    ],
+    isCustomizable: true,
+    basePriceId: "price_custom_cleaning", // Special Price ID for custom services
+  },
+]
 
-export function PricingContent() {
-  const [selectedPlan, setSelectedPlan] = useState("standard")
-  const { cart } = useCart() // Use the cart context
+export default function PricingContent() {
+  const { addItem, cart } = useCart()
+  const { toast } = useToast()
+  const [isCustomPanelOpen, setIsCustomPanelOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState<ServiceOption | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleSelectPlan = (plan: string) => {
-    setSelectedPlan(plan)
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1000) // 1 second loading animation
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleAddToCart = (service: ServiceOption, price: number, quantity = 1, metadata?: any) => {
+    const itemToAdd = {
+      id: service.id,
+      name: service.name,
+      price: price,
+      quantity: quantity,
+      priceId: service.basePriceId, // Use the basePriceId for Stripe
+      metadata: metadata,
+    }
+    addItem(itemToAdd)
+    toast({
+      title: "Added to cart",
+      description: `${service.name} has been added to your cart.`,
+      duration: 3000,
+    })
+  }
+
+  const handleCustomizeClick = (service: ServiceOption) => {
+    setSelectedService(service)
+    setIsCustomPanelOpen(true)
+  }
+
+  const handleCustomizationComplete = (customizedItem: any) => {
+    if (customizedItem) {
+      handleAddToCart(
+        {
+          id: customizedItem.id,
+          name: customizedItem.name,
+          price: customizedItem.price,
+          description: "Customized cleaning service",
+          features: [],
+          basePriceId: "price_custom_cleaning", // Ensure this matches the special price ID
+        },
+        customizedItem.price,
+        1,
+        customizedItem.metadata,
+      )
+    }
+    setIsCustomPanelOpen(false)
+    setSelectedService(null)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
+        <LoadingAnimation />
+      </div>
+    )
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-12 md:py-20">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl dark:text-gray-50">
-          Flexible Cleaning Plans for Every Need
-        </h1>
-        <p className="mt-4 text-xl text-gray-600 dark:text-gray-400">
-          Choose the perfect plan that fits your lifestyle and budget.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Basic Plan */}
-        <Card className="flex flex-col justify-between border-2 border-gray-200 dark:border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Basic Clean</CardTitle>
-            <CardDescription className="text-center mt-2">Ideal for regular upkeep</CardDescription>
-            <div className="text-center mt-4">
-              <span className="text-4xl font-bold text-gray-900 dark:text-gray-50">$99</span>
-              <span className="text-gray-500 dark:text-gray-400">/visit</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3 text-sm">
-              <Feature>Dusting all surfaces</Feature>
-              <Feature>Vacuuming and mopping floors</Feature>
-              <Feature>Bathroom cleaning (toilet, sink, mirror)</Feature>
-              <Feature>Kitchen surface wipe-down</Feature>
-              <Feature>Trash removal</Feature>
-              <li className="flex items-center gap-2 text-gray-400 dark:text-gray-600">
-                <X className="h-4 w-4 text-red-500" />
-                <span>Deep cleaning options</span>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400 dark:text-gray-600">
-                <X className="h-4 w-4 text-red-500" />
-                <span>Appliance cleaning</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter className="pt-6">
-            <Button className="w-full" variant="outline" onClick={() => handleSelectPlan("basic")}>
-              Select Basic
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Standard Plan */}
-        <Card className="relative flex flex-col justify-between border-2 border-blue-500 shadow-lg dark:border-blue-600">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-3 py-1 text-xs font-semibold uppercase text-white dark:bg-blue-600">
-            Most Popular
+    <section className="w-full py-12 md:py-24 lg:py-32">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Our Cleaning Plans</h2>
+            <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
+              Choose the perfect cleaning plan for your home or customize your own.
+            </p>
           </div>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Standard Clean</CardTitle>
-            <CardDescription className="text-center mt-2">Comprehensive cleaning for busy homes</CardDescription>
-            <div className="text-center mt-4">
-              <span className="text-4xl font-bold text-gray-900 dark:text-gray-50">$149</span>
-              <span className="text-gray-500 dark:text-gray-400">/visit</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3 text-sm">
-              <Feature>All Basic features</Feature>
-              <Feature>Detailed bathroom cleaning (grout, fixtures)</Feature>
-              <Feature>Kitchen deep clean (sink, counters, exterior appliances)</Feature>
-              <Feature>Baseboard wiping</Feature>
-              <Feature>Window sills and blinds dusting</Feature>
-              <li className="flex items-center gap-2 text-gray-400 dark:text-gray-600">
-                <X className="h-4 w-4 text-red-500" />
-                <span>Interior window cleaning</span>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400 dark:text-gray-600">
-                <X className="h-4 w-4 text-red-500" />
-                <span>Carpet shampooing</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter className="pt-6">
-            <Button className="w-full" onClick={() => handleSelectPlan("standard")}>
-              Select Standard
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Premium Plan */}
-        <Card className="flex flex-col justify-between border-2 border-gray-200 dark:border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Premium Clean</CardTitle>
-            <CardDescription className="text-center mt-2">The ultimate spotless experience</CardDescription>
-            <div className="text-center mt-4">
-              <span className="text-4xl font-bold text-gray-900 dark:text-gray-50">$199</span>
-              <span className="text-gray-500 dark:text-gray-400">/visit</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3 text-sm">
-              <Feature>All Standard features</Feature>
-              <Feature>Interior window cleaning</Feature>
-              <Feature>Appliance interior cleaning (microwave, oven, fridge)</Feature>
-              <Feature>Cabinet exterior wipe-down</Feature>
-              <Feature>Wall spot cleaning</Feature>
-              <Feature>Carpet vacuuming with edge cleaning</Feature>
-              <Feature>Air freshening and deodorizing</Feature>
-            </ul>
-          </CardContent>
-          <CardFooter className="pt-6">
-            <Button className="w-full" variant="outline" onClick={() => handleSelectPlan("premium")}>
-              Select Premium
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <div className="mt-12 text-center">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50 mb-6">Add-on Services</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Sparkles className="h-10 w-10 text-yellow-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Deep Carpet Cleaning</CardTitle>
-            <CardDescription className="mb-4">Revitalize your carpets with a thorough wash.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Add for $50
-            </Button>
-          </Card>
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Star className="h-10 w-10 text-purple-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Window Washing (Interior/Exterior)</CardTitle>
-            <CardDescription className="mb-4">Sparkling clean windows for a brighter home.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Add for $40
-            </Button>
-          </Card>
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Zap className="h-10 w-10 text-orange-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Upholstery Cleaning</CardTitle>
-            <CardDescription className="mb-4">Refresh your furniture with professional care.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Add for $60
-            </Button>
-          </Card>
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Leaf className="h-10 w-10 text-green-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Eco-Friendly Products</CardTitle>
-            <CardDescription className="mb-4">Green cleaning for a healthier home.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Add for $15
-            </Button>
-          </Card>
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Shield className="h-10 w-10 text-indigo-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Disinfection Service</CardTitle>
-            <CardDescription className="mb-4">Eliminate germs and bacteria for peace of mind.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Add for $30
-            </Button>
-          </Card>
-          <Card className="flex flex-col items-center p-6 text-center">
-            <Heart className="h-10 w-10 text-red-500 mb-4" />
-            <CardTitle className="text-xl font-semibold mb-2">Post-Construction Clean-up</CardTitle>
-            <CardDescription className="mb-4">Thorough cleaning after renovations.</CardDescription>
-            <Button variant="outline" className="w-full">
-              Request Quote
-            </Button>
-          </Card>
+        </div>
+        <div className="mx-auto grid max-w-5xl items-start gap-6 py-12 lg:grid-cols-4 lg:gap-8">
+          {serviceOptions.map((option) => (
+            <Card
+              key={option.id}
+              className={`flex flex-col ${option.isPopular ? "border-blue-500 ring-2 ring-blue-500" : ""}`}
+            >
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  {option.name}
+                  {option.isPopular && (
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-900 dark:text-blue-300">
+                      Popular
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription className="text-sm">{option.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1">
+                {option.price === 0 && option.isCustomizable ? (
+                  <div className="text-3xl font-bold">Custom Quote</div>
+                ) : (
+                  <div className="text-3xl font-bold">{formatCurrency(option.price)}</div>
+                )}
+                <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                  {option.features.map((feature, index) => (
+                    <li key={index} className="flex items-center">
+                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter className="pt-4">
+                {option.isCustomizable ? (
+                  <Button className="w-full" onClick={() => handleCustomizeClick(option)}>
+                    Customize & Get Quote
+                  </Button>
+                ) : (
+                  <Button className="w-full" onClick={() => handleAddToCart(option, option.price)}>
+                    Add to Cart
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       </div>
-
-      {cart.totalItems > 0 && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Cart showLabel={true} />
-        </div>
+      {selectedService && (
+        <RoomCustomizationPanel
+          isOpen={isCustomPanelOpen}
+          onClose={() => setIsCustomPanelOpen(false)}
+          onSave={handleCustomizationComplete}
+          initialService={selectedService}
+        />
       )}
-    </div>
+    </section>
   )
 }

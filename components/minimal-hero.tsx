@@ -1,49 +1,114 @@
 "use client"
 
+import { useState, useEffect, useRef } from "react"
+import { motion } from "framer-motion"
+import { ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Cart } from "@/components/cart"
+import { Cart } from "@/components/cart" // Import the Cart component
 import { useCart } from "@/lib/cart-context" // Import useCart
-import { useState, useEffect } from "react"
-import { useShoppingCart } from "use-shopping-cart"
 
-export function MinimalHero() {
-  const { cart } = useCart() // Use the cart context
-  const { cartCount, cartDetails } = useShoppingCart()
-  const [isCartOpen, setIsCartOpen] = useState(false)
+export default function MinimalHero() {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0)
+  const [displayText, setDisplayText] = useState("")
+  const [isTyping, setIsTyping] = useState(true)
+  const fullTexts = [
+    "You rest, we take care of the rest!",
+    "Professional cleaning at your fingertips!",
+    "Sparkling clean, every time!",
+    "Your home deserves the best!",
+  ]
+  const typingSpeed = 50
+  const erasingSpeed = 30
+  const pauseDuration = 2000
+  const textRef = useRef(fullTexts[0])
 
+  const { cart } = useCart() // Use the project's cart context
+
+  // Typing effect
   useEffect(() => {
-    // You can add any logic here that needs to run when the component mounts
-  }, [])
+    let timeout: NodeJS.Timeout
 
-  const toggleCart = () => {
-    setIsCartOpen(!isCartOpen)
+    if (isTyping) {
+      if (displayText.length < textRef.current.length) {
+        timeout = setTimeout(() => {
+          setDisplayText(textRef.current.substring(0, displayText.length + 1))
+        }, typingSpeed)
+      } else {
+        timeout = setTimeout(() => {
+          setIsTyping(false)
+        }, pauseDuration)
+      }
+    } else {
+      if (displayText.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayText(displayText.substring(0, displayText.length - 1))
+        }, erasingSpeed)
+      } else {
+        setCurrentTextIndex((prevIndex) => (prevIndex + 1) % fullTexts.length)
+        textRef.current = fullTexts[(currentTextIndex + 1) % fullTexts.length]
+        setIsTyping(true)
+      }
+    }
+
+    return () => clearTimeout(timeout)
+  }, [displayText, isTyping, currentTextIndex, fullTexts])
+
+  const scrollToBooking = () => {
+    window.location.href = "/pricing"
   }
 
-  const hasItemsInCart = cartCount > 0
-
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-      <div className="container px-4 md:px-6">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-              Experience the Future of Clean
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-pattern">
+      {/* Background overlay with consistent opacity */}
+      <div className="absolute inset-0 bg-image-overlay" />
+
+      <div className="container mx-auto px-4 z-10">
+        <div className="flex flex-col items-center text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="mb-6"
+          >
+            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 animate-glow">
+              smileybrooms
             </h1>
-            <p className="mx-auto max-w-[700px] text-gray-50 md:text-xl">
-              Seamlessly manage your cleaning services with our intuitive platform.
-            </p>
-          </div>
-          <div className="space-x-4">
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="mb-8 h-16"
+          >
+            <h2 className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 typing-effect">{displayText}</h2>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+          >
             <Button
-              className="inline-flex h-9 items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-              href="#"
+              onClick={scrollToBooking}
+              size="lg"
+              className="group relative overflow-hidden rounded-full px-8 py-6 neon-button"
             >
-              Learn More
+              <span className="relative z-10 text-lg font-medium">Book Now</span>
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:translate-y-1">
+                <ArrowDown className="h-4 w-4 animate-bounce" />
+              </span>
             </Button>
-            {cart.totalItems > 0 && <Cart />} {/* Conditionally render Cart */}
-          </div>
+          </motion.div>
         </div>
       </div>
-    </section>
+
+      {/* Cart button positioned in the top right, only visible if items are in cart */}
+      {cart.totalItems > 0 && (
+        <div className="absolute top-4 right-4 z-20">
+          <Cart showLabel={true} />
+        </div>
+      )}
+    </div>
   )
 }

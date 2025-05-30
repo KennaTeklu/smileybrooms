@@ -1,30 +1,34 @@
+"use client"
+
 import type React from "react"
 
-import "./globals.css"
 import { Inter } from "next/font/google"
+import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from "@/components/providers/query-client-provider"
-import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { CartProvider } from "@/lib/cart-context" // Import CartProvider
+import { CartProvider } from "@/lib/cart-context" // Ensure CartProvider is imported
 
 const inter = Inter({ subsets: ["latin"] })
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <QueryClientProvider>
-            <AccessibilityProvider>
-              <CartProvider>
-                {" "}
-                {/* Wrap children with CartProvider */}
-                {children}
-              </CartProvider>
-            </AccessibilityProvider>
-          </QueryClientProvider>
-          <Toaster />
+          <CartProvider>
+            {" "}
+            {/* Wrap children with CartProvider */}
+            <Header />
+            <main>{children}</main>
+            <Footer />
+            <Toaster />
+          </CartProvider>
         </ThemeProvider>
       </body>
     </html>
