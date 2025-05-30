@@ -11,14 +11,23 @@ import { SidepanelContent } from "@/components/sidepanel/sidepanel-content"
 import { SidepanelFooter } from "@/components/sidepanel/sidepanel-footer"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
-import type { CartItem } from "@/lib/cart-context"
 
 interface RoomCustomizationPanelProps {
   isOpen: boolean
   onClose: () => void
+  onSave: (item: any) => void
+  initialService: {
+    id: string
+    name: string
+    price: number
+    description: string
+    features: string[]
+    isCustomizable?: boolean
+    basePriceId?: string
+  } | null
 }
 
-export function RoomCustomizationPanel({ isOpen, onClose }: RoomCustomizationPanelProps) {
+export function RoomCustomizationPanel({ isOpen, onClose, onSave, initialService }: RoomCustomizationPanelProps) {
   const { addToCart } = useCart()
   const [rooms, setRooms] = useState({
     bedrooms: 0,
@@ -68,35 +77,18 @@ export function RoomCustomizationPanel({ isOpen, onClose }: RoomCustomizationPan
     setAddOns((prev) => ({ ...prev, [addOnType]: checked }))
   }
 
-  const handleAddToCart = () => {
+  const handleSave = () => {
     const total = calculateTotal()
-    const itemsToAdd: Omit<CartItem, "quantity">[] = []
-
-    for (const roomType in rooms) {
-      if (rooms[roomType as keyof typeof rooms] > 0) {
-        itemsToAdd.push({
-          id: `room-${roomType}`,
-          name: `${rooms[roomType as keyof typeof rooms]} ${roomType.replace(/([A-Z])/g, " $1").toLowerCase()}`,
-          price: rooms[roomType as keyof typeof rooms] * roomPrices[roomType as keyof typeof roomPrices],
-        })
-      }
+    const customizedItem = {
+      id: initialService?.id || "custom-service",
+      name: initialService?.name || "Custom Service",
+      price: total,
+      metadata: {
+        rooms: rooms,
+        addOns: addOns,
+      },
     }
-
-    for (const addOnType in addOns) {
-      if (addOns[addOnType as keyof typeof addOns]) {
-        itemsToAdd.push({
-          id: `add-on-${addOnType}`,
-          name: addOnType.replace(/([A-Z])/g, " $1").toLowerCase(),
-          price: addOnPrices[addOnType as keyof typeof addOns],
-        })
-      }
-    }
-
-    if (itemsToAdd.length > 0) {
-      itemsToAdd.forEach((item) => addToCart(item, 1)) // Add each item individually
-    }
-
-    onClose()
+    onSave(customizedItem)
   }
 
   const total = calculateTotal()
@@ -145,7 +137,7 @@ export function RoomCustomizationPanel({ isOpen, onClose }: RoomCustomizationPan
           <span>Estimated Total:</span>
           <span>{formatCurrency(total)}</span>
         </div>
-        <Button className="w-full" onClick={handleAddToCart}>
+        <Button className="w-full" onClick={handleSave}>
           Add to Cart
         </Button>
       </SidepanelFooter>
