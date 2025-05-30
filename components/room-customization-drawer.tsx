@@ -21,14 +21,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { formatCurrency } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Check, X, AlertCircle } from "lucide-react"
-import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { getMatrixServices } from "@/lib/matrix-services"
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
-  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
@@ -60,7 +59,6 @@ export function RoomCustomizationDrawer({
   const [activeTab, setActiveTab] = useState("basic")
   const [selectedTier, setSelectedTier] = useState(config.selectedTier)
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
-  const [selectedReductions, setSelectedReductions] = useState<string[]>(config.selectedReductions)
   const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
   const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
   const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
@@ -69,7 +67,6 @@ export function RoomCustomizationDrawer({
   // Get room tiers, add-ons, and reductions
   const tiers = getRoomTiers(roomType) || []
   const addOns = getRoomAddOns(roomType) || []
-  const reductions = getRoomReductions(roomType) || []
   const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
 
   // Get base tier (Essential Clean)
@@ -98,26 +95,19 @@ export function RoomCustomizationDrawer({
       }, 0)
 
       // Calculate reductions price
-      const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
-        const reduction = reductions.find((r) => r.id === reductionId)
-        return total + (reduction?.discount || 0)
-      }, 0)
-
-      // Calculate matrix remove services price
       const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
         const service = matrixServices.remove.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
       // Calculate total price
-      const totalPrice =
-        basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - reductionsPrice - matrixRemovePrice
+      const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
 
       return {
         basePrice,
         tierUpgradePrice,
         addOnsPrice: addOnsPrice + matrixAddPrice,
-        reductionsPrice: reductionsPrice + matrixRemovePrice,
+        reductionsPrice: matrixRemovePrice,
         totalPrice,
       }
     } catch (err) {
@@ -137,11 +127,9 @@ export function RoomCustomizationDrawer({
     selectedTier,
     selectedAddOns,
     matrixAddServices,
-    selectedReductions,
     matrixRemoveServices,
     addOns,
     matrixServices.add,
-    reductions,
     matrixServices.remove,
   ])
 
@@ -153,7 +141,6 @@ export function RoomCustomizationDrawer({
         ...config,
         selectedTier,
         selectedAddOns,
-        selectedReductions,
         ...prices,
       })
       setError(null)
@@ -161,15 +148,7 @@ export function RoomCustomizationDrawer({
       console.error("Error updating local config:", err)
       setError("Error updating configuration. Please try again.")
     }
-  }, [
-    selectedTier,
-    selectedAddOns,
-    selectedReductions,
-    matrixAddServices,
-    matrixRemoveServices,
-    calculatePrices,
-    config,
-  ])
+  }, [selectedTier, selectedAddOns, matrixAddServices, matrixRemoveServices, calculatePrices, config])
 
   // Reset selections when drawer opens with new config
   useEffect(() => {
@@ -177,7 +156,6 @@ export function RoomCustomizationDrawer({
       try {
         setSelectedTier(config.selectedTier)
         setSelectedAddOns([...config.selectedAddOns])
-        setSelectedReductions([...config.selectedReductions])
         setMatrixAddServices([])
         setMatrixRemoveServices([])
         setActiveTab("basic")
@@ -201,15 +179,6 @@ export function RoomCustomizationDrawer({
       setSelectedAddOns((prev) => [...prev, addOnId])
     } else {
       setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
-    }
-  }
-
-  // Handle reduction selection
-  const handleReductionChange = (reductionId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedReductions((prev) => [...prev, reductionId])
-    } else {
-      setSelectedReductions((prev) => prev.filter((id) => id !== reductionId))
     }
   }
 
@@ -339,34 +308,6 @@ export function RoomCustomizationDrawer({
                                 <span>+{formatCurrency(addOn.price)}</span>
                               </Label>
                               <p className="text-sm text-muted-foreground">{addOn.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {reductions.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Service Reductions</h3>
-                      <div className="space-y-3">
-                        {reductions.map((reduction, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <Checkbox
-                              id={`reduction-${index}`}
-                              checked={selectedReductions.includes(reduction.id)}
-                              onCheckedChange={(checked) => handleReductionChange(reduction.id, checked as boolean)}
-                              className="mt-1"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label
-                                htmlFor={`reduction-${index}`}
-                                className="text-base font-medium flex items-center justify-between"
-                              >
-                                <span>No {reduction.name}</span>
-                                <span>-{formatCurrency(reduction.discount)}</span>
-                              </Label>
-                              <p className="text-sm text-muted-foreground">{reduction.description}</p>
                             </div>
                           </div>
                         ))}

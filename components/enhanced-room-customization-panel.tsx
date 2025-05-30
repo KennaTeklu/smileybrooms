@@ -266,10 +266,9 @@ export function EnhancedRoomCustomizationPanel({
         </Card>
 
         <Tabs defaultValue="tiers" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="tiers">Service Tiers</TabsTrigger>
             <TabsTrigger value="addons">Add-ons</TabsTrigger>
-            <TabsTrigger value="reductions">Reductions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tiers" className="space-y-4">
@@ -349,43 +348,6 @@ export function EnhancedRoomCustomizationPanel({
               </Card>
             )}
           </TabsContent>
-
-          <TabsContent value="reductions" className="space-y-4">
-            {reductions.length > 0 ? (
-              <div className="space-y-3">
-                {reductions.map((reduction) => (
-                  <Card key={reduction.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          id={reduction.id}
-                          checked={localConfig.selectedReductions.includes(reduction.id)}
-                          onCheckedChange={(checked) => handleReductionToggle(reduction.id, checked as boolean)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <Label htmlFor={reduction.id} className="cursor-pointer">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{reduction.name}</span>
-                              <Badge variant="destructive">-${reduction.discount}</Badge>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{reduction.description}</p>
-                          </Label>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-gray-500">No reductions available for this room type</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
         </Tabs>
 
         {/* Price Breakdown */}
@@ -410,12 +372,12 @@ export function EnhancedRoomCustomizationPanel({
                 <span>+${localConfig.addOnsPrice.toFixed(2)}</span>
               </div>
             )}
-            {localConfig.reductionsPrice < 0 && (
-              <div className="flex justify-between">
-                <span>Reductions</span>
-                <span>${localConfig.reductionsPrice.toFixed(2)}</span>
-              </div>
-            )}
+            {/*{localConfig.reductionsPrice < 0 && (*/}
+            {/*  <div className="flex justify-between">*/}
+            {/*    <span>Reductions</span>*/}
+            {/*    <span>${localConfig.reductionsPrice.toFixed(2)}</span>*/}
+            {/*  </div>*/}
+            {/*)}*/}
             <Separator />
             <div className="flex justify-between font-medium">
               <span>Per Room</span>

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
 import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
@@ -15,7 +15,6 @@ interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
-  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
@@ -65,7 +64,6 @@ export function MultiStepCustomizationWizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
-  const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
@@ -89,11 +87,10 @@ export function MultiStepCustomizationWizard({
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
-        reductions: getRoomReductions(roomType) || [],
       }
     } catch (error) {
       console.error("Error getting room data:", error)
-      return { tiers: [], addOns: [], reductions: [] }
+      return { tiers: [], addOns: [] }
     }
   }, [roomType])
 
@@ -118,10 +115,7 @@ export function MultiStepCustomizationWizard({
         const addOn = roomData.addOns.find((a) => a.id === addOnId)
         return sum + (addOn?.price || 0)
       }, 0)
-      const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
-        const reduction = roomData.reductions.find((r) => r.id === reductionId)
-        return sum + (reduction?.discount || 0)
-      }, 0)
+      const reductionsPrice = 0
 
       const subtotal = currentTier.price + addOnsPrice - reductionsPrice
       const discountAmount = subtotal * (frequencyDiscount / 100)
@@ -149,7 +143,7 @@ export function MultiStepCustomizationWizard({
         totalPrice: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, selectedReductions, frequencyDiscount, roomData, addressData])
+  }, [selectedTier, selectedAddOns, frequencyDiscount, roomData, addressData])
 
   // Steps configuration
   const steps: WizardStep[] = ["room-config", "frequency", "configuration-manager", "address", "review"]
@@ -173,12 +167,6 @@ export function MultiStepCustomizationWizard({
   // Event handlers
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
-  }, [])
-
-  const toggleReduction = useCallback((reductionId: string) => {
-    setSelectedReductions((prev) =>
-      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
-    )
   }, [])
 
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
@@ -212,7 +200,6 @@ export function MultiStepCustomizationWizard({
           roomType,
           selectedTier,
           selectedAddOns,
-          selectedReductions,
           frequency: selectedFrequency,
           customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
@@ -244,7 +231,6 @@ export function MultiStepCustomizationWizard({
     roomType,
     selectedTier,
     selectedAddOns,
-    selectedReductions,
     selectedFrequency,
     addressData,
     addItem,
@@ -381,43 +367,6 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
-
-                {/* Reductions */}
-                {roomData.reductions.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
-                    <div className="space-y-2">
-                      {roomData.reductions.map((reduction, index) => (
-                        <Card
-                          key={reduction.id || index}
-                          className={`cursor-pointer transition-colors ${
-                            selectedReductions.includes(reduction.id)
-                              ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
-                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                          }`}
-                          onClick={() => toggleReduction(reduction.id)}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{reduction.name}</span>
-                                  {selectedReductions.includes(reduction.id) && (
-                                    <Check className="h-4 w-4 text-orange-600" />
-                                  )}
-                                </div>
-                                {reduction.description && (
-                                  <p className="text-sm text-gray-500">{reduction.description}</p>
-                                )}
-                              </div>
-                              <span className="font-medium text-orange-600">-${reduction.discount}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -455,7 +404,6 @@ export function MultiStepCustomizationWizard({
                     roomCount,
                     selectedTier,
                     selectedAddOns,
-                    selectedReductions,
                     frequency: selectedFrequency,
                   }}
                 />
