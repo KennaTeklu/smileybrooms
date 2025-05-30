@@ -4,10 +4,10 @@ import { PricingContent } from "@/components/pricing-content"
 import { ServiceComparisonTable } from "@/components/service-comparison-table"
 import { FAQ } from "@/components/faq"
 import { Testimonials } from "@/components/testimonials"
-import { CallToAction } from "@/components/call-to-action"
+import CallToAction from "@/components/call-to-action"
 import { HowItWorks } from "@/components/how-it-works"
 import { MinimalHero } from "@/components/minimal-hero"
-import LoadingAnimation from "@/components/loading-animation" // Corrected import
+import LoadingAnimation from "@/components/loading-animation"
 
 export default function PricingPage() {
   return (
