@@ -1,338 +1,409 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, ChevronUp, Plus, Clock, CheckCircle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Minus, Trash2, Settings, Video } from "lucide-react"
+import { formatCurrency } from "@/lib/utils"
+import { getRoomTiers } from "@/lib/room-tiers" // Removed getRoomReductions
+import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
+import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
+import { SimpleCustomizationPanel } from "./simple-customization-panel"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
-export interface RoomTier {
-  name: string
-  description: string
-  price: number
-  features: string[]
-  timeEstimate?: string
-  detailedTasks?: string[]
-}
-
-export interface RoomAddOn {
-  id: string
-  name: string
-  price: number
-  description?: string
-}
-
-export interface RoomReduction {
-  id: string
-  name: string
-  discount: number
-  description?: string
-}
-
-export interface RoomConfiguratorProps {
-  roomName: string
-  roomIcon: string
-  baseTier: RoomTier
-  tiers: RoomTier[]
-  addOns: RoomAddOn[]
-  reductions: RoomReduction[]
-  onConfigChange: (config: RoomConfiguration) => void
-  initialConfig?: RoomConfiguration
-}
-
-export interface RoomConfiguration {
+interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
-  selectedReductions: string[]
+  basePrice: number
+  tierUpgradePrice: number
+  addOnsPrice: number
   totalPrice: number
+  videoDiscountAmount?: number
 }
 
-export function RoomConfigurator({
-  roomName,
-  roomIcon,
-  baseTier,
-  tiers,
-  addOns,
-  reductions,
-  onConfigChange,
-  initialConfig,
-}: RoomConfiguratorProps) {
-  const [selectedTier, setSelectedTier] = useState<string>(initialConfig?.selectedTier || baseTier.name)
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(initialConfig?.selectedAddOns || [])
-  const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig?.selectedReductions || [])
-  const [addOnsOpen, setAddOnsOpen] = useState(false)
-  const [expandedTiers, setExpandedTiers] = useState<Set<string>>(new Set())
+interface RoomItem {
+  id: string
+  roomType: string
+  roomName: string
+  roomIcon: string
+  count: number
+  config: RoomConfig
+}
 
-  // Calculate the total price based on selections
-  const calculateTotalPrice = () => {
-    const tierPrice = tiers.find((tier) => tier.name === selectedTier)?.price || baseTier.price
-    const addOnsTotal = selectedAddOns.reduce((total, addOnId) => {
-      const addOn = addOns.find((a) => a.id === addOnId)
-      return total + (addOn?.price || 0)
-    }, 0)
-    const reductionsTotal = selectedReductions.reduce((total, reductionId) => {
-      const reduction = reductions.find((r) => r.id === reductionId)
-      return total + (reduction?.discount || 0)
-    }, 0)
-    return tierPrice + addOnsTotal - reductionsTotal
-  }
+interface RoomConfiguratorProps {
+  initialRooms?: RoomItem[]
+  onRoomsChange?: (rooms: RoomItem[]) => void
+  panelType?: "simple" | "enhanced" | "wizard"
+}
 
-  // Update parent component when configuration changes
-  const updateConfiguration = () => {
-    const totalPrice = calculateTotalPrice()
-    onConfigChange({
-      roomName,
-      selectedTier,
-      selectedAddOns,
-      selectedReductions,
-      totalPrice,
-    })
-  }
+export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType = "enhanced" }: RoomConfiguratorProps) {
+  const [rooms, setRooms] = useState<RoomItem[]>(initialRooms)
+  const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
+  const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<RoomItem | null>(null)
+  const [allowVideoRecording, setAllowVideoRecording] = useState(false) // State for video recording
 
-  // Handle tier selection
-  const handleTierChange = (tier: string) => {
-    setSelectedTier(tier)
-    setTimeout(updateConfiguration, 0)
-  }
+  // Memoize room types and their default configurations
+  const availableRoomTypes = useMemo(
+    () => [
+      {
+        type: "bedroom",
+        name: "Bedroom",
+        icon: "🛏️",
+        defaultConfig: {
+          roomName: "Bedroom",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("bedroom")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("bedroom")[0]?.price || 0,
+        },
+      },
+      {
+        type: "bathroom",
+        name: "Bathroom",
+        icon: "🛁",
+        defaultConfig: {
+          roomName: "Bathroom",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("bathroom")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("bathroom")[0]?.price || 0,
+        },
+      },
+      {
+        type: "kitchen",
+        name: "Kitchen",
+        icon: "🍳",
+        defaultConfig: {
+          roomName: "Kitchen",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("kitchen")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("kitchen")[0]?.price || 0,
+        },
+      },
+      {
+        type: "living_room",
+        name: "Living Room",
+        icon: "🛋️",
+        defaultConfig: {
+          roomName: "Living Room",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("living_room")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("living_room")[0]?.price || 0,
+        },
+      },
+      {
+        type: "dining_room",
+        name: "Dining Room",
+        icon: "🍽️",
+        defaultConfig: {
+          roomName: "Dining Room",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("dining_room")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("dining_room")[0]?.price || 0,
+        },
+      },
+      {
+        type: "hallway",
+        name: "Hallway",
+        icon: "🚶",
+        defaultConfig: {
+          roomName: "Hallway",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("hallway")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("hallway")[0]?.price || 0,
+        },
+      },
+      {
+        type: "home_office",
+        name: "Home Office",
+        icon: "🖥️",
+        defaultConfig: {
+          roomName: "Home Office",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("home_office")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("home_office")[0]?.price || 0,
+        },
+      },
+      {
+        type: "laundry_room",
+        name: "Laundry Room",
+        icon: "🧺",
+        defaultConfig: {
+          roomName: "Laundry Room",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("laundry_room")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("laundry_room")[0]?.price || 0,
+        },
+      },
+      {
+        type: "stairs",
+        name: "Stairs",
+        icon: "🪜",
+        defaultConfig: {
+          roomName: "Stairs",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("stairs")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("stairs")[0]?.price || 0,
+        },
+      },
+      {
+        type: "entryway",
+        name: "Entryway",
+        icon: "🚪",
+        defaultConfig: {
+          roomName: "Entryway",
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          basePrice: getRoomTiers("entryway")[0]?.price || 0,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          totalPrice: getRoomTiers("entryway")[0]?.price || 0,
+        },
+      },
+    ],
+    [],
+  )
 
-  // Handle tier expansion
-  const toggleTierExpansion = (tierName: string) => {
-    setExpandedTiers((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(tierName)) {
-        newSet.delete(tierName)
-      } else {
-        newSet.add(tierName)
+  // Calculate total price of all rooms
+  const overallTotalPrice = useMemo(() => {
+    return rooms.reduce((total, room) => total + room.config.totalPrice * room.count, 0)
+  }, [rooms])
+
+  // Add a room to the list
+  const addRoom = useCallback(
+    (roomType: string) => {
+      const roomInfo = availableRoomTypes.find((r) => r.type === roomType)
+      if (roomInfo) {
+        setRooms((prevRooms) => {
+          const existingRoomIndex = prevRooms.findIndex((r) => r.roomType === roomType)
+          if (existingRoomIndex > -1) {
+            // If room type already exists, increment count
+            const updatedRooms = [...prevRooms]
+            updatedRooms[existingRoomIndex] = {
+              ...updatedRooms[existingRoomIndex],
+              count: updatedRooms[existingRoomIndex].count + 1,
+            }
+            onRoomsChange?.(updatedRooms)
+            return updatedRooms
+          } else {
+            // Otherwise, add new room
+            const newRoom: RoomItem = {
+              id: `room-${Date.now()}`,
+              roomType: roomInfo.type,
+              roomName: roomInfo.name,
+              roomIcon: roomInfo.icon,
+              count: 1,
+              config: roomInfo.defaultConfig,
+            }
+            const updatedRooms = [...prevRooms, newRoom]
+            onRoomsChange?.(updatedRooms)
+            return updatedRooms
+          }
+        })
       }
-      return newSet
-    })
-  }
+    },
+    [availableRoomTypes, onRoomsChange],
+  )
 
-  // Handle add-on selection
-  const handleAddOnChange = (addOnId: string, checked: boolean) => {
-    setSelectedAddOns((prev) => {
-      if (checked) {
-        return [...prev, addOnId]
-      } else {
-        return prev.filter((id) => id !== addOnId)
-      }
-    })
-    setTimeout(updateConfiguration, 0)
-  }
+  // Remove a room from the list
+  const removeRoom = useCallback(
+    (id: string) => {
+      setRooms((prevRooms) => {
+        const updatedRooms = prevRooms.filter((room) => room.id !== id)
+        onRoomsChange?.(updatedRooms)
+        return updatedRooms
+      })
+    },
+    [onRoomsChange],
+  )
 
-  // Call updateConfiguration when the component mounts
-  useEffect(() => {
-    updateConfiguration()
+  // Decrement room count or remove if count is 1
+  const decrementRoomCount = useCallback(
+    (id: string) => {
+      setRooms((prevRooms) => {
+        const updatedRooms = prevRooms
+          .map((room) => {
+            if (room.id === id) {
+              return { ...room, count: room.count - 1 }
+            }
+            return room
+          })
+          .filter((room) => room.count > 0) // Remove if count becomes 0
+        onRoomsChange?.(updatedRooms)
+        return updatedRooms
+      })
+    },
+    [onRoomsChange],
+  )
+
+  // Increment room count
+  const incrementRoomCount = useCallback(
+    (id: string) => {
+      setRooms((prevRooms) => {
+        const updatedRooms = prevRooms.map((room) => {
+          if (room.id === id) {
+            return { ...room, count: room.count + 1 }
+          }
+          return room
+        })
+        onRoomsChange?.(updatedRooms)
+        return updatedRooms
+      })
+    },
+    [onRoomsChange],
+  )
+
+  // Open customization panel for a specific room
+  const openCustomizationPanel = useCallback((room: RoomItem) => {
+    setCurrentRoomToCustomize(room)
+    setIsCustomizationPanelOpen(true)
   }, [])
 
-  const getTierBadgeColor = (tierName: string) => {
-    if (tierName.includes("ESSENTIAL")) return "bg-green-100 text-green-800 border-green-200"
-    if (tierName.includes("ADVANCED")) return "bg-blue-100 text-blue-800 border-blue-200"
-    if (tierName.includes("PREMIUM")) return "bg-purple-100 text-purple-800 border-purple-200"
-    return "bg-gray-100 text-gray-800 border-gray-200"
-  }
+  // Handle configuration change from customization panel
+  const handleConfigChange = useCallback(
+    (updatedConfig: RoomConfig) => {
+      setRooms((prevRooms) => {
+        const updatedRooms = prevRooms.map((room) =>
+          room.id === currentRoomToCustomize?.id ? { ...room, config: updatedConfig } : room,
+        )
+        onRoomsChange?.(updatedRooms)
+        return updatedRooms
+      })
+      setIsCustomizationPanelOpen(false)
+      setCurrentRoomToCustomize(null)
+    },
+    [currentRoomToCustomize, onRoomsChange],
+  )
 
-  const getTierIcon = (tierName: string) => {
-    if (tierName.includes("ESSENTIAL")) return "⚡"
-    if (tierName.includes("ADVANCED")) return "🔧"
-    if (tierName.includes("PREMIUM")) return "⭐"
-    return "🏠"
-  }
-
-  const getTierColor = (tierName: string) => {
-    if (tierName.includes("ESSENTIAL")) return "border-green-300 bg-green-50"
-    if (tierName.includes("ADVANCED")) return "border-blue-300 bg-blue-50"
-    if (tierName.includes("PREMIUM")) return "border-purple-300 bg-purple-50"
-    return "border-gray-300 bg-gray-50"
-  }
+  const CustomizationPanelComponent = useMemo(() => {
+    if (panelType === "enhanced") return EnhancedRoomCustomizationPanel
+    if (panelType === "wizard") return MultiStepCustomizationWizard
+    return SimpleCustomizationPanel
+  }, [panelType])
 
   return (
-    <Card className="w-full mb-6 border-2 border-blue-100">
-      <CardHeader className="bg-blue-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{roomIcon}</span>
-            <CardTitle>{roomName}</CardTitle>
-          </div>
-          <Badge variant="outline" className="bg-white">
-            ${calculateTotalPrice().toFixed(2)}
-          </Badge>
-        </div>
-        <CardDescription>Customize your cleaning options for this room</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-6">
-          {/* Tier Selection */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">SERVICE TIERS</h3>
-            <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-4">
-              {tiers.map((tier, index) => {
-                const isExpanded = expandedTiers.has(tier.name)
-                const isSelected = selectedTier === tier.name
+    <div className="container mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
 
-                return (
-                  <div
-                    key={tier.name}
-                    className={`rounded-lg border-2 transition-all duration-200 ${
-                      isSelected ? `border-blue-500 bg-blue-50 shadow-md` : `border-gray-200 hover:border-gray-300`
-                    }`}
-                  >
-                    {/* Main Tier Selection */}
-                    <div className="p-4">
-                      <div className="flex items-start">
-                        <RadioGroupItem value={tier.name} id={`tier-${tier.name}`} className="mt-1" />
-                        <div className="ml-3 flex-1">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <Label htmlFor={`tier-${tier.name}`} className="font-medium text-base cursor-pointer">
-                                {getTierIcon(tier.name)} {tier.name}
-                              </Label>
-                              <p className="text-sm text-gray-600 mt-1">{tier.description}</p>
-
-                              {/* Quick Info Row */}
-                              <div className="flex items-center gap-4 mt-2">
-                                {tier.timeEstimate && (
-                                  <div className="flex items-center gap-1 text-xs text-blue-600">
-                                    <Clock className="h-3 w-3" />
-                                    {tier.timeEstimate}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-1 text-xs text-green-600">
-                                  <CheckCircle className="h-3 w-3" />
-                                  {tier.detailedTasks?.length || tier.features.length} tasks included
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Price and Expand Button */}
-                            <div className="flex items-center gap-2">
-                              <Badge className={getTierBadgeColor(tier.name)}>${tier.price}</Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleTierExpansion(tier.name)}
-                                className="h-8 w-8 p-0 hover:bg-blue-100"
-                                aria-label={`${isExpanded ? "Hide" : "Show"} details for ${tier.name}`}
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4 text-blue-600" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4 text-blue-600" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expandable Details */}
-                    <Collapsible open={isExpanded}>
-                      <CollapsibleContent>
-                        <div className={`border-t border-gray-200 p-4 ${getTierColor(tier.name)}`}>
-                          <div className="space-y-3">
-                            <div>
-                              <h4 className="font-medium text-sm text-gray-900 mb-2">
-                                What's Included in {tier.name}:
-                              </h4>
-
-                              {/* Detailed Task List */}
-                              <div className="grid gap-1">
-                                {tier.detailedTasks && tier.detailedTasks.length > 0
-                                  ? tier.detailedTasks.map((task, i) => (
-                                      <div key={i} className="flex items-start gap-2 text-xs">
-                                        <span className="text-green-500 mt-0.5">✓</span>
-                                        <span className="text-gray-700">{task}</span>
-                                      </div>
-                                    ))
-                                  : tier.features.map((feature, i) => (
-                                      <div key={i} className="flex items-start gap-2 text-xs">
-                                        <span className="text-green-500 mt-0.5">✓</span>
-                                        <span className="text-gray-700">{feature}</span>
-                                      </div>
-                                    ))}
-                              </div>
-                            </div>
-
-                            {/* Summary Stats */}
-                            <div className="flex items-center justify-between pt-2 border-t border-gray-300">
-                              <div className="text-xs text-gray-600">
-                                <span className="font-medium">Total Tasks:</span>{" "}
-                                {tier.detailedTasks?.length || tier.features.length}
-                              </div>
-                              {tier.timeEstimate && (
-                                <div className="text-xs text-gray-600">
-                                  <span className="font-medium">Duration:</span> {tier.timeEstimate}
-                                </div>
-                              )}
-                              <div className="text-xs font-medium text-gray-900">${tier.price}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                )
-              })}
-            </RadioGroup>
-          </div>
-
-          {/* Add-ons Section */}
-          {addOns.length > 0 && (
-            <Collapsible open={addOnsOpen} onOpenChange={setAddOnsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4 text-green-600" />
-                    <span className="text-green-700 font-medium">ADD SERVICES ({selectedAddOns.length} selected)</span>
-                  </div>
-                  {addOnsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 mt-3 border-l-4 border-green-200 pl-4">
-                {addOns.map((addOn) => (
-                  <div key={addOn.id} className="flex items-start space-x-3">
-                    <Checkbox
-                      id={`addon-${addOn.id}`}
-                      checked={selectedAddOns.includes(addOn.id)}
-                      onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor={`addon-${addOn.id}`} className="font-medium">
-                            {addOn.name}
-                          </Label>
-                          {addOn.description && <p className="text-xs text-gray-500 mt-1">{addOn.description}</p>}
-                        </div>
-                        <Badge variant="outline" className="text-green-600 border-green-200">
-                          +${addOn.price.toFixed(2)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* Price Summary */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Room Total</p>
-                <p className="text-xl font-bold">${calculateTotalPrice().toFixed(2)}</p>
-              </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        {availableRoomTypes.map((roomType) => (
+          <Button key={roomType.type} onClick={() => addRoom(roomType.type)} variant="outline" className="h-auto py-4">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-3xl">{roomType.icon}</span>
+              <span className="text-sm font-medium">{roomType.name}</span>
+              <span className="text-xs text-gray-500">Add to list</span>
             </div>
+          </Button>
+        ))}
+      </div>
+
+      {rooms.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold mb-4">Your Selected Rooms</h3>
+          <div className="space-y-4">
+            {rooms.map((room) => (
+              <Card key={room.id}>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="text-3xl">{room.roomIcon}</span>
+                    <div>
+                      <CardTitle className="text-lg">{room.roomName}</CardTitle>
+                      <p className="text-sm text-gray-600">
+                        {room.config.selectedTier}
+                        {room.config.selectedAddOns.length > 0 && ` + ${room.config.selectedAddOns.length} add-on(s)`}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {formatCurrency(room.config.totalPrice)} x {room.count} ={" "}
+                        {formatCurrency(room.config.totalPrice * room.count)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => decrementRoomCount(room.id)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="font-medium w-6 text-center">{room.count}</span>
+                    <Button variant="outline" size="icon" onClick={() => incrementRoomCount(room.id)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => openCustomizationPanel(room)}>
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button variant="destructive" size="icon" onClick={() => removeRoom(room.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      <Card className="p-4 mb-8">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Additional Options</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="allowVideoRecording"
+              checked={allowVideoRecording}
+              onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+            />
+            <Label htmlFor="allowVideoRecording" className="flex items-center gap-2">
+              <Video className="h-4 w-4" />
+              Allow video recording for a discount
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-between items-center text-2xl font-bold mb-8">
+        <span>Total Estimated Price:</span>
+        <span>{formatCurrency(overallTotalPrice)}</span>
+      </div>
+
+      {currentRoomToCustomize && (
+        <CustomizationPanelComponent
+          isOpen={isCustomizationPanelOpen}
+          onClose={() => setIsCustomizationPanelOpen(false)}
+          roomType={currentRoomToCustomize.roomType}
+          roomName={currentRoomToCustomize.roomName}
+          roomIcon={currentRoomToCustomize.roomIcon}
+          roomCount={currentRoomToCustomize.count}
+          config={currentRoomToCustomize.config}
+          onConfigChange={handleConfigChange}
+          allowVideoRecording={allowVideoRecording} // Pass the prop
+        />
+      )}
+    </div>
   )
 }

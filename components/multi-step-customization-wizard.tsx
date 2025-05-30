@@ -10,19 +10,17 @@ import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
-import { calculateVideoDiscount } from "@/lib/utils" // Import calculateVideoDiscount
+import { calculateVideoDiscount } from "@/lib/utils" // Import the discount utility
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
-  // selectedReductions: string[] // Removed
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
-  reductionsPrice: number
   totalPrice: number
-  allowVideoRecording?: boolean // Added for discount logic
+  videoDiscountAmount?: number // Add video discount to config
 }
 
 interface WizardProps {
@@ -67,7 +65,6 @@ export function MultiStepCustomizationWizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
-  // const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || []) // Removed
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
@@ -91,7 +88,6 @@ export function MultiStepCustomizationWizard({
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
-        // reductions: getRoomReductions(roomType) || [], // Removed
       }
     } catch (error) {
       console.error("Error getting room data:", error)
@@ -107,8 +103,8 @@ export function MultiStepCustomizationWizard({
           basePrice: 0,
           tierUpgradePrice: 0,
           addOnsPrice: 0,
-          reductionsPrice: 0,
           totalPrice: 0,
+          videoDiscountAmount: 0,
         }
       }
 
@@ -120,24 +116,21 @@ export function MultiStepCustomizationWizard({
         const addOn = roomData.addOns.find((a) => a.id === addOnId)
         return sum + (addOn?.price || 0)
       }, 0)
-      // Reductions are removed, so reductionsPrice is 0
-      const reductionsPrice = 0
 
-      const subtotal = currentTier.price + addOnsPrice - reductionsPrice
+      let subtotal = currentTier.price + addOnsPrice
       const discountAmount = subtotal * (frequencyDiscount / 100)
-      let totalPrice = Math.max(0, subtotal - discountAmount)
+      subtotal = Math.max(0, subtotal - discountAmount)
 
       // Apply video recording discount if applicable
-      if (addressData?.allowVideoRecording) {
-        totalPrice -= calculateVideoDiscount(totalPrice)
-      }
+      const videoDiscountAmount = addressData?.allowVideoRecording ? calculateVideoDiscount(subtotal) : 0
+      const totalPrice = Math.max(0, subtotal - videoDiscountAmount)
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
-        reductionsPrice, // Still include in type, but always 0
         totalPrice,
+        videoDiscountAmount,
       }
     } catch (error) {
       console.error("Error calculating pricing:", error)
@@ -145,8 +138,8 @@ export function MultiStepCustomizationWizard({
         basePrice: 0,
         tierUpgradePrice: 0,
         addOnsPrice: 0,
-        reductionsPrice: 0,
         totalPrice: 0,
+        videoDiscountAmount: 0,
       }
     }
   }, [selectedTier, selectedAddOns, frequencyDiscount, roomData, addressData])
@@ -174,8 +167,6 @@ export function MultiStepCustomizationWizard({
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
-
-  // toggleReduction removed
 
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
     setSelectedFrequency(frequency)
@@ -208,10 +199,10 @@ export function MultiStepCustomizationWizard({
           roomType,
           selectedTier,
           selectedAddOns,
-          // selectedReductions, // Removed
           frequency: selectedFrequency,
           customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
+          videoDiscountApplied: pricing.videoDiscountAmount || 0,
         },
       }
 
@@ -240,12 +231,12 @@ export function MultiStepCustomizationWizard({
     roomType,
     selectedTier,
     selectedAddOns,
-    // selectedReductions, // Removed
     selectedFrequency,
     addressData,
     addItem,
     toast,
     onClose,
+    pricing.videoDiscountAmount,
   ])
 
   // Validation for next button
@@ -377,8 +368,6 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
-
-                {/* Reductions section removed */}
               </div>
             )}
 
@@ -416,7 +405,6 @@ export function MultiStepCustomizationWizard({
                     roomCount,
                     selectedTier,
                     selectedAddOns,
-                    // selectedReductions, // Removed
                     frequency: selectedFrequency,
                   }}
                 />
@@ -464,14 +452,14 @@ export function MultiStepCustomizationWizard({
                                 {addressData.city}, {addressData.state}
                               </span>
                             </div>
-                            {addressData.allowVideoRecording && (
-                              <div className="flex justify-between text-green-600">
-                                <span>Video Recording Discount:</span>
-                                <span className="font-medium">
-                                  -${calculateVideoDiscount(pricing.totalPrice).toFixed(2)}
-                                </span>
-                              </div>
-                            )}
+                            {addressData.allowVideoRecording &&
+                              pricing.videoDiscountAmount &&
+                              pricing.videoDiscountAmount > 0 && (
+                                <div className="flex justify-between text-green-600">
+                                  <span>Video Recording Discount:</span>
+                                  <span className="font-medium">-${pricing.videoDiscountAmount.toFixed(2)}</span>
+                                </div>
+                              )}
                           </>
                         )}
                         <div className="border-t pt-3">

@@ -1184,10 +1184,6 @@ export function getRoomAddOns(roomType: string): RoomAddOn[] {
 }
 
 // Helper function to get reductions for a specific room type
-export function getRoomReductions(roomType: string): RoomReduction[] {
-  return defaultReductions[roomType] || defaultReductions.default
-}
-
 // Room type to professional image mapping
 export const roomImages: Record<string, string> = {
   bedroom: "/images/bedroom-professional.png",
