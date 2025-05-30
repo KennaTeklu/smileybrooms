@@ -68,11 +68,11 @@ export function FloatingCartSummaryPanel({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          initial={{ opacity: 0, scale: 0.8, y: -20 }} // Adjusted initial y for top placement
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          exit={{ opacity: 0, scale: 0.8, y: -20 }} // Adjusted exit y for top placement
           transition={{ type: "spring", damping: 20, stiffness: 300 }}
-          className="fixed bottom-6 right-6 z-50" // Increased bottom/right for more prominence
+          className="fixed top-24 right-6 z-50" // Changed from bottom-6 to top-24
         >
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -118,8 +118,7 @@ export function FloatingCartSummaryPanel({
                     <p>Start adding rooms to see them here!</p>
                   </div>
                 ) : (
-                  (
-                    rooms.map((room) => (
+                  rooms.map((room) => (
                     <Card key={room.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -139,27 +138,46 @@ export function FloatingCartSummaryPanel({
                         </div>
                         <div className="flex flex-col items-end space-y-2 ml-4">
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={() => onDecrementRoomCount(room.id)} className="h-8 w-8">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => onDecrementRoomCount(room.id)}
+                              className="h-8 w-8"
+                            >
                               <Minus className="h-4 w-4" />
                             </Button>
                             <span className="font-medium w-8 text-center text-lg">{room.count}</span>
-                            <Button variant="outline" size="icon" onClick={() => onIncrementRoomCount(room.id)} className="h-8 w-8">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => onIncrementRoomCount(room.id)}
+                              className="h-8 w-8"
+                            >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="icon" onClick={() => onOpenCustomizationPanel(room)} className="h-8 w-8">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => onOpenCustomizationPanel(room)}
+                              className="h-8 w-8"
+                            >
                               <Settings className="h-4 w-4" />
                             </Button>
-                            <Button variant="destructive" size="icon" onClick={() => onRemoveRoom(room.id)} className="h-8 w-8">
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => onRemoveRoom(room.id)}
+                              className="h-8 w-8"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
                       </CardContent>
-                    </Card>\
-                  )
-                  )
+                    </Card>
+                  ))
                 )}
               </div>
               <div className="border-t pt-4 mt-auto">
