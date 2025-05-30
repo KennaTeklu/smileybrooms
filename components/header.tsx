@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
+import { AnimatedDownloadButton } from "@/components/animated-download-button"
 
 export default function Header() {
   const pathname = usePathname()
@@ -39,7 +39,9 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           {/* Animated Download Button */}
-          <CartButton className="hidden md:flex" />
+          <div className="hidden md:block">
+            <AnimatedDownloadButton />
+          </div>
 
           <Sheet>
             <SheetTrigger asChild>
