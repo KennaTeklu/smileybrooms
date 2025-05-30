@@ -114,7 +114,7 @@ const CartItem = ({
   )
 }
 
-export function MultiListCart() {
+export default function MultiListCart() {
   const { cart, removeItem, updateQuantity, moveItem, setActiveList, clearList, getListCount, getListTotal } =
     useEnhancedCart()
 
