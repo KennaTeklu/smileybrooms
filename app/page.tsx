@@ -1,11 +1,11 @@
-import MinimalHero from "@/components/minimal-hero"
+import Hero from "@/components/hero"
 import ErrorBoundary from "@/components/error-boundary"
 
 export default function Home() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen container mx-auto">
-        <MinimalHero />
+        <Hero />
       </div>
     </ErrorBoundary>
   )
