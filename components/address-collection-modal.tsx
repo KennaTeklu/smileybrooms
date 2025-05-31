@@ -105,7 +105,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto top-[5%] translate-y-0">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <MapPin className="h-5 w-5 mr-2 text-blue-600" />
@@ -215,7 +215,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                     <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px]">
                       {US_STATES.map((state) => (
                         <SelectItem key={state.value} value={state.value}>
                           {state.label}
@@ -254,21 +254,15 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
             </div>
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 sm:flex-row flex-col">
             <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-left">
-                <p className="text-sm text-gray-600">Total Price:</p>
-                <p className="text-xl font-bold">{/* Price will be displayed in the cart component */}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Add to Cart
-                </Button>
-              </div>
+              <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+                Cancel
+              </Button>
+              <Button type="submit" className="gap-2 w-full sm:w-auto">
+                <CreditCard className="h-4 w-4" />
+                Add to Cart
+              </Button>
             </div>
           </DialogFooter>
         </form>
