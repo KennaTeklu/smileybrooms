@@ -11,6 +11,8 @@ import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
+// Import the EnhancedCartButton component
+import { EnhancedCartButton } from "@/components/enhanced-cart-button"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -34,6 +36,7 @@ function ConditionalHeaderWrapper() {
   )
 }
 
+// Add the EnhancedCartButton component to the layout, just before the PersistentBookNowButton
 export default function ClientLayout({
   children,
 }: {
@@ -44,6 +47,7 @@ export default function ClientLayout({
       <CartProvider>
         <ConditionalHeaderWrapper />
         <main>{children}</main>
+        <EnhancedCartButton />
         <PersistentBookNowButton />
         <AccessibilityPanel />
         <SharePanel />
