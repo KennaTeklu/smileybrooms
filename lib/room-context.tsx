@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useCallback, useMemo } from "react"
+import { getRoomTiers } from "@/lib/room-tiers"
 
 interface RoomConfig {
   roomName: string
@@ -38,15 +39,35 @@ const AVAILABLE_ROOM_TYPES = [
   "laundry_room",
 ]
 
-const createDefaultConfig = (roomType: string): RoomConfig => ({
-  roomName: roomType.charAt(0).toUpperCase() + roomType.slice(1).replace("_", " "),
-  selectedTier: "ESSENTIAL CLEAN",
-  selectedAddOns: [],
-  basePrice: 50, // Default price, should be fetched from getRoomTiers
-  tierUpgradePrice: 0,
-  addOnsPrice: 0,
-  totalPrice: 50,
-})
+const createDefaultConfig = (roomType: string): RoomConfig => {
+  try {
+    const tiers = getRoomTiers(roomType)
+    const defaultTier = tiers && tiers.length > 0 ? tiers[0] : null
+    const basePrice = defaultTier?.price || 50 // Fallback price
+
+    return {
+      roomName: roomType.charAt(0).toUpperCase() + roomType.slice(1).replace("_", " "),
+      selectedTier: defaultTier?.name || "ESSENTIAL CLEAN",
+      selectedAddOns: [],
+      basePrice: basePrice,
+      tierUpgradePrice: 0,
+      addOnsPrice: 0,
+      totalPrice: basePrice,
+    }
+  } catch (error) {
+    console.error(`Error creating default config for ${roomType}:`, error)
+    // Fallback config if getRoomTiers fails
+    return {
+      roomName: roomType.charAt(0).toUpperCase() + roomType.slice(1).replace("_", " "),
+      selectedTier: "ESSENTIAL CLEAN",
+      selectedAddOns: [],
+      basePrice: 50,
+      tierUpgradePrice: 0,
+      addOnsPrice: 0,
+      totalPrice: 50,
+    }
+  }
+}
 
 export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialize room counts for all room types
@@ -91,8 +112,8 @@ export const RoomProvider = ({ children }: { children: React.ReactNode }) => {
 
   const getTotalPrice = useCallback(() => {
     return Object.entries(roomCounts).reduce((total, [roomType, count]) => {
-      if (count > 0) {
-        return total + roomConfigs[roomType].totalPrice * count
+      if (count > 0 && roomConfigs[roomType]) {
+        return total + (roomConfigs[roomType].totalPrice || 0) * count
       }
       return total
     }, 0)
