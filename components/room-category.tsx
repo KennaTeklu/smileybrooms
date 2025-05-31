@@ -11,7 +11,6 @@ import { useRoomContext } from "@/lib/room-context"
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
-import { formatCurrency } from "@/lib/utils"
 
 interface RoomConfig {
   roomName: string
@@ -35,17 +34,9 @@ interface RoomCategoryProps {
 
 export function RoomCategory({ title, description, rooms, variant = "primary", onRoomSelect }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } =
-    useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
-
-  // Check if this category has any selected rooms
-  const categoryHasSelectedRooms = rooms.some((roomType) => roomCounts[roomType] > 0)
-
-  // Check if this category should show the "Add All" button
-  // Show it if: multi-selection is active AND this category has selected rooms
-  const shouldShowAddAllButton = isMultiSelection && categoryHasSelectedRooms
 
   const handleOpenWizard = (roomType: string) => {
     try {
@@ -107,55 +98,6 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
       toast({
         title: "Failed to add to cart",
         description: "There was an error adding the item to your cart. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      })
-    }
-  }
-
-  const handleAddAllToCart = () => {
-    try {
-      let addedCount = 0
-      const selectedRoomTypes = getSelectedRoomTypes()
-
-      selectedRoomTypes.forEach((roomType) => {
-        const count = roomCounts[roomType]
-        const config = roomConfigs[roomType]
-
-        if (count > 0) {
-          addItem({
-            id: `custom-cleaning-${roomType}-${Date.now()}`,
-            name: `${config.roomName} Cleaning`,
-            price: config.totalPrice,
-            priceId: "price_custom_cleaning",
-            quantity: count,
-            image: roomImages[roomType] || "/placeholder.svg",
-            metadata: {
-              roomType,
-              roomConfig: config,
-              isRecurring: false,
-              frequency: "one_time",
-            },
-          })
-
-          // Reset this room's count after adding to cart
-          updateRoomCount(roomType, 0)
-          addedCount++
-        }
-      })
-
-      if (addedCount > 0) {
-        toast({
-          title: "All items added to cart",
-          description: `${addedCount} room type(s) have been added to your cart.`,
-          duration: 3000,
-        })
-      }
-    } catch (error) {
-      console.error("Error adding all items to cart:", error)
-      toast({
-        title: "Failed to add all to cart",
-        description: "There was an error adding all items to your cart. Please try again.",
         variant: "destructive",
         duration: 3000,
       })
@@ -342,80 +284,6 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
               </Card>
             ))}
           </div>
-
-          {/* Responsive Add All to Cart Button */}
-          {shouldShowAddAllButton && (
-            <div className="mt-4 sm:mt-6">
-              {/* Mobile Layout (< 640px) */}
-              <div className="block sm:hidden">
-                <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-center mb-3">
-                    <h4 className="font-semibold text-base text-blue-900 dark:text-blue-100">Ready to add all?</h4>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                      {formatCurrency(getTotalPrice())} • {getSelectedRoomTypes().length} rooms
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleAddAllToCart}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add All to Cart
-                  </Button>
-                </div>
-              </div>
-
-              {/* Tablet Layout (640px - 1024px) */}
-              <div className="hidden sm:block lg:hidden">
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="text-center">
-                      <h4 className="font-semibold text-lg text-blue-900 dark:text-blue-100">
-                        Ready to add all selected rooms?
-                      </h4>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        Total: {formatCurrency(getTotalPrice())} • {getSelectedRoomTypes().length} room types selected
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleAddAllToCart}
-                      size="lg"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Add All to Cart
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Desktop Layout (>= 1024px) */}
-              <div className="hidden lg:block">
-                <div className="p-6 bg-gradient-to-r from-blue-50 via-blue-50 to-blue-100 dark:from-blue-900/20 dark:via-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-xl text-blue-900 dark:text-blue-100 mb-1">
-                        Ready to add all selected rooms?
-                      </h4>
-                      <div className="flex items-center gap-4 text-sm text-blue-700 dark:text-blue-300">
-                        <span className="font-medium">Total: {formatCurrency(getTotalPrice())}</span>
-                        <span className="text-blue-500 dark:text-blue-400">•</span>
-                        <span>{getSelectedRoomTypes().length} room types selected</span>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={handleAddAllToCart}
-                      size="lg"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ml-6"
-                    >
-                      <ShoppingCart className="h-5 w-5 mr-3" />
-                      Add All to Cart
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
