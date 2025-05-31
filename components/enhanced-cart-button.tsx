@@ -12,7 +12,23 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 export function EnhancedCartButton() {
-  const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
+  // Add try-catch for room context
+  const [roomContext, setRoomContext] = useState(null)
+
+  useEffect(() => {
+    try {
+      setRoomContext(useRoomContext())
+    } catch (error) {
+      // If room context is not available, don't render the component
+      console.warn("EnhancedCartButton: Room context not available")
+    }
+  }, [])
+
+  if (!roomContext) {
+    return null
+  }
+
+  const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = roomContext
   const { addItem } = useCart()
   const [isExpanded, setIsExpanded] = useState(false)
   const [isVisible, setIsVisible] = useState(false)

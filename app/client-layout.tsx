@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 // Import the EnhancedCartButton component
 import { EnhancedCartButton } from "@/components/enhanced-cart-button"
+import { RoomProvider } from "@/lib/room-context"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -44,16 +45,18 @@ export default function ClientLayout({
 }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <CartProvider>
-        <ConditionalHeaderWrapper />
-        <main>{children}</main>
-        <EnhancedCartButton />
-        <PersistentBookNowButton />
-        <AccessibilityPanel />
-        <SharePanel />
-        <UnifiedFooter />
-        <Toaster />
-      </CartProvider>
+      <RoomProvider>
+        <CartProvider>
+          <ConditionalHeaderWrapper />
+          <main>{children}</main>
+          <EnhancedCartButton />
+          <PersistentBookNowButton />
+          <AccessibilityPanel />
+          <SharePanel />
+          <UnifiedFooter />
+          <Toaster />
+        </CartProvider>
+      </RoomProvider>
     </ThemeProvider>
   )
 }
