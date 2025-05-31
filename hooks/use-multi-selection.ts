@@ -12,12 +12,3 @@ export const useMultiSelection = (roomCounts: Record<string, number>) => {
     return selectedRoomTypesCount > 1
   }, [roomCounts])
 }
-
-/**
- * Hook to get the number of selected room types
- */
-export const useSelectedRoomCount = (roomCounts: Record<string, number>) => {
-  return useMemo(() => {
-    return Object.values(roomCounts).filter((count) => count > 0).length
-  }, [roomCounts])
-}

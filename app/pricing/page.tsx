@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import LoadingAnimation from "@/components/loading-animation"
+import { RoomProvider } from "@/lib/room-context"
 
 // Dynamically import components to prevent SSR issues
 const PricingContent = dynamic(() => import("@/components/pricing-content"), {
@@ -11,13 +12,15 @@ const PricingContent = dynamic(() => import("@/components/pricing-content"), {
 
 export default function PricingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1">
-        <Suspense fallback={<LoadingAnimation />}>
-          <PricingContent />
-        </Suspense>
-      </main>
-      <AccessibilityToolbar />
-    </div>
+    <RoomProvider>
+      <div className="flex min-h-screen flex-col">
+        <main className="flex-1">
+          <Suspense fallback={<LoadingAnimation />}>
+            <PricingContent />
+          </Suspense>
+        </main>
+        <AccessibilityToolbar />
+      </div>
+    </RoomProvider>
   )
 }

@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { useRoomContext } from "@/lib/room-context"
@@ -6,15 +7,18 @@ import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
+import { roomImages } from "@/lib/room-tiers"
 
-export const FloatingCartButton = () => {
+export function FloatingCartButton() {
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
 
+  const selectedRoomTypes = getSelectedRoomTypes()
+  const totalPrice = getTotalPrice()
+
   const handleAddAllToCart = () => {
     try {
-      const selectedRoomTypes = getSelectedRoomTypes()
       let addedCount = 0
 
       selectedRoomTypes.forEach((roomType) => {
@@ -28,7 +32,7 @@ export const FloatingCartButton = () => {
             price: config.totalPrice,
             priceId: "price_custom_cleaning",
             quantity: count,
-            image: `/images/${roomType}-professional.png`,
+            image: roomImages[roomType] || "/placeholder.svg",
             metadata: {
               roomType,
               roomConfig: config,
@@ -61,11 +65,7 @@ export const FloatingCartButton = () => {
     }
   }
 
-  // Only show if multiple room types are selected
   if (!isMultiSelection) return null
-
-  const totalPrice = getTotalPrice()
-  const selectedCount = getSelectedRoomTypes().length
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
@@ -78,7 +78,7 @@ export const FloatingCartButton = () => {
         aria-label="Add all selected rooms to cart"
       >
         <ShoppingCart className="h-6 w-6 mr-3" aria-hidden="true" />
-        Add All to Cart ({selectedCount} rooms) - {formatCurrency(totalPrice)}
+        Add All to Cart ({selectedRoomTypes.length} rooms) - {formatCurrency(totalPrice)}
       </Button>
     </div>
   )

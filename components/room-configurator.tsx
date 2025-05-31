@@ -10,13 +10,13 @@ import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import { SimpleCustomizationPanel } from "./simple-customization-panel"
 import { RoomCategory } from "./room-category"
 import { FloatingCartButton } from "./floating-cart-button"
-import { RoomProvider, useRoomContext } from "@/lib/room-context"
+import { useRoomContext } from "@/lib/room-context"
 
 interface RoomConfiguratorProps {
   panelType?: "simple" | "enhanced" | "wizard"
 }
 
-function RoomConfiguratorContent({ panelType = "enhanced" }: RoomConfiguratorProps) {
+export function RoomConfigurator({ panelType = "enhanced" }: RoomConfiguratorProps) {
   const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<string | null>(null)
 
@@ -145,13 +145,5 @@ function RoomConfiguratorContent({ panelType = "enhanced" }: RoomConfiguratorPro
         />
       )}
     </div>
-  )
-}
-
-export function RoomConfigurator(props: RoomConfiguratorProps) {
-  return (
-    <RoomProvider>
-      <RoomConfiguratorContent {...props} />
-    </RoomProvider>
   )
 }
