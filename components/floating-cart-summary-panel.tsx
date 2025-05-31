@@ -48,6 +48,17 @@ export function FloatingCartSummaryPanel({
 }: FloatingCartSummaryPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+
+  // Track scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   // Control visibility based on whether there are any selected rooms
   useEffect(() => {
@@ -68,11 +79,12 @@ export function FloatingCartSummaryPanel({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: -20 }} // Adjusted initial y for top placement
+          initial={{ opacity: 0, scale: 0.8, y: -20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: -20 }} // Adjusted exit y for top placement
+          exit={{ opacity: 0, scale: 0.8, y: -20 }}
           transition={{ type: "spring", damping: 20, stiffness: 300 }}
-          className="fixed top-24 right-6 z-50" // Changed from bottom-6 to top-24
+          className="absolute right-6 z-50"
+          style={{ top: `${96 + scrollY}px` }} // 96px initial offset + scroll position
         >
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -84,7 +96,7 @@ export function FloatingCartSummaryPanel({
               >
                 <ShoppingCart className="h-8 w-8 md:h-10 md:w-10" />
                 <motion.span
-                  key={overallTotalPrice} // Key to trigger animation on price change
+                  key={overallTotalPrice}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
@@ -94,7 +106,7 @@ export function FloatingCartSummaryPanel({
                 </motion.span>
                 {totalSelectedItems > 0 && (
                   <motion.span
-                    key={totalSelectedItems} // Key to trigger animation on count change
+                    key={totalSelectedItems}
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", damping: 15, stiffness: 400 }}
@@ -105,13 +117,17 @@ export function FloatingCartSummaryPanel({
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2 text-2xl font-bold">
-                  <ShoppingCart className="h-6 w-6" /> Your Selected Rooms
+            <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-[70vh]">
+              {" "}
+              {/* Made shorter with h-[70vh] */}
+              <SheetHeader className="flex-shrink-0">
+                <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+                  <ShoppingCart className="h-5 w-5" /> Your Selected Rooms
                 </SheetTitle>
               </SheetHeader>
-              <div className="flex-1 overflow-y-auto py-4 space-y-4">
+              <div className="flex-1 overflow-y-auto py-4 space-y-3">
+                {" "}
+                {/* Made scrollable and reduced spacing */}
                 {rooms.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <p>No rooms selected yet.</p>
@@ -120,58 +136,73 @@ export function FloatingCartSummaryPanel({
                 ) : (
                   rooms.map((room) => (
                     <Card key={room.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          {room.roomIcon && <span className="text-4xl">{room.roomIcon}</span>}
+                      <CardContent className="p-3 flex items-center justify-between">
+                        {" "}
+                        {/* Reduced padding */}
+                        <div className="flex items-center gap-3">
+                          {" "}
+                          {/* Reduced gap */}
+                          {room.roomIcon && <span className="text-3xl">{room.roomIcon}</span>} {/* Smaller icon */}
                           <div>
-                            <CardTitle className="text-lg font-semibold">{room.roomName}</CardTitle>
-                            <p className="text-sm text-gray-600">
+                            <CardTitle className="text-base font-semibold">{room.roomName}</CardTitle>{" "}
+                            {/* Smaller text */}
+                            <p className="text-xs text-gray-600">
+                              {" "}
+                              {/* Smaller text */}
                               {room.config.selectedTier}
                               {room.config.selectedAddOns.length > 0 &&
                                 ` + ${room.config.selectedAddOns.length} add-on(s)`}
                             </p>
-                            <p className="text-base font-bold mt-1">
+                            <p className="text-sm font-bold mt-1">
+                              {" "}
+                              {/* Smaller text */}
                               {formatCurrency(room.config.totalPrice)} x {room.count} ={" "}
                               {formatCurrency(room.config.totalPrice * room.count)}
                             </p>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end space-y-2 ml-4">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-end space-y-1 ml-3">
+                          {" "}
+                          {/* Reduced spacing and margin */}
+                          <div className="flex items-center gap-1">
+                            {" "}
+                            {/* Reduced gap */}
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => onDecrementRoomCount(room.id)}
-                              className="h-8 w-8"
+                              className="h-7 w-7" // Smaller buttons
                             >
-                              <Minus className="h-4 w-4" />
+                              <Minus className="h-3 w-3" />
                             </Button>
-                            <span className="font-medium w-8 text-center text-lg">{room.count}</span>
+                            <span className="font-medium w-6 text-center text-sm">{room.count}</span>
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => onIncrementRoomCount(room.id)}
-                              className="h-8 w-8"
+                              className="h-7 w-7" // Smaller buttons
                             >
-                              <Plus className="h-4 w-4" />
+                              <Plus className="h-3 w-3" />
                             </Button>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
+                            {" "}
+                            {/* Reduced gap */}
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => onOpenCustomizationPanel(room)}
-                              className="h-8 w-8"
+                              className="h-7 w-7" // Smaller buttons
                             >
-                              <Settings className="h-4 w-4" />
+                              <Settings className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="destructive"
                               size="icon"
                               onClick={() => onRemoveRoom(room.id)}
-                              className="h-8 w-8"
+                              className="h-7 w-7" // Smaller buttons
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -180,24 +211,28 @@ export function FloatingCartSummaryPanel({
                   ))
                 )}
               </div>
-              <div className="border-t pt-4 mt-auto">
-                <div className="flex justify-between items-center text-2xl font-bold mb-4">
-                  <span>Total Estimated Price:</span>
+              <div className="border-t pt-3 mt-auto flex-shrink-0">
+                {" "}
+                {/* Reduced padding */}
+                <div className="flex justify-between items-center text-lg font-bold mb-3">
+                  {" "}
+                  {/* Smaller text and margin */}
+                  <span>Total:</span>
                   <span>{formatCurrency(overallTotalPrice)}</span>
                 </div>
                 <Button
-                  id="add-all-to-cart"
+                  id="add-to-cart"
                   variant="default"
                   size="lg"
-                  className="w-full py-3 text-lg"
+                  className="w-full py-2 text-base" // Reduced padding and text size
                   onClick={() => {
                     onAddAllToCart()
-                    setIsOpen(false) // Close the sheet after adding to cart
+                    setIsOpen(false)
                   }}
                   disabled={totalSelectedItems === 0}
                 >
-                  <ShoppingCart className="h-6 w-6 mr-2" />
-                  Add All Selected Rooms to Cart
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Add to Cart
                 </Button>
               </div>
             </SheetContent>
