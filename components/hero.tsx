@@ -87,15 +87,6 @@ export default function Hero() {
               tailored to your needs, schedule, and budget.
             </motion.p>
 
-            <motion.div className="mb-8 text-center" variants={itemVariants}>
-              <Link href="/pricing">
-                <Button size="lg" className="text-base group">
-                  Book Now
-                  <ArrowDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-1" />
-                </Button>
-              </Link>
-            </motion.div>
-
             <motion.div
               className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0"
               variants={itemVariants}
