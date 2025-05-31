@@ -36,7 +36,7 @@ interface RoomCategoryProps {
   getRoomConfig: (roomType: string) => RoomConfig
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
-  totalSelectedRoomTypes: number // Track total selected room types across all categories
+  isMultiRoomSelection: boolean // New prop
 }
 
 export function RoomCategory({
@@ -49,7 +49,7 @@ export function RoomCategory({
   getRoomConfig,
   variant = "primary",
   onRoomSelect,
-  totalSelectedRoomTypes,
+  isMultiRoomSelection, // Destructure new prop
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { addItem } = useCart()
@@ -85,15 +85,15 @@ export function RoomCategory({
       addItem({
         id: `custom-cleaning-${roomType}-${Date.now()}`,
         name: `${roomDisplayNames[roomType] || roomType} Cleaning`,
-        price: currentRoomConfig.totalPrice,
-        priceId: "price_custom_cleaning",
-        quantity: roomCounts[roomType],
+        price: currentRoomConfig.totalPrice, // Per-room price
+        priceId: "price_custom_cleaning", // Generic price ID for custom services
+        quantity: roomCounts[roomType], // Number of rooms
         image: roomImages[roomType] || "/placeholder.svg",
         metadata: {
           roomType: roomType,
           roomConfig: currentRoomConfig,
-          isRecurring: false,
-          frequency: "one_time",
+          isRecurring: false, // Default, can be updated if recurring options are added later
+          frequency: "one_time", // Default
         },
       })
       toast({
@@ -272,8 +272,7 @@ export function RoomCategory({
                         <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                         Customize
                       </Button>
-                      {/* Show individual add to cart button ONLY when 1 room type is selected OR this is the only room selected */}
-                      {totalSelectedRoomTypes === 1 && (
+                      {!isMultiRoomSelection && ( // Only show individual add to cart if not in multi-room selection mode
                         <Button
                           id={`add-to-cart-${roomType}`}
                           variant="default"

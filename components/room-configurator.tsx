@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
-import { Plus, Minus, Trash2, Settings } from "lucide-react"
+import { Plus, Minus, Trash2, Settings, ShoppingCart } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getRoomTiers } from "@/lib/room-tiers"
 import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
@@ -12,7 +12,6 @@ import { SimpleCustomizationPanel } from "./simple-customization-panel"
 import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { RoomCategory } from "./room-category"
-import { FloatingAddToCart } from "./floating-add-to-cart"
 
 interface RoomConfig {
   roomName: string
@@ -375,7 +374,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   )
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 pb-32">
       <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
 
       <div className="grid grid-cols-1 gap-6 mb-8">
@@ -416,7 +415,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
         />
 
         <RoomCategory
@@ -456,7 +455,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
         />
 
         <RoomCategory
@@ -496,7 +495,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
+          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
         />
       </div>
 
@@ -548,8 +547,22 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         <span>{formatCurrency(overallTotalPrice)}</span>
       </div>
 
-      {/* Floating Add to Cart - only shows when MORE THAN 1 room type is selected */}
-      <FloatingAddToCart rooms={rooms} totalPrice={overallTotalPrice} onAddAllToCart={handleAddAllToCartClick} />
+      {/* Floating Add All to Cart Button */}
+      {numberOfDistinctSelectedRoomTypes > 1 && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+          <Button
+            id="floating-add-all-to-cart"
+            variant="default"
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105"
+            onClick={handleAddAllToCartClick}
+            aria-label="Add all selected rooms to cart"
+          >
+            <ShoppingCart className="h-6 w-6 mr-3" aria-hidden="true" />
+            Add All to Cart ({numberOfDistinctSelectedRoomTypes} rooms) - {formatCurrency(overallTotalPrice)}
+          </Button>
+        </div>
+      )}
 
       {currentRoomToCustomize && (
         <CustomizationPanelComponent
