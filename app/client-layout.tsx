@@ -11,6 +11,7 @@ import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
+import ChatbotManager from "@/components/chatbot-manager"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -49,6 +50,11 @@ export default function ClientLayout({
         <SharePanel />
         <UnifiedFooter />
         <Toaster />
+        <ChatbotManager
+          enableOnAllPages={true}
+          excludePaths={["/admin", "/dashboard"]}
+          customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
+        />
       </CartProvider>
     </ThemeProvider>
   )
