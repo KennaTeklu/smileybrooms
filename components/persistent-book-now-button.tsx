@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Calendar, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { UnifiedFloatingWrapper } from "@/components/unified-floating-wrapper"
+import { FLOATING_LAYERS } from "@/lib/floating-system"
 
 export function PersistentBookNowButton() {
   const [isVisible, setIsVisible] = useState(true)
@@ -37,15 +39,27 @@ export function PersistentBookNowButton() {
   if (!shouldShow) return null
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          className="fixed bottom-6 right-6 z-40"
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        >
+    <UnifiedFloatingWrapper
+      id="persistent-book-now-button"
+      elementHeight={60}
+      config={{
+        layer: FLOATING_LAYERS.BOOK_NOW_BUTTON,
+        position: "right",
+        offset: { bottom: 20, right: 20 },
+        behavior: {
+          hideOnScroll: true,
+          persistAcrossPages: true,
+        },
+        animation: {
+          entrance: "scale",
+          exit: "scale",
+          duration: 300,
+        },
+      }}
+      onVisibilityChange={setIsVisible}
+    >
+      <AnimatePresence>
+        {isVisible && (
           <Link href="/pricing">
             <Button
               size="lg"
@@ -60,8 +74,8 @@ export function PersistentBookNowButton() {
               <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
             </Button>
           </Link>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </UnifiedFloatingWrapper>
   )
 }
