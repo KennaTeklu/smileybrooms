@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { getSupabaseClient } from "@/crew-app/src/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/crew-app/src/components/ui/card"
 import { Button } from "@/crew-app/src/components/ui/button"
+import { Loader2 } from "lucide-react"
 
 interface Cleaner {
   id: number
@@ -40,7 +41,11 @@ export default function CleanersList() {
   }, [])
 
   if (loading) {
-    return <div className="text-center p-4">Loading cleaners...</div>
+    return (
+      <div className="text-center p-4 flex items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading cleaners...
+      </div>
+    )
   }
 
   if (error) {
@@ -50,11 +55,11 @@ export default function CleanersList() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Cleaners List</CardTitle>
+        <CardTitle>All Cleaners (for testing)</CardTitle>
       </CardHeader>
       <CardContent>
         {cleaners.length === 0 ? (
-          <p>No cleaners found. Please ensure your 'cleaners' table is populated.</p>
+          <p className="text-gray-500">No cleaners found. Please ensure your 'cleaners' table is populated.</p>
         ) : (
           <ul className="space-y-2">
             {cleaners.map((cleaner) => (
@@ -62,7 +67,8 @@ export default function CleanersList() {
                 <span>
                   {cleaner.name} ({cleaner.phone})
                 </span>
-                <Button variant="outline" size="sm">
+                {/* In a real app, this might link to a cleaner's detailed profile */}
+                <Button variant="outline" size="sm" disabled>
                   View Profile
                 </Button>
               </li>

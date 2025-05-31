@@ -8,8 +8,10 @@ import { Input } from "@/crew-app/src/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/crew-app/src/components/ui/card"
 import { Label } from "@/crew-app/src/components/ui/label"
 import { Loader2 } from "lucide-react"
+import { getSupabaseClient } from "@/crew-app/src/lib/supabase/client"
 
 interface CleanerProfile {
+  id: number
   name: string
   phone: string
   vehicle_make?: string
@@ -19,28 +21,27 @@ interface CleanerProfile {
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<CleanerProfile>({ name: "", phone: "" })
+  const [profile, setProfile] = useState<CleanerProfile>({ id: 0, name: "", phone: "" })
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState("")
 
   useEffect(() => {
-    // In a real app, fetch current cleaner profile from an API
     const fetchProfile = async () => {
       setLoading(true)
+      setMessage("")
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setProfile({
-          name: "John Doe",
-          phone: "+15551234567",
-          vehicle_make: "Toyota",
-          vehicle_model: "Camry",
-          vehicle_color: "Silver",
-          payment_preference: "Bank Transfer",
-        })
-      } catch (error) {
-        setMessage("Failed to load profile.")
+        const supabase = getSupabaseClient()
+        // In a real app, you'd fetch the profile for the currently logged-in cleaner.
+        // For demonstration, we'll fetch cleaner with ID 1.
+        const { data, error } = await supabase.from("cleaners").select("*").eq("id", 1).single()
+
+        if (error) {
+          throw error
+        }
+        setProfile(data)
+      } catch (error: any) {
+        setMessage(error.message || "Failed to load profile.")
         console.error("Fetch profile error:", error)
       } finally {
         setLoading(false)
@@ -83,6 +84,14 @@ export default function ProfilePage() {
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
         <p className="ml-2">Loading profile...</p>
+      </div>
+    )
+  }
+
+  if (!profile.id) {
+    return (
+      <div className="container mx-auto p-4 text-red-500">
+        {message || "Profile not found. Ensure cleaner with ID 1 exists."}
       </div>
     )
   }

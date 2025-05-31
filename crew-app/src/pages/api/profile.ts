@@ -6,8 +6,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" })
   }
 
-  // In a real app, get cleanerId from authenticated session/JWT
-  const cleanerId = 1 // Placeholder
+  // In a real app, you'd get the cleanerId from an authenticated session/token
+  // For now, we'll use a placeholder (e.g., cleanerId 1)
+  const cleanerId = 1 // Replace with actual cleaner ID from session
 
   if (!cleanerId) {
     return res.status(401).json({ error: "Unauthorized" })
@@ -15,9 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { name, phone, vehicle_make, vehicle_model, vehicle_color, payment_preference } = req.body
 
-  const supabase = getSupabaseServerClient()
-
   try {
+    const supabase = getSupabaseServerClient()
+
     const { data, error } = await supabase
       .from("cleaners")
       .update({
@@ -30,16 +31,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .eq("id", cleanerId)
       .select()
-      .single()
 
-    if (error || !data) {
-      console.error("Profile update error:", error)
+    if (error) {
+      console.error("Error updating cleaner profile:", error)
       return res.status(500).json({ error: "Failed to update profile." })
     }
 
-    res.status(200).json({ message: "Profile updated successfully!", profile: data })
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Cleaner not found." })
+    }
+
+    res.status(200).json({ message: "Profile updated successfully!", profile: data[0] })
   } catch (error) {
-    console.error("API Profile Update Error:", error)
+    console.error("Server error during profile update:", error)
     res.status(500).json({ error: "Internal server error." })
   }
 }

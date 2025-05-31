@@ -1,14 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 import { getSupabaseServerClient } from "@/crew-app/src/lib/supabase/server"
-import { redis } from "@/crew-app/src/lib/redis"
-import { verify } from "libsodium-wrappers" // libsodium for PIN hashing
+import libsodium from "libsodium-wrappers"
+import { getRedisClient } from "@/crew-app/src/lib/redis"
 
-// In a real app, you'd use a proper session management library
-// and implement rate limiting (e.g., using @upstash/ratelimit)
+// Simple rate limiting middleware
+const rateLimit = async (ip: string) => {
+  const redis = getRedisClient()
+  const key = `ratelimit:${ip}`
+  const requests = await redis.incr(key)
+  if (requests === 1) {
+    await redis.expire(key, 1) // Set expiry to 1 second
+  }
+  return requests > 5 // 5 requests per second limit
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" })
+  }
+
+  const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress
+  if (typeof clientIp === "string" && (await rateLimit(clientIp))) {
+    return res.status(429).json({ error: "Too Many Requests" })
   }
 
   const { phone, pin } = req.body
@@ -17,43 +30,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Phone and PIN are required." })
   }
 
-  const supabase = getSupabaseServerClient()
-
   try {
-    // Rate limiting (conceptual - implement with @upstash/ratelimit in production)
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress
-    const rateLimitKey = `login_attempt:${ip}`
-    const attempts = await redis.incr(rateLimitKey)
-    await redis.expire(rateLimitKey, 5) // 5 seconds window
+    await libsodium.ready // Ensure libsodium is ready
 
-    if (attempts > 5) {
-      // 5 requests per 5 seconds
-      return res.status(429).json({ error: "Too many login attempts. Please try again later." })
-    }
+    const supabase = getSupabaseServerClient()
+    const { data: cleaner, error } = await supabase.from("cleaners").select("id, pin_hash").eq("phone", phone).single()
 
-    const { data, error } = await supabase.from("cleaners").select("id, pin_hash").eq("phone", phone).single()
-
-    if (error || !data) {
-      console.error("Login error:", error)
+    if (error || !cleaner) {
+      console.error("Login error: Cleaner not found or DB error", error)
       return res.status(401).json({ error: "Invalid phone number or PIN." })
     }
 
-    // Verify PIN using libsodium
-    // In a real app, ensure libsodium is initialized
-    const isPinValid = await verify(
-      Buffer.from(data.pin_hash, "base64"), // Stored hash
-      Buffer.from(pin), // User provided PIN
-    )
+    // Verify PIN
+    const isPinValid = await libsodium.crypto_pwhash_str_verify(cleaner.pin_hash, pin)
 
     if (!isPinValid) {
       return res.status(401).json({ error: "Invalid phone number or PIN." })
     }
 
-    // Successful login
-    // In a real app, create a JWT token and set it as an HttpOnly cookie
-    res.status(200).json({ message: "Login successful", cleanerId: data.id })
+    // In a real application, you would generate and return a JWT here
+    // For this example, we'll just return success
+    res.status(200).json({ message: "Login successful!", cleanerId: cleaner.id })
   } catch (error) {
-    console.error("API Login Error:", error)
+    console.error("Server error during login:", error)
     res.status(500).json({ error: "Internal server error." })
   }
 }

@@ -6,37 +6,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" })
   }
 
-  const { id } = req.query // Job ID from URL
-  const { jobId } = req.body // Job ID from body (for consistency, though query param is primary)
+  const { id } = req.query // Job ID from URL parameter
+  const { jobId } = req.body // Job ID from body (redundant but kept for consistency with client)
 
-  if (!id) {
+  const targetJobId = id || jobId
+
+  if (!targetJobId) {
     return res.status(400).json({ error: "Job ID is required." })
   }
 
-  // In a real app, verify cleaner's session/JWT and if they are assigned to this job
-  const cleanerId = 1 // Placeholder
-
-  const supabase = getSupabaseServerClient()
+  // In a real app, verify cleaner's authorization for this job
+  // const cleanerId = ... // Get from session/token
 
   try {
-    // Update job status to 'checked_in' or record check-in time
-    // Assuming a 'status' column or 'checkin_time' column in the jobs table
+    const supabase = getSupabaseServerClient()
+
     const { data, error } = await supabase
       .from("jobs")
-      .update({ status: "checked_in", checkin_time: new Date().toISOString() }) // Add checkin_time column to jobs table
-      .eq("id", id)
-      .eq("cleaner_id", cleanerId) // Ensure cleaner is assigned to this job
-      .select()
-      .single()
+      .update({ status: "checked_in", checkin_time: new Date().toISOString() })
+      .eq("id", targetJobId)
+      .select() // Select the updated row to confirm
 
-    if (error || !data) {
-      console.error("Check-in error:", error)
-      return res.status(500).json({ error: "Failed to check in. Job not found or not assigned to you." })
+    if (error) {
+      console.error("Error updating job status:", error)
+      return res.status(500).json({ error: "Failed to check in." })
     }
 
-    res.status(200).json({ message: "Checked in successfully!", job: data })
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "Job not found or already checked in." })
+    }
+
+    res.status(200).json({ message: "Checked in successfully!", job: data[0] })
   } catch (error) {
-    console.error("API Check-in Error:", error)
+    console.error("Server error during check-in:", error)
     res.status(500).json({ error: "Internal server error." })
   }
 }

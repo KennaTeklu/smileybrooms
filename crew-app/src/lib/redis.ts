@@ -1,13 +1,20 @@
 import { Redis } from "@upstash/redis"
 
-const redisUrl = process.env.REDIS_URL
-const redisToken = process.env.KV_REST_API_TOKEN // Using KV_REST_API_TOKEN as it's typically used with Upstash KV
+// Singleton pattern for Redis client
+let redis: Redis | undefined
 
-if (!redisUrl || !redisToken) {
-  console.warn("Missing REDIS_URL or KV_REST_API_TOKEN environment variables. Redis caching will be disabled.")
+export function getRedisClient() {
+  if (!redis) {
+    const redisUrl = process.env.REDIS_URL
+    const redisToken = process.env.KV_REST_API_TOKEN // Upstash uses KV_REST_API_TOKEN for REST API
+
+    if (!redisUrl || !redisToken) {
+      throw new Error("Missing REDIS_URL or KV_REST_API_TOKEN environment variables for Redis.")
+    }
+    redis = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    })
+  }
+  return redis
 }
-
-export const redis = new Redis({
-  url: redisUrl || "http://localhost:8079", // Fallback for development if env vars are missing
-  token: redisToken || "dummy_token",
-})

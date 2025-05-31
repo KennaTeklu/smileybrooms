@@ -16,36 +16,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method Not Allowed" })
   }
 
-  const { id: jobId } = req.query // Job ID from URL
+  const { id: jobId } = req.query // Job ID from URL parameter
 
   if (!jobId) {
     return res.status(400).json({ error: "Job ID is required." })
   }
 
-  const supabase = getSupabaseServerClient()
-
   try {
     const form = new IncomingForm({
-      uploadDir: "./tmp", // Temporary directory for uploads
+      uploadDir: path.join(process.cwd(), "tmp"), // Temporary directory for uploads
       keepExtensions: true,
       maxFileSize: 5 * 1024 * 1024, // 5MB limit
     })
 
     const [fields, files] = await form.parse(req)
     const photoFile = files.photo?.[0]
-    const photoType = fields.type?.[0] || "general" // 'before' or 'after'
+    const photoType = fields.type?.[0] || "misc" // 'before', 'after', 'misc'
 
     if (!photoFile) {
       return res.status(400).json({ error: "No photo file uploaded." })
     }
 
-    // Read the file content
+    const supabase = getSupabaseServerClient()
     const fileContent = await fs.readFile(photoFile.filepath)
+    const fileName = `${jobId}/${photoType}-${Date.now()}${path.extname(photoFile.filepath)}`
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("job-photos") // Create a bucket named 'job-photos' in Supabase Storage
-      .upload(`${jobId}/${photoType}-${Date.now()}${path.extname(photoFile.originalFilename || "")}`, fileContent, {
+      .from("job-photos") // Ensure you have a bucket named 'job-photos'
+      .upload(fileName, fileContent, {
         contentType: photoFile.mimetype || "application/octet-stream",
         upsert: false,
       })
@@ -56,17 +55,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get public URL
-    const { data: publicUrlData } = supabase.storage.from("job-photos").getPublicUrl(uploadData.path)
+    const { data: publicUrlData } = supabase.storage.from("job-photos").getPublicUrl(fileName)
+    const publicUrl = publicUrlData?.publicUrl
 
-    const publicUrl = publicUrlData.publicUrl
+    if (!publicUrl) {
+      return res.status(500).json({ error: "Failed to get public URL for uploaded photo." })
+    }
 
-    // Record photo URL in the database
-    const { error: dbError } = await supabase
-      .from("job_photos")
-      .insert({ job_id: jobId, type: photoType, url: publicUrl })
+    // Record photo in database
+    const { error: dbError } = await supabase.from("job_photos").insert({
+      job_id: jobId,
+      type: photoType,
+      url: publicUrl,
+    })
 
     if (dbError) {
-      console.error("Database insert error for job photo:", dbError)
+      console.error("Supabase DB photo record error:", dbError)
+      // Optionally delete the uploaded file from storage if DB record fails
+      await supabase.storage.from("job-photos").remove([fileName])
       return res.status(500).json({ error: "Failed to record photo in database." })
     }
 
@@ -75,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ message: "Photo uploaded successfully!", url: publicUrl })
   } catch (error) {
-    console.error("API Photo Upload Error:", error)
-    res.status(500).json({ error: "Internal server error during photo upload." })
+    console.error("Server error during photo upload:", error)
+    res.status(500).json({ error: "Internal server error." })
   }
 }
