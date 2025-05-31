@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Plus, Minus, Trash2, Settings, ShoppingCart } from "lucide-react"
@@ -43,6 +43,9 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<RoomItem | null>(null)
   const { addItem } = useCart()
+
+  // Track if multiple room types are selected
+  const [isMultiRoomSelection, setIsMultiRoomSelection] = useState(false)
 
   const availableRoomTypes = useMemo(
     () => [
@@ -207,6 +210,11 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   const numberOfDistinctSelectedRoomTypes = useMemo(() => {
     return rooms.filter((room) => room.count > 0).length
   }, [rooms])
+
+  // Update isMultiRoomSelection whenever the number of selected room types changes
+  useEffect(() => {
+    setIsMultiRoomSelection(numberOfDistinctSelectedRoomTypes > 1)
+  }, [numberOfDistinctSelectedRoomTypes])
 
   const addRoom = useCallback(
     (roomType: string) => {
@@ -415,7 +423,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
+          isMultiRoomSelection={isMultiRoomSelection}
         />
 
         <RoomCategory
@@ -455,7 +463,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
+          isMultiRoomSelection={isMultiRoomSelection}
         />
 
         <RoomCategory
@@ -495,7 +503,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1}
+          isMultiRoomSelection={isMultiRoomSelection}
         />
       </div>
 
@@ -548,7 +556,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
       </div>
 
       {/* Floating Add All to Cart Button */}
-      {numberOfDistinctSelectedRoomTypes > 1 && (
+      {isMultiRoomSelection && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
           <Button
             id="floating-add-all-to-cart"
