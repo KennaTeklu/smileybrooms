@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import JotFormChatbot from "./jotform-chatbot"
+import SafeJotFormChatbot from "./safe-jotform-chatbot"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, X, Minimize2, Maximize2 } from "lucide-react"
 
@@ -50,7 +50,7 @@ export default function ChatbotManager({
     <>
       {/* JotForm Chatbot Component */}
       {isVisible && (
-        <JotFormChatbot skipWelcome={!hasInteracted} maximizable={true} position="right" autoOpen={false} />
+        <SafeJotFormChatbot skipWelcome={!hasInteracted} maximizable={true} position="right" autoOpen={false} />
       )}
 
       {/* Custom Chatbot Controls */}

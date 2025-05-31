@@ -21,8 +21,12 @@ export default function JotFormChatbot({
 
   useEffect(() => {
     // Clean up any existing chatbot instance
-    if (scriptRef.current) {
-      document.head.removeChild(scriptRef.current)
+    if (scriptRef.current && document.head.contains(scriptRef.current)) {
+      try {
+        document.head.removeChild(scriptRef.current)
+      } catch (error) {
+        console.warn("Script already removed:", error)
+      }
       scriptRef.current = null
     }
 
@@ -35,30 +39,38 @@ export default function JotFormChatbot({
     const script = document.createElement("script")
     script.src = `https://cdn.jotfor.ms/agent/embedjs/019727f88b017b95a6ff71f7fdcc58538ab4/embed.js?skipWelcome=${skipWelcome ? 1 : 0}&maximizable=${maximizable ? 1 : 0}`
     script.async = true
+    script.defer = true
 
     script.onload = () => {
       // Initialize the chatbot with custom configuration
       if (typeof window !== "undefined" && (window as any).AgentInitializer) {
-        ;(window as any).AgentInitializer.init({
-          agentRenderURL: "https://www.jotform.com/agent/019727f88b017b95a6ff71f7fdcc58538ab4",
-          toolId: "JotformAgent-019727f88b017b95a6ff71f7fdcc58538ab4",
-          formID: "019727f88b017b95a6ff71f7fdcc58538ab4",
-          domain: "https://www.jotform.com/",
-          initialContext: "",
-          queryParams: [`skipWelcome=${skipWelcome ? 1 : 0}`, `maximizable=${maximizable ? 1 : 0}`],
-          domain: "https://www.jotform.com",
-          isDraggable: false,
-          buttonColor: "#158ded, #6C73A8 0%, #6C73A8 100%",
-          buttonBackgroundColor: "#00cc3",
-          buttonIconColor: "#FFFFFF",
-          inputTextColor: "#91105C",
-          variant: false,
-          isGreeting:
-            "greeting:Yes,greetingMessage:Hi! Welcome to smileybrooms.com! How can I assist you?,openByDefault:No,pulse:Yes,position:right,autoOpenChatIn:0",
-          isVoice: false,
-          isVoiceWebCallEnabled: true,
-        })
+        try {
+          ;(window as any).AgentInitializer.init({
+            agentRenderURL: "https://www.jotform.com/agent/019727f88b017b95a6ff71f7fdcc58538ab4",
+            toolId: "JotformAgent-019727f88b017b95a6ff71f7fdcc58538ab4",
+            formID: "019727f88b017b95a6ff71f7fdcc58538ab4",
+            domain: "https://www.jotform.com/",
+            initialContext: "",
+            queryParams: [`skipWelcome=${skipWelcome ? 1 : 0}`, `maximizable=${maximizable ? 1 : 0}`],
+            isDraggable: false,
+            buttonColor: "#158ded, #6C73A8 0%, #6C73A8 100%",
+            buttonBackgroundColor: "#00cc3",
+            buttonIconColor: "#FFFFFF",
+            inputTextColor: "#91105C",
+            variant: false,
+            isGreeting:
+              "greeting:Yes,greetingMessage:Hi! Welcome to smileybrooms.com! How can I assist you?,openByDefault:No,pulse:Yes,position:right,autoOpenChatIn:0",
+            isVoice: false,
+            isVoiceWebCallEnabled: true,
+          })
+        } catch (error) {
+          console.warn("Failed to initialize JotForm agent:", error)
+        }
       }
+    }
+
+    script.onerror = (error) => {
+      console.error("Failed to load JotForm script:", error)
     }
 
     document.head.appendChild(script)
@@ -66,8 +78,13 @@ export default function JotFormChatbot({
 
     return () => {
       if (scriptRef.current && document.head.contains(scriptRef.current)) {
-        document.head.removeChild(scriptRef.current)
+        try {
+          document.head.removeChild(scriptRef.current)
+        } catch (error) {
+          console.warn("Cleanup error:", error)
+        }
       }
+      scriptRef.current = null
     }
   }, [pathname, skipWelcome, maximizable, position, autoOpen])
 
