@@ -7,10 +7,10 @@ import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
 import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import Image from "next/image"
-
-interface RoomCount {
-  [key: string]: number
-}
+import { useRoomContext } from "@/lib/room-context"
+import { useMultiSelection } from "@/hooks/use-multi-selection"
+import { useCart } from "@/lib/cart-context"
+import { toast } from "@/components/ui/use-toast"
 
 interface RoomConfig {
   roomName: string
@@ -28,39 +28,21 @@ interface RoomCategoryProps {
   title: string
   description: string
   rooms: string[]
-  roomCounts: RoomCount
-  onRoomCountChange: (roomType: string, count: number) => void
-  onRoomConfigChange: (roomType: string, config: RoomConfig) => void
-  getRoomConfig: (roomType: string) => RoomConfig
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
-  isMultiRoomSelection: boolean
-  onAddSingleRoomToCart: (roomType: string) => void
-  onOpenCustomization: (roomType: string) => void
 }
 
-export function RoomCategory({
-  title,
-  description,
-  rooms,
-  roomCounts,
-  onRoomCountChange,
-  onRoomConfigChange,
-  getRoomConfig,
-  variant = "primary",
-  onRoomSelect,
-  isMultiRoomSelection,
-  onAddSingleRoomToCart,
-  onOpenCustomization,
-}: RoomCategoryProps) {
+export function RoomCategory({ title, description, rooms, variant = "primary", onRoomSelect }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig } = useRoomContext()
+  const isMultiSelection = useMultiSelection(roomCounts)
+  const { addItem } = useCart()
 
   const handleOpenWizard = (roomType: string) => {
     try {
       if (roomCounts[roomType] === 0) {
-        onRoomCountChange(roomType, 1)
+        updateRoomCount(roomType, 1)
       }
-      onOpenCustomization(roomType)
       setActiveWizard(roomType)
     } catch (error) {
       console.error("Error opening customization wizard:", error)
@@ -73,11 +55,52 @@ export function RoomCategory({
 
   const handleRoomConfigChange = (config: RoomConfig) => {
     try {
-      if (activeWizard && onRoomConfigChange) {
-        onRoomConfigChange(activeWizard, config)
+      if (activeWizard) {
+        updateRoomConfig(activeWizard, config)
       }
     } catch (error) {
       console.error("Error updating room config:", error)
+    }
+  }
+
+  const handleAddSingleRoomToCart = (roomType: string) => {
+    try {
+      const count = roomCounts[roomType]
+      const config = roomConfigs[roomType]
+
+      if (count > 0) {
+        addItem({
+          id: `custom-cleaning-${roomType}-${Date.now()}`,
+          name: `${config.roomName} Cleaning`,
+          price: config.totalPrice,
+          priceId: "price_custom_cleaning",
+          quantity: count,
+          image: roomImages[roomType] || "/placeholder.svg",
+          metadata: {
+            roomType,
+            roomConfig: config,
+            isRecurring: false,
+            frequency: "one_time",
+          },
+        })
+
+        // Reset this room's count after adding to cart
+        updateRoomCount(roomType, 0)
+
+        toast({
+          title: "Item added to cart",
+          description: `${config.roomName} has been added to your cart.`,
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      console.error("Error adding item to cart:", error)
+      toast({
+        title: "Failed to add to cart",
+        description: "There was an error adding the item to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
   }
 
@@ -111,7 +134,7 @@ export function RoomCategory({
 
   const safeGetRoomConfig = (roomType: string): RoomConfig => {
     try {
-      return getRoomConfig(roomType)
+      return roomConfigs[roomType]
     } catch (error) {
       console.error("Error getting room config:", error)
       return {
@@ -165,7 +188,7 @@ export function RoomCategory({
                 onClick={() => {
                   try {
                     if (roomCounts[roomType] <= 0) {
-                      onRoomCountChange(roomType, 1)
+                      updateRoomCount(roomType, 1)
                     }
                     if (onRoomSelect) {
                       onRoomSelect(roomType)
@@ -194,7 +217,7 @@ export function RoomCategory({
                       onClick={(e) => {
                         e.stopPropagation()
                         try {
-                          onRoomCountChange(roomType, Math.max(0, (roomCounts[roomType] || 0) - 1))
+                          updateRoomCount(roomType, Math.max(0, (roomCounts[roomType] || 0) - 1))
                         } catch (error) {
                           console.error("Error decreasing room count:", error)
                         }
@@ -212,7 +235,7 @@ export function RoomCategory({
                       onClick={(e) => {
                         e.stopPropagation()
                         try {
-                          onRoomCountChange(roomType, (roomCounts[roomType] || 0) + 1)
+                          updateRoomCount(roomType, (roomCounts[roomType] || 0) + 1)
                         } catch (error) {
                           console.error("Error increasing room count:", error)
                         }
@@ -239,7 +262,7 @@ export function RoomCategory({
                         <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                         Customize
                       </Button>
-                      {!isMultiRoomSelection && (
+                      {!isMultiSelection && (
                         <Button
                           id={`add-to-cart-${roomType}`}
                           variant="default"
@@ -247,7 +270,7 @@ export function RoomCategory({
                           className="w-full"
                           onClick={(e) => {
                             e.stopPropagation()
-                            onAddSingleRoomToCart(roomType)
+                            handleAddSingleRoomToCart(roomType)
                           }}
                           aria-label={`Add ${roomDisplayNames[roomType] || roomType} to cart`}
                         >
