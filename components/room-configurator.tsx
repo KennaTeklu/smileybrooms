@@ -9,7 +9,6 @@ import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-pa
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import { SimpleCustomizationPanel } from "./simple-customization-panel"
 import { RoomCategory } from "./room-category"
-import { FloatingCartButton } from "./floating-cart-button"
 import { useRoomContext } from "@/lib/room-context"
 
 interface RoomConfiguratorProps {
@@ -127,9 +126,6 @@ export function RoomConfigurator({ panelType = "enhanced" }: RoomConfiguratorPro
         <span>Total Estimated Price:</span>
         <span>{formatCurrency(totalPrice)}</span>
       </div>
-
-      {/* Floating Cart Button */}
-      <FloatingCartButton />
 
       {/* Customization Panel */}
       {currentRoomToCustomize && (

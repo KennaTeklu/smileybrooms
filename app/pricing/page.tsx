@@ -1,6 +1,5 @@
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import LoadingAnimation from "@/components/loading-animation"
 import { RoomProvider } from "@/lib/room-context"
 
@@ -19,7 +18,6 @@ export default function PricingPage() {
             <PricingContent />
           </Suspense>
         </main>
-        <AccessibilityToolbar />
       </div>
     </RoomProvider>
   )
