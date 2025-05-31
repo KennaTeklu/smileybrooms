@@ -36,7 +36,7 @@ interface RoomCategoryProps {
   getRoomConfig: (roomType: string) => RoomConfig
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
-  totalSelectedRoomTypes: number // New prop to track total selected room types across all categories
+  totalSelectedRoomTypes: number // Track total selected room types across all categories
 }
 
 export function RoomCategory({
@@ -49,7 +49,7 @@ export function RoomCategory({
   getRoomConfig,
   variant = "primary",
   onRoomSelect,
-  totalSelectedRoomTypes, // Destructure new prop
+  totalSelectedRoomTypes,
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { addItem } = useCart()
@@ -85,15 +85,15 @@ export function RoomCategory({
       addItem({
         id: `custom-cleaning-${roomType}-${Date.now()}`,
         name: `${roomDisplayNames[roomType] || roomType} Cleaning`,
-        price: currentRoomConfig.totalPrice, // Per-room price
-        priceId: "price_custom_cleaning", // Generic price ID for custom services
-        quantity: roomCounts[roomType], // Number of rooms
+        price: currentRoomConfig.totalPrice,
+        priceId: "price_custom_cleaning",
+        quantity: roomCounts[roomType],
         image: roomImages[roomType] || "/placeholder.svg",
         metadata: {
           roomType: roomType,
           roomConfig: currentRoomConfig,
-          isRecurring: false, // Default, can be updated if recurring options are added later
-          frequency: "one_time", // Default
+          isRecurring: false,
+          frequency: "one_time",
         },
       })
       toast({
@@ -272,7 +272,7 @@ export function RoomCategory({
                         <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                         Customize
                       </Button>
-                      {/* Only show individual add to cart if EXACTLY 1 room type is selected across ALL categories */}
+                      {/* Show individual add to cart button ONLY when 1 room type is selected OR this is the only room selected */}
                       {totalSelectedRoomTypes === 1 && (
                         <Button
                           id={`add-to-cart-${roomType}`}

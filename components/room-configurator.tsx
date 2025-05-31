@@ -12,7 +12,7 @@ import { SimpleCustomizationPanel } from "./simple-customization-panel"
 import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { RoomCategory } from "./room-category"
-import { FloatingCartSummary } from "./floating-cart-summary"
+import { FloatingAddToCart } from "./floating-add-to-cart"
 
 interface RoomConfig {
   roomName: string
@@ -416,7 +416,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
         />
 
         <RoomCategory
@@ -456,7 +456,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
         />
 
         <RoomCategory
@@ -496,7 +496,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes}
         />
       </div>
 
@@ -548,28 +548,8 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         <span>{formatCurrency(overallTotalPrice)}</span>
       </div>
 
-      {/* Floating cart summary - only shows when MORE THAN 1 room type is selected */}
-      <FloatingCartSummary
-        rooms={rooms}
-        totalPrice={overallTotalPrice}
-        onAddAllToCart={handleAddAllToCartClick}
-        onRoomCountChange={(id, count) => {
-          setRooms((prevRooms) => {
-            const updatedRooms = prevRooms
-              .map((room) => {
-                if (room.id === id) {
-                  return { ...room, count: count }
-                }
-                return room
-              })
-              .filter((room) => room.count > 0)
-            onRoomsChange?.(updatedRooms)
-            return updatedRooms
-          })
-        }}
-        onRemoveRoom={removeRoom}
-        onCustomizeRoom={openCustomizationPanel}
-      />
+      {/* Floating Add to Cart - only shows when MORE THAN 1 room type is selected */}
+      <FloatingAddToCart rooms={rooms} totalPrice={overallTotalPrice} onAddAllToCart={handleAddAllToCartClick} />
 
       {currentRoomToCustomize && (
         <CustomizationPanelComponent
