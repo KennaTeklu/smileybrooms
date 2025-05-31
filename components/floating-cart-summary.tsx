@@ -69,7 +69,7 @@ export function FloatingCartSummary({
   const { addItem } = useCart()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Track scroll position with smooth updates
+  // Track scroll position with smooth updates - moves with scroll
   useEffect(() => {
     let ticking = false
 
@@ -127,7 +127,8 @@ export function FloatingCartSummary({
     }
   }
 
-  if (selectedRoomsCount === 0) {
+  // Only show when MORE THAN 1 room type is selected
+  if (selectedRoomsCount <= 1) {
     return null
   }
 
@@ -137,7 +138,8 @@ export function FloatingCartSummary({
         ref={containerRef}
         className={cn("fixed right-4 z-50 transition-all duration-300 ease-out", className)}
         style={{
-          top: `${Math.max(100 + scrollY * 0.08, 100)}px`, // Smoother scroll following
+          // Moves with scroll - starts at 120px from top, moves down as user scrolls
+          top: `${120 + scrollY * 0.15}px`, // Increased multiplier for more noticeable movement
         }}
         initial={{ opacity: 0, x: 100, scale: 0.9 }}
         animate={{
@@ -171,9 +173,9 @@ export function FloatingCartSummary({
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">Cart Summary</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">Multi-Room Cart</span>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {selectedRoomsCount} room type{selectedRoomsCount !== 1 ? "s" : ""}
+                    {selectedRoomsCount} room type{selectedRoomsCount !== 1 ? "s" : ""} selected
                   </p>
                 </div>
               </div>
@@ -319,7 +321,7 @@ export function FloatingCartSummary({
       <AdvancedSidePanel
         isOpen={isPanelOpen}
         onClose={() => setIsPanelOpen(false)}
-        title="Cart Details"
+        title="Multi-Room Selection"
         subtitle={`${totalItems} item${totalItems !== 1 ? "s" : ""} in ${selectedRoomsCount} room type${selectedRoomsCount !== 1 ? "s" : ""}`}
         width="md"
         position="right"
@@ -340,6 +342,12 @@ export function FloatingCartSummary({
         }}
       >
         <div className="px-4 space-y-4 max-h-96 overflow-y-auto">
+          <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <Zap className="h-4 w-4 inline mr-1" />
+              You've selected multiple room types. Use the button below to add all rooms to your cart at once.
+            </p>
+          </div>
           {rooms
             .filter((room) => room.count > 0)
             .map((room, index) => (

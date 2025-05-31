@@ -36,7 +36,7 @@ interface RoomCategoryProps {
   getRoomConfig: (roomType: string) => RoomConfig
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
-  isMultiRoomSelection: boolean // New prop
+  totalSelectedRoomTypes: number // New prop to track total selected room types across all categories
 }
 
 export function RoomCategory({
@@ -49,7 +49,7 @@ export function RoomCategory({
   getRoomConfig,
   variant = "primary",
   onRoomSelect,
-  isMultiRoomSelection, // Destructure new prop
+  totalSelectedRoomTypes, // Destructure new prop
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { addItem } = useCart()
@@ -272,7 +272,8 @@ export function RoomCategory({
                         <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
                         Customize
                       </Button>
-                      {!isMultiRoomSelection && ( // Only show individual add to cart if not in multi-room selection mode
+                      {/* Only show individual add to cart if EXACTLY 1 room type is selected across ALL categories */}
+                      {totalSelectedRoomTypes === 1 && (
                         <Button
                           id={`add-to-cart-${roomType}`}
                           variant="default"

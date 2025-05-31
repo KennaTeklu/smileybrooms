@@ -9,9 +9,9 @@ import { getRoomTiers } from "@/lib/room-tiers"
 import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
 import { SimpleCustomizationPanel } from "./simple-customization-panel"
-import { useCart } from "@/lib/cart-context" // Import useCart
-import { toast } from "@/components/ui/use-toast" // Import toast
-import { RoomCategory } from "./room-category" // Import RoomCategory
+import { useCart } from "@/lib/cart-context"
+import { toast } from "@/components/ui/use-toast"
+import { RoomCategory } from "./room-category"
 import { FloatingCartSummary } from "./floating-cart-summary"
 
 interface RoomConfig {
@@ -43,7 +43,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
   const [rooms, setRooms] = useState<RoomItem[]>(initialRooms)
   const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
   const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<RoomItem | null>(null)
-  const { addItem } = useCart() // Use the cart context
+  const { addItem } = useCart()
 
   const availableRoomTypes = useMemo(
     () => [
@@ -324,7 +324,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
             price: room.config.totalPrice,
             priceId: "price_custom_cleaning",
             quantity: room.count,
-            image: room.roomIcon, // Using roomIcon as a placeholder for image
+            image: room.roomIcon,
             metadata: {
               roomType: room.roomType,
               roomConfig: room.config,
@@ -333,12 +333,12 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
             },
           })
           addedCount++
-          return { ...room, count: 0 } // Reset count after adding to cart
+          return { ...room, count: 0 }
         }
         return room
       })
 
-      setRooms(updatedRoomsAfterAdd.filter((room) => room.count > 0)) // Filter out rooms with 0 count
+      setRooms(updatedRoomsAfterAdd.filter((room) => room.count > 0))
       onRoomsChange?.(updatedRoomsAfterAdd.filter((room) => room.count > 0))
 
       if (addedCount > 0) {
@@ -379,7 +379,6 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
       <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
 
       <div className="grid grid-cols-1 gap-6 mb-8">
-        {/* Example of how you might group rooms into categories */}
         <RoomCategory
           title="Common Areas"
           description="Select and customize your living spaces."
@@ -417,7 +416,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
         />
 
         <RoomCategory
@@ -457,7 +456,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
         />
 
         <RoomCategory
@@ -497,7 +496,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
           }}
           onRoomConfigChange={handleConfigChange}
           getRoomConfig={getRoomConfigForCategory}
-          isMultiRoomSelection={numberOfDistinctSelectedRoomTypes > 1} // Pass the prop
+          totalSelectedRoomTypes={numberOfDistinctSelectedRoomTypes} // Pass total count
         />
       </div>
 
@@ -549,6 +548,7 @@ export function RoomConfigurator({ initialRooms = [], onRoomsChange, panelType =
         <span>{formatCurrency(overallTotalPrice)}</span>
       </div>
 
+      {/* Floating cart summary - only shows when MORE THAN 1 room type is selected */}
       <FloatingCartSummary
         rooms={rooms}
         totalPrice={overallTotalPrice}
