@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react" // Removed useContext as useCart will be used
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShoppingCart, ChevronUp, X } from "lucide-react"
 import { useRoomContext } from "@/lib/room-context"
-import { useCart } from "@/lib/cart-context" // Changed import
+import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { roomImages } from "@/lib/room-tiers"
@@ -12,44 +12,43 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 export function EnhancedCartButton() {
+  const roomContext = useRoomContext() // Call hook at the top level
+  const { addItem } = useCart()
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false) // Start as false
   const [hasScrolled, setHasScrolled] = useState(false)
 
-  const roomContext = useRoomContext()
-  const { addItem } = useCart() // Use the useCart hook
-
+  // If context is not available (e.g., RoomProvider is missing higher up), do not render.
   if (!roomContext) {
     console.warn("EnhancedCartButton: RoomContext not found. Ensure this component is rendered within a RoomProvider.")
+    // Optionally, render a small debug indicator if needed for diagnostics, but for production, null is better.
+    // return <div className="fixed top-0 left-0 bg-red-500 text-white p-2 z-[9999]">RoomContext Missing!</div>;
     return null
   }
 
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = roomContext
 
-  const selectedRoomTypes = useMemo(() => getSelectedRoomTypes(), [roomCounts, getSelectedRoomTypes])
-  const totalPrice = useMemo(() => getTotalPrice(), [roomConfigs, roomCounts, getTotalPrice])
+  const selectedRoomTypes = useMemo(() => getSelectedRoomTypes(), [roomCounts]) // Memoize to prevent unnecessary re-renders
+  const totalPrice = useMemo(() => getTotalPrice(), [roomConfigs, roomCounts]) // Memoize
   const itemCount = selectedRoomTypes.length
 
   useEffect(() => {
+    // console.log("EnhancedCartButton: itemCount =", itemCount); // For debugging
     const shouldBeVisible = itemCount > 0
     if (isVisible !== shouldBeVisible) {
       setIsVisible(shouldBeVisible)
     }
 
     if (shouldBeVisible) {
-      if (itemCount > 0 && !isExpanded && !isMinimized) {
-        // Simplified condition: if items exist and not already in a specific state, default to compact or expand
-        // Default to compact bar when new items are added unless it's the very first item
-        if (itemCount === 1 && !isExpanded && !isMinimized) {
-          setIsExpanded(true) // Expand for the first item
-          setIsMinimized(false)
-        } else if (!isExpanded && !isMinimized) {
-          // For subsequent items, if it's not expanded or minimized, it implies it's in compact state or becoming visible
-          // No specific state change needed here, it will render the compact bar by default if not expanded/minimized
-        }
+      // If it becomes visible and was previously not expanded or minimized, expand it.
+      if (itemCount === 1 && !isExpanded && !isMinimized) {
+        setIsExpanded(true)
+        setIsMinimized(false) // Ensure not minimized
       }
     } else {
+      // If it becomes not visible, reset states
       setIsExpanded(false)
       setIsMinimized(false)
     }
@@ -57,14 +56,14 @@ export function EnhancedCartButton() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setHasScrolled(window.scrollY > 50)
+      setHasScrolled(window.scrollY > 50) // Adjust scroll threshold if needed
     }
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   const handleAddAllToCart = () => {
-    if (itemCount === 0) return
+    if (itemCount === 0) return // Should not happen if button is visible
 
     try {
       let addedCount = 0
@@ -75,13 +74,13 @@ export function EnhancedCartButton() {
           addItem({
             id: `custom-cleaning-${roomType}-${Date.now()}`,
             name: `${config.roomName} Cleaning`,
-            price: config.totalPrice, // This should be unit price, quantity handles total
-            priceId: "price_custom_cleaning",
+            price: config.totalPrice,
+            priceId: "price_custom_cleaning", // Ensure this is a valid Stripe Price ID or placeholder
             quantity: count,
-            image: roomImages[roomType] || `/placeholder.svg?width=100&height=100&query=${config.roomName}`,
+            image: roomImages[roomType] || "/placeholder.svg?width=100&height=100",
             metadata: {
               roomType,
-              roomConfig: config, // contains unit price, total price for one unit, etc.
+              roomConfig: config,
               isRecurring: false,
               frequency: "one_time",
             },
@@ -91,7 +90,7 @@ export function EnhancedCartButton() {
       })
 
       if (addedCount > 0) {
-        resetAllRooms()
+        resetAllRooms() // Reset rooms after adding to cart
         toast({
           title: "Items added to cart",
           description: `${addedCount} room type(s) have been added to your cart.`,
@@ -116,6 +115,18 @@ export function EnhancedCartButton() {
     }
   }
 
+  const toggleExpandAndMinimize = () => {
+    if (isExpanded) {
+      // If expanded, minimize it
+      setIsExpanded(false)
+      setIsMinimized(true)
+    } else {
+      // If minimized or compact, expand it
+      setIsExpanded(true)
+      setIsMinimized(false)
+    }
+  }
+
   const handleMinimize = () => {
     setIsExpanded(false)
     setIsMinimized(true)
@@ -126,47 +137,31 @@ export function EnhancedCartButton() {
     setIsMinimized(false)
   }
 
-  const handleToggleCompactExpand = () => {
-    if (isExpanded) {
-      // If expanded, go to compact (or minimize if preferred)
-      setIsExpanded(false)
-      setIsMinimized(false) // Go to compact bar
-    } else {
-      // If compact or minimized, expand
-      setIsExpanded(true)
-      setIsMinimized(false)
-    }
-  }
+  // Main visibility gate
+  if (!isVisible && !itemCount) return null // Only render if items are selected
 
-  if (!isVisible && !itemCount) return null
-
-  let currentDisplayState = "compact"
+  // Determine current state for rendering
+  let currentDisplayState = "compact" // Default to compact bar
   if (isExpanded) currentDisplayState = "expanded"
   if (isMinimized) currentDisplayState = "minimized"
 
-  // If visible but no specific state, default to compact
-  if (isVisible && !isExpanded && !isMinimized) {
-    currentDisplayState = "compact"
-  }
-
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isVisible && ( // Ensure motion component only mounts when isVisible is true
         <motion.div
           key="enhanced-cart-button-container"
           className={cn(
-            "fixed z-[60] left-1/2 transform -translate-x-1/2",
+            "fixed z-[60] left-1/2 transform -translate-x-1/2", // Increased z-index
             "transition-all duration-300 ease-out",
-            hasScrolled ? "top-4" : "top-[70px]",
+            hasScrolled ? "top-4" : "top-[70px]", // Adjusted top position slightly
           )}
           initial={{ y: -120, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -120, opacity: 0 }}
           transition={{ type: "spring", damping: 20, stiffness: 250 }}
         >
-          <div className="relative group">
-            {" "}
-            {/* Added group for hover effects on compact bar */}
+          <div className="relative">
+            {/* Minimized state - Click to expand */}
             {currentDisplayState === "minimized" && (
               <motion.div
                 key="minimized"
@@ -183,13 +178,15 @@ export function EnhancedCartButton() {
                 <span className="ml-2 font-bold">{itemCount}</span>
               </motion.div>
             )}
+
+            {/* Expanded state - Full bubble */}
             {currentDisplayState === "expanded" && (
               <motion.div
                 key="expanded"
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-80 max-w-xs"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-80 max-w-xs" // Fixed width
               >
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-3">
@@ -200,7 +197,7 @@ export function EnhancedCartButton() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={handleMinimize} // Changed to minimize
+                      onClick={handleMinimize}
                       className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-7 w-7"
                       aria-label="Minimize cart summary"
                     >
@@ -216,7 +213,7 @@ export function EnhancedCartButton() {
                             {roomConfigs[roomType]?.roomName || roomType.replace(/_/g, " ")} ({roomCounts[roomType]})
                           </span>
                           <span className="font-medium text-gray-800 dark:text-gray-200">
-                            {formatCurrency((roomConfigs[roomType]?.totalPrice || 0) * (roomCounts[roomType] || 0))}
+                            {formatCurrency(roomConfigs[roomType]?.totalPrice * roomCounts[roomType] || 0)}
                           </span>
                         </div>
                       ))
@@ -241,22 +238,24 @@ export function EnhancedCartButton() {
                   <Button
                     onClick={handleAddAllToCart}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                    disabled={itemCount === 0}
                   >
                     Add All to Cart ({itemCount})
                   </Button>
                 </div>
+                {/* Speech bubble pointer */}
                 <div className="absolute -bottom-[7px] left-1/2 transform -translate-x-1/2 w-4 h-4 rotate-45 bg-white dark:bg-gray-800 border-b border-r border-gray-200 dark:border-gray-700"></div>
               </motion.div>
             )}
+
+            {/* Compact Notification Bar - Click to expand */}
             {currentDisplayState === "compact" && (
               <motion.div
                 key="compact"
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 50, opacity: 0 }}
-                className="bg-blue-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-center justify-between cursor-pointer min-w-[300px] hover:bg-blue-700 transition-colors"
-                onClick={handleExpand} // Click to expand
+                className="bg-blue-600 text-white rounded-lg shadow-xl px-4 py-3 flex items-center justify-between cursor-pointer min-w-[300px]"
+                onClick={handleExpand}
                 role="button"
                 tabIndex={0}
                 aria-label="Expand cart summary"
@@ -269,8 +268,8 @@ export function EnhancedCartButton() {
                   <span className="font-bold text-lg">{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex items-center">
-                  <span className="text-sm mr-2 opacity-80 group-hover:opacity-100 hidden sm:inline">View Details</span>
-                  <ChevronUp className="h-5 w-5 transform transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm mr-2 hidden sm:inline">View Details</span>
+                  <ChevronUp className="h-5 w-5 transform transition-transform duration-200 group-hover:rotate-180" />
                 </div>
               </motion.div>
             )}
