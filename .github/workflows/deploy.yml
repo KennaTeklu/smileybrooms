@@ -1,8 +1,9 @@
-name: Deploy Next.js to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [KennaTeklu-patch-1]
+    branches:
+      - KennaTeklu-patch-1  # <-- Changed to your preferred branch based on your previous messages
   workflow_dispatch:
 
 permissions:
