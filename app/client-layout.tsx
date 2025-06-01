@@ -11,7 +11,13 @@ import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
-import ChatbotManager from "@/components/chatbot-manager"
+import ClientOnlyWrapper from "@/components/client-only-wrapper"
+import dynamic from "next/dynamic"
+
+// Dynamic import for chatbot manager (client-side only)
+const ChatbotManager = dynamic(() => import("@/components/chatbot-manager"), {
+  ssr: false,
+})
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -50,11 +56,13 @@ export default function ClientLayout({
         <SharePanel />
         <UnifiedFooter />
         <Toaster />
-        <ChatbotManager
-          enableOnAllPages={true}
-          excludePaths={["/admin", "/dashboard"]}
-          customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
-        />
+        <ClientOnlyWrapper>
+          <ChatbotManager
+            enableOnAllPages={true}
+            excludePaths={["/admin", "/dashboard"]}
+            customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
+          />
+        </ClientOnlyWrapper>
       </CartProvider>
     </ThemeProvider>
   )
