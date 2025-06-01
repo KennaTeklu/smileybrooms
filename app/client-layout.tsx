@@ -1,69 +1,52 @@
 "use client"
 
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import EnhancedNavigation from "@/components/enhanced-navigation"
-import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
-import UnifiedFooter from "@/components/unified-footer"
-import AccessibilityPanel from "@/components/accessibility-panel"
-import SharePanel from "@/components/share-panel"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useState } from "react"
+import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { CartProvider } from "@/lib/cart-context"
-import { usePathname } from "next/navigation"
-import { Suspense } from "react"
+import { RoomProvider } from "@/lib/room-context"
+import { TourProvider } from "@/contexts/tour-context"
 import ClientOnlyWrapper from "@/components/client-only-wrapper"
 import dynamic from "next/dynamic"
 
-// Dynamic import for chatbot manager (client-side only)
+// Dynamic imports without SSR for components that need browser APIs
 const ChatbotManager = dynamic(() => import("@/components/chatbot-manager"), {
   ssr: false,
 })
 
-function ConditionalHeader() {
-  const pathname = usePathname()
-  const isHomepage = pathname === "/"
+const UnifiedFloatingWrapper = dynamic(() => import("@/components/unified-floating-wrapper"), {
+  ssr: false,
+})
 
-  if (isHomepage) return null
-
-  return (
-    <>
-      <EnhancedNavigation />
-      <div className="pt-16" />
-    </>
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
   )
-}
 
-function ConditionalHeaderWrapper() {
   return (
-    <Suspense fallback={<div className="pt-16" />}>
-      <ConditionalHeader />
-    </Suspense>
-  )
-}
-
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <CartProvider>
-        <ConditionalHeaderWrapper />
-        <main>{children}</main>
-        <PersistentBookNowButton />
-        <AccessibilityPanel />
-        <SharePanel />
-        <UnifiedFooter />
-        <Toaster />
-        <ClientOnlyWrapper>
-          <ChatbotManager
-            enableOnAllPages={true}
-            excludePaths={["/admin", "/dashboard"]}
-            customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
-          />
-        </ClientOnlyWrapper>
-      </CartProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AccessibilityProvider>
+        <CartProvider>
+          <RoomProvider>
+            <TourProvider>
+              {children}
+              <ClientOnlyWrapper>
+                <ChatbotManager />
+                <UnifiedFloatingWrapper />
+              </ClientOnlyWrapper>
+            </TourProvider>
+          </RoomProvider>
+        </CartProvider>
+      </AccessibilityProvider>
+    </QueryClientProvider>
   )
 }

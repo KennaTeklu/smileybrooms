@@ -1,114 +1,38 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { usePathname } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useAdaptiveScrollPositioning } from "@/hooks/use-adaptive-scroll-positioning"
 
-interface SafeJotFormChatbotProps {
-  skipWelcome?: boolean
-  maximizable?: boolean
-  position?: "left" | "right"
-  autoOpen?: false
-}
-
-export default function SafeJotFormChatbot({
-  skipWelcome = true,
-  maximizable = true,
-  position = "right",
-  autoOpen = false,
-}: SafeJotFormChatbotProps) {
+export default function SafeJotformChatbot() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const initRef = useRef(false)
-  const pathname = usePathname()
+  const { elementRef, style } = useAdaptiveScrollPositioning({
+    basePosition: { bottom: 20, right: 20 },
+    elementType: "chatbot",
+    priority: "high",
+  })
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (initRef.current) return
+    // Simple load check without ServiceWorker
+    const timer = setTimeout(() => {
+      setIsLoaded(true)
+    }, 1000)
 
-    const loadChatbot = async () => {
-      try {
-        // Check if script already exists
-        const existingScript = document.querySelector(
-          'script[src*="cdn.jotfor.ms/agent/embedjs/019727f88b017b95a6ff71f7fdcc58538ab4"]',
-        )
+    return () => clearTimeout(timer)
+  }, [])
 
-        if (existingScript) {
-          setIsLoaded(true)
-          return
-        }
+  if (!isLoaded) return null
 
-        // Create script element with forced no auto-open
-        const script = document.createElement("script")
-        script.src = `https://cdn.jotfor.ms/agent/embedjs/019727f88b017b95a6ff71f7fdcc58538ab4/embed.js?skipWelcome=1&maximizable=1&autoOpen=0`
-        script.async = true
-        script.defer = true
-
-        // Handle script load
-        script.onload = () => {
-          setIsLoaded(true)
-          initRef.current = true
-
-          // Initialize with a small delay to ensure DOM is ready
-          setTimeout(() => {
-            if (typeof window !== "undefined" && (window as any).AgentInitializer) {
-              try {
-                ;(window as any).AgentInitializer.init({
-                  agentRenderURL: "https://www.jotform.com/agent/019727f88b017b95a6ff71f7fdcc58538ab4",
-                  toolId: "JotformAgent-019727f88b017b95a6ff71f7fdcc58538ab4",
-                  formID: "019727f88b017b95a6ff71f7fdcc58538ab4",
-                  domain: "https://www.jotform.com/",
-                  initialContext: "",
-                  queryParams: ["skipWelcome=1", "maximizable=1", "autoOpen=0"],
-                  isDraggable: false,
-                  buttonColor: "#158ded, #6C73A8 0%, #6C73A8 100%",
-                  buttonBackgroundColor: "#00cc33",
-                  buttonIconColor: "#FFFFFF",
-                  inputTextColor: "#91105C",
-                  variant: false,
-                  isGreeting: "greeting:No,greetingMessage:,openByDefault:No,pulse:No,position:right,autoOpenChatIn:0",
-                  isVoice: false,
-                  isVoiceWebCallEnabled: true,
-                  autoOpen: false,
-                  openByDefault: false,
-                  skipWelcome: true,
-                  autoOpenChatIn: 0,
-                  pulse: false,
-                })
-              } catch (initError) {
-                console.warn("JotForm initialization error:", initError)
-                setError("Failed to initialize chatbot")
-              }
-            }
-          }, 100)
-        }
-
-        script.onerror = () => {
-          setError("Failed to load chatbot script")
-          console.error("JotForm script failed to load")
-        }
-
-        // Append script to head
-        document.head.appendChild(script)
-      } catch (loadError) {
-        setError("Error loading chatbot")
-        console.error("Chatbot load error:", loadError)
-      }
-    }
-
-    loadChatbot()
-
-    // Cleanup function - no DOM manipulation needed since script stays loaded
-    return () => {
-      // Just reset the ref, don't remove script to avoid errors
-      initRef.current = false
-    }
-  }, []) // Remove dependencies to prevent re-initialization
-
-  // Don't render anything if there's an error
-  if (error) {
-    console.warn("JotForm Chatbot Error:", error)
-    return null
-  }
-
-  return null
+  return (
+    <div ref={elementRef} style={style} className="fixed z-50 transition-all duration-300">
+      <div className="bg-blue-600 text-white p-3 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition-colors">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12C2 13.54 2.36 14.99 3.01 16.28L2 22L7.72 20.99C9.01 21.64 10.46 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+            fill="currentColor"
+          />
+          <path d="M8 12H16M8 8H16M8 16H13" stroke="white" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  )
 }
