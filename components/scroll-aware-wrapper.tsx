@@ -11,6 +11,7 @@ interface ScrollAwareWrapperProps {
   side?: "left" | "right"
   config?: Parameters<typeof useScrollAwarePositioning>[0]
   onVisibilityChange?: (visible: boolean) => void
+  elementHeight?: number // Height of the element for better positioning
 }
 
 const ScrollAwareWrapper = memo(function ScrollAwareWrapper({
@@ -19,8 +20,31 @@ const ScrollAwareWrapper = memo(function ScrollAwareWrapper({
   side = "right",
   config,
   onVisibilityChange,
+  elementHeight = 60,
 }: ScrollAwareWrapperProps) {
-  const { isVisible, positionStyles, isMobile } = useScrollAwarePositioning(config)
+  // Enhanced config with continuous movement for pricing page
+  const enhancedConfig = React.useMemo(
+    () => ({
+      defaultPosition: "continuous" as const,
+      scrollPosition: "continuous" as const,
+      continuousMovement: {
+        enabled: true,
+        startPosition: 40, // Start at 40% from top
+        endPosition: 80, // End at 80% from top
+        minDistanceFromBottom: Math.max(120, elementHeight + 40), // Dynamic based on element height
+      },
+      offset: {
+        top: 20,
+        bottom: 120, // Account for fixed footer
+        left: side === "left" ? 20 : undefined,
+        right: side === "right" ? 20 : undefined,
+      },
+      ...config,
+    }),
+    [config, side, elementHeight],
+  )
+
+  const { isVisible, positionStyles, isMobile, scrollProgress } = useScrollAwarePositioning(enhancedConfig)
 
   // Notify parent of visibility changes - only when actually changed
   React.useEffect(() => {
@@ -42,16 +66,33 @@ const ScrollAwareWrapper = memo(function ScrollAwareWrapper({
     [positionStyles, sideStyles],
   )
 
+  // Dynamic opacity based on scroll progress for subtle effect
+  const dynamicOpacity = React.useMemo(() => {
+    // Fade slightly when near bottom to indicate end of content
+    if (scrollProgress > 0.95) {
+      return 0.8
+    }
+    return 1
+  }, [scrollProgress])
+
   return (
     <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
+          animate={{
+            opacity: dynamicOpacity,
+            scale: 1,
+            transition: { duration: 0.2, ease: "easeOut" },
+          }}
           exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
           style={combinedStyles}
-          className={cn("pointer-events-auto", isMobile && "scale-90", className)}
+          className={cn(
+            "pointer-events-auto",
+            isMobile && "scale-90",
+            "transition-opacity duration-200", // Smooth opacity transitions
+            className,
+          )}
         >
           {children}
         </motion.div>

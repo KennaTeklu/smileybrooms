@@ -10,8 +10,8 @@ interface ScrollAwareConfig {
   bottomThreshold?: number
 
   // Positioning behavior
-  defaultPosition?: "top" | "center" | "bottom"
-  scrollPosition?: "top" | "center" | "bottom"
+  defaultPosition?: "top" | "center" | "bottom" | "continuous"
+  scrollPosition?: "top" | "center" | "bottom" | "continuous"
 
   // Offset adjustments
   offset?: {
@@ -19,6 +19,14 @@ interface ScrollAwareConfig {
     bottom?: number
     left?: number
     right?: number
+  }
+
+  // Continuous movement settings
+  continuousMovement?: {
+    enabled?: boolean
+    startPosition?: number // percentage from top (0-100)
+    endPosition?: number // percentage from top (0-100)
+    minDistanceFromBottom?: number // minimum pixels from bottom
   }
 
   // Responsive behavior
@@ -29,13 +37,19 @@ interface ScrollAwareConfig {
 const DEFAULT_CONFIG: Required<ScrollAwareConfig> = {
   topThreshold: 100,
   bottomThreshold: 200,
-  defaultPosition: "center",
-  scrollPosition: "bottom",
+  defaultPosition: "continuous",
+  scrollPosition: "continuous",
   offset: {
     top: 20,
     bottom: 20,
     left: 20,
     right: 20,
+  },
+  continuousMovement: {
+    enabled: true,
+    startPosition: 50, // Start at 50% from top
+    endPosition: 85, // End at 85% from top (never reach bottom)
+    minDistanceFromBottom: 100, // Always stay 100px from bottom
   },
   hideOnMobile: false,
   mobileBreakpoint: 768,
@@ -47,6 +61,7 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
 
   const [scrollY, setScrollY] = useState(0)
   const [windowHeight, setWindowHeight] = useState(0)
+  const [documentHeight, setDocumentHeight] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const lastScrollY = useRef(0)
@@ -61,10 +76,18 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
 
     rafId.current = requestAnimationFrame(() => {
       const currentScrollY = window.scrollY
+      const currentDocumentHeight = document.documentElement.scrollHeight
+      const currentWindowHeight = window.innerHeight
 
-      // Only update if scroll position actually changed
-      if (currentScrollY !== lastScrollY.current) {
+      // Only update if values actually changed
+      if (
+        currentScrollY !== lastScrollY.current ||
+        currentDocumentHeight !== documentHeight ||
+        currentWindowHeight !== windowHeight
+      ) {
         setScrollY(currentScrollY)
+        setDocumentHeight(currentDocumentHeight)
+        setWindowHeight(currentWindowHeight)
 
         // Determine scroll direction
         if (currentScrollY > lastScrollY.current) {
@@ -75,10 +98,11 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
         lastScrollY.current = currentScrollY
       }
     })
-  }, [])
+  }, [documentHeight, windowHeight])
 
   const handleResize = useCallback(() => {
     setWindowHeight(window.innerHeight)
+    setDocumentHeight(document.documentElement.scrollHeight)
     setIsMobile(window.innerWidth < fullConfig.mobileBreakpoint)
   }, [fullConfig.mobileBreakpoint])
 
@@ -100,23 +124,66 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
     }
   }, [handleScroll, handleResize])
 
+  // Calculate continuous position based on scroll
+  const calculateContinuousPosition = useCallback(() => {
+    const { continuousMovement, offset } = fullConfig
+
+    if (!continuousMovement.enabled || !windowHeight || !documentHeight) {
+      return { top: "50%", transform: "translateY(-50%)" }
+    }
+
+    const maxScroll = documentHeight - windowHeight
+    const scrollProgress = maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0
+
+    // Calculate position range
+    const startPixels = (continuousMovement.startPosition / 100) * windowHeight
+    const endPixels = Math.min(
+      (continuousMovement.endPosition / 100) * windowHeight,
+      windowHeight - continuousMovement.minDistanceFromBottom,
+    )
+
+    // Interpolate position based on scroll progress
+    const currentPosition = startPixels + (endPixels - startPixels) * scrollProgress
+
+    // Ensure we never go too close to bottom
+    const maxPosition = windowHeight - continuousMovement.minDistanceFromBottom
+    const finalPosition = Math.min(currentPosition, maxPosition)
+
+    return {
+      top: `${finalPosition + offset.top}px`,
+      transform: "translateZ(0)", // Hardware acceleration
+    }
+  }, [scrollY, windowHeight, documentHeight, fullConfig])
+
   // Memoized position calculation
   const positionStyles = useMemo((): React.CSSProperties => {
-    const { topThreshold, defaultPosition, scrollPosition, offset, hideOnMobile } = fullConfig
+    const { topThreshold, defaultPosition, scrollPosition, offset, hideOnMobile, continuousMovement } = fullConfig
 
     // Hide on mobile if configured
     if (isMobile && hideOnMobile) {
       return { display: "none" }
     }
 
-    let position: "top" | "center" | "bottom" = defaultPosition
+    // Use continuous positioning if enabled
+    if (continuousMovement.enabled && (defaultPosition === "continuous" || scrollPosition === "continuous")) {
+      const continuousPos = calculateContinuousPosition()
+      return {
+        position: "fixed",
+        transition: "all 0.1s ease-out", // Faster transition for continuous movement
+        willChange: "transform, top",
+        ...continuousPos,
+      }
+    }
+
+    // Fallback to discrete positioning
+    let position: "top" | "center" | "bottom" = defaultPosition as "top" | "center" | "bottom"
 
     // Determine position based on scroll
     if (scrollY > topThreshold) {
-      position = scrollPosition
+      position = scrollPosition as "top" | "center" | "bottom"
     }
 
-    // Calculate actual CSS values
+    // Calculate actual CSS values for discrete positioning
     const styles: React.CSSProperties = {
       position: "fixed",
       transition: "all 0.3s ease-in-out",
@@ -135,21 +202,15 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
         styles.bottom = "auto"
         break
       case "bottom":
-        styles.bottom = `${offset.bottom}px`
+        // Ensure bottom position respects minimum distance
+        const minBottom = Math.max(offset.bottom, fullConfig.continuousMovement.minDistanceFromBottom)
+        styles.bottom = `${minBottom}px`
         styles.top = "auto"
         break
     }
 
     return styles
-  }, [
-    scrollY,
-    isMobile,
-    fullConfig.topThreshold,
-    fullConfig.defaultPosition,
-    fullConfig.scrollPosition,
-    fullConfig.offset,
-    fullConfig.hideOnMobile,
-  ])
+  }, [scrollY, windowHeight, documentHeight, isMobile, fullConfig, calculateContinuousPosition])
 
   // Visibility helpers - memoized to prevent re-renders
   const show = useCallback(() => setIsVisible(true), [])
@@ -159,17 +220,25 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
   // Utility functions - memoized
   const isScrolledPast = useCallback((threshold: number) => scrollY > threshold, [scrollY])
   const isNearBottom = useCallback(
-    () => scrollY > windowHeight - fullConfig.bottomThreshold,
-    [scrollY, windowHeight, fullConfig.bottomThreshold],
+    () => scrollY > documentHeight - windowHeight - fullConfig.bottomThreshold,
+    [scrollY, documentHeight, windowHeight, fullConfig.bottomThreshold],
   )
   const isNearTop = useCallback(() => scrollY < fullConfig.topThreshold, [scrollY, fullConfig.topThreshold])
+
+  // Calculate scroll progress (0-1)
+  const scrollProgress = useMemo(() => {
+    const maxScroll = documentHeight - windowHeight
+    return maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0
+  }, [scrollY, documentHeight, windowHeight])
 
   return {
     // Position data
     scrollY,
     windowHeight,
+    documentHeight,
     isMobile,
     scrollDirection: scrollDirection.current,
+    scrollProgress,
 
     // Visibility state
     isVisible,

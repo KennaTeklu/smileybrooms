@@ -7,8 +7,7 @@ import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { roomImages } from "@/lib/room-tiers"
-import { UnifiedFloatingWrapper } from "@/components/unified-floating-wrapper"
-import { FLOATING_LAYERS } from "@/lib/floating-system"
+import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 export function FloatingCartButton() {
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -68,21 +67,15 @@ export function FloatingCartButton() {
   if (!isMultiSelection) return null
 
   return (
-    <UnifiedFloatingWrapper
-      id="floating-cart-button"
+    <ScrollAwareWrapper
+      side="right"
       elementHeight={200}
       config={{
-        layer: FLOATING_LAYERS.CART_BUTTON,
-        position: "right",
-        offset: { bottom: 20, right: 20 },
-        behavior: {
-          hideOnScroll: false,
-          persistAcrossPages: true,
-        },
-        animation: {
-          entrance: "scale",
-          exit: "scale",
-          duration: 300,
+        continuousMovement: {
+          enabled: true,
+          startPosition: 45, // Start slightly below center
+          endPosition: 75, // End at 75% to stay visible
+          minDistanceFromBottom: 140, // Extra space for this larger element
         },
       }}
     >
@@ -138,6 +131,6 @@ export function FloatingCartButton() {
           </Button>
         </div>
       </div>
-    </UnifiedFloatingWrapper>
+    </ScrollAwareWrapper>
   )
 }
