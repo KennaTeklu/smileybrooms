@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Package } from "lucide-react"
 import { useRoomContext } from "@/lib/room-context"
@@ -7,7 +8,6 @@ import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { roomImages } from "@/lib/room-tiers"
-import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 export function FloatingCartButton() {
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -67,19 +67,7 @@ export function FloatingCartButton() {
   if (!isMultiSelection) return null
 
   return (
-    <ScrollAwareWrapper
-      side="right"
-      elementHeight={200}
-      config={{
-        continuousMovement: {
-          enabled: true,
-          startPosition: 45, // Start slightly below center
-          endPosition: 75, // End at 75% to stay visible
-          minDistanceFromBottom: 140, // Extra space for this larger element
-        },
-        debug: true, // Enable debug mode to see what's happening
-      }}
-    >
+    <div className="fixed bottom-20 right-4 z-40 transition-all duration-300">
       <div className="bg-white dark:bg-gray-900 shadow-xl rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-4 max-w-xs">
           <div className="flex items-center gap-3 mb-3">
@@ -120,7 +108,6 @@ export function FloatingCartButton() {
           </div>
 
           <Button
-            id="floating-add-all-to-cart"
             variant="default"
             size="sm"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-200 hover:scale-105"
@@ -132,6 +119,8 @@ export function FloatingCartButton() {
           </Button>
         </div>
       </div>
-    </ScrollAwareWrapper>
+    </div>
   )
 }
+
+export default FloatingCartButton
