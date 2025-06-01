@@ -32,6 +32,9 @@ interface ScrollAwareConfig {
   // Responsive behavior
   hideOnMobile?: boolean
   mobileBreakpoint?: number
+
+  // Debug mode
+  debug?: boolean
 }
 
 const DEFAULT_CONFIG: Required<ScrollAwareConfig> = {
@@ -53,6 +56,7 @@ const DEFAULT_CONFIG: Required<ScrollAwareConfig> = {
   },
   hideOnMobile: false,
   mobileBreakpoint: 768,
+  debug: false,
 }
 
 export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
@@ -67,6 +71,50 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
   const lastScrollY = useRef(0)
   const scrollDirection = useRef<"up" | "down">("down")
   const rafId = useRef<number>()
+  const debugRef = useRef<HTMLDivElement | null>(null)
+
+  // Create debug element if needed
+  useEffect(() => {
+    if (fullConfig.debug && typeof window !== "undefined") {
+      if (!debugRef.current) {
+        const debugEl = document.createElement("div")
+        debugEl.style.position = "fixed"
+        debugEl.style.bottom = "10px"
+        debugEl.style.left = "10px"
+        debugEl.style.backgroundColor = "rgba(0,0,0,0.7)"
+        debugEl.style.color = "white"
+        debugEl.style.padding = "5px"
+        debugEl.style.fontSize = "12px"
+        debugEl.style.zIndex = "9999"
+        debugEl.style.fontFamily = "monospace"
+        debugEl.style.borderRadius = "3px"
+        debugEl.id = "scroll-debug-info"
+        document.body.appendChild(debugEl)
+        debugRef.current = debugEl
+      }
+    }
+
+    return () => {
+      if (debugRef.current) {
+        document.body.removeChild(debugRef.current)
+        debugRef.current = null
+      }
+    }
+  }, [fullConfig.debug])
+
+  // Update debug info
+  const updateDebugInfo = useCallback(() => {
+    if (fullConfig.debug && debugRef.current) {
+      debugRef.current.innerHTML = `
+        scrollY: ${scrollY}<br>
+        windowHeight: ${windowHeight}<br>
+        documentHeight: ${documentHeight}<br>
+        direction: ${scrollDirection.current}<br>
+        progress: ${(scrollY / (documentHeight - windowHeight)).toFixed(2)}<br>
+        isMobile: ${isMobile}
+      `
+    }
+  }, [scrollY, windowHeight, documentHeight, isMobile, fullConfig.debug])
 
   // Throttled scroll handler to prevent excessive re-renders
   const handleScroll = useCallback(() => {
@@ -96,22 +144,40 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
           scrollDirection.current = "up"
         }
         lastScrollY.current = currentScrollY
+
+        // Update debug info
+        updateDebugInfo()
       }
     })
-  }, [documentHeight, windowHeight])
+  }, [documentHeight, windowHeight, updateDebugInfo])
 
   const handleResize = useCallback(() => {
     setWindowHeight(window.innerHeight)
     setDocumentHeight(document.documentElement.scrollHeight)
     setIsMobile(window.innerWidth < fullConfig.mobileBreakpoint)
-  }, [fullConfig.mobileBreakpoint])
+    updateDebugInfo()
+  }, [fullConfig.mobileBreakpoint, updateDebugInfo])
 
   // Track scroll position and window dimensions
   useEffect(() => {
-    // Initial setup
-    handleScroll()
-    handleResize()
+    // Ensure we're in the browser
+    if (typeof window === "undefined") return
 
+    // Force immediate measurement
+    const currentScrollY = window.scrollY
+    const currentDocumentHeight = document.documentElement.scrollHeight
+    const currentWindowHeight = window.innerHeight
+
+    setScrollY(currentScrollY)
+    setDocumentHeight(currentDocumentHeight)
+    setWindowHeight(currentWindowHeight)
+    setIsMobile(window.innerWidth < fullConfig.mobileBreakpoint)
+    lastScrollY.current = currentScrollY
+
+    // Initial debug update
+    updateDebugInfo()
+
+    // Add event listeners
     window.addEventListener("scroll", handleScroll, { passive: true })
     window.addEventListener("resize", handleResize, { passive: true })
 
@@ -122,18 +188,19 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
         cancelAnimationFrame(rafId.current)
       }
     }
-  }, [handleScroll, handleResize])
+  }, [handleScroll, handleResize, fullConfig.mobileBreakpoint, updateDebugInfo])
 
   // Calculate continuous position based on scroll
   const calculateContinuousPosition = useCallback(() => {
     const { continuousMovement, offset } = fullConfig
 
-    if (!continuousMovement.enabled || !windowHeight || !documentHeight) {
+    if (!continuousMovement.enabled || !windowHeight) {
       return { top: "50%", transform: "translateY(-50%)" }
     }
 
-    const maxScroll = documentHeight - windowHeight
-    const scrollProgress = maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0
+    // Prevent division by zero
+    const maxScroll = Math.max(documentHeight - windowHeight, 1)
+    const scrollProgress = Math.min(scrollY / maxScroll, 1)
 
     // Calculate position range
     const startPixels = (continuousMovement.startPosition / 100) * windowHeight
@@ -150,7 +217,7 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
     const finalPosition = Math.min(currentPosition, maxPosition)
 
     return {
-      top: `${finalPosition + offset.top}px`,
+      top: `${finalPosition}px`,
       transform: "translateZ(0)", // Hardware acceleration
     }
   }, [scrollY, windowHeight, documentHeight, fullConfig])
@@ -169,7 +236,7 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
       const continuousPos = calculateContinuousPosition()
       return {
         position: "fixed",
-        transition: "all 0.1s ease-out", // Faster transition for continuous movement
+        transition: "top 0.1s ease-out", // Faster transition for continuous movement
         willChange: "transform, top",
         ...continuousPos,
       }
@@ -227,6 +294,7 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
 
   // Calculate scroll progress (0-1)
   const scrollProgress = useMemo(() => {
+    if (documentHeight <= windowHeight) return 0
     const maxScroll = documentHeight - windowHeight
     return maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0
   }, [scrollY, documentHeight, windowHeight])

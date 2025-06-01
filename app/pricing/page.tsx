@@ -9,6 +9,14 @@ const PricingContent = dynamic(() => import("@/components/pricing-content"), {
   loading: () => <LoadingAnimation />,
 })
 
+// Dynamically import floating elements with client-side only rendering
+const PricingFloatingElements = dynamic(
+  () => import("@/components/pricing-floating-elements").then((mod) => mod.PricingFloatingElements),
+  {
+    ssr: false,
+  },
+)
+
 export default function PricingPage() {
   return (
     <RoomProvider>
@@ -18,6 +26,9 @@ export default function PricingPage() {
             <PricingContent />
           </Suspense>
         </main>
+
+        {/* Floating elements rendered outside the main content */}
+        <PricingFloatingElements />
       </div>
     </RoomProvider>
   )

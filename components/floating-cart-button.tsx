@@ -77,6 +77,7 @@ export function FloatingCartButton() {
           endPosition: 75, // End at 75% to stay visible
           minDistanceFromBottom: 140, // Extra space for this larger element
         },
+        debug: true, // Enable debug mode to see what's happening
       }}
     >
       <div className="bg-white dark:bg-gray-900 shadow-xl rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
