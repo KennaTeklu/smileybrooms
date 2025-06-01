@@ -17,6 +17,14 @@ const PricingFloatingElements = dynamic(
   },
 )
 
+// Dynamically import AddAllToCartModal with client-side only rendering
+const AddAllToCartModal = dynamic(
+  () => import("@/components/add-all-to-cart-modal").then((mod) => mod.AddAllToCartModal),
+  {
+    ssr: false,
+  },
+)
+
 export default function PricingPage() {
   return (
     <RoomProvider>
@@ -29,6 +37,8 @@ export default function PricingPage() {
 
         {/* Floating elements rendered outside the main content */}
         <PricingFloatingElements />
+        {/* The AddAllToCartModal will now be rendered on the pricing page */}
+        <AddAllToCartModal />
       </div>
     </RoomProvider>
   )

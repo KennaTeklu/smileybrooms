@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react"
 import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, HelpCircle } from "lucide-react"
-import Link from "next/link"
+import { HelpCircle } from "lucide-react"
 
 export function PricingFloatingElements() {
   const [mounted, setMounted] = useState(false)
@@ -41,33 +40,7 @@ export function PricingFloatingElements() {
         </Button>
       </ScrollAwareWrapper>
 
-      {/* Cart Button */}
-      <ScrollAwareWrapper
-        side="right"
-        elementHeight={60}
-        config={{
-          continuousMovement: {
-            enabled: true,
-            startPosition: 45,
-            endPosition: 75,
-            minDistanceFromBottom: 160,
-          },
-          offset: {
-            right: 20,
-            bottom: 80,
-          },
-        }}
-      >
-        <Link href="/cart">
-          <Button
-            size="lg"
-            className="rounded-full shadow-lg px-6 py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          >
-            <ShoppingCart className="h-5 w-5 mr-2" />
-            <span className="font-medium">View Cart</span>
-          </Button>
-        </Link>
-      </ScrollAwareWrapper>
+      {/* The AddAllToCartModal will handle the dynamic cart button */}
     </>
   )
 }
