@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence, useSpring } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2,
   ChevronLeft,
@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { useClickOutside } from "@/hooks/use-click-outside"
+import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 type SocialPlatform = {
   name: string
@@ -320,34 +321,10 @@ const socialPlatforms: Record<string, SocialPlatform[]> = {
 export default function SharePanel() {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [scrollY, setScrollY] = useState(0)
   const [currentUrl, setCurrentUrl] = useState("")
   const [currentTitle, setCurrentTitle] = useState("")
   const { toast } = useToast()
   const panelRef = useRef<HTMLDivElement>(null)
-
-  // Smooth scroll position with spring physics
-  const smoothScrollY = useSpring(0, {
-    stiffness: 100,
-    damping: 20,
-    mass: 0.5,
-  })
-
-  // Track scroll position with smooth animation
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY)
-      smoothScrollY.set(window.scrollY)
-    }
-
-    // Use passive: true for better performance
-    window.addEventListener("scroll", handleScroll, { passive: true })
-
-    // Initial position setting
-    handleScroll()
-
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [smoothScrollY])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, () => {
@@ -434,13 +411,12 @@ export default function SharePanel() {
     : null
 
   return (
-    <motion.div
-      className="fixed right-0 z-50"
-      style={{
-        top: scrollY > 100 ? "auto" : "50%",
-        bottom: scrollY > 100 ? "80px" : "auto",
-        y: scrollY > 100 ? 0 : "-50%",
-        transition: "top 0.3s ease, bottom 0.3s ease, transform 0.3s ease",
+    <ScrollAwareWrapper
+      side="right"
+      config={{
+        defaultPosition: "center",
+        scrollPosition: "bottom",
+        offset: { bottom: 100, right: 20 }, // Account for fixed footer
       }}
     >
       <AnimatePresence>
@@ -555,6 +531,6 @@ export default function SharePanel() {
           </motion.button>
         )}
       </AnimatePresence>
-    </motion.div>
+    </ScrollAwareWrapper>
   )
 }

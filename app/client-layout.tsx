@@ -6,11 +6,12 @@ import { Toaster } from "@/components/ui/toaster"
 import EnhancedNavigation from "@/components/enhanced-navigation"
 import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
 import UnifiedFooter from "@/components/unified-footer"
+import AccessibilityPanel from "@/components/accessibility-panel"
+import SharePanel from "@/components/share-panel"
 import { CartProvider } from "@/lib/cart-context"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 import ChatbotManager from "@/components/chatbot-manager"
-import GlobalFloatingControls from "@/components/global-floating-controls"
 
 function ConditionalHeader() {
   const pathname = usePathname()
@@ -45,6 +46,8 @@ export default function ClientLayout({
         <ConditionalHeaderWrapper />
         <main>{children}</main>
         <PersistentBookNowButton />
+        <AccessibilityPanel />
+        <SharePanel />
         <UnifiedFooter />
         <Toaster />
         <ChatbotManager
@@ -52,7 +55,6 @@ export default function ClientLayout({
           excludePaths={["/admin", "/dashboard"]}
           customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
         />
-        <GlobalFloatingControls />
       </CartProvider>
     </ThemeProvider>
   )

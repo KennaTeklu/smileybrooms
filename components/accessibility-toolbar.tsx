@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
 import {
   Drawer,
   DrawerClose,
@@ -19,6 +18,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useTheme } from "next-themes"
+import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 interface AccessibilityToolbarProps {
   className?: string
@@ -31,15 +31,13 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
   const [showSubtitles, setShowSubtitles] = useState(false)
   const [subtitle, setSubtitle] = useState("")
   const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null)
-  const [isExpanded, setIsExpanded] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [readingSpeed, setReadingSpeed] = useState(0.9)
   const [readingPitch, setReadingPitch] = useState(1)
-  const [volume, setVolume] = useState(1) // New volume state
-  const [prevVolume, setPrevVolume] = useState(1) // To store volume before muting
+  const [volume, setVolume] = useState(1)
+  const [prevVolume, setPrevVolume] = useState(1)
   const [highContrast, setHighContrast] = useState(false)
   const { theme, setTheme } = useTheme()
-  const contentRef = useRef<HTMLDivElement>(null)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -50,7 +48,6 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
       u.volume = volume
       setUtterance(u)
 
-      // Handle speech events
       u.onstart = () => setIsReading(true)
       u.onend = () => {
         setIsReading(false)
@@ -94,12 +91,10 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     if (utterance) {
       utterance.volume = volume
 
-      // If volume is set to 0, pause the speech
       if (volume === 0 && isReading) {
         window.speechSynthesis.pause()
         setIsMuted(true)
       } else if (volume > 0 && isMuted && isReading) {
-        // If coming back from volume 0, resume the speech
         window.speechSynthesis.resume()
         setIsMuted(false)
       }
@@ -109,7 +104,6 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
   const readPage = () => {
     if (!utterance || !window.speechSynthesis) return
 
-    // If already reading, stop
     if (isReading) {
       window.speechSynthesis.cancel()
       setIsReading(false)
@@ -117,14 +111,12 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
       return
     }
 
-    // Get all visible text from the page
     const textContent = document.body.innerText
     utterance.text = textContent
     utterance.rate = readingSpeed
     utterance.pitch = readingPitch
     utterance.volume = volume
 
-    // Start reading
     window.speechSynthesis.speak(utterance)
   }
 
@@ -132,14 +124,12 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     if (!utterance) return
 
     if (isMuted) {
-      // Restore previous volume
       setVolume(prevVolume)
       utterance.volume = prevVolume
       if (isReading) {
         window.speechSynthesis.resume()
       }
     } else {
-      // Store current volume and mute
       setPrevVolume(volume)
       setVolume(0)
       utterance.volume = 0
@@ -154,17 +144,15 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
   const handleVolumeChange = (value: number[]) => {
     const newVolume = value[0]
 
-    // If new volume is 0, set to muted
     if (newVolume === 0) {
       if (!isMuted) {
-        setPrevVolume(volume) // Remember previous volume
+        setPrevVolume(volume)
         setIsMuted(true)
         if (isReading) {
           window.speechSynthesis.pause()
         }
       }
     } else {
-      // If coming from 0, unmute
       if (isMuted) {
         setIsMuted(false)
         if (isReading) {
@@ -191,10 +179,6 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     }
   }
 
-  const toggleSubtitles = () => {
-    setShowSubtitles(!showSubtitles)
-  }
-
   const handleReadingSpeedChange = (value: number[]) => {
     const newSpeed = value[0]
     setReadingSpeed(newSpeed)
@@ -213,7 +197,15 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
 
   return (
     <>
-      <div className={cn("fixed bottom-4 right-4 z-50", className)}>
+      <ScrollAwareWrapper
+        side="left"
+        className={className}
+        config={{
+          defaultPosition: "center",
+          scrollPosition: "bottom",
+          offset: { bottom: 100, left: 20 }, // Account for fixed footer
+        }}
+      >
         <TooltipProvider>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
             <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -343,7 +335,7 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
                   {isReading ? <Volume2 className="h-4 w-4" /> : <VolumeUp className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side="right">
                 <p>{isReading ? "Stop Reading" : "Read Page Aloud"}</p>
               </TooltipContent>
             </Tooltip>
@@ -354,7 +346,7 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
                   {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side="right">
                 <p>{isMuted ? "Unmute" : "Mute"}</p>
               </TooltipContent>
             </Tooltip>
@@ -364,13 +356,13 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={toggleSubtitles}
+                  onClick={() => setShowSubtitles(!showSubtitles)}
                   className={showSubtitles ? "bg-primary text-primary-foreground" : ""}
                 >
                   <Type className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side="right">
                 <p>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</p>
               </TooltipContent>
             </Tooltip>
@@ -381,7 +373,7 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side="right">
                 <p>Increase Font Size</p>
               </TooltipContent>
             </Tooltip>
@@ -392,17 +384,17 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="left">
+              <TooltipContent side="right">
                 <p>Decrease Font Size</p>
               </TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
-      </div>
+      </ScrollAwareWrapper>
 
       {/* Subtitle display */}
       {showSubtitles && isReading && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center z-50">
           {subtitle || "..."}
         </div>
       )}

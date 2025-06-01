@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Shield, Leaf, Award, Users } from "lucide-react"
 
-export default function CoreValues() {
+export function CoreValues() {
   const values = [
     {
       icon: Heart,
