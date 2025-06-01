@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useScrollAwarePositioning } from "@/hooks/use-scroll-aware-positioning"
 import { cn } from "@/lib/utils"
@@ -13,56 +13,51 @@ interface ScrollAwareWrapperProps {
   onVisibilityChange?: (visible: boolean) => void
 }
 
-export function ScrollAwareWrapper({
+const ScrollAwareWrapper = memo(function ScrollAwareWrapper({
   children,
   className,
   side = "right",
-  config = {},
+  config,
   onVisibilityChange,
 }: ScrollAwareWrapperProps) {
-  const { isVisible, positionStyles, isMobile } = useScrollAwarePositioning({
-    defaultPosition: "center",
-    scrollPosition: "bottom",
-    offset: {
-      top: 20,
-      bottom: 80, // Account for fixed footer
-      left: side === "left" ? 20 : undefined,
-      right: side === "right" ? 20 : undefined,
-    },
-    hideOnMobile: false,
-    ...config,
-  })
+  const { isVisible, positionStyles, isMobile } = useScrollAwarePositioning(config)
 
-  // Notify parent of visibility changes
+  // Notify parent of visibility changes - only when actually changed
   React.useEffect(() => {
     onVisibilityChange?.(isVisible)
   }, [isVisible, onVisibilityChange])
 
-  const sideStyles =
-    side === "left" ? { left: positionStyles.left || "20px" } : { right: positionStyles.right || "20px" }
+  // Memoize side styles to prevent re-renders
+  const sideStyles = React.useMemo(() => {
+    return side === "left" ? { left: "20px" } : { right: "20px" }
+  }, [side])
+
+  // Memoize combined styles
+  const combinedStyles = React.useMemo(
+    () => ({
+      ...positionStyles,
+      ...sideStyles,
+      zIndex: 50,
+    }),
+    [positionStyles, sideStyles],
+  )
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          style={{
-            ...positionStyles,
-            ...sideStyles,
-            zIndex: 50,
-          }}
-          className={cn(
-            "pointer-events-auto",
-            isMobile && "scale-90", // Slightly smaller on mobile
-            className,
-          )}
+          style={combinedStyles}
+          className={cn("pointer-events-auto", isMobile && "scale-90", className)}
         >
           {children}
         </motion.div>
       )}
     </AnimatePresence>
   )
-}
+})
+
+export { ScrollAwareWrapper }

@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React from "react"
+
+import { useState, useEffect, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -24,7 +26,7 @@ interface AccessibilityToolbarProps {
   className?: string
 }
 
-export default function AccessibilityToolbar({ className }: AccessibilityToolbarProps) {
+const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: AccessibilityToolbarProps) {
   const [isReading, setIsReading] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [fontSize, setFontSize] = useState(1)
@@ -38,6 +40,16 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
   const [prevVolume, setPrevVolume] = useState(1)
   const [highContrast, setHighContrast] = useState(false)
   const { theme, setTheme } = useTheme()
+
+  // Memoized scroll config to prevent re-renders
+  const scrollConfig = React.useMemo(
+    () => ({
+      defaultPosition: "center" as const,
+      scrollPosition: "bottom" as const,
+      offset: { bottom: 100, left: 20 },
+    }),
+    [],
+  )
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -101,7 +113,7 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     }
   }, [volume, utterance, isReading, isMuted])
 
-  const readPage = () => {
+  const readPage = useCallback(() => {
     if (!utterance || !window.speechSynthesis) return
 
     if (isReading) {
@@ -118,9 +130,9 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     utterance.volume = volume
 
     window.speechSynthesis.speak(utterance)
-  }
+  }, [utterance, isReading, readingSpeed, readingPitch, volume])
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (!utterance) return
 
     if (isMuted) {
@@ -139,73 +151,74 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
     }
 
     setIsMuted(!isMuted)
-  }
+  }, [utterance, isMuted, prevVolume, volume, isReading])
 
-  const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0]
+  const handleVolumeChange = useCallback(
+    (value: number[]) => {
+      const newVolume = value[0]
 
-    if (newVolume === 0) {
-      if (!isMuted) {
-        setPrevVolume(volume)
-        setIsMuted(true)
-        if (isReading) {
-          window.speechSynthesis.pause()
+      if (newVolume === 0) {
+        if (!isMuted) {
+          setPrevVolume(volume)
+          setIsMuted(true)
+          if (isReading) {
+            window.speechSynthesis.pause()
+          }
+        }
+      } else {
+        if (isMuted) {
+          setIsMuted(false)
+          if (isReading) {
+            window.speechSynthesis.resume()
+          }
         }
       }
-    } else {
-      if (isMuted) {
-        setIsMuted(false)
-        if (isReading) {
-          window.speechSynthesis.resume()
-        }
+
+      setVolume(newVolume)
+      if (utterance) {
+        utterance.volume = newVolume
       }
-    }
+    },
+    [isMuted, volume, isReading, utterance],
+  )
 
-    setVolume(newVolume)
-    if (utterance) {
-      utterance.volume = newVolume
-    }
-  }
-
-  const increaseFontSize = () => {
+  const increaseFontSize = useCallback(() => {
     if (fontSize < 1.5) {
       setFontSize((prev) => Math.min(prev + 0.1, 1.5))
     }
-  }
+  }, [fontSize])
 
-  const decreaseFontSize = () => {
+  const decreaseFontSize = useCallback(() => {
     if (fontSize > 0.8) {
       setFontSize((prev) => Math.max(prev - 0.1, 0.8))
     }
-  }
+  }, [fontSize])
 
-  const handleReadingSpeedChange = (value: number[]) => {
-    const newSpeed = value[0]
-    setReadingSpeed(newSpeed)
-    if (utterance) {
-      utterance.rate = newSpeed
-    }
-  }
+  const handleReadingSpeedChange = useCallback(
+    (value: number[]) => {
+      const newSpeed = value[0]
+      setReadingSpeed(newSpeed)
+      if (utterance) {
+        utterance.rate = newSpeed
+      }
+    },
+    [utterance],
+  )
 
-  const handlePitchChange = (value: number[]) => {
-    const newPitch = value[0]
-    setReadingPitch(newPitch)
-    if (utterance) {
-      utterance.pitch = newPitch
-    }
-  }
+  const handlePitchChange = useCallback(
+    (value: number[]) => {
+      const newPitch = value[0]
+      setReadingPitch(newPitch)
+      if (utterance) {
+        utterance.pitch = newPitch
+      }
+    },
+    [utterance],
+  )
 
   return (
     <>
-      <ScrollAwareWrapper
-        side="left"
-        className={className}
-        config={{
-          defaultPosition: "center",
-          scrollPosition: "bottom",
-          offset: { bottom: 100, left: 20 }, // Account for fixed footer
-        }}
-      >
+      <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
         <TooltipProvider>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
             <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -400,4 +413,6 @@ export default function AccessibilityToolbar({ className }: AccessibilityToolbar
       )}
     </>
   )
-}
+})
+
+export default AccessibilityToolbar

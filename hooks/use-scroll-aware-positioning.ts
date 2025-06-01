@@ -2,8 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { useSpring } from "framer-motion"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 
 interface ScrollAwareConfig {
   // Position thresholds
@@ -13,13 +12,6 @@ interface ScrollAwareConfig {
   // Positioning behavior
   defaultPosition?: "top" | "center" | "bottom"
   scrollPosition?: "top" | "center" | "bottom"
-
-  // Animation settings
-  springConfig?: {
-    stiffness?: number
-    damping?: number
-    mass?: number
-  }
 
   // Offset adjustments
   offset?: {
@@ -39,11 +31,6 @@ const DEFAULT_CONFIG: Required<ScrollAwareConfig> = {
   bottomThreshold: 200,
   defaultPosition: "center",
   scrollPosition: "bottom",
-  springConfig: {
-    stiffness: 100,
-    damping: 20,
-    mass: 0.5,
-  },
   offset: {
     top: 20,
     bottom: 20,
@@ -55,40 +42,48 @@ const DEFAULT_CONFIG: Required<ScrollAwareConfig> = {
 }
 
 export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
-  const fullConfig = { ...DEFAULT_CONFIG, ...config }
+  // Memoize the full config to prevent re-renders
+  const fullConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config])
+
   const [scrollY, setScrollY] = useState(0)
   const [windowHeight, setWindowHeight] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const lastScrollY = useRef(0)
   const scrollDirection = useRef<"up" | "down">("down")
+  const rafId = useRef<number>()
 
-  // Smooth scroll position with spring physics
-  const smoothScrollY = useSpring(0, fullConfig.springConfig)
+  // Throttled scroll handler to prevent excessive re-renders
+  const handleScroll = useCallback(() => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current)
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const currentScrollY = window.scrollY
+
+      // Only update if scroll position actually changed
+      if (currentScrollY !== lastScrollY.current) {
+        setScrollY(currentScrollY)
+
+        // Determine scroll direction
+        if (currentScrollY > lastScrollY.current) {
+          scrollDirection.current = "down"
+        } else {
+          scrollDirection.current = "up"
+        }
+        lastScrollY.current = currentScrollY
+      }
+    })
+  }, [])
+
+  const handleResize = useCallback(() => {
+    setWindowHeight(window.innerHeight)
+    setIsMobile(window.innerWidth < fullConfig.mobileBreakpoint)
+  }, [fullConfig.mobileBreakpoint])
 
   // Track scroll position and window dimensions
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      setScrollY(currentScrollY)
-
-      // Determine scroll direction
-      if (currentScrollY > lastScrollY.current) {
-        scrollDirection.current = "down"
-      } else {
-        scrollDirection.current = "up"
-      }
-      lastScrollY.current = currentScrollY
-
-      // Update spring value
-      smoothScrollY.set(currentScrollY)
-    }
-
-    const handleResize = () => {
-      setWindowHeight(window.innerHeight)
-      setIsMobile(window.innerWidth < fullConfig.mobileBreakpoint)
-    }
-
     // Initial setup
     handleScroll()
     handleResize()
@@ -99,19 +94,19 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
     return () => {
       window.removeEventListener("scroll", handleScroll)
       window.removeEventListener("resize", handleResize)
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current)
+      }
     }
-  }, [smoothScrollY, fullConfig])
+  }, [handleScroll, handleResize])
 
-  // Calculate dynamic position based on scroll
-  const calculatePosition = useCallback(() => {
-    const { topThreshold, bottomThreshold, defaultPosition, scrollPosition, offset } = fullConfig
+  // Memoized position calculation
+  const positionStyles = useMemo((): React.CSSProperties => {
+    const { topThreshold, defaultPosition, scrollPosition, offset, hideOnMobile } = fullConfig
 
     // Hide on mobile if configured
-    if (isMobile && fullConfig.hideOnMobile) {
-      setIsVisible(false)
+    if (isMobile && hideOnMobile) {
       return { display: "none" }
-    } else {
-      setIsVisible(true)
     }
 
     let position: "top" | "center" | "bottom" = defaultPosition
@@ -148,29 +143,30 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
     return styles
   }, [
     scrollY,
-    windowHeight,
     isMobile,
     fullConfig.topThreshold,
-    fullConfig.bottomThreshold,
     fullConfig.defaultPosition,
     fullConfig.scrollPosition,
     fullConfig.offset,
     fullConfig.hideOnMobile,
-    fullConfig.mobileBreakpoint,
   ])
 
-  // Get current position styles
-  const positionStyles = calculatePosition()
-
-  // Visibility helpers
+  // Visibility helpers - memoized to prevent re-renders
   const show = useCallback(() => setIsVisible(true), [])
   const hide = useCallback(() => setIsVisible(false), [])
   const toggle = useCallback(() => setIsVisible((prev) => !prev), [])
 
+  // Utility functions - memoized
+  const isScrolledPast = useCallback((threshold: number) => scrollY > threshold, [scrollY])
+  const isNearBottom = useCallback(
+    () => scrollY > windowHeight - fullConfig.bottomThreshold,
+    [scrollY, windowHeight, fullConfig.bottomThreshold],
+  )
+  const isNearTop = useCallback(() => scrollY < fullConfig.topThreshold, [scrollY, fullConfig.topThreshold])
+
   return {
     // Position data
     scrollY,
-    smoothScrollY,
     windowHeight,
     isMobile,
     scrollDirection: scrollDirection.current,
@@ -185,8 +181,8 @@ export function useScrollAwarePositioning(config: ScrollAwareConfig = {}) {
     positionStyles,
 
     // Utility functions
-    isScrolledPast: (threshold: number) => scrollY > threshold,
-    isNearBottom: () => scrollY > windowHeight - fullConfig.bottomThreshold,
-    isNearTop: () => scrollY < fullConfig.topThreshold,
+    isScrolledPast,
+    isNearBottom,
+    isNearTop,
   }
 }
