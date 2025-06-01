@@ -10,7 +10,7 @@ export default function Home() {
         <div className="flex justify-center mt-8">
           <Link href="/pricing">
             <button className="bg-[#2563EB] text-white font-medium py-3 px-8 rounded-full text-lg hover:bg-blue-600 transition-colors">
-              Book Now
+              Book Now!
             </button>
           </Link>
         </div>
