@@ -1,61 +1,31 @@
 "use client"
 
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
+
+import { useState, useEffect } from "react"
+import { ThemeProvider } from "next-themes"
+import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import EnhancedNavigation from "@/components/enhanced-navigation"
-import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
 import UnifiedFooter from "@/components/unified-footer"
-import AccessibilityPanel from "@/components/accessibility-panel"
-import SharePanel from "@/components/share-panel"
-import { CartProvider } from "@/lib/cart-context"
-import { usePathname } from "next/navigation"
-import { Suspense } from "react"
-import ChatbotManager from "@/components/chatbot-manager"
+import FixedFooter from "@/components/fixed-footer"
+import GlobalFloatingControls from "@/components/global-floating-controls"
 
-function ConditionalHeader() {
-  const pathname = usePathname()
-  const isHomepage = pathname === "/"
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
 
-  if (isHomepage) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
-    <>
-      <EnhancedNavigation />
-      <div className="pt-16" />
-    </>
-  )
-}
-
-function ConditionalHeaderWrapper() {
-  return (
-    <Suspense fallback={<div className="pt-16" />}>
-      <ConditionalHeader />
-    </Suspense>
-  )
-}
-
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <CartProvider>
-        <ConditionalHeaderWrapper />
-        <main>{children}</main>
-        <PersistentBookNowButton />
-        <AccessibilityPanel />
-        <SharePanel />
+    <QueryClientProvider>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <EnhancedNavigation />
+        <main className="min-h-screen">{children}</main>
         <UnifiedFooter />
-        <Toaster />
-        <ChatbotManager
-          enableOnAllPages={true}
-          excludePaths={["/admin", "/dashboard"]}
-          customGreeting="Hi! Welcome to smileybrooms.com! How can I assist you today?"
-        />
-      </CartProvider>
-    </ThemeProvider>
+        <FixedFooter />
+        <GlobalFloatingControls />
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }
