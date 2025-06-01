@@ -4,15 +4,7 @@ import type React from "react"
 
 // Animation and Motion
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import {
-  motion,
-  AnimatePresence,
-  useSpring,
-  useAnimation,
-  useMotionValue,
-  useTransform,
-  useInView,
-} from "framer-motion"
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform, useInView } from "framer-motion"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
 // UI Components
@@ -54,6 +46,8 @@ export function AddAllToCartModal() {
   const { addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [windowHeight, setWindowHeight] = useState(0)
+  const [documentHeight, setDocumentHeight] = useState(0)
   const [hasBeenSeen, setHasBeenSeen] = useLocalStorage("cart-modal-seen", false)
   const [pulseAnimation, setPulseAnimation] = useState(!hasBeenSeen)
   const modalRef = useRef<HTMLDivElement>(null)
@@ -63,13 +57,7 @@ export function AddAllToCartModal() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
-
-  // Smooth scroll position with spring physics
-  const smoothScrollY = useSpring(0, {
-    stiffness: 100,
-    damping: 20,
-    mass: 0.5,
-  })
+  const rafId = useRef<number>()
 
   // Motion values for interactive effects
   const mouseX = useMotionValue(0)
@@ -88,16 +76,82 @@ export function AddAllToCartModal() {
     },
   })
 
-  // Track scroll position with smooth animation
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY)
-      smoothScrollY.set(window.scrollY)
+  // Smooth continuous position calculation
+  const calculateContinuousPosition = useCallback(() => {
+    if (!windowHeight || !documentHeight) {
+      return { top: "80px" } // Start near top
     }
 
+    // Calculate scroll progress (0 to 1)
+    const maxScroll = Math.max(documentHeight - windowHeight, 1)
+    const scrollProgress = Math.min(scrollY / maxScroll, 1)
+
+    // Define movement range
+    const startPosition = 80 // Start 80px from top
+    const endPosition = Math.max(windowHeight - 200, startPosition + 100) // End 200px from bottom, minimum 100px movement
+
+    // Calculate current position with smooth interpolation
+    const currentPosition = startPosition + (endPosition - startPosition) * scrollProgress
+
+    // Ensure we never go too close to bottom
+    const maxPosition = windowHeight - 180 // Always stay 180px from bottom
+    const finalPosition = Math.min(currentPosition, maxPosition)
+
+    return {
+      top: `${finalPosition}px`,
+    }
+  }, [scrollY, windowHeight, documentHeight])
+
+  // Throttled scroll handler for smooth continuous movement
+  const handleScroll = useCallback(() => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current)
+    }
+
+    rafId.current = requestAnimationFrame(() => {
+      const currentScrollY = window.scrollY
+      const currentWindowHeight = window.innerHeight
+      const currentDocumentHeight = document.documentElement.scrollHeight
+
+      // Update all values for smooth calculation
+      setScrollY(currentScrollY)
+      setWindowHeight(currentWindowHeight)
+      setDocumentHeight(currentDocumentHeight)
+    })
+  }, [])
+
+  // Track scroll position and window dimensions
+  useEffect(() => {
+    // Initial setup
+    setScrollY(window.scrollY)
+    setWindowHeight(window.innerHeight)
+    setDocumentHeight(document.documentElement.scrollHeight)
+
     window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [smoothScrollY])
+    window.addEventListener("resize", handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener("resize", handleScroll)
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current)
+      }
+    }
+  }, [handleScroll])
+
+  // Calculate position styles with continuous movement
+  const positionStyles = useMemo(() => {
+    const continuousPos = calculateContinuousPosition()
+
+    return {
+      position: "fixed" as const,
+      right: "20px",
+      zIndex: 50,
+      transition: "top 0.05s linear", // Very fast, smooth transition for continuous movement
+      willChange: "top",
+      ...continuousPos,
+    }
+  }, [calculateContinuousPosition])
 
   // Show modal when multi-selection becomes active
   useEffect(() => {
@@ -263,15 +317,7 @@ export function AddAllToCartModal() {
 
   return (
     <TooltipProvider>
-      <motion.div
-        className="fixed right-0 z-50"
-        style={{
-          top: scrollY > 100 ? "auto" : "50%",
-          bottom: scrollY > 100 ? "20px" : "auto",
-          y: scrollY > 100 ? 0 : "-50%",
-          transition: "top 0.3s ease, bottom 0.3s ease, transform 0.3s ease",
-        }}
-      >
+      <motion.div style={positionStyles}>
         <AnimatePresence>
           {isOpen ? (
             <motion.div
