@@ -7,7 +7,7 @@ interface SafeJotFormChatbotProps {
   skipWelcome?: boolean
   maximizable?: boolean
   position?: "left" | "right"
-  autoOpen?: boolean
+  autoOpen?: false
 }
 
 export default function SafeJotFormChatbot({
