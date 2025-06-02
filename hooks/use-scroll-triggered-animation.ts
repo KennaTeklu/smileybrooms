@@ -1,51 +1,37 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import type React from "react"
 
-interface DeviceConfig {
-  movementMultiplier: number
-  maxMovement: number
-  smoothingFactor: number
-}
+import { useState, useEffect, useRef, useCallback } from "react"
 
 interface ScrollAnimationConfig {
   basePosition: {
-    bottom?: number
-    right?: number
-    top?: number
-    left?: number
+    bottom: number
+    right: number
   }
   enableVerticalMovement?: boolean
   enableHorizontalMovement?: boolean
 }
 
+interface DeviceConfig {
+  type: "mobile" | "tablet" | "desktop"
+  movementMultiplier: number
+  maxMovement: number
+  smoothingFactor: number
+}
+
 export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [deviceType, setDeviceType] = useState<"mobile" | "tablet" | "desktop">("desktop")
-  const [transform, setTransform] = useState({ x: 0, y: 0 })
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [animationStyles, setAnimationStyles] = useState<React.CSSProperties>({})
+
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
   const rafRef = useRef<number>()
   const lastScrollY = useRef(0)
+  const smoothedPosition = useRef(0)
 
-  // Device-specific configurations
-  const deviceConfigs: Record<string, DeviceConfig> = {
-    mobile: {
-      movementMultiplier: 0.15, // Less movement on mobile for better UX
-      maxMovement: 60,
-      smoothingFactor: 0.8,
-    },
-    tablet: {
-      movementMultiplier: 0.25,
-      maxMovement: 80,
-      smoothingFactor: 0.85,
-    },
-    desktop: {
-      movementMultiplier: 0.35, // More dramatic movement on desktop
-      maxMovement: 120,
-      smoothingFactor: 0.9,
-    },
-  }
-
-  // Detect device type
+  // Device detection
   useEffect(() => {
     const detectDevice = () => {
       const width = window.innerWidth
@@ -63,7 +49,34 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
     return () => window.removeEventListener("resize", detectDevice)
   }, [])
 
-  // Smooth scroll handler with device-aware calculations
+  // Device-specific configurations
+  const getDeviceConfig = useCallback((): DeviceConfig => {
+    switch (deviceType) {
+      case "mobile":
+        return {
+          type: "mobile",
+          movementMultiplier: 0.15,
+          maxMovement: 60,
+          smoothingFactor: 0.8,
+        }
+      case "tablet":
+        return {
+          type: "tablet",
+          movementMultiplier: 0.25,
+          maxMovement: 80,
+          smoothingFactor: 0.85,
+        }
+      case "desktop":
+        return {
+          type: "desktop",
+          movementMultiplier: 0.35,
+          maxMovement: 120,
+          smoothingFactor: 0.9,
+        }
+    }
+  }, [deviceType])
+
+  // Smooth scroll handler
   const handleScroll = useCallback(() => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current)
@@ -71,41 +84,56 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
 
     rafRef.current = requestAnimationFrame(() => {
       const currentScrollY = window.scrollY
-      const documentHeight = document.documentElement.scrollHeight
-      const windowHeight = window.innerHeight
-      const maxScroll = documentHeight - windowHeight
+      const maxScrollY = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1)
 
-      if (maxScroll <= 0) return
-
-      // Calculate scroll progress (0 to 1)
-      const progress = Math.min(currentScrollY / maxScroll, 1)
+      const progress = Math.min(currentScrollY / maxScrollY, 1)
       setScrollProgress(progress)
 
-      // Get device-specific config
-      const deviceConfig = deviceConfigs[deviceType]
+      // Calculate movement based on device config
+      const deviceConfig = getDeviceConfig()
+      const targetMovement = progress * deviceConfig.movementMultiplier * deviceConfig.maxMovement
 
-      // Calculate movement based on scroll progress and device type
-      const baseMovement = progress * deviceConfig.maxMovement * deviceConfig.movementMultiplier
+      // Smooth the movement
+      smoothedPosition.current += (targetMovement - smoothedPosition.current) * deviceConfig.smoothingFactor
 
-      // Apply smoothing to prevent jittery movement
-      const smoothedMovement = lastScrollY.current + (baseMovement - lastScrollY.current) * deviceConfig.smoothingFactor
-      lastScrollY.current = smoothedMovement
-
-      // Calculate transforms
-      const newTransform = {
-        x: config.enableHorizontalMovement ? smoothedMovement * 0.3 : 0, // Subtle horizontal movement
-        y: config.enableVerticalMovement ? smoothedMovement : 0,
+      // Update styles
+      const newStyles: React.CSSProperties = {
+        position: "fixed",
+        bottom: config.basePosition.bottom,
+        right: config.basePosition.right,
+        zIndex: 40,
+        transform: `translate3d(0, ${config.enableVerticalMovement ? -smoothedPosition.current : 0}px, 0)`,
+        willChange: "transform",
+        transition: "box-shadow 0.1s ease-out",
       }
 
-      setTransform(newTransform)
+      setAnimationStyles(newStyles)
+
+      // Handle scrolling state
+      setIsScrolling(true)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false)
+      }, 150)
+
+      lastScrollY.current = currentScrollY
     })
-  }, [deviceType, config.enableVerticalMovement, config.enableHorizontalMovement])
+  }, [config, getDeviceConfig])
 
+  // Set up scroll listener
   useEffect(() => {
-    // Initial scroll position
-    handleScroll()
+    // Initial styles
+    setAnimationStyles({
+      position: "fixed",
+      bottom: config.basePosition.bottom,
+      right: config.basePosition.right,
+      zIndex: 40,
+      transform: "translate3d(0, 0, 0)",
+      willChange: "transform",
+    })
 
-    // Add scroll listener with passive flag for better performance
     window.addEventListener("scroll", handleScroll, { passive: true })
 
     return () => {
@@ -113,24 +141,16 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current)
       }
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
     }
-  }, [handleScroll])
-
-  // Generate CSS styles
-  const animationStyles = {
-    position: "fixed" as const,
-    ...config.basePosition,
-    transform: `translate3d(${transform.x}px, ${-transform.y}px, 0)`,
-    transition: "transform 0.1s ease-out",
-    willChange: "transform",
-    zIndex: 40,
-  }
+  }, [handleScroll, config])
 
   return {
+    animationStyles,
     scrollProgress,
     deviceType,
-    transform,
-    animationStyles,
-    isScrolling: Math.abs(transform.y) > 1,
+    isScrolling,
   }
 }

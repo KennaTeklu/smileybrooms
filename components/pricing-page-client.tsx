@@ -1,8 +1,8 @@
 "use client"
 import Header from "@/components/header"
 import PricingContent from "@/components/pricing-content"
-import { FloatingCartButton } from "@/components/floating-cart-button"
-import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
+import FloatingCartButton from "@/components/floating-cart-button"
+import PersistentBookNowButton from "@/components/persistent-book-now-button"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 
 export default function PricingPageClient() {
