@@ -103,7 +103,6 @@ export function FloatingCartButton() {
               <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Ready to Add</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {selectedRoomTypes.length} room{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                <span className="ml-2 text-blue-500">({deviceType})</span>
               </p>
             </div>
           </div>
