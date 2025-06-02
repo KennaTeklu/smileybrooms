@@ -76,7 +76,7 @@ export function useScrollSynchronizedMovement(config: ScrollSyncConfig) {
         cancelAnimationFrame(rafRef.current)
       }
     }
-  }, [handleScroll, updatePosition, config])
+  }, [handleScroll, updatePosition, config.headerHeightCm, config.rightPosition])
 
   // Verify element positioning in DevTools
   useEffect(() => {
