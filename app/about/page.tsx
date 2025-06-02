@@ -2,7 +2,7 @@ import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { TikTokScroll } from "@/components/tiktok-scroll"
 import OurStory from "@/components/about/our-story"
 import MissionVision from "@/components/about/mission-vision"
-import CoreValues from "@/components/about/core-values"
+import { CoreValues } from "@/components/about/core-values"
 import OurCommitment from "@/components/about/our-commitment"
 import WhySmileybrooms from "@/components/about/why-smileybrooms"
 
