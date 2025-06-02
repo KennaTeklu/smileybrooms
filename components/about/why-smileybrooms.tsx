@@ -28,3 +28,5 @@ export function WhySmileybrooms() {
     </section>
   )
 }
+
+export default WhySmileybrooms

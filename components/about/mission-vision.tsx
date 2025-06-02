@@ -33,3 +33,5 @@ export function MissionVision() {
     </section>
   )
 }
+
+export default MissionVision

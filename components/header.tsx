@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import { useCart } from "@/lib/cart-context"
 
 // Define navigation structure
 const navigationLinks = [
@@ -32,8 +31,8 @@ const essentialLinks = [
 export default function Header() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
-  const { items } = useCart()
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
+  const [cartItemCount, setCartItemCount] = useState(0)
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
@@ -77,7 +76,6 @@ export default function Header() {
   }
 
   const visibleLinks = getVisibleLinks()
-  const cartItemCount = items.reduce((total, item) => total + item.quantity, 0)
 
   if (!shouldRender) {
     return null

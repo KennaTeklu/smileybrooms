@@ -11,3 +11,7 @@ export function formatCurrency(amount: number): string {
     currency: "USD",
   }).format(amount)
 }
+
+export function isClient(): boolean {
+  return typeof window !== "undefined"
+}
