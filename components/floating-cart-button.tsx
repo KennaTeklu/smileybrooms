@@ -8,11 +8,22 @@ import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { roomImages } from "@/lib/room-tiers"
+import { useScrollTriggeredAnimation } from "@/hooks/use-scroll-triggered-animation"
 
 export function FloatingCartButton() {
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
+
+  // Scroll-triggered animation configuration
+  const { animationStyles, scrollProgress, deviceType, isScrolling } = useScrollTriggeredAnimation({
+    basePosition: {
+      bottom: 20,
+      right: 16,
+    },
+    enableVerticalMovement: true,
+    enableHorizontalMovement: false,
+  })
 
   const selectedRoomTypes = getSelectedRoomTypes()
   const totalPrice = getTotalPrice()
@@ -67,10 +78,24 @@ export function FloatingCartButton() {
   if (!isMultiSelection) return null
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 transition-all duration-300">
-      <div className="bg-white dark:bg-gray-900 shadow-xl rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div
+      style={animationStyles}
+      className={`
+        transition-all duration-200 ease-out
+        ${isScrolling ? "shadow-2xl" : "shadow-xl"}
+      `}
+    >
+      <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
         <div className="p-4 max-w-xs">
-          <div className="flex items-center gap-3 mb-3">
+          {/* Progress indicator */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 dark:bg-gray-800">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
+              style={{ width: `${scrollProgress * 100}%` }}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 mb-3 pt-2">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full">
               <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
@@ -78,6 +103,7 @@ export function FloatingCartButton() {
               <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Ready to Add</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {selectedRoomTypes.length} room{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                <span className="ml-2 text-blue-500">({deviceType})</span>
               </p>
             </div>
           </div>
@@ -110,7 +136,11 @@ export function FloatingCartButton() {
           <Button
             variant="default"
             size="sm"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-200 hover:scale-105"
+            className={`
+              w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold 
+              transition-all duration-200 hover:scale-105
+              ${isScrolling ? "ring-2 ring-blue-300 ring-opacity-50" : ""}
+            `}
             onClick={handleAddAllToCart}
             aria-label="Add all selected rooms to cart"
           >

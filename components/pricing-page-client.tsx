@@ -1,44 +1,27 @@
 "use client"
-
-import { Suspense } from "react"
-import dynamic from "next/dynamic"
-import LoadingAnimation from "@/components/loading-animation"
-
-// Dynamically import components to prevent SSR issues
-const PricingContent = dynamic(() => import("@/components/pricing-content"), {
-  ssr: false,
-  loading: () => <LoadingAnimation />,
-})
-
-// Dynamically import floating elements with client-side only rendering
-const PricingFloatingElements = dynamic(
-  () => import("@/components/pricing-floating-elements").then((mod) => mod.PricingFloatingElements),
-  {
-    ssr: false,
-  },
-)
-
-// Dynamically import AddAllToCartModal with client-side only rendering
-const AddAllToCartModal = dynamic(
-  () => import("@/components/add-all-to-cart-modal").then((mod) => mod.AddAllToCartModal),
-  {
-    ssr: false,
-  },
-)
+import Header from "@/components/header"
+import { PricingContent } from "@/components/pricing-content"
+import { FloatingCartButton } from "@/components/floating-cart-button"
+import { PersistentBookNowButton } from "@/components/persistent-book-now-button"
+import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
 
 export default function PricingPageClient() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1">
-        <Suspense fallback={<LoadingAnimation />}>
-          <PricingContent />
-        </Suspense>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Ensure header is visible */}
+      <Header />
+
+      {/* Main content */}
+      <main className="pt-16">
+        {" "}
+        {/* Add padding-top to account for fixed header */}
+        <PricingContent />
       </main>
 
-      {/* Floating elements rendered outside the main content */}
-      <PricingFloatingElements />
-      {/* The AddAllToCartModal will now be rendered on the pricing page */}
-      <AddAllToCartModal />
+      {/* Floating elements */}
+      <FloatingCartButton />
+      <PersistentBookNowButton />
+      <AccessibilityToolbar />
     </div>
   )
 }
