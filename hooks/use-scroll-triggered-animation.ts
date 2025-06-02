@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useRef, useEffect, useCallback } from "react"
 
 interface ScrollAnimationConfig {
   basePosition: {
@@ -9,85 +9,82 @@ interface ScrollAnimationConfig {
   }
 }
 
-// Convert pixels to centimeters (assuming 96 DPI standard)
-const PIXELS_PER_CM = 37.8
+// Convert pixels to centimeters (with device pixel ratio adjustment)
+const getPixelsPerCm = () => 37.8 * (window.devicePixelRatio || 1)
 
 export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
-  const [scrollProgress, setScrollProgress] = useState(0)
-  const [isScrolling, setIsScrolling] = useState(false)
+  const elementRef = useRef<HTMLDivElement>(null)
 
-  const animationRef = useRef({
-    rafId: 0,
-    scrollTimeout: null as NodeJS.Timeout | null,
-  })
+  // Direct DOM manipulation for instant updates
+  const updatePosition = useCallback(() => {
+    if (!elementRef.current) return
 
-  // Direct 1:1 scroll position tracking (in centimeters)
-  const [scrollPosition, setScrollPosition] = useState(0)
+    const PIXELS_PER_CM = getPixelsPerCm()
+    const scrollCm = window.scrollY / PIXELS_PER_CM
 
-  const animationStyles = useMemo(
-    () => ({
-      position: "fixed" as const,
-      top: config.basePosition.top + scrollPosition, // Direct 1:1 movement in centimeters
-      right: config.basePosition.right,
-      zIndex: 40,
-      transform: "translate3d(0, 0, 0)", // No transform needed, using top positioning
-      willChange: "top",
-    }),
-    [scrollPosition, config.basePosition.top, config.basePosition.right],
-  )
+    // Debug logging
+    console.log(`Scroll update: ${window.scrollY}px = ${scrollCm.toFixed(2)}cm`)
 
-  // Direct 1:1 scroll tracking in centimeters
+    // Direct style manipulation bypasses React state delays
+    elementRef.current.style.top = `${config.basePosition.top + scrollCm}px`
+  }, [config.basePosition.top])
+
   useEffect(() => {
-    const handleScroll = () => {
-      if (animationRef.current.rafId) {
-        cancelAnimationFrame(animationRef.current.rafId)
-      }
+    console.log("Attaching scroll listener") // Debug log
 
-      animationRef.current.rafId = requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY
-        const maxScrollY = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1)
-        const progress = Math.min(currentScrollY / maxScrollY, 1)
-
-        // Update scroll progress for UI
-        setScrollProgress(progress)
-
-        // Convert pixels to centimeters for 1:1 movement
-        const scrollCm = currentScrollY / PIXELS_PER_CM
-        setScrollPosition(scrollCm)
-
-        // Handle scrolling state with debounce
-        setIsScrolling(true)
-        if (animationRef.current.scrollTimeout) {
-          clearTimeout(animationRef.current.scrollTimeout)
-        }
-
-        animationRef.current.scrollTimeout = setTimeout(() => {
-          setIsScrolling(false)
-        }, 150)
-      })
+    // Optimized scroll handler with requestAnimationFrame
+    const scrollHandler = () => {
+      console.log("Scroll event fired") // Debug log
+      requestAnimationFrame(updatePosition)
     }
 
-    // Set up scroll listener
-    window.addEventListener("scroll", handleScroll, { passive: true })
+    // Passive listener for better performance
+    window.addEventListener("scroll", scrollHandler, { passive: true })
 
-    // Initial call to set starting position
-    handleScroll()
+    // Initial position setup
+    updatePosition()
 
     // Cleanup
     return () => {
-      window.removeEventListener("scroll", handleScroll)
-      if (animationRef.current.rafId) {
-        cancelAnimationFrame(animationRef.current.rafId)
-      }
-      if (animationRef.current.scrollTimeout) {
-        clearTimeout(animationRef.current.scrollTimeout)
+      console.log("Removing scroll listener") // Debug log
+      window.removeEventListener("scroll", scrollHandler)
+    }
+  }, [updatePosition])
+
+  // Debug parent container checks
+  useEffect(() => {
+    if (elementRef.current) {
+      let el = elementRef.current.parentElement
+      while (el) {
+        const styles = getComputedStyle(el)
+        if (styles.transform !== "none") {
+          console.warn("Transform container found:", el, styles.transform)
+        }
+        if (styles.position === "relative" || styles.position === "absolute") {
+          console.warn("Positioned container found:", el, styles.position)
+        }
+        el = el.parentElement
       }
     }
   }, [])
 
   return {
-    animationStyles,
-    scrollProgress,
-    isScrolling,
+    elementRef,
+    // Return styles for debugging
+    debugStyles: {
+      position: "fixed" as const,
+      top: config.basePosition.top,
+      right: config.basePosition.right,
+      zIndex: 1000,
+      transition: "none", // Disable transitions for instant movement
+      willChange: "top",
+      // Debug border
+      border: "3px solid red",
+      // Reset inherited styles
+      all: "unset" as const,
+      display: "block",
+      contain: "content",
+      backfaceVisibility: "hidden",
+    },
   }
 }

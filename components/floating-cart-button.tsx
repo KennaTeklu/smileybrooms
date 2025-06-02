@@ -15,10 +15,10 @@ export function FloatingCartButton() {
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
 
-  // 1:1 scroll-triggered animation configuration (in centimeters)
-  const { animationStyles, scrollProgress, isScrolling } = useScrollTriggeredAnimation({
+  // Direct DOM manipulation scroll tracking
+  const { elementRef, debugStyles } = useScrollTriggeredAnimation({
     basePosition: {
-      top: 20, // Start 20px from the top of the page
+      top: 20, // Start 20px from top
       right: 16,
     },
   })
@@ -77,23 +77,23 @@ export function FloatingCartButton() {
 
   return (
     <div
-      style={animationStyles}
-      className={`
-        transition-all duration-100 ease-out
-        ${isScrolling ? "shadow-2xl" : "shadow-xl"}
-      `}
+      ref={elementRef}
+      id="add-all-to-cart-button"
+      style={{
+        position: "fixed",
+        top: 20,
+        right: 16,
+        zIndex: 1000,
+        transition: "none",
+        willChange: "top",
+        // Debug styling
+        border: "3px solid red",
+      }}
+      className="shadow-xl"
     >
       <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
         <div className="p-4 max-w-xs">
-          {/* Progress indicator */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 dark:bg-gray-800">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300"
-              style={{ width: `${scrollProgress * 100}%` }}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 mb-3 pt-2">
+          <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full">
               <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
@@ -133,11 +133,7 @@ export function FloatingCartButton() {
           <Button
             variant="default"
             size="sm"
-            className={`
-              w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold 
-              transition-all duration-200 hover:scale-105
-              ${isScrolling ? "ring-2 ring-blue-300 ring-opacity-50" : ""}
-            `}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-200 hover:scale-105"
             onClick={handleAddAllToCart}
             aria-label="Add all selected rooms to cart"
           >
