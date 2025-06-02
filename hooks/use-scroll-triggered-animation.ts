@@ -4,16 +4,16 @@ import { useState, useEffect, useRef, useMemo } from "react"
 
 interface ScrollAnimationConfig {
   basePosition: {
-    bottom: number
+    top: number
     right: number
   }
-  enableVerticalMovement?: boolean
-  enableHorizontalMovement?: boolean
 }
+
+// Convert pixels to centimeters (assuming 96 DPI standard)
+const PIXELS_PER_CM = 37.8
 
 export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
   const [scrollProgress, setScrollProgress] = useState(0)
-  const [deviceType, setDeviceType] = useState<"mobile" | "tablet" | "desktop">("desktop")
   const [isScrolling, setIsScrolling] = useState(false)
 
   const animationRef = useRef({
@@ -21,50 +21,22 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
     scrollTimeout: null as NodeJS.Timeout | null,
   })
 
-  // Direct 1:1 scroll position tracking
+  // Direct 1:1 scroll position tracking (in centimeters)
   const [scrollPosition, setScrollPosition] = useState(0)
-
-  // Calculate starting position based on viewport
-  const startingPosition = useMemo(() => {
-    if (typeof window === "undefined") return 20
-
-    // Start near the top of the viewport
-    const viewportHeight = window.innerHeight
-    const startFromTop = Math.min(100, viewportHeight * 0.1) // 10% from top or 100px max
-    return viewportHeight - startFromTop - 200 // Account for button height
-  }, [])
 
   const animationStyles = useMemo(
     () => ({
       position: "fixed" as const,
-      bottom: startingPosition - scrollPosition, // Direct 1:1 movement
+      top: config.basePosition.top + scrollPosition, // Direct 1:1 movement in centimeters
       right: config.basePosition.right,
       zIndex: 40,
-      transform: "translate3d(0, 0, 0)", // No transform needed, using bottom positioning
-      willChange: "bottom",
+      transform: "translate3d(0, 0, 0)", // No transform needed, using top positioning
+      willChange: "top",
     }),
-    [startingPosition, scrollPosition, config.basePosition.right],
+    [scrollPosition, config.basePosition.top, config.basePosition.right],
   )
 
-  // Device detection - only runs on mount and window resize
-  useEffect(() => {
-    const detectDevice = () => {
-      const width = window.innerWidth
-      if (width < 768) {
-        setDeviceType("mobile")
-      } else if (width < 1024) {
-        setDeviceType("tablet")
-      } else {
-        setDeviceType("desktop")
-      }
-    }
-
-    detectDevice()
-    window.addEventListener("resize", detectDevice)
-    return () => window.removeEventListener("resize", detectDevice)
-  }, [])
-
-  // Direct 1:1 scroll tracking
+  // Direct 1:1 scroll tracking in centimeters
   useEffect(() => {
     const handleScroll = () => {
       if (animationRef.current.rafId) {
@@ -79,8 +51,9 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
         // Update scroll progress for UI
         setScrollProgress(progress)
 
-        // Direct 1:1 movement - every pixel scrolled = button moves 1 pixel down
-        setScrollPosition(currentScrollY)
+        // Convert pixels to centimeters for 1:1 movement
+        const scrollCm = currentScrollY / PIXELS_PER_CM
+        setScrollPosition(scrollCm)
 
         // Handle scrolling state with debounce
         setIsScrolling(true)
@@ -115,7 +88,6 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
   return {
     animationStyles,
     scrollProgress,
-    deviceType,
     isScrolling,
   }
 }

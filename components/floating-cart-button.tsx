@@ -15,14 +15,12 @@ export function FloatingCartButton() {
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
 
-  // 1:1 scroll-triggered animation configuration
+  // 1:1 scroll-triggered animation configuration (in centimeters)
   const { animationStyles, scrollProgress, isScrolling } = useScrollTriggeredAnimation({
     basePosition: {
-      bottom: 20,
+      top: 20, // Start 20px from the top of the page
       right: 16,
     },
-    enableVerticalMovement: true,
-    enableHorizontalMovement: false,
   })
 
   const selectedRoomTypes = getSelectedRoomTypes()
