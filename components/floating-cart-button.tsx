@@ -15,8 +15,8 @@ export function FloatingCartButton() {
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
 
-  // Scroll-triggered animation configuration
-  const { animationStyles, scrollProgress, deviceType, isScrolling } = useScrollTriggeredAnimation({
+  // 1:1 scroll-triggered animation configuration
+  const { animationStyles, scrollProgress, isScrolling } = useScrollTriggeredAnimation({
     basePosition: {
       bottom: 20,
       right: 16,
@@ -81,7 +81,7 @@ export function FloatingCartButton() {
     <div
       style={animationStyles}
       className={`
-        transition-all duration-200 ease-out
+        transition-all duration-100 ease-out
         ${isScrolling ? "shadow-2xl" : "shadow-xl"}
       `}
     >

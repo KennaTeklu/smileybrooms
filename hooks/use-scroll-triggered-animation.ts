@@ -11,50 +11,39 @@ interface ScrollAnimationConfig {
   enableHorizontalMovement?: boolean
 }
 
-// Device-specific configurations
-const DEVICE_CONFIGS = {
-  mobile: {
-    movementMultiplier: 0.15,
-    maxMovement: 60,
-    smoothingFactor: 0.8,
-  },
-  tablet: {
-    movementMultiplier: 0.25,
-    maxMovement: 80,
-    smoothingFactor: 0.85,
-  },
-  desktop: {
-    movementMultiplier: 0.35,
-    maxMovement: 120,
-    smoothingFactor: 0.9,
-  },
-}
-
 export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [deviceType, setDeviceType] = useState<"mobile" | "tablet" | "desktop">("desktop")
   const [isScrolling, setIsScrolling] = useState(false)
 
   const animationRef = useRef({
-    lastScrollY: 0,
-    smoothedPosition: 0,
     rafId: 0,
     scrollTimeout: null as NodeJS.Timeout | null,
   })
 
-  // Memoize the styles object to prevent unnecessary re-renders
-  const [transform, setTransform] = useState({ y: 0 })
+  // Direct 1:1 scroll position tracking
+  const [scrollPosition, setScrollPosition] = useState(0)
+
+  // Calculate starting position based on viewport
+  const startingPosition = useMemo(() => {
+    if (typeof window === "undefined") return 20
+
+    // Start near the top of the viewport
+    const viewportHeight = window.innerHeight
+    const startFromTop = Math.min(100, viewportHeight * 0.1) // 10% from top or 100px max
+    return viewportHeight - startFromTop - 200 // Account for button height
+  }, [])
 
   const animationStyles = useMemo(
     () => ({
       position: "fixed" as const,
-      bottom: config.basePosition.bottom,
+      bottom: startingPosition - scrollPosition, // Direct 1:1 movement
       right: config.basePosition.right,
       zIndex: 40,
-      transform: `translate3d(0, ${-transform.y}px, 0)`,
-      willChange: "transform",
+      transform: "translate3d(0, 0, 0)", // No transform needed, using bottom positioning
+      willChange: "bottom",
     }),
-    [config.basePosition.bottom, config.basePosition.right, transform.y],
+    [startingPosition, scrollPosition, config.basePosition.right],
   )
 
   // Device detection - only runs on mount and window resize
@@ -75,10 +64,8 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
     return () => window.removeEventListener("resize", detectDevice)
   }, [])
 
-  // Scroll handler - separated from useEffect to avoid dependency issues
+  // Direct 1:1 scroll tracking
   useEffect(() => {
-    const deviceConfig = DEVICE_CONFIGS[deviceType]
-
     const handleScroll = () => {
       if (animationRef.current.rafId) {
         cancelAnimationFrame(animationRef.current.rafId)
@@ -92,15 +79,8 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
         // Update scroll progress for UI
         setScrollProgress(progress)
 
-        // Calculate movement based on device config
-        const targetMovement = progress * deviceConfig.movementMultiplier * deviceConfig.maxMovement
-
-        // Smooth the movement
-        animationRef.current.smoothedPosition +=
-          (targetMovement - animationRef.current.smoothedPosition) * deviceConfig.smoothingFactor
-
-        // Update transform
-        setTransform({ y: animationRef.current.smoothedPosition })
+        // Direct 1:1 movement - every pixel scrolled = button moves 1 pixel down
+        setScrollPosition(currentScrollY)
 
         // Handle scrolling state with debounce
         setIsScrolling(true)
@@ -111,8 +91,6 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
         animationRef.current.scrollTimeout = setTimeout(() => {
           setIsScrolling(false)
         }, 150)
-
-        animationRef.current.lastScrollY = currentScrollY
       })
     }
 
@@ -132,7 +110,7 @@ export function useScrollTriggeredAnimation(config: ScrollAnimationConfig) {
         clearTimeout(animationRef.current.scrollTimeout)
       }
     }
-  }, [deviceType]) // Only re-run when device type changes
+  }, [])
 
   return {
     animationStyles,
