@@ -8,19 +8,20 @@ import { useCart } from "@/lib/cart-context"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { roomImages } from "@/lib/room-tiers"
-import { useScrollTriggeredAnimation } from "@/hooks/use-scroll-triggered-animation"
+import { useScrollSynchronizedMovement } from "@/hooks/use-scroll-synchronized-movement"
+
+// Header height constant (64px = 1.69cm)
+const HEADER_HEIGHT_CM = 1.69
 
 export function FloatingCartButton() {
   const { roomCounts, roomConfigs, resetAllRooms, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
 
-  // Direct DOM manipulation scroll tracking
-  const { elementRef, debugStyles } = useScrollTriggeredAnimation({
-    basePosition: {
-      top: 20, // Start 20px from top
-      right: 16,
-    },
+  // Scroll-synchronized movement with header offset
+  const { elementRef, buttonStyles } = useScrollSynchronizedMovement({
+    headerHeightCm: HEADER_HEIGHT_CM,
+    rightPosition: 20,
   })
 
   const selectedRoomTypes = getSelectedRoomTypes()
@@ -76,22 +77,8 @@ export function FloatingCartButton() {
   if (!isMultiSelection) return null
 
   return (
-    <div
-      ref={elementRef}
-      id="add-all-to-cart-button"
-      style={{
-        position: "fixed",
-        top: 20,
-        right: 16,
-        zIndex: 1000,
-        transition: "none",
-        willChange: "top",
-        // Debug styling
-        border: "3px solid red",
-      }}
-      className="shadow-xl"
-    >
-      <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
+    <div ref={elementRef} className="floating-cart-button" style={buttonStyles} data-scroll-sync="active">
+      <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 backdrop-blur-sm shadow-xl">
         <div className="p-4 max-w-xs">
           <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full">

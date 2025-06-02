@@ -15,21 +15,39 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
+      const scrolled = window.scrollY > 10
+      setIsScrolled(scrolled)
+
+      // Header visibility logging
+      console.log("📋 Header Scroll State:", {
+        scrollY: window.scrollY,
+        isScrolled: scrolled,
+        headerVisible: true,
+      })
     }
 
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    console.log("📋 Header initialized with sticky positioning")
   }, [])
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "sticky-header transition-all duration-300",
         isScrolled || pathname !== "/"
-          ? "bg-white/95 dark:bg-gray-950/95 backdrop-blur-md shadow-sm"
-          : "bg-white/90 dark:bg-gray-950/90 backdrop-blur-md",
+          ? "bg-white/95 dark:bg-gray-950/95 shadow-sm"
+          : "bg-white/90 dark:bg-gray-950/90",
       )}
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1001,
+        height: "64px", // 1.69cm
+      }}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
