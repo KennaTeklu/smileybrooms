@@ -2,10 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { createCheckoutSession } from "@/lib/actions"
-import { Loader2, CreditCard } from "lucide-react"
+import { Loader2, CreditCard, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
 
 interface CheckoutButtonProps {
   priceId?: string
@@ -16,6 +16,7 @@ interface CheckoutButtonProps {
   className?: string
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
+  useCheckoutPage?: boolean // New prop to control behavior
   isRecurring?: boolean
   recurringInterval?: "day" | "week" | "month" | "year"
   paymentMethod?: "card" | "bank" | "wallet"
@@ -47,6 +48,7 @@ export default function CheckoutButton({
   className,
   variant = "default",
   size = "default",
+  useCheckoutPage = true, // Default to using checkout page
   isRecurring = false,
   recurringInterval = "month",
   paymentMethod = "card",
@@ -60,11 +62,29 @@ export default function CheckoutButton({
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const { cart } = useCart()
+  const router = useRouter()
 
   const handleCheckout = async () => {
     setIsLoading(true)
+
     try {
-      let checkoutUrl: string | undefined
+      if (useCheckoutPage) {
+        // Navigate to checkout page instead of direct Stripe
+        if (cart.items.length === 0) {
+          toast({
+            title: "Cart is empty",
+            description: "Please add items to your cart before checking out.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        router.push("/checkout")
+        return
+      }
+
+      // Original Stripe direct checkout logic (kept for backward compatibility)
+      const { createCheckoutSession } = await import("@/lib/actions")
 
       const commonParams = {
         successUrl: `${window.location.origin}/success`,
@@ -80,6 +100,8 @@ export default function CheckoutButton({
         allowPromotions,
         paymentMethodTypes: [paymentMethod],
       }
+
+      let checkoutUrl: string | undefined
 
       if (priceId) {
         checkoutUrl = await createCheckoutSession({
@@ -125,12 +147,21 @@ export default function CheckoutButton({
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
+          {useCheckoutPage ? "Loading..." : "Processing..."}
         </>
       ) : (
         <>
-          <CreditCard className="mr-2 h-4 w-4" />
-          Checkout Now
+          {useCheckoutPage ? (
+            <>
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Proceed to Checkout
+            </>
+          ) : (
+            <>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Checkout Now
+            </>
+          )}
         </>
       )}
     </Button>
