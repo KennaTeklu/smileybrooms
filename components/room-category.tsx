@@ -68,19 +68,33 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
       const count = roomCounts[roomType]
       const config = roomConfigs[roomType]
 
+      // Provide default config if not available
+      const safeConfig = config || {
+        roomName: roomDisplayNames[roomType] || roomType,
+        selectedTier: "ESSENTIAL CLEAN",
+        selectedAddOns: [],
+        selectedReductions: [],
+        basePrice: 50,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: 50,
+      }
+
       if (count > 0) {
         addItem({
           id: `custom-cleaning-${roomType}-${Date.now()}`,
-          name: `${config.roomName} Cleaning`,
-          price: config.totalPrice,
+          name: `${safeConfig.roomName} Cleaning`,
+          price: safeConfig.totalPrice,
           priceId: "price_custom_cleaning",
           quantity: count,
           image: roomImages[roomType] || "/placeholder.svg",
           metadata: {
             roomType,
-            roomConfig: config,
+            roomConfig: safeConfig,
             isRecurring: false,
             frequency: "one_time",
+            description: `${safeConfig.selectedTier} cleaning for ${safeConfig.roomName}`,
           },
         })
 
@@ -89,7 +103,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
 
         toast({
           title: "Item added to cart",
-          description: `${config.roomName} has been added to your cart.`,
+          description: `${safeConfig.roomName} has been added to your cart.`,
           duration: 3000,
         })
       }
@@ -134,7 +148,19 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
 
   const safeGetRoomConfig = (roomType: string): RoomConfig => {
     try {
-      return roomConfigs[roomType]
+      return (
+        roomConfigs[roomType] || {
+          roomName: roomDisplayNames[roomType] || roomType,
+          selectedTier: "ESSENTIAL CLEAN",
+          selectedAddOns: [],
+          selectedReductions: [],
+          basePrice: 50,
+          tierUpgradePrice: 0,
+          addOnsPrice: 0,
+          reductionsPrice: 0,
+          totalPrice: 50,
+        }
+      )
     } catch (error) {
       console.error("Error getting room config:", error)
       return {
@@ -142,11 +168,11 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         selectedTier: "ESSENTIAL CLEAN",
         selectedAddOns: [],
         selectedReductions: [],
-        basePrice: 0,
+        basePrice: 50,
         tierUpgradePrice: 0,
         addOnsPrice: 0,
         reductionsPrice: 0,
-        totalPrice: 0,
+        totalPrice: 50,
       }
     }
   }

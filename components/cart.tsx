@@ -2,14 +2,12 @@
 
 import { useState, useMemo } from "react"
 import { useCart } from "@/lib/cart-context"
-import { createCheckoutSession } from "@/lib/actions"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, CreditCard, Wallet, BanknoteIcon as Bank, ShoppingCart, Video, Info } from "lucide-react"
+import { Trash, Plus, Minus, ShoppingCart, Video, Info } from "lucide-react"
 import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
 import { Card } from "@/components/ui/card"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import Image from "next/image"
 import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,8 +15,10 @@ import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
+import { loadStripe } from "@stripe/stripe-js"
 
-type PaymentMethod = "card" | "bank" | "wallet"
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 interface CartProps {
   isOpen: boolean
@@ -29,16 +29,10 @@ interface CartProps {
 export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false)
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [customerAddressData, setCustomerAddressData] = useState<AddressData | null>(null)
-
-  const createGoogleMapsLink = (address: string) => {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-  }
 
   const handleRemoveItem = (id: string) => {
     removeItem(id)
@@ -87,17 +81,11 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
       return
     }
 
-    // If no address data, open the address collection modal
-    if (!customerAddressData) {
-      setShowAddressModal(true)
-      return
-    }
-
     setIsCheckingOut(true)
     setCheckoutError(null)
-    setCheckoutSuccess(false)
 
     try {
+      // Validate cart items
       const invalidItems = cart.items.filter(
         (item) => !item.id || !item.name || typeof item.price !== "number" || item.price <= 0,
       )
@@ -106,150 +94,79 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
         throw new Error("Some items in your cart are invalid. Please try removing and adding them again.")
       }
 
-      const regularItems = cart.items.filter(
-        (item) => item.priceId !== "price_custom_cleaning" && item.priceId !== "price_custom_service",
-      )
-      const customItems = cart.items.filter(
-        (item) => item.priceId === "price_custom_cleaning" || item.priceId === "price_custom_service",
-      )
-
-      const lineItems = regularItems.map((item) => ({
-        price: item.priceId,
-        quantity: item.quantity,
-      }))
-
-      const customLineItems = customItems.map((item) => ({
-        name: item.name,
-        amount: Math.round(item.price * 100) / 100,
-        quantity: item.quantity,
-        description: item.metadata?.description || `Service: ${item.name}`,
-        images: item.image ? [item.image] : undefined,
-        metadata: {
-          ...item.metadata,
-          paymentMethod,
-          allowVideoRecording: allowVideoRecording,
-          videoDiscountApplied: videoDiscountAmount,
+      // Prepare line items for Stripe
+      const lineItems = cart.items.map((item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            description: item.metadata?.description || `Service: ${item.name}`,
+            images: item.image ? [item.image] : [],
+            metadata: {
+              itemId: item.id,
+              priceId: item.priceId,
+              ...item.metadata,
+            },
+          },
+          unit_amount: Math.round(item.price * 100), // Convert to cents
         },
+        quantity: item.quantity,
       }))
 
-      const customerData = customerAddressData
-
-      const calculateOrderMetrics = () => {
-        return {
-          totalItems: cart.items.length,
-          totalQuantity: cart.totalItems,
-          averageItemPrice: cart.totalPrice / cart.totalItems,
-          hasCustomService: customItems.length > 0,
-          hasRecurringService: customItems.some((item) => item.metadata?.isRecurring),
-          itemCategories: cart.items.map((item) => item.priceId).join(","),
-          discountsApplied: videoDiscountAmount > 0 ? `video_recording_${videoDiscountAmount.toFixed(2)}` : "none",
-          discountAmount: videoDiscountAmount,
-        }
-      }
-
-      const formatCartSummary = (items: any[]) => {
-        return items.map((item) => `${item.name} (${formatCurrency(item.price)} x ${item.quantity})`).join("; ")
-      }
-
-      if (customerData) {
-        const emoji = "🔵"
-
-        const waitlistData = {
-          name: customerData.fullName,
-          email: customerData.email,
-          phone: customerData.phone,
-          message: `${emoji} Order received: ${customItems.map((item) => item.name).join(", ")}. Address: ${customerData.address}.`,
-          source: "Cart Checkout",
-          meta: {
-            formType: "checkout",
-            submitDate: new Date().toISOString(),
-            browser: navigator.userAgent,
-            page: window.location.pathname,
-            referrer: document.referrer || "direct",
-            device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
-            totalOrderValue: finalTotalPrice,
+      // Add video discount if applicable
+      if (videoDiscountAmount > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Video Recording Discount",
+              description: "Discount for allowing video recording during service",
+            },
+            unit_amount: -Math.round(videoDiscountAmount * 100), // Negative amount for discount
           },
-          data: {
-            orderSummary: formatCartSummary(cart.items),
-            customerAddress: customerData.address,
-            customerCity: customerData?.city || "",
-            customerState: customerData?.state || "",
-            customerZip: customerData?.zipCode || "",
-            serviceLocation: `${customerData.address}, ${customerData?.city || ""}, ${customerData?.state || ""} ${customerData?.zipCode || ""}`,
-            mapsLink: createGoogleMapsLink(customerData.address),
-            paymentMethod: paymentMethod,
-            specialInstructions: customerData.specialInstructions || "None",
-            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No",
-            orderMetrics: calculateOrderMetrics(),
-          },
-        }
-
-        const scriptURL =
-          "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
-
-        fetch(scriptURL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(waitlistData),
-        }).catch((error) => {
-          console.error("Error submitting to waitlist:", error)
+          quantity: 1,
         })
-
-        if (allowVideoRecording) {
-          const fullAddress = `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
-          const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
-          localStorage.setItem(addressKey, "permanent")
-        }
       }
 
-      const orderMetrics = calculateOrderMetrics()
-      const isAnyItemRecurring = customItems.some((item) => item.metadata?.isRecurring)
-      const detectedRecurringInterval = customItems.find((item) => item.metadata?.recurringInterval)?.metadata
-        ?.recurringInterval
-
-      const checkoutUrl = await createCheckoutSession({
-        lineItems: lineItems.length > 0 ? lineItems : undefined,
-        customLineItems: customItems.length > 0 ? customItems : undefined,
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: customerData?.email,
-        customerData: customerData
-          ? {
-              name: customerData.fullName,
-              email: customerData.email,
-              phone: customerData.phone,
-              address: {
-                line1: customerData.address,
-                city: customerData?.city || "",
-                state: customerData?.state || "",
-                postal_code: customerData?.zipCode || "",
-                country: "US",
-              },
-            }
-          : undefined,
-        isRecurring: isAnyItemRecurring,
-        recurringInterval: detectedRecurringInterval,
-        discount:
-          orderMetrics.discountAmount > 0
-            ? {
-                amount: orderMetrics.discountAmount,
-                reason: "Video Recording Permission",
-              }
-            : undefined,
-        shippingAddressCollection: { allowed_countries: ["US"] },
-        automaticTax: { enabled: true },
-        paymentMethodTypes: [paymentMethod],
-        trialPeriodDays: customItems.some((item) => item.metadata?.trialPeriodDays) ? 7 : undefined,
-        cancelAtPeriodEnd: customItems.some((item) => item.metadata?.cancelAtPeriodEnd) ? true : undefined,
-        allowPromotions: true,
+      // Create checkout session
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          lineItems,
+          customerData: customerAddressData,
+          allowVideoRecording,
+          cartId: `cart_${Date.now()}`,
+          metadata: {
+            cartTotal: cart.totalPrice,
+            discountAmount: videoDiscountAmount,
+            finalTotal: finalTotalPrice,
+            itemCount: cart.items.length,
+          },
+        }),
       })
 
-      if (checkoutUrl) {
-        setCheckoutSuccess(true)
-        window.location.href = checkoutUrl
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create checkout session")
+      }
+
+      const { sessionId } = await response.json()
+
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise
+      if (!stripe) {
+        throw new Error("Stripe failed to load")
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId,
+      })
+
+      if (error) {
+        throw new Error(error.message)
       }
     } catch (error) {
       console.error("Error during checkout:", error)
@@ -269,13 +186,10 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     }
   }
 
-  const handlePaymentMethodChange = (method: PaymentMethod) => {
-    setPaymentMethod(method)
-  }
-
   const handleAddressSubmit = (data: AddressData) => {
     setCustomerAddressData(data)
     setShowAddressModal(false)
+    // Automatically trigger checkout after address is submitted
     handleCheckout()
   }
 
@@ -374,30 +288,14 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
               <span className="text-sm text-gray-600 dark:text-gray-400">Tax</span>
               <span className="font-medium text-gray-900 dark:text-gray-100">Calculated at checkout</span>
             </div>
-          </div>
-
-          {/* Payment Method Selection */}
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method</p>
-            <ToggleGroup
-              type="single"
-              value={paymentMethod}
-              onValueChange={(value: PaymentMethod) => value && handlePaymentMethodChange(value)}
-              className="grid grid-cols-3 gap-2"
-            >
-              <ToggleGroupItem value="card" aria-label="Select card payment" className="text-xs">
-                <CreditCard className="mr-1 h-3 w-3" />
-                Card
-              </ToggleGroupItem>
-              <ToggleGroupItem value="bank" aria-label="Select bank payment" className="text-xs">
-                <Bank className="mr-1 h-3 w-3" />
-                Bank
-              </ToggleGroupItem>
-              <ToggleGroupItem value="wallet" aria-label="Select wallet payment" className="text-xs">
-                <Wallet className="mr-1 h-3 w-3" />
-                Wallet
-              </ToggleGroupItem>
-            </ToggleGroup>
+            <div className="border-t pt-2">
+              <div className="flex justify-between">
+                <span className="text-base font-semibold text-gray-900 dark:text-gray-100">Total</span>
+                <span className="text-base font-bold text-gray-900 dark:text-gray-100">
+                  {formatCurrency(finalTotalPrice)}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Video Recording Option */}
@@ -462,7 +360,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                 className="flex-1"
                 size="lg"
               >
-                {isCheckingOut ? "Processing..." : customerAddressData ? "Checkout" : "Proceed to Checkout"}
+                {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
               </Button>
               <Button variant="outline" onClick={handleClearCart} disabled={cart.items.length === 0} size="lg">
                 Clear
@@ -492,7 +390,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
       primaryAction={
         cart.items.length > 0
           ? {
-              label: isCheckingOut ? "Processing..." : customerAddressData ? "Checkout" : "Proceed to Checkout",
+              label: isCheckingOut ? "Processing..." : "Proceed to Checkout",
               onClick: handleCheckout,
               disabled: cart.items.length === 0 || isCheckingOut,
               loading: isCheckingOut,
