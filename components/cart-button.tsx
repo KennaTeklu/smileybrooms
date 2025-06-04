@@ -26,16 +26,16 @@ export default function CartButton({
   const { cart } = useCart()
   const [isCartOpen, setIsCartOpen] = useState(false)
 
-  // Memoized calculations for performance
+  // Memoized calculations for performance with safe fallbacks
   const cartMetrics = useMemo(
     () => ({
-      totalItems: cart.totalItems,
-      totalValue: cart.total,
-      hasItems: cart.totalItems > 0,
-      isHighValue: cart.total > 200,
-      itemCount: cart.items.length,
+      totalItems: cart?.totalItems || 0,
+      totalValue: cart?.total || 0,
+      hasItems: (cart?.totalItems || 0) > 0,
+      isHighValue: (cart?.total || 0) > 200,
+      itemCount: cart?.items?.length || 0,
     }),
-    [cart.totalItems, cart.total, cart.items.length],
+    [cart?.totalItems, cart?.total, cart?.items?.length],
   )
 
   // Optimized handlers with useCallback
@@ -124,13 +124,15 @@ export default function CartButton({
         )}
       </Button>
 
-      <Cart
-        isOpen={isCartOpen}
-        onClose={handleCloseCart}
-        width={cartMetrics.itemCount > 5 ? "lg" : "md"}
-        preserveScrollPosition={true}
-        scrollKey={`cart-${cartMetrics.itemCount}`}
-      />
+      {cart && (
+        <Cart
+          isOpen={isCartOpen}
+          onClose={handleCloseCart}
+          width={cartMetrics.itemCount > 5 ? "lg" : "md"}
+          preserveScrollPosition={true}
+          scrollKey={`cart-${cartMetrics.itemCount}`}
+        />
+      )}
     </>
   )
 }
