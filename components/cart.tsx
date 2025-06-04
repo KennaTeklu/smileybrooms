@@ -15,16 +15,18 @@ import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 
 type PaymentMethod = "card" | "bank" | "wallet"
 
 interface CartProps {
   isOpen: boolean
-  onClose: () => void
+  onClose?: () => void
+  embedded?: boolean
 }
 
-export function Cart({ isOpen, onClose }: CartProps) {
+export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
@@ -125,12 +127,12 @@ export function Cart({ isOpen, onClose }: CartProps) {
         metadata: {
           ...item.metadata,
           paymentMethod,
-          allowVideoRecording: allowVideoRecording, // Pass video recording status
-          videoDiscountApplied: videoDiscountAmount, // Pass the calculated discount
+          allowVideoRecording: allowVideoRecording,
+          videoDiscountApplied: videoDiscountAmount,
         },
       }))
 
-      const customerData = customerAddressData // Use the collected address data
+      const customerData = customerAddressData
 
       const calculateOrderMetrics = () => {
         return {
@@ -153,7 +155,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         const emoji = "🔵"
 
         const waitlistData = {
-          name: customerData.fullName, // Use fullName from collected data
+          name: customerData.fullName,
           email: customerData.email,
           phone: customerData.phone,
           message: `${emoji} Order received: ${customItems.map((item) => item.name).join(", ")}. Address: ${customerData.address}.`,
@@ -174,10 +176,10 @@ export function Cart({ isOpen, onClose }: CartProps) {
             customerState: customerData?.state || "",
             customerZip: customerData?.zipCode || "",
             serviceLocation: `${customerData.address}, ${customerData?.city || ""}, ${customerData?.state || ""} ${customerData?.zipCode || ""}`,
-            mapsLink: createGoogleMapsLink(customerData.address), // Use collected address
+            mapsLink: createGoogleMapsLink(customerData.address),
             paymentMethod: paymentMethod,
             specialInstructions: customerData.specialInstructions || "None",
-            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No", // Use cart's allowVideoRecording state
+            videoRecordingAllowed: allowVideoRecording ? "Yes" : "No",
             orderMetrics: calculateOrderMetrics(),
           },
         }
@@ -197,7 +199,6 @@ export function Cart({ isOpen, onClose }: CartProps) {
         })
 
         if (allowVideoRecording) {
-          // Use cart's allowVideoRecording state
           const fullAddress = `${customerData.address}, ${customerData.city || ""}, ${customerData.state || ""} ${customerData.zipCode || ""}`
           const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
           localStorage.setItem(addressKey, "permanent")
@@ -217,7 +218,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         customerEmail: customerData?.email,
         customerData: customerData
           ? {
-              name: customerData.fullName, // Use fullName from collected data
+              name: customerData.fullName,
               email: customerData.email,
               phone: customerData.phone,
               address: {
@@ -275,14 +276,216 @@ export function Cart({ isOpen, onClose }: CartProps) {
   const handleAddressSubmit = (data: AddressData) => {
     setCustomerAddressData(data)
     setShowAddressModal(false)
-    // Automatically trigger checkout after address is submitted
     handleCheckout()
+  }
+
+  const CartContent = () => (
+    <>
+      {cart.items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
+          <p className="text-lg font-medium">Your cart is empty</p>
+          <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
+          <Link href="/pricing" passHref>
+            <Button variant="default">Continue Shopping</Button>
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* Scrollable Items Section */}
+          <ScrollArea className="h-64 w-full pr-4">
+            <div className="space-y-3">
+              {cart.items.map((item) => (
+                <Card key={item.id} className="flex items-center p-3">
+                  {item.image && (
+                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border mr-3">
+                      <Image
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        layout="fill"
+                        objectFit="cover"
+                        className="rounded-md"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.name}</h3>
+                    <p className="text-xs text-gray-500">
+                      {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
+                    </p>
+                    {item.metadata?.rooms && (
+                      <p className="mt-1 text-xs text-gray-500 truncate">
+                        Rooms:{" "}
+                        {Array.isArray(item.metadata.rooms) ? item.metadata.rooms.join(", ") : item.metadata.rooms}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end space-y-1 ml-2">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        disabled={item.quantity <= 1}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-6 text-center text-xs font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => handleRemoveItem(item.id)}
+                      aria-label="Remove item"
+                    >
+                      <Trash className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+
+          {/* Fixed Summary Section */}
+          <div className="mt-4 space-y-3 rounded-lg border bg-gray-50 p-3 dark:bg-gray-800">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Subtotal</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(cart.totalPrice)}</span>
+            </div>
+            {videoDiscountAmount > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400">
+                <span className="text-sm">Video Recording Discount</span>
+                <span className="font-medium">- {formatCurrency(videoDiscountAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Tax</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">Calculated at checkout</span>
+            </div>
+          </div>
+
+          {/* Payment Method Selection */}
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method</p>
+            <ToggleGroup
+              type="single"
+              value={paymentMethod}
+              onValueChange={(value: PaymentMethod) => value && handlePaymentMethodChange(value)}
+              className="grid grid-cols-3 gap-2"
+            >
+              <ToggleGroupItem value="card" aria-label="Select card payment" className="text-xs">
+                <CreditCard className="mr-1 h-3 w-3" />
+                Card
+              </ToggleGroupItem>
+              <ToggleGroupItem value="bank" aria-label="Select bank payment" className="text-xs">
+                <Bank className="mr-1 h-3 w-3" />
+                Bank
+              </ToggleGroupItem>
+              <ToggleGroupItem value="wallet" aria-label="Select wallet payment" className="text-xs">
+                <Wallet className="mr-1 h-3 w-3" />
+                Wallet
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          {/* Video Recording Option */}
+          <div className="mt-4 p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allowVideoRecording"
+                checked={allowVideoRecording}
+                onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+              />
+              <Label htmlFor="allowVideoRecording" className="flex items-center gap-2 text-sm font-medium">
+                <Video className="h-4 w-4 text-blue-600" />
+                Allow video recording for a discount
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      We may record cleaning sessions for training and social media purposes. By allowing this, you'll
+                      receive a discount on your order.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              We'll record parts of the cleaning process for our social media and training.
+            </p>
+          </div>
+
+          {checkoutError && (
+            <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+              <p>{checkoutError}</p>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <ScrollArea className="h-[70vh] w-full">
+          <div className="p-4">
+            <CartContent />
+          </div>
+        </ScrollArea>
+
+        {/* Fixed Action Buttons for Embedded Mode */}
+        {cart.items.length > 0 && (
+          <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4 space-y-2">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-lg font-semibold">Total</span>
+              <span className="text-lg font-bold">{formatCurrency(finalTotalPrice)}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleCheckout}
+                disabled={cart.items.length === 0 || isCheckingOut}
+                className="flex-1"
+                size="lg"
+              >
+                {isCheckingOut ? "Processing..." : customerAddressData ? "Checkout" : "Proceed to Checkout"}
+              </Button>
+              <Button variant="outline" onClick={handleClearCart} disabled={cart.items.length === 0} size="lg">
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showAddressModal && (
+          <AddressCollectionModal
+            isOpen={showAddressModal}
+            onClose={() => setShowAddressModal(false)}
+            onSubmit={handleAddressSubmit}
+          />
+        )}
+      </div>
+    )
   }
 
   return (
     <AdvancedSidePanel
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={onClose || (() => {})}
       title="Your Cart"
       width="md"
       position="right"
@@ -312,156 +515,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
       }}
     >
       <div className="px-4">
-        {cart.items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
-            <p className="text-lg font-medium">Your cart is empty</p>
-            <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
-            <Link href="/pricing" passHref>
-              <Button variant="default">Continue Shopping</Button>
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-4">
-              {cart.items.map((item) => (
-                <Card key={item.id} className="flex items-center p-3">
-                  {item.image && (
-                    <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border mr-4">
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        layout="fill"
-                        objectFit="cover"
-                        className="rounded-md"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{item.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
-                    </p>
-                    {/* Remove customer address display from here as it's now collected at checkout */}
-                    {item.metadata?.rooms && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Rooms:{" "}
-                        {Array.isArray(item.metadata.rooms) ? item.metadata.rooms.join(", ") : item.metadata.rooms}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end space-y-2 ml-4">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleRemoveItem(item.id)}
-                      aria-label="Remove item"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-6 space-y-3 rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Subtotal</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(cart.totalPrice)}</span>
-              </div>
-              {videoDiscountAmount > 0 && (
-                <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span className="text-sm">Video Recording Discount</span>
-                  <span className="font-medium">- {formatCurrency(videoDiscountAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Tax</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">Calculated at checkout</span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <p className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method</p>
-              <ToggleGroup
-                type="single"
-                value={paymentMethod}
-                onValueChange={(value: PaymentMethod) => value && handlePaymentMethodChange(value)}
-                className="grid grid-cols-3 gap-2"
-              >
-                <ToggleGroupItem value="card" aria-label="Select card payment">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Card
-                </ToggleGroupItem>
-                <ToggleGroupItem value="bank" aria-label="Select bank payment">
-                  <Bank className="mr-2 h-4 w-4" />
-                  Bank
-                </ToggleGroupItem>
-                <ToggleGroupItem value="wallet" aria-label="Select wallet payment">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Wallet
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            <div className="mt-6 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="allowVideoRecording"
-                  checked={allowVideoRecording}
-                  onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
-                />
-                <Label htmlFor="allowVideoRecording" className="flex items-center gap-2 text-sm font-medium">
-                  <Video className="h-4 w-4 text-blue-600" />
-                  Allow video recording for a discount
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        We may record cleaning sessions for training and social media purposes. By allowing this, you'll
-                        receive a discount on your order.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                We'll record parts of the cleaning process for our social media and training.
-              </p>
-            </div>
-
-            {checkoutError && (
-              <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                <p>{checkoutError}</p>
-              </div>
-            )}
-          </>
-        )}
+        <CartContent />
       </div>
 
       {showAddressModal && (
