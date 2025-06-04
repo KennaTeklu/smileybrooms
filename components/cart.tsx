@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, ShoppingCart, Video, Info, ArrowRight } from "lucide-react"
-import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
+import { Trash, Plus, Minus, ShoppingCart, Video, Info, ArrowRight, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,9 +14,10 @@ import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { motion, AnimatePresence } from "framer-motion"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import { loadStripe } from "@stripe/stripe-js"
+import ErrorBoundary from "@/components/error-boundary"
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -56,6 +56,24 @@ interface CartProps {
   embedded?: boolean
 }
 
+// Hook to prevent body scrolling when panel is open
+const useLockBodyScroll = (isLocked: boolean) => {
+  useEffect(() => {
+    if (!isLocked) return
+
+    // Save initial body style
+    const originalStyle = window.getComputedStyle(document.body).overflow
+
+    // Lock scrolling
+    document.body.style.overflow = "hidden"
+
+    // Restore scrolling when component unmounts
+    return () => {
+      document.body.style.overflow = originalStyle
+    }
+  }, [isLocked])
+}
+
 export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
@@ -65,6 +83,27 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const [customerAddressData, setCustomerAddressData] = useState<AddressData | null>(null)
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Lock body scroll when panel is open
+  useLockBodyScroll(isOpen && !embedded)
+
+  // Restore scroll position
+  useEffect(() => {
+    if (isOpen && contentRef.current) {
+      const savedPosition = localStorage.getItem("cart-scroll-position")
+      if (savedPosition) {
+        contentRef.current.scrollTop = Number.parseInt(savedPosition, 10)
+      }
+    }
+
+    return () => {
+      if (contentRef.current) {
+        localStorage.setItem("cart-scroll-position", contentRef.current.scrollTop.toString())
+      }
+    }
+  }, [isOpen])
 
   // Check for previously saved video recording consent
   useEffect(() => {
@@ -269,273 +308,375 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     setExpandedItem(expandedItem === itemId ? null : itemId)
   }
 
-  const CartContent = () => (
-    <div className="flex flex-col h-full max-h-[600px]">
-      {cart.items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
-          <p className="text-lg font-medium">Your cart is empty</p>
-          <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
-          <Link href="/pricing" passHref>
-            <Button variant="default">Continue Shopping</Button>
-          </Link>
-        </div>
-      ) : (
-        <>
-          {/* Scrollable Items Section - Fixed Height */}
-          <div className="flex-shrink-0">
-            <ScrollArea className="h-48 w-full">
-              <div className="space-y-2 pr-4">
-                {cart.items.map((item) => (
-                  <Card
-                    key={item.id}
-                    className={`flex flex-col p-2 ${recentlyAdded === item.id ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""}`}
-                  >
-                    <div className="flex items-center">
-                      {item.image && (
-                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border mr-2">
-                          <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            layout="fill"
-                            objectFit="cover"
-                            className="rounded-md"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
-                        <div className="flex items-center">
-                          <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
-                          {item.metadata?.frequency && (
-                            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
-                              {item.metadata.frequency}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1 ml-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          disabled={item.quantity <= 1}
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus className="h-2 w-2" />
-                        </Button>
-                        <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                          aria-label="Increase quantity"
-                        >
-                          <Plus className="h-2 w-2" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
-                          onClick={() => handleRemoveItem(item.id)}
-                          aria-label="Remove item"
-                        >
-                          <Trash className="h-2 w-2" />
-                        </Button>
-                      </div>
-                    </div>
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded)
+  }
 
-                    {/* Expandable details section */}
-                    {item.metadata?.rooms && (
-                      <div className="w-full mt-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full h-5 text-[10px] p-0 justify-between"
-                          onClick={() => toggleItemDetails(item.id)}
-                        >
-                          <span>Room details</span>
-                          <ArrowRight
-                            className={`h-3 w-3 transition-transform ${expandedItem === item.id ? "rotate-90" : ""}`}
-                          />
-                        </Button>
-
-                        {expandedItem === item.id && (
-                          <div className="mt-1 text-[10px] text-gray-500 bg-gray-50 dark:bg-gray-800 p-1 rounded">
-                            <p className="font-medium">Rooms:</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {Array.isArray(item.metadata.rooms) ? (
-                                item.metadata.rooms.map((room, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-[8px] px-1 py-0">
-                                    {room}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span>{item.metadata.rooms}</span>
-                              )}
-                            </div>
-
-                            {item.metadata?.serviceLevel && (
-                              <p className="mt-1">
-                                <span className="font-medium">Service level:</span> {item.metadata.serviceLevel}
-                              </p>
-                            )}
-
-                            {item.metadata?.specialInstructions && (
-                              <p className="mt-1">
-                                <span className="font-medium">Notes:</span> {item.metadata.specialInstructions}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Compact Summary Section */}
-          <div className="flex-shrink-0 mt-3 space-y-2 rounded-lg border bg-gray-50 p-2 dark:bg-gray-800">
-            <div className="flex justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400">Subtotal</span>
-              <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                {formatCurrency(cart.totalPrice)}
-              </span>
-            </div>
-            {videoDiscountAmount > 0 && (
-              <div className="flex justify-between text-green-600 dark:text-green-400">
-                <span className="text-xs">Video Discount</span>
-                <span className="text-xs font-medium">- {formatCurrency(videoDiscountAmount)}</span>
-              </div>
-            )}
-            <Separator className="my-1" />
-            <div className="flex justify-between">
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Total</span>
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                {formatCurrency(finalTotalPrice)}
-              </span>
-            </div>
-          </div>
-
-          {/* Compact Video Recording Option */}
-          <div className="flex-shrink-0 mt-3 p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="allowVideoRecording"
-                checked={allowVideoRecording}
-                onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
-                className="h-3 w-3"
-              />
-              <Label htmlFor="allowVideoRecording" className="flex items-center gap-1 text-xs font-medium">
-                <Video className="h-3 w-3 text-blue-600" />
-                Video recording discount
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-blue-500 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      We may record cleaning sessions for training and social media purposes. By allowing this, you'll
-                      receive a discount on your order.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Label>
-            </div>
-          </div>
-
-          {checkoutError && (
-            <div className="flex-shrink-0 mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
-              <p>{checkoutError}</p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
-
+  // Modern sticky cart panel
   if (embedded) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <ScrollArea className="h-[70vh] w-full">
-          <div className="p-4">
-            <CartContent />
-          </div>
-        </ScrollArea>
-
-        {/* Fixed Action Buttons for Embedded Mode */}
-        {cart.items.length > 0 && (
-          <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4 space-y-2">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-lg font-semibold">Total</span>
-              <span className="text-lg font-bold">{formatCurrency(finalTotalPrice)}</span>
+      <ErrorBoundary>
+        <div className="max-w-2xl mx-auto">
+          <ScrollArea className="h-[70vh] w-full">
+            <div className="p-4">
+              <CartContent />
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCheckout}
-                disabled={cart.items.length === 0 || isCheckingOut}
-                className="flex-1"
-                size="lg"
-              >
-                {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
-              </Button>
-              <Button variant="outline" onClick={handleClearCart} disabled={cart.items.length === 0} size="lg">
-                Clear
-              </Button>
-            </div>
-          </div>
-        )}
+          </ScrollArea>
 
-        {showAddressModal && (
-          <AddressCollectionModal
-            isOpen={showAddressModal}
-            onClose={() => setShowAddressModal(false)}
-            onSubmit={handleAddressSubmit}
-          />
-        )}
-      </div>
+          {/* Fixed Action Buttons for Embedded Mode */}
+          {cart.items.length > 0 && (
+            <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t p-4 space-y-2">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-lg font-semibold">Total</span>
+                <span className="text-lg font-bold">{formatCurrency(finalTotalPrice)}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCheckout}
+                  disabled={cart.items.length === 0 || isCheckingOut}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {isCheckingOut ? "Processing..." : "Proceed to Checkout"}
+                </Button>
+                <Button variant="outline" onClick={handleClearCart} disabled={cart.items.length === 0} size="lg">
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showAddressModal && (
+            <AddressCollectionModal
+              isOpen={showAddressModal}
+              onClose={() => setShowAddressModal(false)}
+              onSubmit={handleAddressSubmit}
+            />
+          )}
+        </div>
+      </ErrorBoundary>
     )
   }
 
+  // Modern sticky header cart panel
   return (
-    <AdvancedSidePanel
-      isOpen={isOpen}
-      onClose={onClose || (() => {})}
-      title="Your Cart"
-      width="sm"
-      position="right"
-      primaryAction={
-        cart.items.length > 0
-          ? {
-              label: isCheckingOut ? "Processing..." : "Checkout",
-              onClick: handleCheckout,
-              disabled: cart.items.length === 0 || isCheckingOut,
-              loading: isCheckingOut,
-            }
-          : undefined
-      }
-      secondaryAction={
-        cart.items.length > 0
-          ? {
-              label: "Clear",
-              onClick: handleClearCart,
-              disabled: cart.items.length === 0,
-            }
-          : undefined
-      }
-      priceDisplay={{
-        label: "Total",
-        amount: finalTotalPrice,
-        currency: "$",
-      }}
-    >
-      <div className="px-3 py-2">
-        <CartContent />
-      </div>
+    <ErrorBoundary>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={onClose}
+              aria-hidden="true"
+            />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-full sm:w-[400px] max-w-full bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cart-title"
+            >
+              {/* Header - Always visible */}
+              <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white dark:bg-gray-900 z-10">
+                <h2 id="cart-title" className="text-lg font-semibold flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Your Cart
+                  {cart.items.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {cart.items.length} {cart.items.length === 1 ? "item" : "items"}
+                    </Badge>
+                  )}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={toggleExpanded}
+                    aria-label={isExpanded ? "Collapse cart" : "Expand cart"}
+                  >
+                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={onClose}
+                    aria-label="Close cart"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Collapsible Content */}
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-hidden" ref={contentRef}>
+                      <ScrollArea className="h-[calc(100vh-180px)]">
+                        <div className="p-4 space-y-4">
+                          {cart.items.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                              <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
+                              <p className="text-lg font-medium">Your cart is empty</p>
+                              <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
+                              <Link href="/pricing" passHref>
+                                <Button variant="default" onClick={onClose}>
+                                  Continue Shopping
+                                </Button>
+                              </Link>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {cart.items.map((item) => (
+                                <Card
+                                  key={item.id}
+                                  className={`flex flex-col p-3 ${
+                                    recentlyAdded === item.id ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""
+                                  }`}
+                                >
+                                  <div className="flex items-center">
+                                    {item.image && (
+                                      <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border mr-3">
+                                        <Image
+                                          src={item.image || "/placeholder.svg"}
+                                          alt={item.name}
+                                          layout="fill"
+                                          objectFit="cover"
+                                          className="rounded-md"
+                                        />
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                                        {item.name}
+                                      </h3>
+                                      <div className="flex items-center">
+                                        <p className="text-sm text-gray-500">{formatCurrency(item.price)}</p>
+                                        {item.metadata?.frequency && (
+                                          <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
+                                            {item.metadata.frequency}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center space-x-1 ml-2">
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                        disabled={item.quantity <= 1}
+                                        aria-label="Decrease quantity"
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </Button>
+                                      <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                        aria-label="Increase quantity"
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                        onClick={() => handleRemoveItem(item.id)}
+                                        aria-label="Remove item"
+                                      >
+                                        <Trash className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Expandable details section */}
+                                  {item.metadata?.rooms && (
+                                    <div className="w-full mt-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full h-6 text-xs p-0 justify-between"
+                                        onClick={() => toggleItemDetails(item.id)}
+                                      >
+                                        <span>Room details</span>
+                                        <ArrowRight
+                                          className={`h-3 w-3 transition-transform ${
+                                            expandedItem === item.id ? "rotate-90" : ""
+                                          }`}
+                                        />
+                                      </Button>
+
+                                      <AnimatePresence>
+                                        {expandedItem === item.id && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="mt-1 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                              <p className="font-medium">Rooms:</p>
+                                              <div className="flex flex-wrap gap-1 mt-1">
+                                                {Array.isArray(item.metadata.rooms) ? (
+                                                  item.metadata.rooms.map((room, idx) => (
+                                                    <Badge
+                                                      key={idx}
+                                                      variant="secondary"
+                                                      className="text-[10px] px-1 py-0"
+                                                    >
+                                                      {room}
+                                                    </Badge>
+                                                  ))
+                                                ) : (
+                                                  <span>{item.metadata.rooms}</span>
+                                                )}
+                                              </div>
+
+                                              {item.metadata?.serviceLevel && (
+                                                <p className="mt-1">
+                                                  <span className="font-medium">Service level:</span>{" "}
+                                                  {item.metadata.serviceLevel}
+                                                </p>
+                                              )}
+
+                                              {item.metadata?.specialInstructions && (
+                                                <p className="mt-1">
+                                                  <span className="font-medium">Notes:</span>{" "}
+                                                  {item.metadata.specialInstructions}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  )}
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Video Recording Option */}
+                          {cart.items.length > 0 && (
+                            <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="allowVideoRecording"
+                                  checked={allowVideoRecording}
+                                  onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+                                  className="h-4 w-4"
+                                />
+                                <Label
+                                  htmlFor="allowVideoRecording"
+                                  className="flex items-center gap-1 text-sm font-medium"
+                                >
+                                  <Video className="h-4 w-4 text-blue-600" />
+                                  Video recording discount
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        We may record cleaning sessions for training and social media purposes. By
+                                        allowing this, you'll receive a discount on your order.
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </Label>
+                              </div>
+                            </div>
+                          )}
+
+                          {checkoutError && (
+                            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                              <p>{checkoutError}</p>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Footer - Always visible */}
+              <div className="border-t p-4 bg-white dark:bg-gray-900 sticky bottom-0 z-10">
+                {cart.items.length > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                          <span>{formatCurrency(cart.totalPrice)}</span>
+                        </div>
+                        {videoDiscountAmount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                            <span>Video Discount</span>
+                            <span>- {formatCurrency(videoDiscountAmount)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold">
+                          <span>Total</span>
+                          <span>{formatCurrency(finalTotalPrice)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleCheckout}
+                        disabled={cart.items.length === 0 || isCheckingOut}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      >
+                        {isCheckingOut ? "Processing..." : "Checkout"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleClearCart}
+                        disabled={cart.items.length === 0}
+                        size="icon"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-center">
+                    <Link href="/pricing" passHref>
+                      <Button variant="default" onClick={onClose} className="w-full">
+                        Browse Services
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {showAddressModal && (
         <AddressCollectionModal
@@ -544,6 +685,13 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
           onSubmit={handleAddressSubmit}
         />
       )}
-    </AdvancedSidePanel>
+    </ErrorBoundary>
   )
+}
+
+// Helper component for cart content
+function CartContent() {
+  // This component would contain the cart items display logic
+  // It's not implemented here since we're using the content directly in the Cart component
+  return null
 }

@@ -1,78 +1,57 @@
 "use client"
 
-import React from "react"
-import { AlertTriangle, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Component, type ErrorInfo, type ReactNode } from "react"
 
-interface ErrorBoundaryState {
+interface Props {
+  children?: ReactNode
+  fallback?: ReactNode
+}
+
+interface State {
   hasError: boolean
-  error?: Error
-  errorInfo?: React.ErrorInfo
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
 
-interface ErrorBoundaryProps {
-  children: React.ReactNode
-  fallback?: React.ComponentType<{ error: Error; retry: () => void }>
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void
-}
-
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props)
-    this.state = { hasError: false }
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+    errorInfo: null,
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error }
+  public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true, error, errorInfo: null }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    this.setState({ error, errorInfo })
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo)
+    this.setState({
+      error,
+      errorInfo,
+    })
 
-    // Log to external service
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo)
-    }
-
-    // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("ErrorBoundary caught an error:", error, errorInfo)
-    }
+    // You can also log the error to an error reporting service like Sentry
+    // logErrorToService(error, errorInfo);
   }
 
-  retry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
-  }
-
-  render() {
+  public render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback
-        return <FallbackComponent error={this.state.error!} retry={this.retry} />
-      }
-
+      // You can render any custom fallback UI
       return (
-        <Card className="w-full max-w-md mx-auto mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Something went wrong
-            </CardTitle>
-            <CardDescription>An unexpected error occurred while loading this component.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-                <strong>Error:</strong> {this.state.error.message}
-              </div>
-            )}
-            <Button onClick={this.retry} className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+        this.props.fallback || (
+          <div className="p-4 rounded-md bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+            <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
+            <p className="mb-4">We're sorry, but there was an error loading this component.</p>
+            <details className="text-sm">
+              <summary className="cursor-pointer">Technical details</summary>
+              <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded overflow-auto text-xs">
+                {this.state.error && this.state.error.toString()}
+              </pre>
+            </details>
+          </div>
+        )
       )
     }
 
