@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
-import { Trash, Plus, Minus, ShoppingCart, Video, Info } from "lucide-react"
+import { Trash, Plus, Minus, ShoppingCart, Video, Info, ArrowRight } from "lucide-react"
 import { AdvancedSidePanel } from "@/components/sidepanel/advanced-sidepanel"
 import { Card } from "@/components/ui/card"
 import Image from "next/image"
@@ -14,11 +14,41 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import { loadStripe } from "@stripe/stripe-js"
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+
+// Advanced item matching function
+const advancedMatchCriteria = (existingItem: any, newItem: any) => {
+  // Match by ID and SKU if available
+  if (existingItem.id === newItem.id && existingItem.sku === newItem.sku) {
+    return true
+  }
+
+  // Match by service signature for custom cleaning services
+  if (
+    existingItem.priceId === "price_custom_cleaning" &&
+    newItem.priceId === "price_custom_cleaning" &&
+    existingItem.metadata?.serviceSignature === newItem.metadata?.serviceSignature
+  ) {
+    return true
+  }
+
+  // Match by room configuration
+  if (
+    existingItem.metadata?.rooms &&
+    newItem.metadata?.rooms &&
+    JSON.stringify(existingItem.metadata.rooms.sort()) === JSON.stringify(newItem.metadata.rooms.sort())
+  ) {
+    return true
+  }
+
+  return false
+}
 
 interface CartProps {
   isOpen: boolean
@@ -33,29 +63,59 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [customerAddressData, setCustomerAddressData] = useState<AddressData | null>(null)
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null)
 
-  const handleRemoveItem = (id: string) => {
-    removeItem(id)
-    toast({
-      title: "Item removed",
-      description: "The item has been removed from your cart",
-      duration: 3000,
-    })
-  }
+  // Check for previously saved video recording consent
+  useEffect(() => {
+    if (customerAddressData) {
+      const fullAddress = `${customerAddressData.address}, ${customerAddressData.city || ""}, ${customerAddressData.state || ""} ${customerAddressData.zipCode || ""}`
+      const addressKey = `discount_applied_${fullAddress.replace(/\s+/g, "_").toLowerCase()}`
+      const savedConsent = localStorage.getItem(addressKey)
+      if (savedConsent === "permanent") {
+        setAllowVideoRecording(true)
+      }
+    }
+  }, [customerAddressData])
 
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    const validQuantity = Math.max(1, isNaN(quantity) ? 1 : Math.floor(quantity))
-    updateQuantity(id, validQuantity)
-  }
+  // Highlight recently added items
+  useEffect(() => {
+    if (recentlyAdded) {
+      const timer = setTimeout(() => {
+        setRecentlyAdded(null)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [recentlyAdded])
 
-  const handleClearCart = () => {
+  const handleRemoveItem = useCallback(
+    (id: string) => {
+      removeItem(id)
+      toast({
+        title: "Item removed",
+        description: "The item has been removed from your cart",
+        duration: 3000,
+      })
+    },
+    [removeItem],
+  )
+
+  const handleUpdateQuantity = useCallback(
+    (id: string, quantity: number) => {
+      const validQuantity = Math.max(1, isNaN(quantity) ? 1 : Math.floor(quantity))
+      updateQuantity(id, validQuantity)
+    },
+    [updateQuantity],
+  )
+
+  const handleClearCart = useCallback(() => {
     clearCart()
     toast({
       title: "Cart cleared",
       description: "All items have been removed from your cart",
       duration: 3000,
     })
-  }
+  }, [clearCart])
 
   const videoDiscountAmount = useMemo(() => {
     if (allowVideoRecording) {
@@ -68,7 +128,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     return 0
   }, [allowVideoRecording, cart.totalPrice])
 
-  const finalTotalPrice = cart.totalPrice - videoDiscountAmount
+  const finalTotalPrice = useMemo(() => cart.totalPrice - videoDiscountAmount, [cart.totalPrice, videoDiscountAmount])
 
   const handleCheckout = async () => {
     if (cart.items.length === 0) {
@@ -78,6 +138,12 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
         variant: "destructive",
         duration: 3000,
       })
+      return
+    }
+
+    // If no address data, open the address collection modal
+    if (!customerAddressData) {
+      setShowAddressModal(true)
       return
     }
 
@@ -128,22 +194,28 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
         })
       }
 
+      // Generate cart ID with timestamp and random string for idempotency
+      const cartId = `cart_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
+
       // Create checkout session
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": cartId, // Prevent duplicate charges
         },
         body: JSON.stringify({
           lineItems,
           customerData: customerAddressData,
           allowVideoRecording,
-          cartId: `cart_${Date.now()}`,
+          cartId,
           metadata: {
             cartTotal: cart.totalPrice,
             discountAmount: videoDiscountAmount,
             finalTotal: finalTotalPrice,
             itemCount: cart.items.length,
+            orderDate: new Date().toISOString(),
+            deviceInfo: navigator.userAgent,
           },
         }),
       })
@@ -193,6 +265,10 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     handleCheckout()
   }
 
+  const toggleItemDetails = (itemId: string) => {
+    setExpandedItem(expandedItem === itemId ? null : itemId)
+  }
+
   const CartContent = () => (
     <div className="flex flex-col h-full max-h-[600px]">
       {cart.items.length === 0 ? (
@@ -211,55 +287,111 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
             <ScrollArea className="h-48 w-full">
               <div className="space-y-2 pr-4">
                 {cart.items.map((item) => (
-                  <Card key={item.id} className="flex items-center p-2">
-                    {item.image && (
-                      <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border mr-2">
-                        <Image
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.name}
-                          layout="fill"
-                          objectFit="cover"
-                          className="rounded-md"
-                        />
+                  <Card
+                    key={item.id}
+                    className={`flex flex-col p-2 ${recentlyAdded === item.id ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""}`}
+                  >
+                    <div className="flex items-center">
+                      {item.image && (
+                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border mr-2">
+                          <Image
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.name}
+                            layout="fill"
+                            objectFit="cover"
+                            className="rounded-md"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
+                        <div className="flex items-center">
+                          <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
+                          {item.metadata?.frequency && (
+                            <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
+                              {item.metadata.frequency}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1 ml-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="h-2 w-2" />
+                        </Button>
+                        <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="h-2 w-2" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => handleRemoveItem(item.id)}
+                          aria-label="Remove item"
+                        >
+                          <Trash className="h-2 w-2" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expandable details section */}
+                    {item.metadata?.rooms && (
+                      <div className="w-full mt-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full h-5 text-[10px] p-0 justify-between"
+                          onClick={() => toggleItemDetails(item.id)}
+                        >
+                          <span>Room details</span>
+                          <ArrowRight
+                            className={`h-3 w-3 transition-transform ${expandedItem === item.id ? "rotate-90" : ""}`}
+                          />
+                        </Button>
+
+                        {expandedItem === item.id && (
+                          <div className="mt-1 text-[10px] text-gray-500 bg-gray-50 dark:bg-gray-800 p-1 rounded">
+                            <p className="font-medium">Rooms:</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Array.isArray(item.metadata.rooms) ? (
+                                item.metadata.rooms.map((room, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-[8px] px-1 py-0">
+                                    {room}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span>{item.metadata.rooms}</span>
+                              )}
+                            </div>
+
+                            {item.metadata?.serviceLevel && (
+                              <p className="mt-1">
+                                <span className="font-medium">Service level:</span> {item.metadata.serviceLevel}
+                              </p>
+                            )}
+
+                            {item.metadata?.specialInstructions && (
+                              <p className="mt-1">
+                                <span className="font-medium">Notes:</span> {item.metadata.specialInstructions}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
-                      <p className="text-xs text-gray-500">
-                        {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-1 ml-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-2 w-2" />
-                      </Button>
-                      <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-2 w-2" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => handleRemoveItem(item.id)}
-                        aria-label="Remove item"
-                      >
-                        <Trash className="h-2 w-2" />
-                      </Button>
-                    </div>
                   </Card>
                 ))}
               </div>
@@ -280,13 +412,12 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                 <span className="text-xs font-medium">- {formatCurrency(videoDiscountAmount)}</span>
               </div>
             )}
-            <div className="border-t pt-1">
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Total</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(finalTotalPrice)}
-                </span>
-              </div>
+            <Separator className="my-1" />
+            <div className="flex justify-between">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Total</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                {formatCurrency(finalTotalPrice)}
+              </span>
             </div>
           </div>
 
