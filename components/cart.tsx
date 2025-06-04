@@ -194,78 +194,80 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   }
 
   const CartContent = () => (
-    <>
+    <div className="flex flex-col h-full max-h-[600px]">
       {cart.items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-6 text-center">
-          <ShoppingCart className="mb-3 h-12 w-12 text-gray-300" />
-          <p className="text-base font-medium">Your cart is empty</p>
-          <p className="text-sm text-gray-500 mb-3">Add items to get started</p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
+          <p className="text-lg font-medium">Your cart is empty</p>
+          <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
           <Link href="/pricing" passHref>
-            <Button variant="default" size="sm">
-              Continue Shopping
-            </Button>
+            <Button variant="default">Continue Shopping</Button>
           </Link>
         </div>
       ) : (
         <>
-          {/* Compact Scrollable Items Section */}
-          <ScrollArea className="h-40 w-full pr-2">
-            <div className="space-y-2">
-              {cart.items.map((item) => (
-                <Card key={item.id} className="flex items-center p-2">
-                  {item.image && (
-                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded border mr-2">
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        layout="fill"
-                        objectFit="cover"
-                        className="rounded"
-                      />
+          {/* Scrollable Items Section - Fixed Height */}
+          <div className="flex-shrink-0">
+            <ScrollArea className="h-48 w-full">
+              <div className="space-y-2 pr-4">
+                {cart.items.map((item) => (
+                  <Card key={item.id} className="flex items-center p-2">
+                    {item.image && (
+                      <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border mr-2">
+                        <Image
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          layout="fill"
+                          objectFit="cover"
+                          className="rounded-md"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
+                      <p className="text-xs text-gray-500">
+                        {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
-                    <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
-                  </div>
-                  <div className="flex items-center space-x-1 ml-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                      disabled={item.quantity <= 1}
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="h-2 w-2" />
-                    </Button>
-                    <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="h-2 w-2" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleRemoveItem(item.id)}
-                      aria-label="Remove item"
-                    >
-                      <Trash className="h-2 w-2" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
+                    <div className="flex items-center space-x-1 ml-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        disabled={item.quantity <= 1}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-2 w-2" />
+                      </Button>
+                      <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-2 w-2" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => handleRemoveItem(item.id)}
+                        aria-label="Remove item"
+                      >
+                        <Trash className="h-2 w-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
 
           {/* Compact Summary Section */}
-          <div className="mt-3 space-y-2 rounded border bg-gray-50 p-2 dark:bg-gray-800">
+          <div className="flex-shrink-0 mt-3 space-y-2 rounded-lg border bg-gray-50 p-2 dark:bg-gray-800">
             <div className="flex justify-between">
               <span className="text-xs text-gray-600 dark:text-gray-400">Subtotal</span>
               <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
@@ -289,16 +291,17 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
           </div>
 
           {/* Compact Video Recording Option */}
-          <div className="mt-3 p-2 border rounded bg-blue-50 dark:bg-blue-900/20">
+          <div className="flex-shrink-0 mt-3 p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="allowVideoRecording"
                 checked={allowVideoRecording}
                 onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+                className="h-3 w-3"
               />
               <Label htmlFor="allowVideoRecording" className="flex items-center gap-1 text-xs font-medium">
                 <Video className="h-3 w-3 text-blue-600" />
-                Video discount
+                Video recording discount
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -315,13 +318,13 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
           </div>
 
           {checkoutError && (
-            <div className="mt-3 rounded bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <div className="flex-shrink-0 mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
               <p>{checkoutError}</p>
             </div>
           )}
         </>
       )}
-    </>
+    </div>
   )
 
   if (embedded) {
@@ -371,7 +374,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     <AdvancedSidePanel
       isOpen={isOpen}
       onClose={onClose || (() => {})}
-      title="Cart"
+      title="Your Cart"
       width="sm"
       position="right"
       primaryAction={
@@ -399,7 +402,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
         currency: "$",
       }}
     >
-      <div className="px-3">
+      <div className="px-3 py-2">
         <CartContent />
       </div>
 
