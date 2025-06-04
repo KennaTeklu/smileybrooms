@@ -196,75 +196,67 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const CartContent = () => (
     <>
       {cart.items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
-          <p className="text-lg font-medium">Your cart is empty</p>
-          <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <ShoppingCart className="mb-3 h-12 w-12 text-gray-300" />
+          <p className="text-base font-medium">Your cart is empty</p>
+          <p className="text-sm text-gray-500 mb-3">Add items to get started</p>
           <Link href="/pricing" passHref>
-            <Button variant="default">Continue Shopping</Button>
+            <Button variant="default" size="sm">
+              Continue Shopping
+            </Button>
           </Link>
         </div>
       ) : (
         <>
-          {/* Scrollable Items Section */}
-          <ScrollArea className="h-64 w-full pr-4">
-            <div className="space-y-3">
+          {/* Compact Scrollable Items Section */}
+          <ScrollArea className="h-40 w-full pr-2">
+            <div className="space-y-2">
               {cart.items.map((item) => (
-                <Card key={item.id} className="flex items-center p-3">
+                <Card key={item.id} className="flex items-center p-2">
                   {item.image && (
-                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border mr-3">
+                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded border mr-2">
                       <Image
                         src={item.image || "/placeholder.svg"}
                         alt={item.name}
                         layout="fill"
                         objectFit="cover"
-                        className="rounded-md"
+                        className="rounded"
                       />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.name}</h3>
-                    <p className="text-xs text-gray-500">
-                      {formatCurrency(item.price)} {item.metadata?.frequency && `• ${item.metadata.frequency}`}
-                    </p>
-                    {item.metadata?.rooms && (
-                      <p className="mt-1 text-xs text-gray-500 truncate">
-                        Rooms:{" "}
-                        {Array.isArray(item.metadata.rooms) ? item.metadata.rooms.join(", ") : item.metadata.rooms}
-                      </p>
-                    )}
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
+                    <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
                   </div>
-                  <div className="flex flex-col items-end space-y-1 ml-2">
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-6 text-center text-xs font-medium">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
+                  <div className="flex items-center space-x-1 ml-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                      disabled={item.quantity <= 1}
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="h-2 w-2" />
+                    </Button>
+                    <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="h-2 w-2" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      className="h-5 w-5 text-red-500 hover:bg-red-50 hover:text-red-600"
                       onClick={() => handleRemoveItem(item.id)}
                       aria-label="Remove item"
                     >
-                      <Trash className="h-3 w-3" />
+                      <Trash className="h-2 w-2" />
                     </Button>
                   </div>
                 </Card>
@@ -272,47 +264,45 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
             </div>
           </ScrollArea>
 
-          {/* Fixed Summary Section */}
-          <div className="mt-4 space-y-3 rounded-lg border bg-gray-50 p-3 dark:bg-gray-800">
+          {/* Compact Summary Section */}
+          <div className="mt-3 space-y-2 rounded border bg-gray-50 p-2 dark:bg-gray-800">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Subtotal</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(cart.totalPrice)}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">Subtotal</span>
+              <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                {formatCurrency(cart.totalPrice)}
+              </span>
             </div>
             {videoDiscountAmount > 0 && (
               <div className="flex justify-between text-green-600 dark:text-green-400">
-                <span className="text-sm">Video Recording Discount</span>
-                <span className="font-medium">- {formatCurrency(videoDiscountAmount)}</span>
+                <span className="text-xs">Video Discount</span>
+                <span className="text-xs font-medium">- {formatCurrency(videoDiscountAmount)}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Tax</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">Calculated at checkout</span>
-            </div>
-            <div className="border-t pt-2">
+            <div className="border-t pt-1">
               <div className="flex justify-between">
-                <span className="text-base font-semibold text-gray-900 dark:text-gray-100">Total</span>
-                <span className="text-base font-bold text-gray-900 dark:text-gray-100">
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Total</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   {formatCurrency(finalTotalPrice)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Video Recording Option */}
-          <div className="mt-4 p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+          {/* Compact Video Recording Option */}
+          <div className="mt-3 p-2 border rounded bg-blue-50 dark:bg-blue-900/20">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="allowVideoRecording"
                 checked={allowVideoRecording}
                 onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
               />
-              <Label htmlFor="allowVideoRecording" className="flex items-center gap-2 text-sm font-medium">
-                <Video className="h-4 w-4 text-blue-600" />
-                Allow video recording for a discount
+              <Label htmlFor="allowVideoRecording" className="flex items-center gap-1 text-xs font-medium">
+                <Video className="h-3 w-3 text-blue-600" />
+                Video discount
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
+                      <Info className="h-3 w-3 text-blue-500 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       We may record cleaning sessions for training and social media purposes. By allowing this, you'll
@@ -322,13 +312,10 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                 </TooltipProvider>
               </Label>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-              We'll record parts of the cleaning process for our social media and training.
-            </p>
           </div>
 
           {checkoutError && (
-            <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            <div className="mt-3 rounded bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
               <p>{checkoutError}</p>
             </div>
           )}
@@ -384,13 +371,13 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     <AdvancedSidePanel
       isOpen={isOpen}
       onClose={onClose || (() => {})}
-      title="Your Cart"
-      width="md"
+      title="Cart"
+      width="sm"
       position="right"
       primaryAction={
         cart.items.length > 0
           ? {
-              label: isCheckingOut ? "Processing..." : "Proceed to Checkout",
+              label: isCheckingOut ? "Processing..." : "Checkout",
               onClick: handleCheckout,
               disabled: cart.items.length === 0 || isCheckingOut,
               loading: isCheckingOut,
@@ -400,7 +387,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
       secondaryAction={
         cart.items.length > 0
           ? {
-              label: "Clear Cart",
+              label: "Clear",
               onClick: handleClearCart,
               disabled: cart.items.length === 0,
             }
@@ -412,7 +399,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
         currency: "$",
       }}
     >
-      <div className="px-4">
+      <div className="px-3">
         <CartContent />
       </div>
 
