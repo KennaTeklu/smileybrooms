@@ -1,5 +1,7 @@
 "use client"
 
+import { Badge } from "@/components/ui/badge"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
@@ -18,18 +20,18 @@ export default function CartButton({ showLabel = false }: CartButtonProps) {
     <>
       <Button
         variant="outline"
-        size="icon"
-        className="relative rounded-full bg-white shadow-md hover:bg-gray-100"
+        size="sm"
+        className="relative flex items-center gap-2"
         onClick={() => setIsCartOpen(true)}
         aria-label="Open shopping cart"
       >
-        <ShoppingCart className="h-5 w-5" />
+        <ShoppingCart className="h-4 w-4" />
+        {showLabel && <span className="hidden sm:inline">Cart</span>}
         {cart.totalItems > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+          <Badge variant="destructive" className="ml-1 px-1 py-0 text-xs">
             {cart.totalItems}
-          </span>
+          </Badge>
         )}
-        {showLabel && <span className="ml-2">Cart</span>}
       </Button>
       <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
