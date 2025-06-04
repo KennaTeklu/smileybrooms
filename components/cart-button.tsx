@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { Cart } from "@/components/cart" // Import the main Cart component
+import { Cart } from "@/components/cart"
 
 interface CartButtonProps {
   showLabel?: boolean
