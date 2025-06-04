@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
@@ -67,15 +69,24 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     }
   }, [recentlyAdded])
 
-  // Lock body scroll when panel is open
+  // REMOVED: Body scroll lock - allow page to scroll freely
+  // The cart should not prevent page scrolling
+
+  // Save and restore scroll position within cart content
   useEffect(() => {
-    if (isExpanded && !embedded) {
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.body.style.overflow = ""
+    if (isExpanded && contentRef.current) {
+      const savedPosition = localStorage.getItem("cart-scroll-position")
+      if (savedPosition) {
+        contentRef.current.scrollTop = Number.parseInt(savedPosition, 10)
       }
     }
-  }, [isExpanded, embedded])
+
+    return () => {
+      if (contentRef.current) {
+        localStorage.setItem("cart-scroll-position", contentRef.current.scrollTop.toString())
+      }
+    }
+  }, [isExpanded])
 
   const handleRemoveItem = useCallback(
     (id: string) => {
@@ -258,6 +269,11 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     setIsExpanded(!isExpanded)
   }
 
+  // Prevent cart panel clicks from bubbling to prevent any scroll interference
+  const handleCartClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
   // Embedded mode (for cart page)
   if (embedded) {
     return (
@@ -305,40 +321,47 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
     )
   }
 
-  // MEGA UPDATE: Always visible floating cart
+  // MEGA UPDATE: Floating cart with proper scroll behavior
   return (
     <ErrorBoundary>
       <div
         ref={cartRef}
-        className="fixed right-0 top-1/4 z-50 transform transition-transform duration-300"
+        className="fixed right-0 top-1/4 z-50"
         style={{
           transform: isExpanded ? "translateX(0)" : "translateX(calc(100% - 60px))",
+          transition: "transform 0.3s ease-in-out",
+          pointerEvents: "auto", // Ensure cart can receive clicks
         }}
+        onClick={handleCartClick} // Prevent event bubbling
       >
         {/* Main Cart Panel */}
-        <div className="flex">
+        <div className="flex shadow-2xl">
           {/* Toggle Button (Always Visible) */}
           <button
             onClick={toggleExpanded}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-l-lg flex flex-col items-center justify-center shadow-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-l-lg flex flex-col items-center justify-center shadow-lg transition-colors duration-200 relative"
             style={{ height: "120px", width: "60px" }}
           >
             <ShoppingCart className="h-6 w-6 mb-2" />
             <div className="rotate-90 text-xs font-bold whitespace-nowrap">{isExpanded ? "CLOSE" : "CART"}</div>
             {hasItems && (
-              <div className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold">
+              <div className="absolute -top-2 -left-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold animate-pulse">
                 {totalItems}
               </div>
             )}
           </button>
 
-          {/* Cart Content */}
+          {/* Cart Content Panel */}
           <div
-            className="bg-white dark:bg-gray-900 shadow-2xl flex flex-col"
-            style={{ width: "350px", maxHeight: "80vh" }}
+            className="bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden"
+            style={{
+              width: "380px",
+              maxHeight: "calc(100vh - 100px)", // Ensure it doesn't exceed viewport
+              minHeight: "400px",
+            }}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+            {/* Header - Fixed */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
@@ -362,23 +385,26 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
               </div>
             </div>
 
-            {/* Scrollable Content */}
-            <ScrollArea className="flex-1" ref={contentRef}>
-              <div className="p-4">
-                <CartContent
-                  cart={cart}
-                  expandedItem={expandedItem}
-                  toggleItemDetails={toggleItemDetails}
-                  handleRemoveItem={handleRemoveItem}
-                  handleUpdateQuantity={handleUpdateQuantity}
-                  recentlyAdded={recentlyAdded}
-                />
-              </div>
-            </ScrollArea>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  <CartContent
+                    cart={cart}
+                    expandedItem={expandedItem}
+                    toggleItemDetails={toggleItemDetails}
+                    handleRemoveItem={handleRemoveItem}
+                    handleUpdateQuantity={handleUpdateQuantity}
+                    recentlyAdded={recentlyAdded}
+                  />
+                </div>
+              </ScrollArea>
+            </div>
 
-            {/* Video Recording Option */}
-            {hasItems && (
-              <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            {/* Footer - Fixed */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex-shrink-0 bg-white dark:bg-gray-900">
+              {/* Video Recording Option */}
+              {hasItems && (
                 <div className="p-2 border rounded-lg bg-blue-50 dark:bg-blue-900/20 mb-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -404,8 +430,10 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                     </Label>
                   </div>
                 </div>
+              )}
 
-                {/* Total Section */}
+              {/* Total Section */}
+              {hasItems && (
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <div>
@@ -427,33 +455,43 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Action Buttons */}
-                <div className="space-y-2">
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={isCheckingOut}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    {isCheckingOut ? "Processing..." : "Checkout"}
-                  </Button>
-                  <Button variant="outline" onClick={handleClearCart} className="w-full text-sm">
-                    Clear Cart
-                  </Button>
-                </div>
-
-                {checkoutError && (
-                  <div className="mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                    <p>{checkoutError}</p>
-                  </div>
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                {hasItems ? (
+                  <>
+                    <Button
+                      onClick={handleCheckout}
+                      disabled={isCheckingOut}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      {isCheckingOut ? "Processing..." : "Checkout"}
+                    </Button>
+                    <Button variant="outline" onClick={handleClearCart} className="w-full text-sm">
+                      Clear Cart
+                    </Button>
+                  </>
+                ) : (
+                  <Link href="/pricing" passHref>
+                    <Button variant="default" onClick={toggleExpanded} className="w-full">
+                      Continue Shopping
+                    </Button>
+                  </Link>
                 )}
               </div>
-            )}
 
-            {/* Empty Cart Message */}
+              {checkoutError && (
+                <div className="mt-3 rounded-md bg-red-50 p-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                  <p>{checkoutError}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Empty Cart Message - Only when no items */}
             {!hasItems && (
-              <div className="flex flex-col items-center justify-center p-8 text-center border-t">
+              <div className="flex flex-col items-center justify-center p-8 text-center flex-1">
                 <ShoppingCart className="mb-4 h-16 w-16 text-gray-300" />
                 <p className="text-lg font-medium">Your cart is empty</p>
                 <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
@@ -499,13 +537,13 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
       {cart.items.map((item) => (
         <Card
           key={item.id}
-          className={`flex flex-col p-3 ${
+          className={`flex flex-col p-3 transition-all duration-200 hover:shadow-md ${
             recentlyAdded === item.id ? "border-green-500 bg-green-50 dark:bg-green-900/20" : ""
           }`}
         >
           <div className="flex items-center">
             {item.image && (
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border mr-3">
+              <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md border mr-3">
                 <Image
                   src={item.image || "/placeholder.svg"}
                   alt={item.name}
@@ -516,11 +554,11 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">{item.name}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">{item.name}</h3>
               <div className="flex items-center">
-                <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
+                <p className="text-sm text-gray-500">{formatCurrency(item.price)}</p>
                 {item.metadata?.frequency && (
-                  <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0">
+                  <Badge variant="outline" className="ml-1 text-xs px-1 py-0">
                     {item.metadata.frequency}
                   </Badge>
                 )}
@@ -536,41 +574,41 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
               <Button
                 variant="outline"
                 size="icon"
-                className="h-5 w-5"
+                className="h-6 w-6"
                 onClick={() => handleUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
                 disabled={item.quantity <= 1}
                 aria-label="Decrease quantity"
               >
-                <Minus className="h-2 w-2" />
+                <Minus className="h-3 w-3" />
               </Button>
-              <span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
+              <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-5 w-5"
+                className="h-6 w-6"
                 onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                 aria-label="Increase quantity"
               >
-                <Plus className="h-2 w-2" />
+                <Plus className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => handleRemoveItem(item.id)}
-                className="h-5 w-5 text-red-500 hover:text-red-700 hover:bg-red-50"
+                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
               >
-                <Trash className="h-2 w-2" />
+                <Trash className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
           {/* Expandable details section */}
           {item.metadata?.rooms && (
-            <div className="w-full mt-1">
+            <div className="w-full mt-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-5 text-[10px] p-0 justify-between"
+                className="w-full h-6 text-xs p-0 justify-between"
                 onClick={() => toggleItemDetails(item.id)}
               >
                 <span>Room details</span>
@@ -586,12 +624,12 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-1 text-[10px] text-gray-500 bg-gray-50 dark:bg-gray-800 p-1 rounded">
+                    <div className="mt-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 p-2 rounded">
                       <p className="font-medium">Rooms:</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {Array.isArray(item.metadata.rooms) ? (
                           item.metadata.rooms.map((room, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-[8px] px-1 py-0">
+                            <Badge key={idx} variant="secondary" className="text-[10px] px-1 py-0">
                               {room}
                             </Badge>
                           ))
