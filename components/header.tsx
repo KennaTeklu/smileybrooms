@@ -62,7 +62,7 @@ export default function Header() {
     <header
       className={cn(
         "sticky-header transition-all duration-300",
-        isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
+        isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-950/90",
       )}
       style={{
         position: "sticky",
@@ -73,6 +73,7 @@ export default function Header() {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
+          {/* Using favicon.png as the logo */}
           <img src="/favicon.png" alt="SmileyBrooms Logo" className="h-8 w-auto" />
         </Link>
 
