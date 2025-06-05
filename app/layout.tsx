@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { CartProvider } from "@/lib/cart-context"
+import { RoomProvider } from "@/lib/room-context"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
@@ -43,23 +44,25 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <AccessibilityProvider>
               <CartProvider>
-                <TourProvider>
-                  <div className="relative flex min-h-screen flex-col">
-                    <EnhancedHeader />
-                    <main className="flex-1">{children}</main>
-                    <EnhancedFooter />
-                  </div>
+                <RoomProvider>
+                  <TourProvider>
+                    <div className="relative flex min-h-screen flex-col">
+                      <EnhancedHeader />
+                      <main className="flex-1">{children}</main>
+                      <EnhancedFooter />
+                    </div>
 
-                  {/* Left side panels */}
-                  <CollapsibleSettingsPanel />
+                    {/* Left side panels */}
+                    <CollapsibleSettingsPanel />
 
-                  {/* Right side panels */}
-                  <CollapsibleSharePanel />
-                  <AddAllToCartModal />
-                  <Cart />
+                    {/* Right side panels */}
+                    <CollapsibleSharePanel />
+                    <AddAllToCartModal />
+                    <Cart />
 
-                  <Toaster />
-                </TourProvider>
+                    <Toaster />
+                  </TourProvider>
+                </RoomProvider>
               </CartProvider>
             </AccessibilityProvider>
           </ThemeProvider>

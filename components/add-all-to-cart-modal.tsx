@@ -42,7 +42,16 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export function AddAllToCartModal() {
-  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
+  // Safe context usage with error boundary
+  let roomContext
+  try {
+    roomContext = useRoomContext()
+  } catch (error) {
+    console.warn("RoomContext not available, AddAllToCartModal will not render")
+    return null
+  }
+
+  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = roomContext
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
@@ -83,10 +92,10 @@ export function AddAllToCartModal() {
     },
   })
 
-  // Show modal when multi-selection becomes active
+  // Show modal immediately when multi-selection becomes active
   useEffect(() => {
-    if (isMultiSelection) {
-      // Only auto-open if user hasn't seen it before
+    if (isMultiSelection && totalItems > 0) {
+      // Show immediately when requirements are met
       if (!hasBeenSeen) {
         setIsOpen(true)
         setHasBeenSeen(true)
@@ -99,13 +108,11 @@ export function AddAllToCartModal() {
       })
 
       // Haptic feedback when items are ready
-      if (totalItems > 0) {
-        vibrate(100)
-      }
+      vibrate(100)
     } else {
       setIsOpen(false)
     }
-  }, [isMultiSelection, hasBeenSeen, controls, vibrate, totalItems])
+  }, [isMultiSelection, totalItems, hasBeenSeen, controls, vibrate])
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -243,23 +250,17 @@ export function AddAllToCartModal() {
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts])
 
-  if (!isMultiSelection) return null
+  if (!isMultiSelection || totalItems === 0) return null
 
   return (
     <TooltipProvider>
-      <motion.div style={positionStyles}>
-        {/* Debug info (remove in production) */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="fixed bottom-4 left-4 bg-black/80 text-white p-2 text-xs rounded z-[9999] font-mono">
-            <div>Device: {debugInfo.deviceType}</div>
-            <div>Scroll: {debugInfo.scrollType}</div>
-            <div>Velocity: {debugInfo.velocity.toFixed(1)}</div>
-            <div>Mouse: {debugInfo.mouseActive ? "Active" : "Inactive"}</div>
-            <div>Position: {debugInfo.position.toFixed(0)}px</div>
-            <div>Progress: {(debugInfo.scrollProgress * 100).toFixed(1)}%</div>
-          </div>
-        )}
-
+      <motion.div
+        style={positionStyles}
+        initial={{ opacity: 0, x: "100%" }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 400 }}
+      >
         <AnimatePresence>
           {isOpen ? (
             <motion.div
