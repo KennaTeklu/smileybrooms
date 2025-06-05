@@ -60,8 +60,8 @@ export function AddAllToCartModal() {
   // Use scroll-triggered animation for the floating button's position
   const { elementRef: scrollElementRef, debugStyles: scrollTriggeredStyles } = useScrollTriggeredAnimation({
     basePosition: {
-      top: 20, // Start near the top of the viewport
-      right: 20, // Keep it on the right side
+      top: 20, // Starts 20px from the top of the viewport
+      right: 20, // Keeps it 20px from the right side
     },
   })
 
@@ -246,12 +246,12 @@ export function AddAllToCartModal() {
   return (
     <TooltipProvider>
       <motion.div
-        ref={scrollElementRef} // Apply the ref from useScrollTriggeredAnimation
-        style={scrollTriggeredStyles} // Apply the styles from useScrollTriggeredAnimation
-        initial={{ opacity: 0 }} // Only animate opacity for initial appearance
+        ref={scrollElementRef} // This ref connects to the useScrollTriggeredAnimation hook
+        style={scrollTriggeredStyles} // These styles control the floating and scrolling behavior
+        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }} // Simple fade transition
+        transition={{ duration: 0.5 }}
       >
         <AnimatePresence>
           {isOpen ? (
@@ -350,7 +350,7 @@ export function AddAllToCartModal() {
           ) : (
             <motion.button
               ref={buttonRef}
-              initial={{ opacity: 0 }} // Only animate opacity for initial appearance
+              initial={{ opacity: 0 }}
               animate={controls}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
