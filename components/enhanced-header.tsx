@@ -1,126 +1,125 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Menu, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Menu, X } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useCart } from "@/lib/cart-context"
-import { Cart } from "@/components/cart"
-import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Logo } from "@/components/logo"
 
 export function EnhancedHeader() {
   const pathname = usePathname()
-  const { cart } = useCart()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { items } = useCart()
+  const [isHomePage, setIsHomePage] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  const cartHasItems = items.length > 0
 
-  const totalItems = cart.items?.length || 0
-  const hasItems = totalItems > 0
-
-  // Header visibility rules
-  const isHomePage = pathname === "/"
-  const shouldShowFullHeader = !isHomePage
-  const shouldShowCartOnHome = isHomePage && hasItems
-
-  // Navigation items
+  // Navigation links - exclude current page
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/pricing", label: "Pricing" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
     { href: "/careers", label: "Careers" },
-    { href: "/download", label: "Download" },
-  ]
+  ].filter((item) => item.href !== pathname)
 
-  // Filter out current page from navigation
-  const filteredNavItems = navItems.filter((item) => item.href !== pathname)
+  useEffect(() => {
+    setIsMounted(true)
+    setIsHomePage(pathname === "/")
 
-  // Don't render header on homepage unless cart has items
-  if (isHomePage && !hasItems) {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10)
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [pathname])
+
+  // Don't render anything during SSR to prevent hydration mismatch
+  if (!isMounted) return null
+
+  // On homepage, only show cart when it has items
+  if (isHomePage && !cartHasItems) {
     return null
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/60">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo and Brand - Only show on non-home pages */}
-          {shouldShowFullHeader && (
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">SB</span>
-                </div>
-                <span className="font-bold text-xl text-gray-900 dark:text-gray-100">SmileyBrooms</span>
-              </Link>
-            </div>
-          )}
+    <header
+      className={`sticky top-0 z-40 w-full transition-all duration-200 ${
+        isScrolled ? "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm" : ""
+      }`}
+    >
+      <div className="container flex h-16 items-center justify-between">
+        {/* Only show logo on non-homepage or when cart has items on homepage */}
+        {(!isHomePage || cartHasItems) && (
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center space-x-2">
+              <Logo />
+              <span className="font-bold text-xl hidden md:inline-block">SmileyBrooms</span>
+            </Link>
 
-          {/* Navigation - Only show on non-home pages */}
-          {shouldShowFullHeader && (
-            <>
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center space-x-6">
-                {filteredNavItems.map((item) => (
+            {/* Desktop navigation - hide on homepage */}
+            {!isHomePage && (
+              <nav className="hidden md:flex gap-6">
+                {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+                    className="text-sm font-medium transition-colors hover:text-primary"
                   >
                     {item.label}
                   </Link>
                 ))}
               </nav>
-
-              {/* Mobile Menu Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
-            </>
-          )}
-
-          {/* Cart - Always show when has items */}
-          {hasItems && (
-            <div className={shouldShowFullHeader ? "" : "ml-auto"}>
-              <Cart>
-                <Button variant="outline" size="sm" className="relative">
-                  <ShoppingCart className="h-4 w-4" />
-                  {hasItems && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                    >
-                      {totalItems}
-                    </Badge>
-                  )}
-                </Button>
-              </Cart>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Navigation Menu */}
-        {shouldShowFullHeader && isMobileMenuOpen && (
-          <div className="md:hidden border-t py-4">
-            <nav className="flex flex-col space-y-3">
-              {filteredNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            )}
           </div>
         )}
+
+        <div className="flex items-center gap-2">
+          {/* Theme toggle - show on all pages */}
+          <ThemeToggle />
+
+          {/* Cart button - show on all pages when cart has items */}
+          {cartHasItems && (
+            <Button variant="outline" size="icon" asChild>
+              <Link href="/cart" aria-label="Shopping cart">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {items.length}
+                </span>
+              </Link>
+            </Button>
+          )}
+
+          {/* Mobile menu - hide on homepage */}
+          {!isHomePage && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <nav className="flex flex-col gap-4 mt-8">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-lg font-medium transition-colors hover:text-primary"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
       </div>
     </header>
   )
