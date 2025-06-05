@@ -9,13 +9,12 @@ import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
-import { useRoomContext, type RoomConfig } from "@/lib/room-context" // Import useRoomContext and RoomConfig type
+import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 
 function PricingContent() {
   const { toast } = useToast()
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
-  // Use context for room state
   const {
     roomCounts,
     roomConfigs,
@@ -26,25 +25,21 @@ function PricingContent() {
     getSelectedRoomTypes,
   } = useRoomContext()
 
-  const [serviceFee, setServiceFee] = useState(25) // Default service fee
+  const [serviceFee, setServiceFee] = useState(25)
 
-  // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
   const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
 
-  // Handle room count changes
   const handleRoomCountChange = (roomType: string, count: number) => {
     const newCount = Math.max(0, count)
-    updateRoomCount(roomType, newCount) // Use context's updateRoomCount
+    updateRoomCount(roomType, newCount)
 
-    // If incrementing and this is a new room, set it as selected for map
     if (newCount > 0 && (roomCounts[roomType] || 0) === 0) {
       if (!selectedRoomForMap) {
         setSelectedRoomForMap(roomType)
       }
     }
 
-    // If decrementing to zero, and it was the selected room for map, select another one
     if (newCount === 0 && (roomCounts[roomType] || 0) > 0) {
       if (selectedRoomForMap === roomType) {
         const activeRooms = Object.entries(roomCounts)
@@ -55,12 +50,10 @@ function PricingContent() {
     }
   }
 
-  // Handle room configuration changes
   const handleRoomConfigChange = (roomType: string, config: RoomConfig) => {
-    updateRoomConfig(roomType, config) // Use context's updateRoomConfig
+    updateRoomConfig(roomType, config)
   }
 
-  // Get room configuration
   const getRoomConfig = (roomType: string): RoomConfig => {
     return (
       roomConfigs[roomType] || {
@@ -77,12 +70,10 @@ function PricingContent() {
     )
   }
 
-  // Get active room configurations
   const getActiveRoomConfigs = () => {
-    return getSelectedRoomTypes() // Use context's getSelectedRoomTypes
+    return getSelectedRoomTypes()
   }
 
-  // Update service fee based on total rooms
   useEffect(() => {
     const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
     if (totalRooms <= 2) {
@@ -95,7 +86,8 @@ function PricingContent() {
   }, [roomCounts])
 
   return (
-    <main className="container mx-auto px-4 pt-2">
+    // Added pr-24 (padding-right: 6rem or 96px) to make space for the floating button
+    <main className="container mx-auto px-4 pt-2 pr-24">
       <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
         <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
           <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
