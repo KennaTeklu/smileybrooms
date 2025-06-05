@@ -17,9 +17,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { motion, AnimatePresence } from "framer-motion"
-import AddressCollectionModal, { type AddressData } from "@/components/address-collection-modal"
 import { loadStripe } from "@stripe/stripe-js"
 import ErrorBoundary from "@/components/error-boundary"
+import { useRouter } from "next/navigation"
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -35,13 +35,12 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
-  const [showAddressModal, setShowAddressModal] = useState(false)
-  const [customerAddressData, setCustomerAddressData] = useState<AddressData | null>(null)
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const cartRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   // Calculate cart metrics
   const totalItems = cart.items?.length || 0
@@ -137,128 +136,8 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
       return
     }
 
-    // If no address data, open the address collection modal
-    if (!customerAddressData) {
-      setShowAddressModal(true)
-      return
-    }
-
-    setIsCheckingOut(true)
-    setCheckoutError(null)
-
-    try {
-      // Validate cart items
-      const invalidItems = cart.items.filter(
-        (item) => !item.id || !item.name || typeof item.price !== "number" || item.price <= 0,
-      )
-
-      if (invalidItems.length > 0) {
-        throw new Error("Some items in your cart are invalid. Please try removing and adding them again.")
-      }
-
-      // Prepare line items for Stripe
-      const lineItems = cart.items.map((item) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.name,
-            description: item.metadata?.description || `Service: ${item.name}`,
-            images: item.image ? [item.image] : [],
-            metadata: {
-              itemId: item.id,
-              priceId: item.priceId,
-              ...item.metadata,
-            },
-          },
-          unit_amount: Math.round(item.price * 100), // Convert to cents
-        },
-        quantity: item.quantity,
-      }))
-
-      // Add video discount if applicable
-      if (videoDiscountAmount > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Video Recording Discount",
-              description: "Discount for allowing video recording during service",
-            },
-            unit_amount: -Math.round(videoDiscountAmount * 100), // Negative amount for discount
-          },
-          quantity: 1,
-        })
-      }
-
-      // Generate cart ID with timestamp and random string for idempotency
-      const cartId = `cart_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`
-
-      // Create checkout session
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": cartId, // Prevent duplicate charges
-        },
-        body: JSON.stringify({
-          lineItems,
-          customerData: customerAddressData,
-          allowVideoRecording,
-          cartId,
-          metadata: {
-            cartTotal: totalPrice,
-            discountAmount: videoDiscountAmount,
-            finalTotal: finalTotalPrice,
-            itemCount: totalItems,
-            orderDate: new Date().toISOString(),
-            deviceInfo: navigator.userAgent,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create checkout session")
-      }
-
-      const { sessionId } = await response.json()
-
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise
-      if (!stripe) {
-        throw new Error("Stripe failed to load")
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId,
-      })
-
-      if (error) {
-        throw new Error(error.message)
-      }
-    } catch (error) {
-      console.error("Error during checkout:", error)
-      setCheckoutError(
-        error instanceof Error
-          ? error.message
-          : "An error occurred during checkout. Please try again or call us for assistance.",
-      )
-      toast({
-        title: "Checkout failed",
-        description: error instanceof Error ? error.message : "An error occurred during checkout. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      })
-    } finally {
-      setIsCheckingOut(false)
-    }
-  }
-
-  const handleAddressSubmit = (data: AddressData) => {
-    setCustomerAddressData(data)
-    setShowAddressModal(false)
-    // Automatically trigger checkout after address is submitted
-    handleCheckout()
+    // Redirect to address collection page
+    router.push("/checkout/address")
   }
 
   const toggleItemDetails = (itemId: string) => {
@@ -307,14 +186,6 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                 </Button>
               </div>
             </div>
-          )}
-
-          {showAddressModal && (
-            <AddressCollectionModal
-              isOpen={showAddressModal}
-              onClose={() => setShowAddressModal(false)}
-              onSubmit={handleAddressSubmit}
-            />
           )}
         </div>
       </ErrorBoundary>
@@ -496,7 +367,7 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
                 <p className="text-lg font-medium">Your cart is empty</p>
                 <p className="text-sm text-gray-500 mb-4">Add items to get started</p>
                 <Link href="/pricing" passHref>
-                  <Button variant="default" onClick={toggleExpanded}>
+                  <Button variant="default" onClick={toggleExpanded} className="w-full">
                     Continue Shopping
                   </Button>
                 </Link>
@@ -505,14 +376,6 @@ export function Cart({ isOpen, onClose, embedded = false }: CartProps) {
           </div>
         </div>
       </div>
-
-      {showAddressModal && (
-        <AddressCollectionModal
-          isOpen={showAddressModal}
-          onClose={() => setShowAddressModal(false)}
-          onSubmit={handleAddressSubmit}
-        />
-      )}
     </ErrorBoundary>
   )
 }
