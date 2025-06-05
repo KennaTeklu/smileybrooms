@@ -2,7 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import "./device-themes.css"
+import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
 import { Toaster } from "@/components/ui/toaster"
 import { CartProvider } from "@/lib/cart-context"
 import { RoomProvider } from "@/lib/room-context"
@@ -41,7 +42,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <QueryClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProviderEnhanced>
             <AccessibilityProvider>
               <CartProvider>
                 <RoomProvider>
@@ -65,7 +66,7 @@ export default function RootLayout({
                 </RoomProvider>
               </CartProvider>
             </AccessibilityProvider>
-          </ThemeProvider>
+          </ThemeProviderEnhanced>
         </QueryClientProvider>
       </body>
     </html>
