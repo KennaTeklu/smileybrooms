@@ -39,12 +39,13 @@ export function GlobalAddToCartContainer({ children }: GlobalAddToCartContainerP
     <div
       className="sticky-container"
       style={{
-        position: "sticky",
-        top: `${topOffset}px`, // Stick 2cm below the header
-        alignSelf: "flex-end", // Pushes to the right if parent is flex
-        zIndex: 999, // Below header (1001) but above most content
-        right: "clamp(1rem, 3vw, 2rem)", // Responsive right spacing
-        // No transform here, as it should always be visible
+        position: "fixed", // Changed from sticky to fixed for more reliable viewport positioning
+        top: `${topOffset}px`,
+        right: "clamp(1rem, 3vw, 2rem)",
+        left: "auto", // Explicitly set left to auto to ensure right alignment
+        bottom: "auto", // Explicitly set bottom to auto to ensure top alignment
+        width: "fit-content", // Ensure it doesn't take full width
+        zIndex: 999,
       }}
     >
       {children}
