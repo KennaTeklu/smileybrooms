@@ -9,6 +9,7 @@ import Header from "@/components/header"
 import UnifiedFooter from "@/components/unified-footer"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import ClientLayout from "@/app/client-layout" // Import ClientLayout
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,7 +32,9 @@ export default function RootLayout({
             <CartProvider>
               <AbandonmentProvider>
                 <Header />
-                <main className="flex-grow">{children}</main>
+                <main className="flex-grow">
+                  <ClientLayout>{children}</ClientLayout> {/* Wrap children with ClientLayout */}
+                </main>
                 <UnifiedFooter />
                 <Toaster />
               </AbandonmentProvider>

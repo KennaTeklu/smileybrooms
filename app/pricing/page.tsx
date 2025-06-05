@@ -6,6 +6,7 @@ import { useRoomContext } from "@/lib/room-context"
 import { useMemo } from "react"
 
 export default function PricingPage() {
+  // useRoomContext will now correctly find its provider via ClientLayout
   const { selectedRooms, selectedServices } = useRoomContext()
 
   const showRoomConfigurator = useMemo(() => {
