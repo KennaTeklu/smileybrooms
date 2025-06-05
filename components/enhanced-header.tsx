@@ -3,8 +3,9 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Cart } from "@/components/cart"
 import { getLayoutConfig } from "@/lib/layout-config"
 
@@ -17,6 +18,7 @@ const navigationLinks = [
   { href: "/accessibility", label: "Accessibility" },
   { href: "/tech-stack", label: "Tech Stack" },
   { href: "/email-summary", label: "Email Summary" },
+  { href: "/download", label: "Download" },
 ]
 
 export default function EnhancedHeader() {
@@ -28,22 +30,24 @@ export default function EnhancedHeader() {
   const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const hasCartItems = cartItemCount > 0
 
-  // Determine what to show based on page and cart state
-  const shouldShowFullHeader = !isHomePage
-  const shouldShowCartOnly = isHomePage && hasCartItems
-  const shouldShowNothing = isHomePage && !hasCartItems
+  // Determine what to show based on configuration
+  const showFullHeader = !isHomePage && config.header.showFullHeaderOnNonHomePage
+  const showOnlyCart = isHomePage && config.header.showOnlyCartOnHomePage && hasCartItems
 
-  if (shouldShowNothing) {
+  // Don't show header on homepage unless cart has items
+  if (isHomePage && !hasCartItems) {
     return null
   }
 
   // Filter out current page from navigation
-  const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
+  const filteredLinks = config.header.hideCurrentPageFromNav
+    ? navigationLinks.filter((link) => link.href !== pathname)
+    : navigationLinks
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        {shouldShowFullHeader && (
+        {showFullHeader && (
           <>
             {/* Logo and Brand */}
             <div className="mr-4 flex">
@@ -53,7 +57,7 @@ export default function EnhancedHeader() {
             </div>
 
             {/* Navigation Links */}
-            <nav className="flex items-center space-x-6 text-sm font-medium flex-1">
+            <nav className="flex items-center space-x-6 text-sm font-medium">
               {filteredLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -64,21 +68,43 @@ export default function EnhancedHeader() {
                 </Link>
               ))}
             </nav>
+
+            {/* Spacer */}
+            <div className="flex-1" />
           </>
         )}
 
-        {/* Cart - Always show when applicable */}
-        {(shouldShowFullHeader || shouldShowCartOnly) && (
-          <div className={shouldShowCartOnly ? "w-full flex justify-end" : "ml-auto"}>
+        {/* Cart Button - Always show when applicable */}
+        {(showFullHeader || showOnlyCart) && config.header.alwaysShowCartWhenApplicable && (
+          <Cart>
+            <Button variant="outline" size="sm" className="relative">
+              <ShoppingCart className="h-4 w-4" />
+              {hasCartItems && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                >
+                  {cartItemCount}
+                </Badge>
+              )}
+            </Button>
+          </Cart>
+        )}
+
+        {/* Homepage-only cart positioning */}
+        {showOnlyCart && !showFullHeader && (
+          <div className="ml-auto">
             <Cart>
               <Button variant="outline" size="sm" className="relative">
                 <ShoppingCart className="h-4 w-4" />
                 {hasCartItems && (
-                  <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-primary text-xs text-primary-foreground flex items-center justify-center">
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
                     {cartItemCount}
-                  </span>
+                  </Badge>
                 )}
-                <span className="sr-only">Shopping cart</span>
               </Button>
             </Cart>
           </div>

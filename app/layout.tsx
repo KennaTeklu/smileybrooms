@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ClientLayout>
           <EnhancedHeader />
-          <main>{children}</main>
+          <main className="flex-1">{children}</main>
           <EnhancedFooter />
         </ClientLayout>
       </body>
