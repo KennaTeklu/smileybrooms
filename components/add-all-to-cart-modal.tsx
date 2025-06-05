@@ -27,7 +27,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { StickyAddToCartWrapper } from "@/components/sticky-add-to-cart-wrapper" // Import the new sticky wrapper
+// Removed StickyAddToCartWrapper import as it's now handled by GlobalAddToCartContainer
 
 // Feedback and Notifications
 import { toast } from "@/components/ui/use-toast"
@@ -244,134 +244,132 @@ export function AddAllToCartModal() {
 
   return (
     <TooltipProvider>
-      <StickyAddToCartWrapper>
-        <div className="relative">
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                ref={modalRef}
-                initial={{ opacity: 0, scale: 0.9, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
-                onMouseMove={handleMouseMove}
-                style={{
-                  rotateX: isSmallScreen ? 0 : rotateX,
-                  rotateY: isSmallScreen ? 0 : rotateY,
-                  transformPerspective: 1000,
-                  width: isSmallScreen ? "90vw" : isMediumScreen ? "400px" : "450px",
-                  maxHeight: "70vh",
-                  maxWidth: "calc(100vw - 2rem)",
-                }}
-              >
-                <div className="flex flex-col h-full">
-                  <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
-                          <Package className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg font-bold">Ready to Add</CardTitle>
-                          <p className="text-blue-100 text-sm">
-                            {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                          </p>
-                        </div>
+      <div className="relative">
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={modalRef}
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
+              onMouseMove={handleMouseMove}
+              style={{
+                rotateX: isSmallScreen ? 0 : rotateX,
+                rotateY: isSmallScreen ? 0 : rotateY,
+                transformPerspective: 1000,
+                width: isSmallScreen ? "90vw" : isMediumScreen ? "400px" : "450px",
+                maxHeight: "70vh",
+                maxWidth: "calc(100vw - 2rem)",
+              }}
+            >
+              <div className="flex flex-col h-full">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                        <Package className="h-5 w-5" />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleClose}
-                        className="text-white hover:bg-white/20 rounded-full h-8 w-8"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div>
+                        <CardTitle className="text-lg font-bold">Ready to Add</CardTitle>
+                        <p className="text-blue-100 text-sm">
+                          {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                        </p>
+                      </div>
                     </div>
-                  </CardHeader>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleClose}
+                      className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
 
-                  <ScrollArea className="flex-1">
-                    <CardContent className="p-4">
-                      <div className="space-y-3 mb-4">{roomList}</div>
-                    </CardContent>
-                  </ScrollArea>
+                <ScrollArea className="flex-1">
+                  <CardContent className="p-4">
+                    <div className="space-y-3 mb-4">{roomList}</div>
+                  </CardContent>
+                </ScrollArea>
 
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
-                    <div className="space-y-3">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={handleAddAllToCart}
-                            disabled={!isOnline}
-                            size="lg"
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
-                          >
-                            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <span className="relative flex items-center justify-center">
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add All to Cart
-                              <Sparkles className="h-3 w-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isOnline ? "Add all selected rooms to cart" : "Cannot add to cart while offline"}
-                        </TooltipContent>
-                      </Tooltip>
-                      <Button variant="outline" onClick={handleClose} className="w-full">
-                        Continue Shopping
-                      </Button>
-                    </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                  <div className="space-y-3">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleAddAllToCart}
+                          disabled={!isOnline}
+                          size="lg"
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                        >
+                          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <span className="relative flex items-center justify-center">
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Add All to Cart
+                            <Sparkles className="h-3 w-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isOnline ? "Add all selected rooms to cart" : "Cannot add to cart while offline"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Button variant="outline" onClick={handleClose} className="w-full">
+                      Continue Shopping
+                    </Button>
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Main Button */}
-          <motion.button
-            ref={buttonRef}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={controls}
-            whileHover={{ scale: 1.02, y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsOpen(!isOpen)}
-            className={cn(
-              "flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-              "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
-              "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-              "border border-blue-500/20 backdrop-blur-sm",
-              pulseAnimation && "animate-pulse",
-              isSmallScreen ? "min-w-[240px]" : "min-w-[280px]",
-            )}
-            style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-            }}
-            aria-label="Open cart summary"
-          >
-            <div className="flex items-center gap-3 relative">
-              <div className="relative">
-                <div className="p-1.5 bg-white/20 rounded-full">
-                  <div className="flex items-center">
-                    <ShoppingCart className="h-5 w-5" />
-                    <Plus className="h-3 w-3 -ml-1 -mt-1 text-white/80" />
-                  </div>
+        {/* Main Button */}
+        <motion.button
+          ref={buttonRef}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={controls}
+          whileHover={{ scale: 1.02, y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
+            "border border-blue-500/20 backdrop-blur-sm",
+            pulseAnimation && "animate-pulse",
+            isSmallScreen ? "min-w-[240px]" : "min-w-[280px]",
+          )}
+          style={{
+            background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+          }}
+          aria-label="Open cart summary"
+        >
+          <div className="flex items-center gap-3 relative">
+            <div className="relative">
+              <div className="p-1.5 bg-white/20 rounded-full">
+                <div className="flex items-center">
+                  <ShoppingCart className="h-5 w-5" />
+                  <Plus className="h-3 w-3 -ml-1 -mt-1 text-white/80" />
                 </div>
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
-                  {selectedRoomTypes.length}
-                </Badge>
               </div>
-              <div className="text-left flex-1">
-                <div className="text-sm font-bold">
-                  Add All to Cart ({totalItems} item{totalItems !== 1 ? "s" : ""})
-                </div>
-                <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
-              </div>
-              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+                {selectedRoomTypes.length}
+              </Badge>
             </div>
-          </motion.button>
-        </div>
-      </StickyAddToCartWrapper>
+            <div className="text-left flex-1">
+              <div className="text-sm font-bold">
+                Add All to Cart ({totalItems} item{totalItems !== 1 ? "s" : ""})
+              </div>
+              <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+          </div>
+        </motion.button>
+      </div>
     </TooltipProvider>
   )
 }
