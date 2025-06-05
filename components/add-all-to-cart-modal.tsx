@@ -27,7 +27,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { useScrollTriggeredAnimation } from "@/hooks/use-scroll-triggered-animation" // ADDED
+import { useScrollTriggeredAnimation } from "@/hooks/use-scroll-triggered-animation"
 
 // Feedback and Notifications
 import { toast } from "@/components/ui/use-toast"
