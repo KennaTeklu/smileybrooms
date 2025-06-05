@@ -43,11 +43,17 @@ import Image from "next/image"
 
 export function AddAllToCartModal() {
   // Safe context usage with error boundary
-  let roomContext
-  try {
-    roomContext = useRoomContext()
-  } catch (error) {
-    console.warn("RoomContext not available, AddAllToCartModal will not render")
+  const [roomContext, setRoomContext] = useState(null)
+
+  useEffect(() => {
+    try {
+      setRoomContext(useRoomContext())
+    } catch (error) {
+      console.warn("RoomContext not available:", error)
+    }
+  }, [])
+
+  if (!roomContext) {
     return null
   }
 
@@ -92,10 +98,10 @@ export function AddAllToCartModal() {
     },
   })
 
-  // Show modal immediately when multi-selection becomes active
+  // Show modal when multi-selection becomes active - show immediately when requirements are met
   useEffect(() => {
     if (isMultiSelection && totalItems > 0) {
-      // Show immediately when requirements are met
+      // Show immediately when selection requirements are completed
       if (!hasBeenSeen) {
         setIsOpen(true)
         setHasBeenSeen(true)
@@ -250,6 +256,7 @@ export function AddAllToCartModal() {
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts])
 
+  // Don't render if no multi-selection or no items
   if (!isMultiSelection || totalItems === 0) return null
 
   return (
@@ -259,7 +266,7 @@ export function AddAllToCartModal() {
         initial={{ opacity: 0, x: "100%" }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 400 }}
+        transition={{ type: "spring", damping: 20, stiffness: 300 }}
       >
         <AnimatePresence>
           {isOpen ? (
