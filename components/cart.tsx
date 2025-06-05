@@ -256,7 +256,7 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
   }
 
   // Calculate dynamic position that follows scroll more smoothly
-  const dynamicTopPosition = Math.max(20, Math.min(scrollY * 0.1 + 100, window.innerHeight - 500))
+  const dynamicTopPosition = isMounted ? Math.max(20, Math.min(scrollY * 0.1 + 100, window.innerHeight - 500)) : 100
 
   // Default floating cart implementation
   return (
@@ -379,11 +379,26 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
           </div>
         </div>
       </ScrollAwareWrapper>
-    )
-  }
+    </ErrorBoundary>
+  )
+}
 
 // Helper component for cart content
-function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, handleUpdateQuantity, recentlyAdded }) {
+function CartContent({
+  cart,
+  expandedItem,
+  toggleItemDetails,
+  handleRemoveItem,
+  handleUpdateQuantity,
+  recentlyAdded,
+}: {
+  cart: any
+  expandedItem: string | null
+  toggleItemDetails: (id: string) => void
+  handleRemoveItem: (id: string) => void
+  handleUpdateQuantity: (id: string, quantity: number) => void
+  recentlyAdded: string | null
+}) {
   if (!cart.items || cart.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -399,7 +414,7 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
 
   return (
     <div className="space-y-3">
-      {cart.items.map((item) => (
+      {cart.items.map((item: any) => (
         <Card
           key={item.id}
           className={`flex flex-col p-3 transition-all duration-200 hover:shadow-md ${
@@ -492,7 +507,7 @@ function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, 
                       <p className="font-medium">Rooms:</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {Array.isArray(item.metadata.rooms) ? (
-                          item.metadata.rooms.map((room, idx) => (
+                          item.metadata.rooms.map((room: string, idx: number) => (
                             <Badge key={idx} variant="secondary" className="text-[10px] px-1 py-0">
                               {room}
                             </Badge>
