@@ -10,7 +10,7 @@ import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { EnhancedHeader } from "@/components/enhanced-header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
-import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
 
 const inter = Inter({ subsets: ["latin"] })
 

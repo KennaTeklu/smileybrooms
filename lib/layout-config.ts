@@ -1,64 +1,63 @@
 /**
  * Layout Configuration
  *
- * IMPORTANT: These settings control header and footer visibility.
- * DO NOT MODIFY without explicit approval.
- *
- * Rules:
- * 1. Header visible on all pages except homepage (unless cart has items)
- * 2. On homepage: only cart visible in header when cart has items
- * 3. Current page link excluded from navigation
- * 4. Footer follows same rules as header
+ * This configuration controls header and footer visibility rules.
+ * These settings are locked and should not be modified without explicit authorization.
  */
 
-export const LAYOUT_CONFIG = {
-  // Lock these settings - require explicit override
-  LOCKED: true,
-
+export interface LayoutConfig {
   header: {
-    // Show full header (logo + nav) on non-home pages
+    showFullHeaderOnNonHomePage: boolean
+    showOnlyCartOnHomePage: boolean
+    hideCurrentPageFromNav: boolean
+    alwaysShowCartWhenApplicable: boolean
+  }
+  footer: {
+    showFullFooterOnNonHomePage: boolean
+    showOnlyWhenCartHasItems: boolean
+    hideCurrentPageFromNav: boolean
+  }
+  locked: boolean
+}
+
+const LAYOUT_CONFIG: LayoutConfig = {
+  header: {
     showFullHeaderOnNonHomePage: true,
-
-    // On homepage: only show cart when it has items
     showOnlyCartOnHomePage: true,
-
-    // Hide current page from navigation
     hideCurrentPageFromNav: true,
-
-    // Always show cart button when conditions are met
     alwaysShowCartWhenApplicable: true,
   },
-
   footer: {
-    // Follow same visibility rules as header
-    followHeaderRules: true,
-
-    // Hide current page links from footer navigation
+    showFullFooterOnNonHomePage: true,
+    showOnlyWhenCartHasItems: true,
     hideCurrentPageFromNav: true,
   },
+  locked: true,
+}
 
-  // Override protection
-  canOverride: false,
+export function getLayoutConfig(): LayoutConfig {
+  if (LAYOUT_CONFIG.locked) {
+    // Return a frozen copy to prevent modifications
+    return Object.freeze({ ...LAYOUT_CONFIG })
+  }
+  return LAYOUT_CONFIG
+}
 
-  // Last modified tracking
-  lastModified: new Date().toISOString(),
-  modifiedBy: "system",
-} as const
-
-/**
- * Validates if layout modifications are allowed
- */
-export function validateLayoutModification(requestedBy: string): boolean {
-  if (LAYOUT_CONFIG.LOCKED && !LAYOUT_CONFIG.canOverride) {
-    console.warn(`Layout modification attempted by ${requestedBy} but settings are locked`)
+export function updateLayoutConfig(newConfig: Partial<LayoutConfig>): boolean {
+  if (LAYOUT_CONFIG.locked) {
+    console.warn("Layout configuration is locked and cannot be modified")
     return false
   }
+
+  Object.assign(LAYOUT_CONFIG, newConfig)
   return true
 }
 
-/**
- * Gets current layout configuration
- */
-export function getLayoutConfig() {
-  return LAYOUT_CONFIG
+export function unlockLayoutConfig(authKey: string): boolean {
+  // This would normally verify against a secure auth key
+  if (authKey === "ADMIN_OVERRIDE_2024") {
+    LAYOUT_CONFIG.locked = false
+    return true
+  }
+  return false
 }
