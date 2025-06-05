@@ -1,175 +1,275 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { X, Settings, Shield, BarChart3, Target } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Cookie, Shield, BarChart3, MapPin, Settings } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-interface CookiePreferences {
-  necessary: boolean
-  analytics: boolean
-  marketing: boolean
-  functional: boolean
+interface CookieCategory {
+  id: string
+  name: string
+  description: string
+  required: boolean
+  enabled: boolean
+  icon: React.ReactNode
+  cookies: string[]
 }
 
-interface CookieConsentManagerProps {
-  onAccept: (preferences: CookiePreferences) => void
-  onDecline: () => void
-  jurisdiction?: "US" | "EU" | "CA"
+interface GeoLocation {
+  country: string
+  region: string
+  requiresExplicitConsent: boolean
+  hasRightToForget: boolean
 }
 
-export default function CookieConsentManager({ onAccept, onDecline, jurisdiction = "US" }: CookieConsentManagerProps) {
+export default function CookieConsentManager() {
   const [isVisible, setIsVisible] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
-  const [preferences, setPreferences] = useState<CookiePreferences>({
-    necessary: true,
-    analytics: false,
-    marketing: false,
-    functional: false,
-  })
+  const [geoLocation, setGeoLocation] = useState<GeoLocation | null>(null)
+  const [categories, setCategories] = useState<CookieCategory[]>([
+    {
+      id: "essential",
+      name: "Essential Cookies",
+      description: "Required for basic website functionality and security",
+      required: true,
+      enabled: true,
+      icon: <Shield className="h-4 w-4" />,
+      cookies: ["session_id", "csrf_token", "auth_state"],
+    },
+    {
+      id: "analytics",
+      name: "Analytics Cookies",
+      description: "Help us understand how visitors interact with our website",
+      required: false,
+      enabled: false,
+      icon: <BarChart3 className="h-4 w-4" />,
+      cookies: ["_ga", "_gid", "analytics_session"],
+    },
+    {
+      id: "marketing",
+      name: "Marketing Cookies",
+      description: "Used to deliver personalized advertisements and track campaign performance",
+      required: false,
+      enabled: false,
+      icon: <MapPin className="h-4 w-4" />,
+      cookies: ["fb_pixel", "google_ads", "marketing_prefs"],
+    },
+    {
+      id: "preferences",
+      name: "Preference Cookies",
+      description: "Remember your settings and preferences for a better experience",
+      required: false,
+      enabled: false,
+      icon: <Settings className="h-4 w-4" />,
+      cookies: ["theme_preference", "language", "accessibility_settings"],
+    },
+  ])
 
   useEffect(() => {
-    const consent = localStorage.getItem("cookie-consent")
+    // Check if consent has been given
+    const consent = localStorage.getItem("cookie_consent")
     if (!consent) {
+      // Detect geo location for compliance rules
+      detectGeoLocation()
       setIsVisible(true)
+    } else {
+      // Load saved preferences
+      const savedPrefs = JSON.parse(consent)
+      setCategories((prev) =>
+        prev.map((cat) => ({
+          ...cat,
+          enabled: savedPrefs[cat.id] !== false,
+        })),
+      )
     }
   }, [])
 
-  const handleAcceptAll = () => {
-    const allAccepted = {
-      necessary: true,
-      analytics: true,
-      marketing: true,
-      functional: true,
+  const detectGeoLocation = async () => {
+    try {
+      // In a real implementation, use a geo-IP service
+      const response = await fetch("/api/geo-detect")
+      const geo = await response.json()
+
+      // Mock geo detection for demo
+      const mockGeo: GeoLocation = {
+        country: "US",
+        region: "CA",
+        requiresExplicitConsent: false, // GDPR regions would be true
+        hasRightToForget: false, // GDPR regions would be true
+      }
+
+      setGeoLocation(mockGeo)
+    } catch (error) {
+      console.error("Geo detection failed:", error)
     }
-    localStorage.setItem("cookie-consent", JSON.stringify(allAccepted))
-    onAccept(allAccepted)
+  }
+
+  const handleCategoryToggle = (categoryId: string, enabled: boolean) => {
+    setCategories((prev) => prev.map((cat) => (cat.id === categoryId ? { ...cat, enabled } : cat)))
+  }
+
+  const handleAcceptAll = () => {
+    const allEnabled = categories.reduce(
+      (acc, cat) => ({
+        ...acc,
+        [cat.id]: true,
+      }),
+      {},
+    )
+
+    localStorage.setItem("cookie_consent", JSON.stringify(allEnabled))
+    localStorage.setItem("consent_timestamp", new Date().toISOString())
     setIsVisible(false)
+
+    // Apply cookie settings
+    applyCookieSettings(allEnabled)
   }
 
   const handleAcceptSelected = () => {
-    localStorage.setItem("cookie-consent", JSON.stringify(preferences))
-    onAccept(preferences)
+    const selectedPrefs = categories.reduce(
+      (acc, cat) => ({
+        ...acc,
+        [cat.id]: cat.enabled,
+      }),
+      {},
+    )
+
+    localStorage.setItem("cookie_consent", JSON.stringify(selectedPrefs))
+    localStorage.setItem("consent_timestamp", new Date().toISOString())
     setIsVisible(false)
+
+    // Apply cookie settings
+    applyCookieSettings(selectedPrefs)
   }
 
-  const handleDeclineAll = () => {
-    const minimal = {
-      necessary: true,
-      analytics: false,
-      marketing: false,
-      functional: false,
+  const handleRejectAll = () => {
+    const essentialOnly = categories.reduce(
+      (acc, cat) => ({
+        ...acc,
+        [cat.id]: cat.required,
+      }),
+      {},
+    )
+
+    localStorage.setItem("cookie_consent", JSON.stringify(essentialOnly))
+    localStorage.setItem("consent_timestamp", new Date().toISOString())
+    setIsVisible(false)
+
+    // Apply cookie settings
+    applyCookieSettings(essentialOnly)
+  }
+
+  const applyCookieSettings = (settings: Record<string, boolean>) => {
+    // Enable/disable analytics
+    if (settings.analytics) {
+      // Initialize Google Analytics
+      window.gtag?.("consent", "update", {
+        analytics_storage: "granted",
+      })
     }
-    localStorage.setItem("cookie-consent", JSON.stringify(minimal))
-    onDecline()
-    setIsVisible(false)
-  }
 
-  const updatePreference = (key: keyof CookiePreferences, value: boolean) => {
-    setPreferences((prev) => ({ ...prev, [key]: value }))
+    // Enable/disable marketing cookies
+    if (settings.marketing) {
+      window.gtag?.("consent", "update", {
+        ad_storage: "granted",
+      })
+    }
+
+    // Apply other cookie settings...
   }
 
   if (!isVisible) return null
 
-  const isEU = jurisdiction === "EU"
-  const isCA = jurisdiction === "CA"
-
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-xl">Cookie Preferences</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setIsVisible(false)} className="h-8 w-8 p-0">
-            <X className="h-4 w-4" />
-          </Button>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cookie className="h-5 w-5" />
+            Cookie Preferences
+            {geoLocation && (
+              <Badge variant="outline" className="ml-auto">
+                {geoLocation.country} - {geoLocation.region}
+              </Badge>
+            )}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            We use cookies to enhance your experience and provide personalized services.
+            {geoLocation?.requiresExplicitConsent && (
+              <span className="text-amber-600 font-medium">
+                {" "}
+                Your location requires explicit consent for non-essential cookies.
+              </span>
+            )}
+          </p>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          <div className="text-sm text-muted-foreground">
-            We use cookies to enhance your experience, analyze site usage, and assist in marketing efforts.
-            {isEU && " Under GDPR, you have the right to control how your data is used."}
-            {isCA && " In compliance with PIPEDA, we respect your privacy choices."}
-          </div>
-
+        <CardContent className="space-y-4">
           {!showDetails ? (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
+              <p className="text-sm">We respect your privacy. Choose which cookies you'd like to allow:</p>
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleAcceptAll} className="flex-1">
                   Accept All Cookies
                 </Button>
-                <Button variant="outline" onClick={handleDeclineAll} className="flex-1">
-                  {isEU ? "Reject All" : "Decline Optional"}
+                <Button variant="outline" onClick={() => setShowDetails(true)} className="flex-1">
+                  Customize Settings
+                </Button>
+                <Button variant="ghost" onClick={handleRejectAll} className="flex-1">
+                  Reject Non-Essential
                 </Button>
               </div>
-
-              <Button variant="ghost" onClick={() => setShowDetails(true)} className="w-full">
-                <Settings className="h-4 w-4 mr-2" />
-                Customize Preferences
-              </Button>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Shield className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Necessary Cookies</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Required for basic site functionality and security
-                      </p>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {categories.map((category) => (
+                  <div
+                    key={category.id}
+                    className={cn(
+                      "flex items-start justify-between p-3 rounded-lg border",
+                      category.required ? "bg-muted/50" : "bg-background",
+                    )}
+                  >
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        {category.icon}
+                        <h4 className="font-medium">{category.name}</h4>
+                        {category.required && (
+                          <Badge variant="secondary" className="text-xs">
+                            Required
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                      <div className="text-xs text-muted-foreground">Cookies: {category.cookies.join(", ")}</div>
                     </div>
+                    <Switch
+                      checked={category.enabled}
+                      onCheckedChange={(enabled) => handleCategoryToggle(category.id, enabled)}
+                      disabled={category.required}
+                      className="ml-4"
+                    />
                   </div>
-                  <Switch checked={true} disabled />
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <BarChart3 className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Analytics Cookies</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Help us understand how visitors interact with our website
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={preferences.analytics}
-                    onCheckedChange={(checked) => updatePreference("analytics", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Target className="h-5 w-5 text-purple-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Marketing Cookies</h4>
-                      <p className="text-sm text-muted-foreground">Used to deliver personalized advertisements</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={preferences.marketing}
-                    onCheckedChange={(checked) => updatePreference("marketing", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <Settings className="h-5 w-5 text-orange-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium">Functional Cookies</h4>
-                      <p className="text-sm text-muted-foreground">Enable enhanced functionality and personalization</p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={preferences.functional}
-                    onCheckedChange={(checked) => updatePreference("functional", checked)}
-                  />
-                </div>
+                ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              {geoLocation?.hasRightToForget && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <Shield className="h-4 w-4 inline mr-1" />
+                    You have the right to request deletion of your personal data at any time.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleAcceptSelected} className="flex-1">
                   Save Preferences
                 </Button>
@@ -179,19 +279,6 @@ export default function CookieConsentManager({ onAccept, onDecline, jurisdiction
               </div>
             </div>
           )}
-
-          <div className="text-xs text-muted-foreground pt-4 border-t">
-            <p>
-              For more information, read our{" "}
-              <a href="/privacy" className="underline hover:no-underline">
-                Privacy Policy
-              </a>{" "}
-              and{" "}
-              <a href="/terms" className="underline hover:no-underline">
-                Terms of Service
-              </a>
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
