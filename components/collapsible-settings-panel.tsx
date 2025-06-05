@@ -25,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAccessibility } from "@/lib/accessibility-context"
-import { useScrollPosition } from "@/hooks/use-scroll-position.tsx"
+import { useScrollPosition } from "@/hooks/use-scroll-position"
 
 export function CollapsibleSettingsPanel() {
   const [isExpanded, setIsExpanded] = useState(false)

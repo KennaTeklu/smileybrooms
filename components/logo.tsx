@@ -1,6 +1,6 @@
 "use client"
 
-import { Smile } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 interface LogoProps {
@@ -11,8 +11,8 @@ interface LogoProps {
 export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
     <div className={cn("flex items-center", className)}>
-      <div className="relative flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white overflow-hidden">
-        <Smile className="h-5 w-5 animate-pulse" />
+      <div className="relative flex items-center justify-center h-8 w-8 rounded-full overflow-hidden">
+        <Image src="/smileybrooms-logo.png" alt="SmileyBrooms Logo" width={32} height={32} className="object-contain" />
       </div>
 
       {!iconOnly && (
