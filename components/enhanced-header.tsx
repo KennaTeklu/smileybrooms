@@ -1,22 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { useState } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Menu, X } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { Cart } from "@/components/cart"
 import { Badge } from "@/components/ui/badge"
-
-const NAVIGATION_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-  { href: "/careers", label: "Careers" },
-  { href: "/download", label: "Download" },
-]
 
 export function EnhancedHeader() {
   const pathname = usePathname()
@@ -25,109 +16,103 @@ export function EnhancedHeader() {
 
   const totalItems = cart.items?.length || 0
   const hasItems = totalItems > 0
+
+  // Header visibility rules
   const isHomePage = pathname === "/"
+  const shouldShowFullHeader = !isHomePage
+  const shouldShowCartOnHome = isHomePage && hasItems
 
-  // Close mobile menu when pathname changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [pathname])
+  // Navigation items
+  const navItems = [
+    { href: "/", label: "Home" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+    { href: "/careers", label: "Careers" },
+    { href: "/download", label: "Download" },
+  ]
 
-  // Header visibility rules:
-  // - Homepage: Only show cart when it has items
-  // - Other pages: Show full header with navigation
-  if (isHomePage) {
-    // Homepage: Only show cart if it has items
-    if (!hasItems) {
-      return null
-    }
+  // Filter out current page from navigation
+  const filteredNavItems = navItems.filter((item) => item.href !== pathname)
 
-    return (
-      <header className="fixed top-0 right-0 z-40 p-4">
-        <Cart>
-          <Button variant="default" size="sm" className="relative bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Cart
-            {hasItems && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              >
-                {totalItems}
-              </Badge>
-            )}
-          </Button>
-        </Cart>
-      </header>
-    )
+  // Don't render header on homepage unless cart has items
+  if (isHomePage && !hasItems) {
+    return null
   }
-
-  // Other pages: Show full header
-  const filteredNavItems = NAVIGATION_ITEMS.filter((item) => item.href !== pathname)
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SB</span>
-            </div>
-            <span className="font-bold text-xl text-gray-900 dark:text-gray-100">SmileyBrooms</span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            {filteredNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
-              >
-                {item.label}
+          {/* Logo and Brand - Only show on non-home pages */}
+          {shouldShowFullHeader && (
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">SB</span>
+                </div>
+                <span className="font-bold text-xl text-gray-900 dark:text-gray-100">SmileyBrooms</span>
               </Link>
-            ))}
-          </nav>
+            </div>
+          )}
 
-          {/* Cart and Mobile Menu */}
-          <div className="flex items-center space-x-4">
-            {/* Cart */}
-            <Cart>
-              <Button variant="outline" size="sm" className="relative">
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Cart
-                {hasItems && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+          {/* Navigation - Only show on non-home pages */}
+          {shouldShowFullHeader && (
+            <>
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center space-x-6">
+                {filteredNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
                   >
-                    {totalItems}
-                  </Badge>
-                )}
-              </Button>
-            </Cart>
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
 
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </>
+          )}
+
+          {/* Cart - Always show when has items */}
+          {hasItems && (
+            <div className={shouldShowFullHeader ? "" : "ml-auto"}>
+              <Cart>
+                <Button variant="outline" size="sm" className="relative">
+                  <ShoppingCart className="h-4 w-4" />
+                  {hasItems && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {totalItems}
+                    </Badge>
+                  )}
+                </Button>
+              </Cart>
+            </div>
+          )}
         </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t bg-white dark:bg-gray-950">
-            <nav className="flex flex-col space-y-2 p-4">
+        {/* Mobile Navigation Menu */}
+        {shouldShowFullHeader && isMobileMenuOpen && (
+          <div className="md:hidden border-t py-4">
+            <nav className="flex flex-col space-y-3">
               {filteredNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors py-2"
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}

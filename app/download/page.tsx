@@ -1,6 +1,6 @@
-import { Construction, Download, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Download, Clock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default function DownloadPage() {
@@ -10,8 +10,8 @@ export default function DownloadPage() {
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-xl">
             <CardHeader className="text-center pb-8">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20">
-                <Construction className="h-10 w-10 text-orange-600 dark:text-orange-400" />
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <Download className="h-10 w-10 text-blue-600 dark:text-blue-400" />
               </div>
               <CardTitle className="text-3xl font-bold text-gray-900 dark:text-gray-100">Download Center</CardTitle>
               <CardDescription className="text-lg text-gray-600 dark:text-gray-400">
@@ -19,14 +19,14 @@ export default function DownloadPage() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="text-center space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400">
-                  <Download className="h-5 w-5" />
-                  <span className="text-sm font-medium">Coming Soon</span>
+            <CardContent className="space-y-6">
+              <div className="text-center space-y-4">
+                <div className="flex items-center justify-center space-x-2 text-amber-600 dark:text-amber-400">
+                  <Clock className="h-5 w-5" />
+                  <span className="font-medium">Coming Soon</span>
                 </div>
 
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                   Our download center is currently under development. We're preparing downloadable resources, guides,
                   and tools to enhance your cleaning service experience.
                 </p>
@@ -38,32 +38,41 @@ export default function DownloadPage() {
                     <li>• Service agreements and contracts</li>
                     <li>• Mobile app for iOS and Android</li>
                     <li>• Maintenance schedules and reminders</li>
+                    <li>• Invoice and receipt downloads</li>
                   </ul>
                 </div>
-              </div>
 
-              <div className="pt-6 space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Want to be notified when downloads are available?
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link href="/contact">
-                    <Button variant="default" className="w-full sm:w-auto">
-                      Contact Us for Updates
+                <div className="pt-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Want to be notified when downloads are available?
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button variant="outline" className="flex-1 sm:flex-none">
+                      Notify Me
                     </Button>
-                  </Link>
-
-                  <Link href="/">
-                    <Button variant="outline" className="w-full sm:w-auto">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Home
-                    </Button>
-                  </Link>
+                    <Link href="/" passHref>
+                      <Button className="flex-1 sm:flex-none">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Home
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Need immediate assistance?{" "}
+              <Link
+                href="/contact"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 underline"
+              >
+                Contact our support team
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -2,28 +2,22 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-
-const FOOTER_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-  { href: "/careers", label: "Careers" },
-  { href: "/download", label: "Download" },
-]
+import { useCart } from "@/lib/cart-context"
 
 export function EnhancedFooter() {
   const pathname = usePathname()
-  const isHomePage = pathname === "/"
+  const { cart } = useCart()
 
-  // Footer visibility rules:
-  // - Homepage: Hidden
-  // - Other pages: Show full footer
-  if (isHomePage) {
+  const totalItems = cart.items?.length || 0
+  const hasItems = totalItems > 0
+
+  // Footer visibility rules - same as header
+  const isHomePage = pathname === "/"
+  const shouldShowFooter = !isHomePage || hasItems
+
+  if (!shouldShowFooter) {
     return null
   }
-
-  const filteredLinks = FOOTER_LINKS.filter((link) => link.href !== pathname)
 
   return (
     <footer className="border-t bg-gray-50 dark:bg-gray-900">
@@ -35,54 +29,84 @@ export function EnhancedFooter() {
               <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">SB</span>
               </div>
-              <span className="font-bold text-lg text-gray-900 dark:text-gray-100">SmileyBrooms</span>
+              <span className="font-bold text-lg">SmileyBrooms</span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Professional cleaning services that bring smiles to your home.
+              Professional cleaning services that bring joy to your home.
             </p>
           </div>
 
-          {/* Navigation */}
+          {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Navigation</h3>
-            <ul className="space-y-2">
-              {filteredLinks.slice(0, 4).map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h3 className="font-semibold mb-4">Quick Links</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link
+                  href="/pricing"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contact"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/careers"
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Careers
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Services */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Services</h3>
-            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>Residential Cleaning</li>
-              <li>Deep Cleaning</li>
-              <li>Move-in/Move-out</li>
-              <li>Regular Maintenance</li>
+            <h3 className="font-semibold mb-4">Services</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <span className="text-gray-600 dark:text-gray-400">Regular Cleaning</span>
+              </li>
+              <li>
+                <span className="text-gray-600 dark:text-gray-400">Deep Cleaning</span>
+              </li>
+              <li>
+                <span className="text-gray-600 dark:text-gray-400">Move-in/Move-out</span>
+              </li>
+              <li>
+                <span className="text-gray-600 dark:text-gray-400">Post-Construction</span>
+              </li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact Info */}
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Contact</h3>
+            <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>support@smileybrooms.com</li>
-              <li>(555) 123-4567</li>
-              <li>Available 24/7</li>
+              <li>Phone: (555) 123-4567</li>
+              <li>Email: hello@smileybrooms.com</li>
+              <li>Hours: Mon-Fri 8AM-6PM</li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t mt-8 pt-8 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">© 2024 SmileyBrooms. All rights reserved.</p>
+        <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p>&copy; 2024 SmileyBrooms. All rights reserved.</p>
         </div>
       </div>
     </footer>
