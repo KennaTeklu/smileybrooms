@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { useScrollPosition } from "@/hooks/use-scroll-position"
 
 interface SharePlatform {
   id: string
@@ -100,8 +99,20 @@ export function CollapsibleSharePanel() {
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
-  const scrollPosition = useScrollPosition()
+
+  // Track scroll position
+  useEffect(() => {
+    const updatePosition = () => {
+      setScrollPosition(window.scrollY)
+    }
+
+    window.addEventListener("scroll", updatePosition, { passive: true })
+    updatePosition()
+
+    return () => window.removeEventListener("scroll", updatePosition)
+  }, [])
 
   // Handle click outside to collapse panel
   useEffect(() => {

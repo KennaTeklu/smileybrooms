@@ -25,17 +25,28 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAccessibility } from "@/lib/accessibility-context"
-import { useScrollPosition } from "@/hooks/use-scroll-position"
 
 export function CollapsibleSettingsPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
+  const [scrollPosition, setScrollPosition] = useState(0)
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
-  const scrollPosition = useScrollPosition()
+
+  // Track scroll position
+  useEffect(() => {
+    const updatePosition = () => {
+      setScrollPosition(window.scrollY)
+    }
+
+    window.addEventListener("scroll", updatePosition, { passive: true })
+    updatePosition()
+
+    return () => window.removeEventListener("scroll", updatePosition)
+  }, [])
 
   // Handle click outside to collapse panel
   useEffect(() => {
