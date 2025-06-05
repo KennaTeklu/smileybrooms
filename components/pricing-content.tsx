@@ -26,7 +26,7 @@ interface RoomConfig {
   totalPrice: number
 }
 
-export default function PricingContent() {
+function PricingContent() {
   const { toast } = useToast()
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
@@ -295,3 +295,6 @@ export default function PricingContent() {
     </main>
   )
 }
+
+export default PricingContent
+export { PricingContent }

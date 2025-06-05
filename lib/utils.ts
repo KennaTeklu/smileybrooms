@@ -15,3 +15,10 @@ export function formatCurrency(amount: number): string {
 export function isClient(): boolean {
   return typeof window !== "undefined"
 }
+
+export function calculateVideoDiscount(hasVideo: boolean, basePrice: number): number {
+  if (!hasVideo) return 0
+
+  // 5% discount for customers who provide video walkthrough
+  return Math.round(basePrice * 0.05 * 100) / 100
+}
