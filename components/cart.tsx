@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState, useEffect, useCallback } from "react"
 import { X, ShoppingCart, Plus, Minus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +15,12 @@ interface CartContentProps {
 
 function CartContent({ onClose }: CartContentProps) {
   const { cart, updateQuantity, removeItem, clearCart } = useCart()
+
+  const handleClearCart = useCallback(() => {
+    clearCart()
+    // Optionally close cart after clearing
+    // onClose()
+  }, [clearCart])
 
   if (cart.items.length === 0) {
     return (
@@ -36,7 +44,13 @@ function CartContent({ onClose }: CartContentProps) {
           <h2 className="text-lg font-semibold">Cart</h2>
           <Badge variant="secondary">{cart.totalItems}</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+          aria-label="Close cart"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -98,7 +112,7 @@ function CartContent({ onClose }: CartContentProps) {
         </div>
         <div className="space-y-2">
           <CheckoutButton />
-          <Button variant="outline" onClick={clearCart} className="w-full">
+          <Button variant="outline" onClick={handleClearCart} className="w-full">
             Clear Cart
           </Button>
         </div>
@@ -116,6 +130,55 @@ export function Cart() {
     setIsMounted(true)
   }, [])
 
+  // Close cart function
+  const closeCart = useCallback(() => {
+    setIsOpen(false)
+  }, [])
+
+  // Open cart function
+  const openCart = useCallback(() => {
+    setIsOpen(true)
+  }, [])
+
+  // Handle backdrop click
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only close if clicking the backdrop itself, not its children
+      if (e.target === e.currentTarget) {
+        closeCart()
+      }
+    },
+    [closeCart],
+  )
+
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeCart()
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [isOpen, closeCart])
+
+  // Prevent body scroll when cart is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "unset"
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = "unset"
+    }
+  }, [isOpen])
+
   // Don't render until mounted to avoid SSR issues
   if (!isMounted) {
     return null
@@ -124,11 +187,19 @@ export function Cart() {
   return (
     <>
       {/* Cart Trigger Button - Fixed Position */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button onClick={() => setIsOpen(true)} className="relative h-12 w-12 rounded-full shadow-lg" size="sm">
+      <div className="fixed bottom-4 right-4 z-40">
+        <Button
+          onClick={openCart}
+          className="relative h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          size="sm"
+          aria-label="Open shopping cart"
+        >
           <ShoppingCart className="h-5 w-5" />
           {cart.totalItems > 0 && (
-            <Badge variant="destructive" className="absolute -right-2 -top-2 h-6 w-6 rounded-full p-0 text-xs">
+            <Badge
+              variant="destructive"
+              className="absolute -right-2 -top-2 h-6 w-6 rounded-full p-0 text-xs animate-pulse"
+            >
               {cart.totalItems}
             </Badge>
           )}
@@ -139,11 +210,15 @@ export function Cart() {
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            onClick={handleBackdropClick}
+            aria-label="Close cart"
+          />
 
           {/* Cart Panel */}
-          <div className="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-background shadow-xl">
-            <CartContent onClose={() => setIsOpen(false)} />
+          <div className="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-background shadow-xl animate-in slide-in-from-right duration-300">
+            <CartContent onClose={closeCart} />
           </div>
         </>
       )}

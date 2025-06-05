@@ -3,175 +3,150 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, ShoppingCart, Settings, Share2, Accessibility } from "lucide-react"
-import { useCart } from "@/lib/cart-context"
-import { useAccessibility } from "@/lib/accessibility-context"
-import { SmileyBroomsLogo } from "@/components/smiley-brooms-logo"
-import { ThemeToggle } from "@/components/theme-toggle"
+import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
+import CartButton from "@/components/cart-button"
 
-const navigation = [
-  { name: "Home", href: "/" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "About", href: "/about" },
-  { name: "Contact", href: "/contact" },
-  { name: "Careers", href: "/careers" },
+// Define navigation structure - REMOVED ALL CART LINKS
+const navigationLinks = [
+  { href: "/pricing", label: "Pricing", icon: Calculator },
+  { href: "/about", label: "About", icon: Users },
+  { href: "/contact", label: "Contact", icon: Mail },
+  { href: "/accessibility", label: "Accessibility", icon: Accessibility },
 ]
 
-export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
-  const { items, toggleCart } = useCart()
-  const { toggleAccessibilityPanel } = useAccessibility()
+// Essential links that should always be visible
+const essentialLinks = [
+  { href: "/pricing", label: "Pricing", icon: Calculator },
+  { href: "/about", label: "About", icon: Users },
+  { href: "/contact", label: "Contact", icon: Mail },
+]
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+export default function Header() {
+  const pathname = usePathname()
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [shouldRender, setShouldRender] = useState(pathname !== "/")
+  const [cartItemCount, setCartItemCount] = useState(0)
+
+  useEffect(() => {
+    setShouldRender(pathname !== "/")
+  }, [pathname])
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
+      const scrolled = window.scrollY > 10
+      setIsScrolled(scrolled)
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  }, [pathname])
+
+  // Filter out current page from navigation
+  const getVisibleLinks = () => {
+    // Always show essential links except current page
+    const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
+    return filteredLinks.slice(0, 4) // Limit to 4 links for clean UI
+  }
+
+  const visibleLinks = getVisibleLinks()
+
+  if (!shouldRender) {
+    return null
+  }
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b transition-all duration-200",
-        isScrolled ? "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-background",
+        "sticky-header transition-all duration-300",
+        isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
       )}
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1001,
+        height: "64px", // 1.69cm
+      }}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <SmileyBroomsLogo size="sm" />
-          </Link>
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center">
+          <Logo className="h-8 w-auto" />
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === item.href ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
+        <div className="flex items-center gap-4">
+          {/* Dynamic navigation links for larger screens */}
+          <nav className="hidden lg:flex items-center gap-4">
+            {visibleLinks.map((link) => {
+              const IconComponent = link.icon
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+                >
+                  <IconComponent className="h-4 w-4" />
+                  {link.label}
+                </Link>
+              )
+            })}
           </nav>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-2">
-            <ThemeToggle />
+          {/* Single Cart Button - Using the CartButton component */}
+          <CartButton showLabel={true} />
 
-            <Button variant="ghost" size="icon" onClick={toggleAccessibilityPanel} aria-label="Accessibility options">
-              <Accessibility className="h-4 w-4" />
-            </Button>
-
-            <Button variant="ghost" size="icon" aria-label="Share">
-              <Share2 className="h-4 w-4" />
-            </Button>
-
-            <Button variant="ghost" size="icon" aria-label="Settings">
-              <Settings className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleCart}
-              className="relative"
-              aria-label={`Shopping cart with ${totalItems} items`}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-xs text-primary-foreground flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Button>
-
-            <Button asChild className="ml-4">
-              <Link href="/pricing">Get Quote</Link>
+          {/* Download button for desktop */}
+          <div className="hidden md:block">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/download" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                <span className="hidden lg:inline">Download</span>
+              </Link>
             </Button>
           </div>
 
-          {/* Mobile Menu */}
-          <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <div className="flex flex-col space-y-4 mt-8">
-                  {/* Mobile Navigation */}
-                  <nav className="flex flex-col space-y-4">
-                    {navigation.map((item) => (
+          {/* Mobile menu */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <div className="flex flex-col gap-2 mt-8">
+                {/* Show all navigation links in mobile menu */}
+                {navigationLinks
+                  .filter((link) => link.href !== pathname)
+                  .map((link) => {
+                    const IconComponent = link.icon
+                    return (
                       <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={cn(
-                          "text-lg font-medium transition-colors hover:text-primary",
-                          pathname === item.href ? "text-primary" : "text-muted-foreground",
-                        )}
+                        key={link.href}
+                        href={link.href}
+                        className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       >
-                        {item.name}
+                        <IconComponent className="h-4 w-4" />
+                        {link.label}
                       </Link>
-                    ))}
-                  </nav>
+                    )
+                  })}
 
-                  <div className="border-t pt-4 space-y-4">
-                    {/* Mobile Actions */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Theme</span>
-                      <ThemeToggle />
-                    </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
 
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        toggleAccessibilityPanel()
-                        setIsMobileMenuOpen(false)
-                      }}
-                    >
-                      <Accessibility className="mr-2 h-4 w-4" />
-                      Accessibility
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        toggleCart()
-                        setIsMobileMenuOpen(false)
-                      }}
-                    >
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      Cart ({totalItems})
-                    </Button>
-
-                    <Button asChild className="w-full">
-                      <Link href="/pricing" onClick={() => setIsMobileMenuOpen(false)}>
-                        Get Quote
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+                {/* Download link */}
+                <Link
+                  href="/download"
+                  className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Download App
+                </Link>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>
