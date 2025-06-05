@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Icons and Visual Elements
-import { ShoppingCart, X, Package, Trash2, ChevronDown } from "lucide-react"
+import { ShoppingCart, X, Package, Trash2, ChevronDown, Plus } from "lucide-react"
 import { Sparkles } from "lucide-react"
 
 // Hooks and Utilities
@@ -359,7 +359,10 @@ export function AddAllToCartModal() {
             <div className="flex items-center gap-3 relative">
               <div className="relative">
                 <div className="p-1.5 bg-white/20 rounded-full">
-                  <ShoppingCart className="h-5 w-5" />
+                  <div className="flex items-center">
+                    <ShoppingCart className="h-5 w-5" />
+                    <Plus className="h-3 w-3 -ml-1 -mt-1 text-white/80" />
+                  </div>
                 </div>
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
                   {selectedRoomTypes.length}
