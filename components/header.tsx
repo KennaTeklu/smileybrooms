@@ -60,6 +60,7 @@ export default function Header() {
 
   return (
     <header
+      id="main-header" // Add this ID
       className={cn(
         "sticky-header transition-all duration-300",
         isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
