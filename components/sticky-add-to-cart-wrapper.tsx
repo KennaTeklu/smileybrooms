@@ -22,12 +22,10 @@ export function StickyAddToCartWrapper({ children }: StickyAddToCartWrapperProps
 
     headerRef.current = header
 
-    // Use a small rootMargin to trigger slightly before the header fully leaves the viewport
-    // This helps in smoother transitions for the sticky element
+    // Observe the header to know when it's scrolled out of view
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // isIntersecting is true when the header is fully visible
-        // We want the button to be "stuck" when the header is *not* fully intersecting (i.e., scrolled past)
+        // isStuck is true when the header is NOT fully intersecting (i.e., scrolled away)
         setIsStuck(!entry.isIntersecting)
       },
       {
@@ -41,6 +39,7 @@ export function StickyAddToCartWrapper({ children }: StickyAddToCartWrapperProps
   }, [])
 
   // Calculate the top offset dynamically based on header height
+  // This ensures the sticky element always appears just below the header
   const topOffset = headerRef.current ? headerRef.current.offsetHeight + 8 : 72 // Header height + 8px gap
 
   return (
@@ -49,13 +48,11 @@ export function StickyAddToCartWrapper({ children }: StickyAddToCartWrapperProps
       className="sticky-container"
       style={{
         position: "sticky",
-        top: `${topOffset}px`,
+        top: `${topOffset}px`, // Stick just below the header
         alignSelf: "flex-end", // Pushes the sticky container to the right if in a flex context
         zIndex: 1000, // Ensure it's above other content but below the header
-        transition: "transform 0.3s ease",
-        // Only apply transform if not stuck, to slide it out of view when header is fully visible
-        // When stuck, it should be at translateY(0)
-        transform: isStuck ? "translateY(0)" : "translateY(0)", // Removed translateY(-100%) as it hides it when not stuck
+        // No transform property here, as the button should always be visible when rendered
+        // position: sticky handles the smooth transition as it hits the 'top' threshold
       }}
       initial={{ opacity: 0, y: -20, x: 20 }}
       animate={{ opacity: 1, y: 0, x: 0 }}
