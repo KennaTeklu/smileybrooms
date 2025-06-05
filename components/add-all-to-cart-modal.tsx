@@ -19,7 +19,7 @@ import { ShoppingCart, X, Package, Trash2, ChevronLeft } from "lucide-react"
 import { Sparkles } from "lucide-react"
 
 // Hooks and Utilities
-import { useRoomContext } from "@/lib/room-context"
+import { useRoomContext } from "@/lib/room-context" // Directly import useRoomContext
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
@@ -42,22 +42,9 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export function AddAllToCartModal() {
-  // Safe context usage with error boundary
-  const [roomContext, setRoomContext] = useState(null)
+  // Directly use useRoomContext, assuming it's provided by a parent
+  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
 
-  useEffect(() => {
-    try {
-      setRoomContext(useRoomContext())
-    } catch (error) {
-      console.warn("RoomContext not available:", error)
-    }
-  }, [])
-
-  if (!roomContext) {
-    return null
-  }
-
-  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = roomContext
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [isOpen, setIsOpen] = useState(false)
