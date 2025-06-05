@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { loadStripe } from "@stripe/stripe-js"
 import ErrorBoundary from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
-import ScrollAwareWrapper from "@/components/scroll-aware-wrapper"
+import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
