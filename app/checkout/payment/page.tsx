@@ -5,23 +5,23 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, ArrowRight, CreditCard, Shield } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { ArrowLeft, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
-
-type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
+import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
+import type { PaymentMethod } from "@/lib/payment-config"
+import { useDeviceDetection } from "@/lib/device-detection"
 
 export default function PaymentPage() {
   const router = useRouter()
   const { cart } = useCart()
   const { toast } = useToast()
+  const deviceInfo = useDeviceDetection()
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [agreeToTerms, setAgreeToTerms] = useState(false)
@@ -93,7 +93,15 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
+    <div
+      className={`min-h-screen py-12 ${
+        deviceInfo.isIOS
+          ? "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"
+          : deviceInfo.isAndroid
+            ? "bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-gray-900 dark:to-purple-900"
+            : "bg-gradient-to-b from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800"
+      }`}
+    >
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="mb-12">
@@ -106,9 +114,14 @@ export default function PaymentPage() {
           </Link>
 
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-6">
-              <CreditCard className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-            </div>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-6"
+            >
+              <Shield className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+            </motion.div>
             <h1 className="text-4xl font-bold mb-4">Payment Method</h1>
             <p className="text-xl text-muted-foreground">Choose how you'd like to pay for your cleaning service</p>
           </div>
@@ -123,87 +136,8 @@ export default function PaymentPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Payment Methods */}
-                <div className="space-y-6">
-                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                        <RadioGroupItem value="card" id="card" className="h-5 w-5" />
-                        <Label htmlFor="card" className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-lg">Credit or Debit Card</div>
-                              <div className="text-sm text-gray-500">Visa, Mastercard, American Express</div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <Badge variant="outline">Visa</Badge>
-                              <Badge variant="outline">Mastercard</Badge>
-                              <Badge variant="outline">Amex</Badge>
-                            </div>
-                          </div>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                        <RadioGroupItem value="paypal" id="paypal" className="h-5 w-5" />
-                        <Label htmlFor="paypal" className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-lg">PayPal</div>
-                              <div className="text-sm text-gray-500">Pay with your PayPal account</div>
-                            </div>
-                            <Badge variant="outline" className="bg-blue-50">
-                              PayPal
-                            </Badge>
-                          </div>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                        <RadioGroupItem value="apple_pay" id="apple_pay" className="h-5 w-5" />
-                        <Label htmlFor="apple_pay" className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="font-medium text-lg">Apple Pay</div>
-                              <div className="text-sm text-gray-500">Touch ID or Face ID</div>
-                            </div>
-                            <Badge variant="outline" className="bg-gray-50">
-                              Apple Pay
-                            </Badge>
-                          </div>
-                        </Label>
-                      </div>
-                    </div>
-                  </RadioGroup>
-
-                  {/* Stripe Elements Placeholder */}
-                  {paymentMethod === "card" && (
-                    <div className="mt-8 p-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-gray-800">
-                      <div className="text-center">
-                        <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
-                          Stripe Payment Elements
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">
-                          Secure payment form will be embedded here
-                        </p>
-                        <div className="space-y-4">
-                          <div className="h-12 bg-white dark:bg-gray-700 border rounded-lg flex items-center px-4">
-                            <span className="text-gray-500">Card number placeholder</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="h-12 bg-white dark:bg-gray-700 border rounded-lg flex items-center px-4">
-                              <span className="text-gray-500">MM/YY</span>
-                            </div>
-                            <div className="h-12 bg-white dark:bg-gray-700 border rounded-lg flex items-center px-4">
-                              <span className="text-gray-500">CVC</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Dynamic Payment Selector */}
+                <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
 
                 {/* Special Options */}
                 <div className="space-y-4 pt-4">
@@ -276,7 +210,7 @@ export default function PaymentPage() {
               SSL Secured
             </div>
             <div className="flex items-center">
-              <CreditCard className="mr-2 h-4 w-4" />
+              <Shield className="mr-2 h-4 w-4" />
               Encrypted Payment
             </div>
           </div>
