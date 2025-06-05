@@ -10,7 +10,7 @@ import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { EnhancedHeader } from "@/components/enhanced-header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { UnifiedSettingsPanel } from "@/components/unified-settings-panel"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <QueryClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider>
             <AccessibilityProvider>
               <CartProvider>
                 <TourProvider>
@@ -38,7 +38,7 @@ export default function RootLayout({
                     <main className="flex-1">{children}</main>
                     <EnhancedFooter />
                   </div>
-                  <AccessibilityToolbar />
+                  <UnifiedSettingsPanel />
                   <Toaster />
                 </TourProvider>
               </CartProvider>
