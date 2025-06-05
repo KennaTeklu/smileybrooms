@@ -57,7 +57,8 @@ export function CollapsibleSettingsPanel() {
   }, [fontSize])
 
   // Calculate panel position based on scroll
-  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
+  const panelTopPosition =
+    typeof window !== "undefined" ? Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400)) : 20
 
   return (
     <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>

@@ -8,138 +8,109 @@ import {
   Share2,
   ChevronLeft,
   Copy,
-  Mail,
-  MessageCircle,
+  QrCode,
+  Search,
   Facebook,
   Twitter,
-  Linkedin,
   Instagram,
-  Send,
+  Linkedin,
+  MessageCircle,
+  Mail,
   Phone,
-  Printer,
-  Link,
-  QrCode,
+  Slack,
   Check,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useScrollPosition } from "@/hooks/use-scroll-position"
 
 interface SharePlatform {
+  id: string
   name: string
   icon: React.ReactNode
-  color: string
   url: string
-  category: "social" | "messaging" | "professional" | "other"
-  template?: string
+  color: string
+  category: "social" | "chat" | "work" | "more"
 }
 
 const sharePlatforms: SharePlatform[] = [
-  // Social Media
   {
+    id: "facebook",
     name: "Facebook",
     icon: <Facebook className="h-4 w-4" />,
-    color: "bg-[#1877F2] hover:bg-[#0E65D9]",
     url: "https://www.facebook.com/sharer/sharer.php?u=",
+    color: "bg-blue-600",
     category: "social",
-    template: "Check out SmileyBrooms - Professional cleaning that will make your home sparkle! ✨ {url}",
   },
   {
+    id: "twitter",
     name: "Twitter",
     icon: <Twitter className="h-4 w-4" />,
-    color: "bg-[#1DA1F2] hover:bg-[#0C85D0]",
-    url: "https://twitter.com/intent/tweet?text=",
+    url: "https://twitter.com/intent/tweet?url=",
+    color: "bg-sky-500",
     category: "social",
-    template: "Just discovered SmileyBrooms - professional cleaning that will make you smile! 🧹✨ {url}",
   },
   {
+    id: "linkedin",
     name: "LinkedIn",
     icon: <Linkedin className="h-4 w-4" />,
-    color: "bg-[#0A66C2] hover:bg-[#084E96]",
     url: "https://www.linkedin.com/sharing/share-offsite/?url=",
-    category: "professional",
-    template: "I recommend this professional cleaning service: {url} #ProfessionalCleaning #SmileyBrooms",
+    color: "bg-blue-700",
+    category: "social",
   },
   {
+    id: "instagram",
     name: "Instagram",
     icon: <Instagram className="h-4 w-4" />,
-    color: "bg-[#E4405F] hover:bg-[#D1264A]",
     url: "https://www.instagram.com/",
+    color: "bg-pink-600",
     category: "social",
-    template: "Check out @SmileyBrooms for your cleaning needs! {url} #CleanHome #ProfessionalCleaning",
   },
-  // Messaging
   {
+    id: "whatsapp",
     name: "WhatsApp",
     icon: <MessageCircle className="h-4 w-4" />,
-    color: "bg-[#25D366] hover:bg-[#20BD5C]",
-    url: "https://api.whatsapp.com/send?text=",
-    category: "messaging",
-    template: "Hey! Check out this cleaning service I found. They're amazing! 🧹✨ {url}",
+    url: "https://wa.me/?text=",
+    color: "bg-green-600",
+    category: "chat",
   },
   {
-    name: "Telegram",
-    icon: <Send className="h-4 w-4" />,
-    color: "bg-[#0088CC] hover:bg-[#0077B3]",
-    url: "https://t.me/share/url?url=",
-    category: "messaging",
-    template: "Found a great cleaning service - SmileyBrooms! {url}",
-  },
-  {
-    name: "SMS",
-    icon: <Phone className="h-4 w-4" />,
-    color: "bg-green-600 hover:bg-green-700",
-    url: "sms:?body=",
-    category: "messaging",
-    template: "Check out SmileyBrooms for your cleaning needs! {url}",
-  },
-  // Other
-  {
+    id: "email",
     name: "Email",
     icon: <Mail className="h-4 w-4" />,
-    color: "bg-gray-600 hover:bg-gray-700",
-    url: "mailto:?body=",
-    category: "other",
-    template:
-      "Subject: Amazing Cleaning Service!\n\nHi,\n\nI found this great cleaning service: {url}\n\nBest regards,",
+    url: "mailto:?subject=Check this out&body=",
+    color: "bg-gray-600",
+    category: "chat",
   },
   {
-    name: "Copy Link",
-    icon: <Copy className="h-4 w-4" />,
-    color: "bg-blue-600 hover:bg-blue-700",
-    url: "",
-    category: "other",
+    id: "sms",
+    name: "SMS",
+    icon: <Phone className="h-4 w-4" />,
+    url: "sms:?body=",
+    color: "bg-green-500",
+    category: "chat",
   },
   {
-    name: "Print",
-    icon: <Printer className="h-4 w-4" />,
-    color: "bg-gray-700 hover:bg-gray-800",
-    url: "print",
-    category: "other",
+    id: "slack",
+    name: "Slack",
+    icon: <Slack className="h-4 w-4" />,
+    url: "https://slack.com/intl/en-in/",
+    color: "bg-purple-600",
+    category: "work",
   },
 ]
 
 export function CollapsibleSharePanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
-  const [currentUrl, setCurrentUrl] = useState("")
-  const [currentTitle, setCurrentTitle] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
-  const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({})
-  const { toast } = useToast()
+  const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const scrollPosition = useScrollPosition()
-
-  // Get current URL and title
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCurrentUrl(window.location.href)
-      setCurrentTitle(document.title || "SmileyBrooms")
-    }
-  }, [])
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -153,59 +124,32 @@ export function CollapsibleSharePanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded])
 
-  // Calculate panel position based on scroll (right side)
-  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
+  // Calculate panel position based on scroll
+  const panelTopPosition =
+    typeof window !== "undefined" ? Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400)) : 20
 
-  const handleShare = (platform: SharePlatform) => {
-    let shareText = platform.template || "{url}"
-    shareText = shareText.replace("{url}", currentUrl).replace("{title}", currentTitle)
+  const currentUrl = typeof window !== "undefined" ? window.location.href : ""
 
-    if (platform.name === "Copy Link") {
-      navigator.clipboard.writeText(currentUrl)
-      setCopiedStates({ ...copiedStates, [platform.name]: true })
-      setTimeout(() => setCopiedStates({ ...copiedStates, [platform.name]: false }), 2000)
-      toast({
-        title: "Link copied!",
-        description: "The link has been copied to your clipboard.",
-        duration: 3000,
-      })
-      return
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
     }
-
-    if (platform.name === "Print") {
-      window.print()
-      return
-    }
-
-    if (platform.name === "Email") {
-      window.location.href = `mailto:?subject=${encodeURIComponent(`Check out ${currentTitle}`)}&body=${encodeURIComponent(shareText)}`
-      return
-    }
-
-    if (platform.name === "SMS") {
-      window.location.href = `sms:?body=${encodeURIComponent(shareText)}`
-      return
-    }
-
-    // For platforms that need manual sharing
-    if (["Instagram"].includes(platform.name)) {
-      navigator.clipboard.writeText(shareText)
-      window.open(platform.url, "_blank")
-      toast({
-        title: `${platform.name} opened`,
-        description: "Share text copied to clipboard. Please paste it manually.",
-      })
-      return
-    }
-
-    // For all other platforms with sharing URLs
-    const shareUrl = platform.url + encodeURIComponent(shareText)
-    window.open(shareUrl, "_blank", "width=600,height=400")
   }
 
-  const filteredPlatforms = searchTerm
-    ? sharePlatforms.filter((platform) => platform.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : sharePlatforms.filter((platform) => platform.category === activeTab)
+  const filteredPlatforms = sharePlatforms.filter(
+    (platform) =>
+      platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (activeTab === "all" || platform.category === activeTab),
+  )
+
+  const shareOnPlatform = (platform: SharePlatform) => {
+    const shareUrl = platform.url + encodeURIComponent(currentUrl)
+    window.open(shareUrl, "_blank", "width=600,height=400")
+  }
 
   return (
     <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
@@ -213,13 +157,13 @@ export function CollapsibleSharePanel() {
         {isExpanded ? (
           <motion.div
             key="expanded"
-            initial={{ width: 0, opacity: 0, x: "100%" }}
-            animate={{ width: "360px", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: "100%" }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "320px", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
+            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Share
@@ -228,7 +172,6 @@ export function CollapsibleSharePanel() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsExpanded(false)}
-                className="text-white hover:bg-white/20"
                 aria-label="Collapse share panel"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -236,117 +179,99 @@ export function CollapsibleSharePanel() {
             </div>
 
             {/* Quick Actions */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleShare(sharePlatforms.find((p) => p.name === "Copy Link")!)}
-                  className="flex items-center gap-2"
-                >
-                  {copiedStates["Copy Link"] ? (
-                    <Check className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <Link className="h-3 w-3" />
-                  )}
-                  {copiedStates["Copy Link"] ? "Copied!" : "Copy Link"}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
+                  {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                  {copied ? "Copied!" : "Copy Link"}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(currentUrl)
-                    // Generate QR code logic here
-                    toast({ title: "QR Code generated", description: "Link copied for QR generation" })
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <QrCode className="h-3 w-3" />
-                  QR Code
+                <Button variant="outline" size="sm" onClick={() => setShowQR(!showQR)}>
+                  <QrCode className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
 
-            {/* Search */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-              <Input
-                type="search"
-                placeholder="Search platforms..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
+              {showQR && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
+                >
+                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center">
+                    <QrCode className="h-16 w-16 text-gray-400" />
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="px-4 pt-2">
-                <TabsList className="grid grid-cols-4 w-full">
-                  <TabsTrigger value="social" className="text-xs">
-                    Social
-                  </TabsTrigger>
-                  <TabsTrigger value="messaging" className="text-xs">
-                    Chat
-                  </TabsTrigger>
-                  <TabsTrigger value="professional" className="text-xs">
-                    Work
-                  </TabsTrigger>
-                  <TabsTrigger value="other" className="text-xs">
-                    More
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+              <TabsList className="grid grid-cols-4 p-2">
+                <TabsTrigger value="social">Social</TabsTrigger>
+                <TabsTrigger value="chat">Chat</TabsTrigger>
+                <TabsTrigger value="work">Work</TabsTrigger>
+                <TabsTrigger value="more">More</TabsTrigger>
+              </TabsList>
 
-              <div className="p-4 overflow-auto max-h-[50vh]">
-                <TabsContent value={activeTab} className="mt-0">
-                  <div className="grid grid-cols-2 gap-2">
-                    {filteredPlatforms.map((platform) => (
-                      <motion.div key={platform.name} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-auto p-3 flex flex-col items-center gap-2 text-white border-0",
-                            platform.color,
-                          )}
-                          onClick={() => handleShare(platform)}
-                        >
-                          <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
-                            {platform.icon}
-                          </div>
-                          <span className="text-xs font-medium">{platform.name}</span>
-                        </Button>
-                      </motion.div>
-                    ))}
+              <div className="p-4">
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search platforms..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Platform Grid */}
+                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
+                  {filteredPlatforms.map((platform) => (
+                    <motion.button
+                      key={platform.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => shareOnPlatform(platform)}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border text-left",
+                        "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-primary",
+                      )}
+                    >
+                      <div className={cn("p-2 rounded text-white", platform.color)}>{platform.icon}</div>
+                      <span className="text-sm font-medium">{platform.name}</span>
+                      <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                    </motion.button>
+                  ))}
+                </div>
+
+                {filteredPlatforms.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No platforms found</p>
                   </div>
-                </TabsContent>
+                )}
               </div>
             </Tabs>
-
-            {/* Current URL Display */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <Link className="h-3 w-3" />
-                <span className="truncate flex-1">{currentUrl}</span>
-              </div>
-            </div>
           </motion.div>
         ) : (
           <motion.button
             key="collapsed"
-            initial={{ width: 0, opacity: 0, x: "100%" }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: "100%" }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white",
-              "rounded-l-lg shadow-lg hover:from-blue-700 hover:to-purple-700",
-              "transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500",
-              "transform hover:scale-105",
+              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
+              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border-l border-t border-b border-gray-200 dark:border-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
             )}
-            aria-label="Open share options"
+            aria-label="Open share panel"
           >
-            <Share2 className="h-5 w-5" />
             <ChevronLeft className="h-4 w-4" />
+            <Share2 className="h-5 w-5" />
           </motion.button>
         )}
       </AnimatePresence>
