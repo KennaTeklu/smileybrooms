@@ -13,7 +13,7 @@ import { EnhancedFooter } from "@/components/enhanced-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { AddAllToCartModal } from "@/components/add-all-to-cart-modal"
-import { EnhancedCart } from "@/components/enhanced-cart"
+import { Cart } from "@/components/cart"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -48,7 +48,7 @@ export default function RootLayout({
                   {/* Right side panels */}
                   <CollapsibleSharePanel />
                   <AddAllToCartModal />
-                  <EnhancedCart />
+                  <Cart />
 
                   <Toaster />
                 </TourProvider>

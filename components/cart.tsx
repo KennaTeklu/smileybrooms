@@ -40,6 +40,7 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
   const contentRef = useRef<HTMLDivElement>(null)
   const cartRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const [scrollY, setScrollY] = useState(0) // Moved useState here to be at the top level
 
   // Calculate cart metrics
   const totalItems = cart.items?.length || 0
@@ -234,6 +235,17 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
     )
   }
 
+  // Replace the existing scroll-aware positioning with improved logic
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Calculate dynamic position that follows scroll more smoothly
+  const dynamicTopPosition = Math.max(20, Math.min(scrollY * 0.1 + 100, window.innerHeight - 500))
+
   // Default floating cart implementation
   return (
     <ErrorBoundary>
@@ -242,16 +254,19 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
           ref={cartRef}
           className="fixed right-0 top-1/4 z-50"
           style={{
+            top: `${dynamicTopPosition}px`,
             transform: isExpanded ? "translateX(0)" : "translateX(calc(100% - 60px))",
-            transition: "transform 0.3s ease-in-out",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             pointerEvents: "auto",
           }}
           onClick={handleCartClick}
         >
           <div className="flex shadow-2xl">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={toggleExpanded}
-              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-l-lg flex flex-col items-center justify-center shadow-lg transition-colors duration-200 relative"
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-l-lg flex flex-col items-center justify-center shadow-lg transition-all duration-200 relative"
               style={{ height: "120px", width: "60px" }}
             >
               <ShoppingCart className="h-6 w-6 mb-2" />
@@ -261,9 +276,12 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
                   {totalItems}
                 </div>
               )}
-            </button>
+            </motion.button>
 
-            <div
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
               className="bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden"
               style={{
                 width: "380px",
@@ -345,7 +363,7 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </ScrollAwareWrapper>

@@ -7,7 +7,7 @@ export function useScrollPosition() {
 
   useEffect(() => {
     const updatePosition = () => {
-      setScrollPosition(window.scrollY)
+      setScrollPosition(window.pageYOffset)
     }
 
     window.addEventListener("scroll", updatePosition, { passive: true })
