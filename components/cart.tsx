@@ -37,10 +37,16 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const [isMounted, setIsMounted] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const cartRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const [scrollY, setScrollY] = useState(0) // Moved useState here to be at the top level
+
+  // Handle mounting for SSR
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Calculate cart metrics
   const totalItems = cart.items?.length || 0
@@ -66,6 +72,15 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
       return () => clearTimeout(timer)
     }
   }, [recentlyAdded])
+
+  // Track scroll position only after mounting
+  useEffect(() => {
+    if (!isMounted) return
+
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [isMounted])
 
   const handleRemoveItem = useCallback(
     (id: string) => {
@@ -133,6 +148,11 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
     if (onClose) {
       onClose()
     }
+  }
+
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
   }
 
   // If children are provided, render as a trigger for sheet
@@ -234,14 +254,6 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
       </ErrorBoundary>
     )
   }
-
-  // Replace the existing scroll-aware positioning with improved logic
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   // Calculate dynamic position that follows scroll more smoothly
   const dynamicTopPosition = Math.max(20, Math.min(scrollY * 0.1 + 100, window.innerHeight - 500))
@@ -367,9 +379,8 @@ export function Cart({ isOpen, onClose, embedded = false, children }: CartProps)
           </div>
         </div>
       </ScrollAwareWrapper>
-    </ErrorBoundary>
-  )
-}
+    )
+  }
 
 // Helper component for cart content
 function CartContent({ cart, expandedItem, toggleItemDetails, handleRemoveItem, handleUpdateQuantity, recentlyAdded }) {

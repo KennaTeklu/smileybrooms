@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -100,10 +99,20 @@ export function CollapsibleSharePanel() {
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [isMounted, setIsMounted] = useState(false)
+  const [currentUrl, setCurrentUrl] = useState("")
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Track scroll position
+  // Handle mounting for SSR
   useEffect(() => {
+    setIsMounted(true)
+    setCurrentUrl(window.location.href)
+  }, [])
+
+  // Track scroll position only after mounting
+  useEffect(() => {
+    if (!isMounted) return
+
     const updatePosition = () => {
       setScrollPosition(window.scrollY)
     }
@@ -112,10 +121,12 @@ export function CollapsibleSharePanel() {
     updatePosition()
 
     return () => window.removeEventListener("scroll", updatePosition)
-  }, [])
+  }, [isMounted])
 
   // Handle click outside to collapse panel
   useEffect(() => {
+    if (!isMounted) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
@@ -124,13 +135,15 @@ export function CollapsibleSharePanel() {
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded])
+  }, [isExpanded, isMounted])
+
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
+  }
 
   // Calculate panel position based on scroll
-  const panelTopPosition =
-    typeof window !== "undefined" ? Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400)) : 20
-
-  const currentUrl = typeof window !== "undefined" ? window.location.href : ""
+  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
 
   const copyToClipboard = async () => {
     try {

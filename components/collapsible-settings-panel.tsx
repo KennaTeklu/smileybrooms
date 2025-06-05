@@ -32,12 +32,20 @@ export function CollapsibleSettingsPanel() {
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [isMounted, setIsMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Track scroll position
+  // Handle mounting for SSR
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Track scroll position only after mounting
+  useEffect(() => {
+    if (!isMounted) return
+
     const updatePosition = () => {
       setScrollPosition(window.scrollY)
     }
@@ -46,10 +54,12 @@ export function CollapsibleSettingsPanel() {
     updatePosition()
 
     return () => window.removeEventListener("scroll", updatePosition)
-  }, [])
+  }, [isMounted])
 
   // Handle click outside to collapse panel
   useEffect(() => {
+    if (!isMounted) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
@@ -58,18 +68,22 @@ export function CollapsibleSettingsPanel() {
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded])
+  }, [isExpanded, isMounted])
 
   // Apply font size changes
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
-    }
-  }, [fontSize])
+    if (!isMounted) return
+
+    document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
+  }, [fontSize, isMounted])
+
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
+  }
 
   // Calculate panel position based on scroll
-  const panelTopPosition =
-    typeof window !== "undefined" ? Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400)) : 20
+  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
 
   return (
     <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
