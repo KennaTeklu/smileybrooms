@@ -9,6 +9,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo" // Re-imported Logo component
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
+import { ThemeToggle } from "@/components/theme-toggle" // Import ThemeToggle
+import AddAllToCartButton from "@/components/add-all-to-cart-button" // Import new button
 
 // Define navigation structure - REMOVED ALL CART LINKS
 const navigationLinks = [
@@ -29,7 +31,6 @@ export default function Header() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
-  const [cartItemCount, setCartItemCount] = useState(0)
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
@@ -95,6 +96,12 @@ export default function Header() {
               )
             })}
           </nav>
+
+          {/* New Add All to Cart Button */}
+          <AddAllToCartButton />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Single Cart Button - Using the CartButton component */}
           <CartButton showLabel={true} />
