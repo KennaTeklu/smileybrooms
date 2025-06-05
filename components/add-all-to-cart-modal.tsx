@@ -4,7 +4,7 @@ import type React from "react"
 
 // Animation and Motion
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform, useInView } from "framer-motion"
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform } from "framer-motion"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
 // UI Components
@@ -25,9 +25,7 @@ import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { usePerformanceMonitor } from "@/hooks/use-performance-monitor"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-// Removed StickyAddToCartWrapper import as it's now handled by GlobalAddToCartContainer
 
 // Feedback and Notifications
 import { toast } from "@/components/ui/use-toast"
@@ -51,12 +49,14 @@ export function AddAllToCartModal() {
   const [pulseAnimation, setPulseAnimation] = useState(!hasBeenSeen)
   const modalRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const isInView = useInView(buttonRef)
   const isSmallScreen = useMediaQuery("(max-width: 640px)")
   const isMediumScreen = useMediaQuery("(max-width: 1024px)")
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
+
+  // State for dynamic top offset
+  const [topOffset, setTopOffset] = useState(72) // Default to 64px header + 8px gap
 
   // Motion values for interactive effects
   const mouseX = useMotionValue(0)
@@ -68,12 +68,26 @@ export function AddAllToCartModal() {
   const totalPrice = getTotalPrice()
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
 
-  // Performance monitoring
-  usePerformanceMonitor({
-    onSlowRendering: () => {
-      console.log("Cart modal rendering slowly, optimizing...")
-    },
-  })
+  // Calculate top offset based on header height + 2cm
+  useEffect(() => {
+    const header = document.getElementById("main-header")
+    if (!header) {
+      console.warn("Header with ID 'main-header' not found. Button positioning might be off.")
+      return
+    }
+
+    const updateOffset = () => {
+      const twoCmInPx = 2 * (96 / 2.54) // 1 inch = 96px, 1 inch = 2.54cm
+      setTopOffset(header.offsetHeight + twoCmInPx)
+    }
+
+    updateOffset()
+    window.addEventListener("resize", updateOffset)
+
+    return () => {
+      window.removeEventListener("resize", updateOffset)
+    }
+  }, [])
 
   // Show button when multi-selection is active
   useEffect(() => {
@@ -239,12 +253,21 @@ export function AddAllToCartModal() {
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts])
 
-  // Don't render if no multi-selection or no items
-  if (!isMultiSelection || totalItems === 0) return null
-
   return (
     <TooltipProvider>
-      <div className="relative">
+      <motion.div
+        className="fixed z-[999]"
+        style={{
+          top: `${topOffset}px`,
+          right: "clamp(1rem, 3vw, 2rem)",
+          left: "auto",
+          bottom: "auto",
+          width: "fit-content",
+        }}
+        initial={{ x: "150%" }} // Start off-screen to the right
+        animate={isMultiSelection && totalItems > 0 ? { x: 0 } : { x: "150%" }} // Animate based on condition
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -330,8 +353,8 @@ export function AddAllToCartModal() {
         {/* Main Button */}
         <motion.button
           ref={buttonRef}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={controls}
+          // Removed initial for opacity/scale as parent motion.div handles overall visibility
+          animate={controls} // Still use controls for pulse animation
           whileHover={{ scale: 1.02, y: -1 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsOpen(!isOpen)}
@@ -369,7 +392,7 @@ export function AddAllToCartModal() {
             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
           </div>
         </motion.button>
-      </div>
+      </motion.div>
     </TooltipProvider>
   )
 }

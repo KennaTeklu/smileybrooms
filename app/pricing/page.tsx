@@ -1,28 +1,20 @@
-"use client"
-
+import { VoiceCommandButton } from "@/components/voice/voice-command-button"
 import { PricingContent } from "@/components/pricing-content"
-import { RoomConfigurator } from "@/components/room-configurator"
-import { useRoomContext } from "@/lib/room-context"
-import { useMemo } from "react"
+// RoomProvider and AddAllToCartModal are now imported and used in app/client-layout.tsx
 
 export default function PricingPage() {
-  // useRoomContext will now correctly find its provider via ClientLayout
-  const { selectedRooms, selectedServices } = useRoomContext()
-
-  const showRoomConfigurator = useMemo(() => {
-    return selectedRooms.length > 0 || selectedServices.length > 0
-  }, [selectedRooms, selectedServices])
-
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)]">
-      <div className="flex-1 p-4 lg:p-8">
-        <PricingContent />
+    // RoomProvider is now in app/client-layout.tsx
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col items-center justify-center mb-8">
+        <h1 className="text-3xl font-bold text-center">Pricing & Services</h1>
+        <VoiceCommandButton />
       </div>
-      {showRoomConfigurator && (
-        <div className="lg:w-1/3 p-4 lg:p-8 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-800">
-          <RoomConfigurator />
-        </div>
-      )}
+
+      <PricingContent />
+
+      {/* Client components will be loaded here */}
+      {/* AddAllToCartModal is now rendered globally in app/client-layout.tsx */}
     </div>
   )
 }
