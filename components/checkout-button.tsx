@@ -39,7 +39,7 @@ interface CheckoutButtonProps {
   allowPromotions?: boolean
 }
 
-export default function CheckoutButton({
+export function CheckoutButton({
   priceId,
   productName,
   productPrice,
@@ -167,3 +167,6 @@ export default function CheckoutButton({
     </Button>
   )
 }
+
+// Also provide default export for backward compatibility
+export default CheckoutButton
