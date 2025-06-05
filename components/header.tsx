@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Logo from "@/components/logo"
+// import Logo from "@/components/logo" // Removed as per instruction
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
 
@@ -73,7 +73,7 @@ export default function Header() {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          <Logo className="h-8 w-auto" />
+          <img src="/favicon.png" alt="SmileyBrooms Logo" className="h-8 w-auto" />
         </Link>
 
         <div className="flex items-center gap-4">
