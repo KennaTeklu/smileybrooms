@@ -8,7 +8,7 @@ interface LogoProps {
   iconOnly?: boolean
 }
 
-export default function Logo({ className, iconOnly = false }: LogoProps) {
+export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
     <div className={cn("flex items-center", className)}>
       <div className="relative flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white overflow-hidden">
@@ -23,3 +23,5 @@ export default function Logo({ className, iconOnly = false }: LogoProps) {
     </div>
   )
 }
+
+export default Logo

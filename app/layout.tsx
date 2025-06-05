@@ -10,7 +10,7 @@ import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import { EnhancedHeader } from "@/components/enhanced-header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
-import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
+import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -38,7 +38,7 @@ export default function RootLayout({
                     <main className="flex-1">{children}</main>
                     <EnhancedFooter />
                   </div>
-                  <EnhancedAccessibilityPanel />
+                  <CollapsibleSettingsPanel />
                   <Toaster />
                 </TourProvider>
               </CartProvider>
