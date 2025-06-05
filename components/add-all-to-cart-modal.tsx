@@ -53,19 +53,20 @@ export function AddAllToCartModal() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const isInView = useInView(buttonRef)
   const isSmallScreen = useMediaQuery("(max-width: 640px)")
+  const isMediumScreen = useMediaQuery("(max-width: 1024px)")
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
 
-  // Use scroll-triggered animation for the floating button's position
+  // Enhanced scroll-triggered animation with more prominent positioning
   const { elementRef: scrollElementRef, debugStyles: scrollTriggeredStyles } = useScrollTriggeredAnimation({
     basePosition: {
-      top: 20, // Starts 20px from the top of the viewport
-      right: 20, // Keeps it 20px from the right side
+      top: isSmallScreen ? 10 : 20, // Closer to top on mobile
+      right: isSmallScreen ? 10 : 20, // Closer to edge on mobile
     },
   })
 
-  // Motion values for interactive effects (for the modal content itself)
+  // Motion values for interactive effects
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   const rotateX = useTransform(mouseY, [-100, 100], [5, -5])
@@ -82,27 +83,30 @@ export function AddAllToCartModal() {
     },
   })
 
-  // Show modal when multi-selection becomes active - show immediately when requirements are met
+  // Enhanced visibility logic - show immediately when multi-selection is active
   useEffect(() => {
     if (isMultiSelection && totalItems > 0) {
-      // Show immediately when selection requirements are completed
-      if (!hasBeenSeen) {
-        setIsOpen(true)
-        setHasBeenSeen(true)
-      }
+      // Always show when requirements are met
+      setIsOpen(false) // Start with button visible, not modal
 
-      // Pulse animation for visibility
+      // Enhanced pulse animation for maximum visibility
       controls.start({
-        scale: [1, 1.05, 1],
-        transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
+        scale: [1, 1.1, 1],
+        boxShadow: [
+          "0 4px 20px rgba(59, 130, 246, 0.3)",
+          "0 8px 40px rgba(59, 130, 246, 0.6)",
+          "0 4px 20px rgba(59, 130, 246, 0.3)",
+        ],
+        transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" },
       })
 
       // Haptic feedback when items are ready
       vibrate(100)
     } else {
       setIsOpen(false)
+      controls.stop()
     }
-  }, [isMultiSelection, totalItems, hasBeenSeen, controls, vibrate])
+  }, [isMultiSelection, totalItems, controls, vibrate])
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -157,7 +161,7 @@ export function AddAllToCartModal() {
       if (addedCount > 0) {
         vibrate([100, 50, 100]) // Success pattern
         toast({
-          title: "All items added to cart",
+          title: "🎉 All items added to cart!",
           description: `${addedCount} room type(s) have been added to your cart.`,
           duration: 3000,
         })
@@ -184,7 +188,7 @@ export function AddAllToCartModal() {
     setIsOpen(false)
   }
 
-  // Memoized room list to prevent unnecessary re-renders
+  // Memoized room list with enhanced styling
   const roomList = useMemo(() => {
     return selectedRoomTypes.map((roomType) => {
       const config = roomConfigs[roomType]
@@ -192,11 +196,14 @@ export function AddAllToCartModal() {
       const roomTotal = (config?.totalPrice || 0) * count
 
       return (
-        <div
+        <motion.div
           key={roomType}
-          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600"
         >
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
             <Image
               src={roomImages[roomType] || "/placeholder.svg"}
               alt={roomDisplayNames[roomType] || roomType}
@@ -206,36 +213,39 @@ export function AddAllToCartModal() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+            <h4 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">
               {roomDisplayNames[roomType] || roomType}
             </h4>
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
               {config?.selectedTier || "Essential Clean"}
             </p>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs text-gray-500">Qty: {count}</span>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-gray-500">{formatCurrency(config?.totalPrice || 0)}</span>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                Qty: {count}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {formatCurrency(config?.totalPrice || 0)}
+              </Badge>
             </div>
           </div>
 
           <div className="text-right flex-shrink-0">
-            <div className="font-bold text-sm text-gray-900 dark:text-gray-100">{formatCurrency(roomTotal)}</div>
+            <div className="font-bold text-lg text-blue-600 dark:text-blue-400">{formatCurrency(roomTotal)}</div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveRoom(roomType)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-1 h-6 w-6 p-0 opacity-70 group-hover:opacity-100"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Remove from selection</TooltipContent>
             </Tooltip>
           </div>
-        </div>
+        </motion.div>
       )
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts])
@@ -246,38 +256,43 @@ export function AddAllToCartModal() {
   return (
     <TooltipProvider>
       <motion.div
-        ref={scrollElementRef} // This ref connects to the useScrollTriggeredAnimation hook
-        style={scrollTriggeredStyles} // These styles control the floating and scrolling behavior
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
+        ref={scrollElementRef}
+        style={{
+          ...scrollTriggeredStyles,
+          zIndex: 1000, // Ensure it's above other content
+        }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ duration: 0.5, type: "spring", damping: 20 }}
       >
         <AnimatePresence>
           {isOpen ? (
             <motion.div
               ref={modalRef}
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className="bg-white dark:bg-gray-900 shadow-2xl rounded-l-lg overflow-hidden flex"
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 shadow-2xl rounded-2xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
               onMouseMove={handleMouseMove}
               style={{
                 rotateX: isSmallScreen ? 0 : rotateX,
                 rotateY: isSmallScreen ? 0 : rotateY,
                 transformPerspective: 1000,
+                width: isSmallScreen ? "90vw" : isMediumScreen ? "400px" : "450px",
+                maxHeight: "85vh",
               }}
             >
-              <div className="w-80 sm:w-96 max-h-[80vh] flex flex-col">
-                <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0 z-10 p-4">
+              <div className="flex flex-col h-full">
+                <CardHeader className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white sticky top-0 z-10 p-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
-                        <Package className="h-5 w-5" />
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-full">
+                        <Package className="h-6 w-6" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg font-bold">Ready to Add</CardTitle>
+                        <CardTitle className="text-xl font-bold">Ready to Add</CardTitle>
                         <p className="text-blue-100 text-sm">
                           {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
                         </p>
@@ -287,52 +302,53 @@ export function AddAllToCartModal() {
                       variant="ghost"
                       size="icon"
                       onClick={handleClose}
-                      className="text-white hover:bg-white/20 rounded-full"
+                      className="text-white hover:bg-white/20 rounded-full h-10 w-10"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </Button>
                   </div>
                 </CardHeader>
 
                 <ScrollArea className="flex-1">
-                  <CardContent className="p-4">
-                    {/* Room List */}
-                    <div className="space-y-3 mb-4">{roomList}</div>
+                  <CardContent className="p-6">
+                    <div className="space-y-4 mb-6">{roomList}</div>
                   </CardContent>
                 </ScrollArea>
 
-                <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                  {/* Total Section */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
+                <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800/50">
+                  {/* Enhanced Total Section */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">Total</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {totalItems} room{totalItems !== 1 ? "s" : ""}
+                        <p className="font-bold text-lg text-gray-900 dark:text-gray-100">Total</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {totalItems} room{totalItems !== 1 ? "s" : ""} • Ready to add
                         </p>
                       </div>
                       <div className="text-right">
-                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           {formatCurrency(totalPrice)}
                         </div>
+                        <p className="text-xs text-gray-500">One-time service</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
+                  {/* Enhanced Action Buttons */}
+                  <div className="space-y-3">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           onClick={handleAddAllToCart}
                           disabled={!isOnline}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white group relative overflow-hidden"
+                          size="lg"
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-14 text-lg font-bold shadow-lg"
                         >
                           <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                           <span className="relative flex items-center justify-center">
-                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            <ShoppingCart className="h-5 w-5 mr-3" />
                             Add All to Cart
-                            <Sparkles className="h-3 w-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Sparkles className="h-4 w-4 ml-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </span>
                         </Button>
                       </TooltipTrigger>
@@ -340,7 +356,7 @@ export function AddAllToCartModal() {
                         {isOnline ? "Add all selected rooms to cart" : "Cannot add to cart while offline"}
                       </TooltipContent>
                     </Tooltip>
-                    <Button variant="outline" onClick={handleClose} className="w-full text-sm">
+                    <Button variant="outline" onClick={handleClose} className="w-full h-12 text-base">
                       Continue Shopping
                     </Button>
                   </div>
@@ -350,35 +366,43 @@ export function AddAllToCartModal() {
           ) : (
             <motion.button
               ref={buttonRef}
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={controls}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: 0.2 }}
               onClick={() => setIsOpen(true)}
               className={cn(
-                "flex items-center justify-center p-3 bg-blue-600 text-white",
-                "rounded-l-lg shadow-lg hover:bg-blue-700",
-                "transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500",
+                "flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+                "rounded-2xl shadow-2xl hover:from-blue-700 hover:to-blue-800",
+                "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
+                "border-2 border-blue-500/20",
                 pulseAnimation && "animate-pulse",
                 !isInView && "animate-bounce",
+                isSmallScreen ? "min-w-[280px]" : "min-w-[320px]",
               )}
+              style={{
+                backdropFilter: "blur(10px)",
+                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+              }}
               aria-label="Open cart summary"
             >
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-3 relative">
                 <div className="relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center bg-red-500 text-[10px]">
+                  <div className="p-2 bg-white/20 rounded-full">
+                    <ShoppingCart className="h-6 w-6" />
+                  </div>
+                  <Badge className="absolute -top-1 -right-1 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
                     {selectedRoomTypes.length}
                   </Badge>
                 </div>
                 <div className="text-left">
-                  <div className="text-sm font-semibold flex items-center">
-                    {totalItems} Item{totalItems !== 1 ? "s" : ""}
-                    <ChevronLeft className="h-3 w-3 ml-1" />
+                  <div className="text-base font-bold flex items-center">
+                    {totalItems} Item{totalItems !== 1 ? "s" : ""} Ready
+                    <ChevronLeft className="h-4 w-4 ml-2" />
                   </div>
-                  <div className="text-xs">{formatCurrency(totalPrice)}</div>
+                  <div className="text-sm opacity-90">{formatCurrency(totalPrice)}</div>
                 </div>
               </div>
             </motion.button>
