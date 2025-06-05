@@ -12,7 +12,8 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
     <div className={cn("flex items-center", className)}>
       <div className="relative flex items-center justify-center h-8 w-8 rounded-full overflow-hidden">
-        <Image src="/smileybrooms-logo.png" alt="SmileyBrooms Logo" width={32} height={32} className="object-contain" />
+        {/* Changed image source to favicon.png */}
+        <Image src="/favicon.png" alt="SmileyBrooms Logo" width={32} height={32} className="object-contain" />
       </div>
 
       {!iconOnly && (

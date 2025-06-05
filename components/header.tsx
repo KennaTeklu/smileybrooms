@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-// import Logo from "@/components/logo" // Removed as per instruction
+import Logo from "@/components/logo" // Re-imported Logo component
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
 
@@ -62,7 +62,7 @@ export default function Header() {
     <header
       className={cn(
         "sticky-header transition-all duration-300",
-        isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-950/90",
+        isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
       )}
       style={{
         position: "sticky",
@@ -73,8 +73,8 @@ export default function Header() {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          {/* Using favicon.png as the logo */}
-          <img src="/favicon.png" alt="SmileyBrooms Logo" className="h-8 w-auto" />
+          {/* Using the Logo component */}
+          <Logo className="h-8 w-auto" />
         </Link>
 
         <div className="flex items-center gap-4">

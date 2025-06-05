@@ -16,6 +16,9 @@ export function SmileyBroomsLogo({ className, size = "md", iconOnly = false }: S
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className={cn("relative", sizeClasses[size])}>
+        {/* This component is specifically for the SVG logo, not the image.
+            Keeping it as is, as the request is to replace 'smileybrooms-logo.png'
+            which is handled by the general 'Logo' component. */}
         <svg
           viewBox="0 0 100 100"
           fill="none"
