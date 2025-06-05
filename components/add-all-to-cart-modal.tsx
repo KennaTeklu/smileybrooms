@@ -19,7 +19,7 @@ import { ShoppingCart, X, Package, Trash2, ChevronLeft } from "lucide-react"
 import { Sparkles } from "lucide-react"
 
 // Hooks and Utilities
-import { useRoomContext } from "@/lib/room-context" // Directly import useRoomContext
+import { useRoomContext } from "@/lib/room-context"
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
@@ -27,7 +27,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePerformanceMonitor } from "@/hooks/use-performance-monitor"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { useAdaptiveScrollPositioning } from "@/hooks/use-adaptive-scroll-positioning"
+import { useScrollTriggeredAnimation } from "@/hooks/use-scroll-triggered-animation" // ADDED
 
 // Feedback and Notifications
 import { toast } from "@/components/ui/use-toast"
@@ -42,7 +42,6 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export function AddAllToCartModal() {
-  // Directly use useRoomContext, assuming it's provided by a parent
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
 
   const isMultiSelection = useMultiSelection(roomCounts)
@@ -58,17 +57,15 @@ export function AddAllToCartModal() {
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
 
-  // Use adaptive scroll positioning
-  const { positionStyles, sensors, debugInfo } = useAdaptiveScrollPositioning({
-    startPosition: 80,
-    endPosition: 200,
-    minDistanceFromBottom: 180,
-    mouseSensitivity: 0.4,
-    velocityDamping: 0.8,
-    adaptiveSpeed: true,
+  // Use scroll-triggered animation for the floating button's position
+  const { elementRef: scrollElementRef, debugStyles: scrollTriggeredStyles } = useScrollTriggeredAnimation({
+    basePosition: {
+      top: 20, // Start near the top of the viewport
+      right: 20, // Keep it on the right side
+    },
   })
 
-  // Motion values for interactive effects
+  // Motion values for interactive effects (for the modal content itself)
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   const rotateX = useTransform(mouseY, [-100, 100], [5, -5])
@@ -249,11 +246,12 @@ export function AddAllToCartModal() {
   return (
     <TooltipProvider>
       <motion.div
-        style={positionStyles}
-        initial={{ opacity: 0, x: "100%" }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: "100%" }}
-        transition={{ type: "spring", damping: 20, stiffness: 300 }}
+        ref={scrollElementRef} // Apply the ref from useScrollTriggeredAnimation
+        style={scrollTriggeredStyles} // Apply the styles from useScrollTriggeredAnimation
+        initial={{ opacity: 0 }} // Only animate opacity for initial appearance
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }} // Simple fade transition
       >
         <AnimatePresence>
           {isOpen ? (
@@ -352,11 +350,11 @@ export function AddAllToCartModal() {
           ) : (
             <motion.button
               ref={buttonRef}
-              initial={{ x: "100%", opacity: 0 }}
+              initial={{ opacity: 0 }} // Only animate opacity for initial appearance
               animate={controls}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              exit={{ x: "100%", opacity: 0 }}
+              exit={{ opacity: 0 }}
               transition={{ delay: 0.2 }}
               onClick={() => setIsOpen(true)}
               className={cn(
