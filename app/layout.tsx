@@ -11,6 +11,9 @@ import { QueryClientProvider } from "@/components/providers/query-client-provide
 import { EnhancedHeader } from "@/components/enhanced-header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
+import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
+import { AddAllToCartModal } from "@/components/add-all-to-cart-modal"
+import { EnhancedCart } from "@/components/enhanced-cart"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -38,7 +41,15 @@ export default function RootLayout({
                     <main className="flex-1">{children}</main>
                     <EnhancedFooter />
                   </div>
+
+                  {/* Left side panels */}
                   <CollapsibleSettingsPanel />
+
+                  {/* Right side panels */}
+                  <CollapsibleSharePanel />
+                  <AddAllToCartModal />
+                  <EnhancedCart />
+
                   <Toaster />
                 </TourProvider>
               </CartProvider>
