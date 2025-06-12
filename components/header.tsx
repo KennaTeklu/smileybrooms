@@ -6,11 +6,10 @@ import { usePathname } from "next/navigation"
 import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Logo from "@/components/logo" // Re-imported Logo component
+import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button" // Ensure CartButton is imported
+import CartButton from "@/components/cart-button"
 
-// Define navigation structure - REMOVED ALL CART LINKS
 const navigationLinks = [
   { href: "/pricing", label: "Pricing", icon: Calculator },
   { href: "/about", label: "About", icon: Users },
@@ -18,18 +17,10 @@ const navigationLinks = [
   { href: "/accessibility", label: "Accessibility", icon: Accessibility },
 ]
 
-// Essential links that should always be visible
-const essentialLinks = [
-  { href: "/pricing", label: "Pricing", icon: Calculator },
-  { href: "/about", label: "About", icon: Users },
-  { href: "/contact", label: "Contact", icon: Mail },
-]
-
 export default function Header() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
-  // Removed cartItemCount state as CartButton handles its own state via context
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
@@ -45,11 +36,9 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [pathname])
 
-  // Filter out current page from navigation
   const getVisibleLinks = () => {
-    // Always show essential links except current page
     const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
-    return filteredLinks.slice(0, 4) // Limit to 4 links for clean UI
+    return filteredLinks.slice(0, 4)
   }
 
   const visibleLinks = getVisibleLinks()
@@ -60,7 +49,7 @@ export default function Header() {
 
   return (
     <header
-      id="main-header" // Add this ID
+      id="main-header"
       className={cn(
         "sticky-header transition-all duration-300",
         isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
@@ -69,16 +58,17 @@ export default function Header() {
         position: "sticky",
         top: 0,
         zIndex: 1001,
-        height: "64px", // 1.69cm
+        height: "64px",
       }}
     >
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          {/* Using the Logo component */}
           <Logo className="h-8 w-auto" />
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
+          {" "}
+          {/* Adjusted gap for responsiveness */}
           {/* Dynamic navigation links for larger screens */}
           <nav className="hidden lg:flex items-center gap-4">
             {visibleLinks.map((link) => {
@@ -95,10 +85,8 @@ export default function Header() {
               )
             })}
           </nav>
-
           {/* Single Cart Button - Using the CartButton component */}
           <CartButton showLabel={true} />
-
           {/* Download button for desktop */}
           <div className="hidden md:block">
             <Button variant="outline" size="sm" asChild>
@@ -108,7 +96,6 @@ export default function Header() {
               </Link>
             </Button>
           </div>
-
           {/* Mobile menu */}
           <Sheet>
             <SheetTrigger asChild>
@@ -117,7 +104,7 @@ export default function Header() {
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent side="right">
               <div className="flex flex-col gap-2 mt-8">
                 {/* Show all navigation links in mobile menu */}
                 {navigationLinks
@@ -128,7 +115,7 @@ export default function Header() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base" // Adjusted padding and font size
                       >
                         <IconComponent className="h-4 w-4" />
                         {link.label}
@@ -139,16 +126,16 @@ export default function Header() {
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
 
                 {/* Cart Button in mobile menu */}
-                <div className="px-4 py-3">
+                <div className="px-4 py-2">
                   {" "}
-                  {/* Wrap to maintain consistent padding */}
+                  {/* Adjusted padding */}
                   <CartButton showLabel={true} variant="default" size="md" className="w-full justify-start" />
                 </div>
 
                 {/* Download link */}
                 <Link
                   href="/download"
-                  className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base" // Adjusted padding and font size
                 >
                   <Download className="h-4 w-4" />
                   Download App
