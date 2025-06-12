@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
+import CartButton from "@/components/cart-button" // Ensure CartButton is imported
+import { useCart } from "@/lib/cart-context" // Import useCart to check for items
 
 const navigationLinks = [
   { href: "/pricing", label: "Pricing", icon: Calculator },
@@ -19,12 +20,18 @@ const navigationLinks = [
 
 export default function Header() {
   const pathname = usePathname()
+  const { cart } = useCart() // Use cart context to check for items
   const [isScrolled, setIsScrolled] = useState(false)
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
+  const [hasItems, setHasItems] = useState(false) // State to track if cart has items
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
   }, [pathname])
+
+  useEffect(() => {
+    setHasItems(cart.items && cart.items.length > 0) // Update hasItems based on cart context
+  }, [cart])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,10 +50,26 @@ export default function Header() {
 
   const visibleLinks = getVisibleLinks()
 
-  if (!shouldRender) {
+  // If homepage and no items, don't show header
+  if (pathname === "/" && !hasItems) {
     return null
   }
 
+  // If homepage with items, only show cart button
+  if (pathname === "/" && hasItems) {
+    return (
+      <header
+        className={`fixed top-0 right-0 z-40 p-4 transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""}`}
+      >
+        <div className="flex justify-end">
+          {/* Use CartButton here for consistency */}
+          <CartButton showLabel={false} variant="default" size="md" position="header" />
+        </div>
+      </header>
+    )
+  }
+
+  // Regular header for other pages
   return (
     <header
       id="main-header"
@@ -67,8 +90,6 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-3 sm:gap-4">
-          {" "}
-          {/* Adjusted gap for responsiveness */}
           {/* Dynamic navigation links for larger screens */}
           <nav className="hidden lg:flex items-center gap-4">
             {visibleLinks.map((link) => {
@@ -85,7 +106,7 @@ export default function Header() {
               )
             })}
           </nav>
-          {/* Single Cart Button - Using the CartButton component */}
+          {/* Main Cart Button - Using the CartButton component */}
           <CartButton showLabel={true} />
           {/* Download button for desktop */}
           <div className="hidden md:block">
@@ -115,7 +136,7 @@ export default function Header() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base" // Adjusted padding and font size
+                        className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base"
                       >
                         <IconComponent className="h-4 w-4" />
                         {link.label}
@@ -127,15 +148,13 @@ export default function Header() {
 
                 {/* Cart Button in mobile menu */}
                 <div className="px-4 py-2">
-                  {" "}
-                  {/* Adjusted padding */}
                   <CartButton showLabel={true} variant="default" size="md" className="w-full justify-start" />
                 </div>
 
                 {/* Download link */}
                 <Link
                   href="/download"
-                  className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base" // Adjusted padding and font size
+                  className="flex items-center gap-3 px-4 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-base"
                 >
                   <Download className="h-4 w-4" />
                   Download App
