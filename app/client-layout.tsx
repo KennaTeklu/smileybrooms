@@ -8,8 +8,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
 import { CartProvider } from "@/lib/cart-context"
-import { RoomProvider } from "@/lib/room-context"
-// Removed AddAllToCartModal import - functionality now integrated into IntelligentCartButton
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,11 +16,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <AccessibilityProvider>
           <AbandonmentProvider>
             <CartProvider>
-              <RoomProvider>
-                {children}
-                <Toaster />
-                {/* Removed AddAllToCartModal - now integrated into header */}
-              </RoomProvider>
+              {children}
+              <Toaster />
             </CartProvider>
           </AbandonmentProvider>
         </AccessibilityProvider>
