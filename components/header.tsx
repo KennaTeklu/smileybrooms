@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation"
 import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Logo from "@/components/logo" // Re-imported Logo component
+import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
+import IntelligentCartButton from "@/components/intelligent-cart-button" // Updated import
 
-// Define navigation structure - REMOVED ALL CART LINKS
+// Define navigation structure
 const navigationLinks = [
   { href: "/pricing", label: "Pricing", icon: Calculator },
   { href: "/about", label: "About", icon: Users },
@@ -18,18 +18,10 @@ const navigationLinks = [
   { href: "/accessibility", label: "Accessibility", icon: Accessibility },
 ]
 
-// Essential links that should always be visible
-const essentialLinks = [
-  { href: "/pricing", label: "Pricing", icon: Calculator },
-  { href: "/about", label: "About", icon: Users },
-  { href: "/contact", label: "Contact", icon: Mail },
-]
-
 export default function Header() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
-  const [cartItemCount, setCartItemCount] = useState(0)
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
@@ -45,11 +37,9 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [pathname])
 
-  // Filter out current page from navigation
   const getVisibleLinks = () => {
-    // Always show essential links except current page
     const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
-    return filteredLinks.slice(0, 4) // Limit to 4 links for clean UI
+    return filteredLinks.slice(0, 4)
   }
 
   const visibleLinks = getVisibleLinks()
@@ -60,7 +50,7 @@ export default function Header() {
 
   return (
     <header
-      id="main-header" // Add this ID
+      id="main-header"
       className={cn(
         "sticky-header transition-all duration-300",
         isScrolled ? "bg-white/95 dark:bg-gray-950/95 shadow-sm" : "bg-white/90 dark:bg-gray-950/90",
@@ -69,12 +59,11 @@ export default function Header() {
         position: "sticky",
         top: 0,
         zIndex: 1001,
-        height: "64px", // 1.69cm
+        height: "64px",
       }}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center">
-          {/* Using the Logo component */}
           <Logo className="h-8 w-auto" />
         </Link>
 
@@ -96,8 +85,8 @@ export default function Header() {
             })}
           </nav>
 
-          {/* Single Cart Button - Using the CartButton component */}
-          <CartButton showLabel={true} />
+          {/* Intelligent Cart Button - Replaces the old CartButton */}
+          <IntelligentCartButton showLabel={true} />
 
           {/* Download button for desktop */}
           <div className="hidden md:block">
@@ -119,7 +108,6 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col gap-2 mt-8">
-                {/* Show all navigation links in mobile menu */}
                 {navigationLinks
                   .filter((link) => link.href !== pathname)
                   .map((link) => {
@@ -138,7 +126,6 @@ export default function Header() {
 
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
 
-                {/* Download link */}
                 <Link
                   href="/download"
                   className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
