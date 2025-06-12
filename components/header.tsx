@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo" // Re-imported Logo component
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
+import CartButton from "@/components/cart-button" // Ensure CartButton is imported
 
 // Define navigation structure - REMOVED ALL CART LINKS
 const navigationLinks = [
@@ -29,7 +29,7 @@ export default function Header() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [shouldRender, setShouldRender] = useState(pathname !== "/")
-  const [cartItemCount, setCartItemCount] = useState(0)
+  // Removed cartItemCount state as CartButton handles its own state via context
 
   useEffect(() => {
     setShouldRender(pathname !== "/")
@@ -137,6 +137,13 @@ export default function Header() {
                   })}
 
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
+
+                {/* Cart Button in mobile menu */}
+                <div className="px-4 py-3">
+                  {" "}
+                  {/* Wrap to maintain consistent padding */}
+                  <CartButton showLabel={true} variant="default" size="md" className="w-full justify-start" />
+                </div>
 
                 {/* Download link */}
                 <Link
