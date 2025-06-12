@@ -1,12 +1,12 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { useState, useCallback, useMemo } from "react"
+import { useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Package, Sparkles } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { Cart } from "@/components/cart"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation" // Import useRouter
 
 interface CartButtonProps {
   showLabel?: boolean
@@ -24,7 +24,7 @@ export default function CartButton({
   className,
 }: CartButtonProps) {
   const { cart } = useCart()
-  const [isCartOpen, setIsCartOpen] = useState(false)
+  const router = useRouter() // Initialize useRouter
 
   // Memoized calculations for performance with safe fallbacks
   const cartMetrics = useMemo(
@@ -38,14 +38,10 @@ export default function CartButton({
     [cart?.totalItems, cart?.total, cart?.items?.length],
   )
 
-  // Optimized handlers with useCallback
-  const handleOpenCart = useCallback(() => {
-    setIsCartOpen(true)
-  }, [])
-
-  const handleCloseCart = useCallback(() => {
-    setIsCartOpen(false)
-  }, [])
+  // Optimized handler to navigate to cart page
+  const handleOpenCartPage = useCallback(() => {
+    router.push("/cart")
+  }, [router])
 
   // Dynamic styling based on variant and state
   const buttonVariants = {
@@ -86,10 +82,10 @@ export default function CartButton({
           position === "floating" && "fixed bottom-6 right-6 z-40",
           className,
         )}
-        onClick={handleOpenCart}
+        onClick={handleOpenCartPage} // Changed to navigate to page
         aria-label={`Open shopping cart (${cartMetrics.totalItems} items, $${cartMetrics.totalValue.toFixed(2)})`}
-        aria-expanded={isCartOpen}
-        aria-haspopup="dialog"
+        aria-expanded={false} // No longer a dialog, so expanded is false
+        aria-haspopup="page" // Indicates it opens a new page
       >
         <CartIcon
           className={cn(
@@ -123,16 +119,6 @@ export default function CartButton({
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" />
         )}
       </Button>
-
-      {cart && (
-        <Cart
-          isOpen={isCartOpen}
-          onClose={handleCloseCart}
-          width={cartMetrics.itemCount > 5 ? "lg" : "md"}
-          preserveScrollPosition={true}
-          scrollKey={`cart-${cartMetrics.itemCount}`}
-        />
-      )}
     </>
   )
 }
