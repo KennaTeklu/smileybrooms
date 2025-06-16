@@ -2,93 +2,87 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
+import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Share2,
-  ChevronLeft,
-  Copy,
-  QrCode,
-  Search,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  MessageCircle,
-  Mail,
-  Phone,
-  Check,
-  ExternalLink,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
 
-interface SharePlatform {
+import { Button } from "@/components/ui/button"
+
+type SharePlatform = {
   id: string
   name: string
-  icon: React.ReactNode
   url: string
+  icon: React.ReactNode
   color: string
-  category: "social" | "chat" | "work" | "more"
+  category: string
 }
 
 const sharePlatforms: SharePlatform[] = [
   {
-    id: "facebook",
-    name: "Facebook",
-    icon: <Facebook className="h-4 w-4" />,
-    url: "https://www.facebook.com/sharer/sharer.php?u=",
-    color: "bg-blue-600",
+    id: "twitter",
+    name: "Twitter",
+    url: "https://twitter.com/intent/tweet?url=",
+    icon: <Share2 />,
+    color: "bg-blue-500",
     category: "social",
   },
   {
-    id: "twitter",
-    name: "Twitter",
-    icon: <Twitter className="h-4 w-4" />,
-    url: "https://twitter.com/intent/tweet?url=",
-    color: "bg-sky-500",
+    id: "facebook",
+    name: "Facebook",
+    url: "https://www.facebook.com/sharer/sharer.php?u=",
+    icon: <Share2 />,
+    color: "bg-blue-700",
     category: "social",
   },
   {
     id: "linkedin",
     name: "LinkedIn",
-    icon: <Linkedin className="h-4 w-4" />,
-    url: "https://www.linkedin.com/sharing/share-offsite/?url=",
-    color: "bg-blue-700",
-    category: "social",
+    url: "https://www.linkedin.com/shareArticle?url=",
+    icon: <Share2 />,
+    color: "bg-blue-800",
+    category: "work",
   },
   {
-    id: "instagram",
-    name: "Instagram",
-    icon: <Instagram className="h-4 w-4" />,
-    url: "https://www.instagram.com/",
-    color: "bg-pink-600",
+    id: "reddit",
+    name: "Reddit",
+    url: "https://www.reddit.com/submit?url=",
+    icon: <Share2 />,
+    color: "bg-orange-500",
     category: "social",
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: <MessageCircle className="h-4 w-4" />,
-    url: "https://wa.me/?text=",
-    color: "bg-green-600",
-    category: "chat",
   },
   {
     id: "email",
     name: "Email",
-    icon: <Mail className="h-4 w-4" />,
-    url: "mailto:?subject=Check this out&body=",
-    color: "bg-gray-600",
+    url: "mailto:?body=",
+    icon: <Share2 />,
+    color: "bg-gray-500",
+    category: "more",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    url: "https://api.whatsapp.com/send?text=",
+    icon: <Share2 />,
+    color: "bg-green-500",
     category: "chat",
   },
   {
-    id: "sms",
-    name: "SMS",
-    icon: <Phone className="h-4 w-4" />,
-    url: "sms:?body=",
-    color: "bg-green-500",
+    id: "telegram",
+    name: "Telegram",
+    url: "https://telegram.me/share/url?url=",
+    icon: <Share2 />,
+    color: "bg-blue-400",
     category: "chat",
+  },
+  {
+    id: "copy",
+    name: "Copy Link",
+    url: "",
+    icon: <Share2 />,
+    color: "bg-gray-500",
+    category: "more",
   },
 ]
 
@@ -106,7 +100,7 @@ export function CollapsibleSharePanel() {
   // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const minBottomOffset = 50 // Minimum distance from the bottom of the viewport
+  const minBottomOffset = 20 // Significantly reduced to allow scrolling further down
 
   // Handle mounting for SSR
   useEffect(() => {

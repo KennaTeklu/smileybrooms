@@ -40,7 +40,7 @@ export function CollapsibleSettingsPanel() {
   // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const minBottomOffset = 50 // Minimum distance from the bottom of the viewport
+  const minBottomOffset = 20 // Significantly reduced to allow scrolling further down
 
   // Handle mounting for SSR
   useEffect(() => {
