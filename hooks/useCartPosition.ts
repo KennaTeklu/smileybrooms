@@ -3,73 +3,56 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 interface CartPositionOptions {
-  padding?: number // For fixed-viewport: padding from bottom. For sticky-page: bottom padding from document end.
-  enableBoundaryDetection?: boolean
-  mode?: "fixed-viewport" | "sticky-page"
-  initialViewportTopOffset?: number // Only for sticky-page mode, how far from viewport top it starts
-  rightOffset?: number // For both modes, if applicable
-  leftOffset?: number // For both modes, if applicable
+  bottomPadding?: number // How far from the bottom of the document it should stop
+  initialViewportTopOffset?: number // How far from the top of the viewport it initially appears
+  rightOffset?: number // Right padding from viewport/document edge
+  leftOffset?: number // Left padding from viewport/document edge
 }
 
 export function useCartPosition(options: CartPositionOptions = {}) {
   const {
-    padding = 16,
-    enableBoundaryDetection = true,
-    mode = "fixed-viewport", // Default back to fixed-viewport
-    initialViewportTopOffset = 20, // Only relevant for sticky-page
-    rightOffset = 16, // Default for right-aligned elements
-    leftOffset, // Default for left-aligned elements
+    bottomPadding = 20, // Default bottom padding from document end
+    initialViewportTopOffset = 20, // Default initial offset from viewport top
+    rightOffset = 20, // Default right padding
+    leftOffset, // Default left padding
   } = options
-  const cartRef = useRef<HTMLDivElement>(null)
+  const elementRef = useRef<HTMLDivElement>(null)
   const [styles, setStyles] = useState<{
-    position: "fixed" | "absolute"
+    position: "absolute"
     top?: number | string
     bottom?: number | string
     right?: number | string
     left?: number | string
     transition?: string
   }>({
-    position: mode === "fixed-viewport" ? "fixed" : "absolute",
+    position: "absolute",
     transition: "all 0.3s ease-out", // Smooth transitions for position changes
   })
 
   const calculatePosition = useCallback(() => {
-    if (!cartRef.current || !enableBoundaryDetection) return
+    if (!elementRef.current) return
 
-    const elementHeight = cartRef.current.offsetHeight // Get actual height of the element
+    const elementHeight = elementRef.current.offsetHeight
+    const documentHeight = document.documentElement.scrollHeight
+    const scrollY = window.scrollY
 
-    const newStyles: typeof styles = {
+    // Calculate desired top position if it were to follow scroll
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+
+    // Calculate the maximum top position to stick to the bottom of the document
+    const maxTopAtDocumentBottom = documentHeight - elementHeight - bottomPadding
+
+    // The final top position is the minimum of (following scroll) and (sticking to document bottom)
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setStyles({
+      position: "absolute",
+      top: `${finalTop}px`,
+      right: rightOffset !== undefined ? `${rightOffset}px` : undefined,
+      left: leftOffset !== undefined ? `${leftOffset}px` : undefined,
       transition: "all 0.3s ease-out",
-    }
-
-    if (mode === "fixed-viewport") {
-      // Fixed to viewport bottom-right
-      newStyles.position = "fixed"
-      newStyles.right = `${rightOffset}px`
-      newStyles.bottom = `${padding}px` // 'padding' acts as bottom padding from viewport
-      newStyles.top = "auto" // Ensure top is not set
-      newStyles.left = "auto" // Ensure left is not set
-    } else {
-      // Sticky to page bottom (logic from previous iteration, for 'add all to cart' like behavior)
-      newStyles.position = "absolute"
-      const documentHeight = document.documentElement.scrollHeight
-      const scrollY = window.scrollY
-
-      const desiredTopFromScroll = scrollY + initialViewportTopOffset
-      const maxTopAtDocumentBottom = documentHeight - elementHeight - padding
-
-      newStyles.top = `${Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)}px`
-
-      if (rightOffset !== undefined) {
-        newStyles.right = `${rightOffset}px`
-      } else if (leftOffset !== undefined) {
-        newStyles.left = `${leftOffset}px`
-      }
-      newStyles.bottom = "auto" // Ensure bottom is not set
-    }
-
-    setStyles(newStyles)
-  }, [padding, enableBoundaryDetection, mode, initialViewportTopOffset, rightOffset, leftOffset])
+    })
+  }, [bottomPadding, initialViewportTopOffset, rightOffset, leftOffset])
 
   useEffect(() => {
     const handleScrollAndResize = () => {
@@ -92,7 +75,7 @@ export function useCartPosition(options: CartPositionOptions = {}) {
   }, [calculatePosition])
 
   return {
-    cartRef,
+    elementRef,
     styles,
     calculatePosition,
   }

@@ -6,7 +6,7 @@ import { CartButton } from "./CartButton"
 import { CartPanel } from "./CartPanel"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
-import { useCartPosition } from "@/hooks/useCartPosition" // Import the modified hook
+import { useCartPosition } from "@/hooks/useCartPosition" // Import the simplified hook
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useCartA11y } from "@/hooks/useCartA11y"
 import { cn } from "@/lib/utils"
@@ -20,11 +20,11 @@ export function FloatingCart() {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // Use the modified useCartPosition hook for fixed-viewport behavior
-  const { cartRef: buttonContainerRef, styles: buttonContainerStyles } = useCartPosition({
-    mode: "fixed-viewport", // Set mode to fixed-viewport
-    padding: 100, // Bottom padding from viewport edge (e.g., 100px)
-    rightOffset: 20, // Right padding from viewport edge
+  // Use the simplified useCartPosition hook for sticky-page behavior
+  const { elementRef: buttonContainerRef, styles: buttonContainerStyles } = useCartPosition({
+    bottomPadding: 20, // Floating Cart: 20px from document bottom
+    initialViewportTopOffset: 20, // Floating Cart: Starts 20px from viewport top
+    rightOffset: 20, // Floating Cart: 20px from right edge
   })
 
   useClickOutside(panelRef, (event) => {
