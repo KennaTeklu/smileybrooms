@@ -59,7 +59,6 @@ export default function RootLayout({
                     {/* Right side panels */}
                     <CollapsibleSharePanel />
                     <AddAllToCartModal />
-                    <Cart />
 
                     <Toaster />
                   </TourProvider>
@@ -68,6 +67,7 @@ export default function RootLayout({
             </AccessibilityProvider>
           </ThemeProviderEnhanced>
         </QueryClientProvider>
+        <Cart />
       </body>
     </html>
   )

@@ -71,8 +71,8 @@ export function AddAllToCartModal() {
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
 
   // --- Positioning logic for "sticky to page bottom" for this specific component ---
-  const initialViewportTopOffset = 100 // Add All to Cart: Starts 100px from viewport top
-  const bottomPadding = 100 // Add All to Cart: 100px from document bottom
+  const initialViewportTopOffset = 100 // How far from the top of the viewport it initially appears
+  const bottomPadding = 100 // How far from the bottom of the document it should stop
   const rightPadding = "clamp(1rem, 3vw, 2rem)" // Right padding from viewport/document edge
 
   const updatePosition = useCallback(() => {
