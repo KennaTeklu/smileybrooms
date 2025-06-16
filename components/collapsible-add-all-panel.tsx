@@ -684,7 +684,7 @@ export function CollapsibleAddAllPanel() {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
                 "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800",
-                "relative", // Needed for shadow pseudo-elements
+                "relative flex flex-col", // Added flex flex-col
                 showTopShadow && "before:shadow-top-gradient",
                 showBottomShadow && "after:shadow-bottom-gradient",
               )}
@@ -740,8 +740,7 @@ export function CollapsibleAddAllPanel() {
 
               {/* Content */}
               <ScrollArea
-                className="flex-1"
-                style={{ maxHeight: "400px" }}
+                className="flex-1" // This will make it take up remaining space
                 viewportClassName="scroll-smooth snap-y snap-mandatory" // Scroll-snapping
                 onScroll={isMomentumScrollEnabled ? handleMomentumScroll : handleScrollAreaScroll} // Conditional momentum scroll
                 ref={scrollViewportRef} // Attach ref to viewport
