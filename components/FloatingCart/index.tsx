@@ -6,7 +6,7 @@ import { CartButton } from "./CartButton"
 import { CartPanel } from "./CartPanel"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
-import { useCartPosition } from "@/hooks/useCartPosition" // Import the modified hook
+import { useCartPosition } from "@/hooks/useCartPosition"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useCartA11y } from "@/hooks/useCartA11y"
 import { cn } from "@/lib/utils"
@@ -20,11 +20,12 @@ export function FloatingCart() {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // Use the modified useCartPosition hook for fixed-viewport behavior
+  // Use the modified useCartPosition hook for fixed top-right positioning
   const { cartRef: buttonContainerRef, styles: buttonContainerStyles } = useCartPosition({
-    mode: "fixed-viewport", // Set mode to fixed-viewport
-    padding: 100, // Bottom padding from viewport edge (e.g., 100px)
-    rightOffset: 20, // Right padding from viewport edge
+    mode: "fixed-viewport",
+    position: "top-right", // Position at top-right
+    topOffset: 100, // 100px from top of viewport
+    rightOffset: 20, // 20px from right edge of viewport
   })
 
   useClickOutside(panelRef, (event) => {
@@ -53,12 +54,12 @@ export function FloatingCart() {
 
   return (
     <div
-      ref={buttonContainerRef} // Assign ref to the container div
+      ref={buttonContainerRef}
       className={cn(
-        `z-[${FLOATING_LAYERS.CART_BUTTON}] transition-all duration-300 ease-out`, // Use FLOATING_LAYERS
+        `z-[${FLOATING_LAYERS.CART_BUTTON}] transition-all duration-300 ease-out`,
         itemCount === 0 && "hidden", // Hide if no items
       )}
-      style={buttonContainerStyles} // Apply calculated styles here
+      style={buttonContainerStyles} // Apply calculated styles for top positioning
     >
       <CartButton
         ref={buttonRef}
@@ -73,11 +74,11 @@ export function FloatingCart() {
         {isPanelOpen && (
           <motion.div
             ref={panelRef}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -20, scale: 0.95 }} // Changed y to -20 for top positioning
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }} // Changed y to -20 for top positioning
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="absolute bottom-full right-0 mb-4 w-80 sm:w-96 max-h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+            className="absolute top-full right-0 mt-4 w-80 sm:w-96 max-h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col" // Changed to top-full and mt-4
             id="cart-panel"
             role="dialog"
             aria-modal="true"
