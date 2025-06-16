@@ -21,7 +21,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SmileyBrooms - Professional Cleaning Services",
+  title: "smileybrooms - Professional Cleaning Services", // Metadata title is plain text
   description: "Professional cleaning services that bring joy to your home",
   icons: {
     icon: "/favicon.png",

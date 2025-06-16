@@ -16,7 +16,7 @@ interface ServiceEmailSummaryProps {
 export default function ServiceEmailSummary({
   formData,
   onClose,
-  emailTo = "customize@smileybrooms.com",
+  emailTo = "customize@smileybrooms.com", // Email address, no highlighting
 }: ServiceEmailSummaryProps) {
   const [isCopied, setIsCopied] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -73,7 +73,10 @@ export default function ServiceEmailSummary({
           <Mail className="mr-2 h-5 w-5" />
           Service Summary Email
         </CardTitle>
-        <CardDescription>Review your service details and send them directly to SmileBrooms</CardDescription>
+        <CardDescription>
+          Review your service details and send them directly to{" "}
+          <span className="text-brooms-highlight">smileybrooms</span>
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md border border-gray-200 dark:border-gray-800 whitespace-pre-wrap font-mono text-sm overflow-auto max-h-96">

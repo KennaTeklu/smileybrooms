@@ -209,6 +209,17 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
             color: #2e7d32;
             margin: 0 0 10px 0;
         }
+        /* Custom highlight for "brooms" */
+        .text-brooms-highlight {
+            color: #22c55e; /* Light mode green */
+            font-weight: 600;
+        }
+        @media (prefers-color-scheme: dark) {
+            .text-brooms-highlight {
+                color: #86efac; /* Dark mode lighter green */
+            }
+        }
+
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -234,7 +245,7 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
     <div class="email-container">
         <div class="header">
             <h1>🧹 Custom Quote Request</h1>
-            <p>SmileBrooms Professional Cleaning Services</p>
+            <p><span class="text-brooms-highlight">smileybrooms</span> Professional Cleaning Services</p>
         </div>
         
         <div class="content">
@@ -359,7 +370,7 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
         </div>
         
         <div class="footer">
-            <p><strong>SmileBrooms Professional Cleaning Services</strong></p>
+            <p><strong><span class="text-brooms-highlight">smileybrooms</span> Professional Cleaning Services</strong></p>
             <p>Making your space sparkle, one room at a time! ✨</p>
             <p>📧 custom@smileybrooms.com | 📞 (555) 123-4567</p>
         </div>
@@ -415,7 +426,7 @@ export function isMobileDevice(): boolean {
 export function openGmailWithQuote(formData: QuoteFormData): void {
   const subject = generateEmailSubject(formData)
   const htmlBody = generateCustomQuoteHTML(formData)
-  const emailTo = "custom@smileybrooms.com"
+  const emailTo = "custom@smileybrooms.com" // Email address, no highlighting
 
   if (isMobileDevice()) {
     // On mobile, try to open Gmail app first, fallback to mailto
