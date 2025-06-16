@@ -45,6 +45,7 @@ export function CollapsibleAddAllPanel() {
   const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [addedItemsCount, setAddedItemsCount] = useState(0)
   const [isVisible, setIsVisible] = useState(false) // Control panel visibility
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
@@ -64,6 +65,11 @@ export function CollapsibleAddAllPanel() {
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  // Pause scroll tracking when panel is expanded or in fullscreen
+  useEffect(() => {
+    setIsScrollPaused(isExpanded || isFullscreen)
+  }, [isExpanded, isFullscreen])
 
   // Immediate visibility control - show panel as soon as requirements are met
   useEffect(() => {
@@ -106,7 +112,7 @@ export function CollapsibleAddAllPanel() {
 
   // Calculate panel position based on scroll and viewport (only after initial show)
   const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current || isFullscreen || !isVisible) return
+    if (!panelRef.current || isFullscreen || !isVisible || isScrollPaused) return
 
     const panelHeight = panelRef.current.offsetHeight || 200 // fallback height
     const viewportHeight = window.innerHeight
@@ -125,11 +131,11 @@ export function CollapsibleAddAllPanel() {
     const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
 
     setPanelTopPosition(`${finalTop}px`)
-  }, [isFullscreen, isVisible])
+  }, [isFullscreen, isVisible, isScrollPaused])
 
   useEffect(() => {
-    // Only set up scroll listeners after panel is visible
-    if (!isVisible) return
+    // Only set up scroll listeners after panel is visible and not paused
+    if (!isVisible || isScrollPaused) return
 
     const handleScrollAndResize = () => {
       if (!isFullscreen) {
@@ -151,7 +157,7 @@ export function CollapsibleAddAllPanel() {
       window.removeEventListener("resize", handleScrollAndResize)
       clearTimeout(timeoutId)
     }
-  }, [calculatePanelPosition, isVisible])
+  }, [calculatePanelPosition, isVisible, isScrollPaused])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -400,7 +406,8 @@ export function CollapsibleAddAllPanel() {
                   <div>
                     <h2 className="text-xl font-bold">Review Your Selections</h2>
                     <p className="text-blue-100 text-sm">
-                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected •{" "}
+                      <span className="bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
                     </p>
                   </div>
                 </div>
@@ -608,6 +615,9 @@ export function CollapsibleAddAllPanel() {
                       <h3 className="text-lg font-bold">Ready to Add</h3>
                       <p className="text-blue-100 text-sm">
                         {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                        {isScrollPaused && (
+                          <span className="ml-2 bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                        )}
                       </p>
                     </div>
                   </div>

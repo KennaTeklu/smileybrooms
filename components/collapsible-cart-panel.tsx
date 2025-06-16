@@ -16,6 +16,8 @@ export function CollapsibleCartPanel() {
   const { cart, updateQuantity, removeItem, clearCart } = useCart()
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -26,9 +28,14 @@ export function CollapsibleCartPanel() {
     setIsMounted(true)
   }, [])
 
+  // Pause scroll tracking when panel is expanded
+  useEffect(() => {
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
+
   // Calculate panel position based on scroll and viewport
   const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current) return
+    if (!panelRef.current || isScrollPaused) return // Don't calculate when paused
 
     const panelHeight = panelRef.current.offsetHeight
     const viewportHeight = window.innerHeight
@@ -47,9 +54,11 @@ export function CollapsibleCartPanel() {
     const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
 
     setPanelTopPosition(`${finalTop}px`)
-  }, [])
+  }, [isScrollPaused])
 
   useEffect(() => {
+    if (!isMounted || isScrollPaused) return // Don't track scroll when paused
+
     const handleScrollAndResize = () => {
       calculatePanelPosition()
     }
@@ -65,7 +74,7 @@ export function CollapsibleCartPanel() {
       window.removeEventListener("resize", handleScrollAndResize)
       clearTimeout(timeoutId)
     }
-  }, [calculatePanelPosition])
+  }, [calculatePanelPosition, isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -161,6 +170,9 @@ export function CollapsibleCartPanel() {
                     <h3 className="text-lg font-bold">Shopping Cart</h3>
                     <p className="text-green-100 text-sm">
                       {cart.totalItems} item{cart.totalItems !== 1 ? "s" : ""} • ${cart.totalPrice.toFixed(2)}
+                      {isScrollPaused && (
+                        <span className="ml-2 bg-green-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                      )}
                     </p>
                   </div>
                 </div>

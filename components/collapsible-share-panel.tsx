@@ -95,7 +95,8 @@ export function CollapsibleSharePanel() {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
-  const [panelHeight, setPanelHeight] = useState(0) // New state for panel height
+  const [panelHeight, setPanelHeight] = useState(0)
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Define configurable scroll range values
@@ -109,9 +110,14 @@ export function CollapsibleSharePanel() {
     setCurrentUrl(window.location.href)
   }, [])
 
+  // Pause scroll tracking when panel is expanded
+  useEffect(() => {
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
+
   // Track scroll position and panel height after mounting
   useEffect(() => {
-    if (!isMounted) return
+    if (!isMounted || isScrollPaused) return // Don't track scroll when paused
 
     const updatePositionAndHeight = () => {
       setScrollPosition(window.scrollY)
@@ -121,14 +127,14 @@ export function CollapsibleSharePanel() {
     }
 
     window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true }) // Update on resize too
+    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
     updatePositionAndHeight() // Initial call
 
     return () => {
       window.removeEventListener("scroll", updatePositionAndHeight)
       window.removeEventListener("resize", updatePositionAndHeight)
     }
-  }, [isMounted, isExpanded]) // Recalculate height if expanded state changes
+  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -153,8 +159,10 @@ export function CollapsibleSharePanel() {
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  // Calculate the panel's top position
-  const panelTopPosition = Math.max(minTopOffset, Math.min(initialScrollOffset + scrollPosition, maxPanelTop))
+  // Use current scroll position if paused, otherwise calculate new position
+  const panelTopPosition = isScrollPaused
+    ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
+    : Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
 
   const copyToClipboard = async () => {
     try {
@@ -193,6 +201,11 @@ export function CollapsibleSharePanel() {
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Share
+                {isScrollPaused && (
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
+                    Scroll Paused
+                  </span>
+                )}
               </h2>
               <Button
                 variant="ghost"
