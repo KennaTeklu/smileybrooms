@@ -16,11 +16,14 @@ import {
   ArrowRight,
   Info,
   CheckCircle,
+  ArrowUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area" // Modified to accept onScroll and viewportClassName
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Switch } from "@/components/ui/switch" // For scroll customization
+import { Label } from "@/components/ui/label" // For scroll customization
 import { useRoomContext } from "@/lib/room-context"
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
@@ -33,6 +36,8 @@ import { formatCurrency } from "@/lib/utils"
 import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useMomentumScroll } from "@/hooks/use-momentum-scroll" // For momentum scrolling
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer" // For infinite scrolling concept
 
 export function CollapsibleAddAllPanel() {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -51,6 +56,27 @@ export function CollapsibleAddAllPanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
+
+  // Scroll enhancements states and refs
+  const scrollViewportRef = useRef<HTMLDivElement>(null) // Ref for the ScrollArea's viewport
+  const [showScrollToTop, setShowScrollToTop] = useState(false)
+  const [showTopShadow, setShowTopShadow] = useState(false)
+  const [showBottomShadow, setShowBottomShadow] = useState(false)
+  const [isMomentumScrollEnabled, setIsMomentumScrollEnabled] = useState(true) // User customization option
+  const { handleScroll: handleMomentumScroll } = useMomentumScroll() // Momentum scrolling hook
+
+  // Infinite scrolling concept
+  const lastItemRef = useRef<HTMLDivElement>(null)
+  useIntersectionObserver(
+    lastItemRef,
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        console.log("Last item in Add All panel is visible. Would load more items here if available.")
+        // In a real app, you'd trigger a data fetch here
+      }
+    },
+    { root: scrollViewportRef.current, threshold: 0.1 },
+  )
 
   // State for dynamic positioning - start with fixed position, then adjust
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
@@ -166,7 +192,7 @@ export function CollapsibleAddAllPanel() {
     }
   })
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts for panel toggle and escape
   useKeyboardShortcuts({
     "alt+a": () => selectionRequirementsMet && setIsExpanded((prev) => !prev),
     Escape: () => {
@@ -178,6 +204,51 @@ export function CollapsibleAddAllPanel() {
       }
     },
   })
+
+  // Keyboard shortcuts for internal scroll
+  useEffect(() => {
+    const viewportElement = scrollViewportRef.current
+    if (!viewportElement || !isExpanded) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target !== viewportElement && !viewportElement.contains(event.target as Node)) {
+        return // Only handle if focus is within the scrollable area or on the viewport itself
+      }
+
+      const scrollAmount = 100 // Pixels to scroll per key press
+      const { scrollTop, scrollHeight, clientHeight } = viewportElement
+
+      switch (event.key) {
+        case "PageDown":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: scrollTop + clientHeight, behavior: "smooth" })
+          break
+        case "PageUp":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: scrollTop - clientHeight, behavior: "smooth" })
+          break
+        case "Home":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: 0, behavior: "smooth" })
+          break
+        case "End":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: scrollHeight, behavior: "smooth" })
+          break
+        case "ArrowDown":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: scrollTop + scrollAmount, behavior: "smooth" })
+          break
+        case "ArrowUp":
+          event.preventDefault()
+          viewportElement.scrollTo({ top: scrollTop - scrollAmount, behavior: "smooth" })
+          break
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isExpanded])
 
   const handleAddAllToCart = useCallback(() => {
     try {
@@ -266,9 +337,24 @@ export function CollapsibleAddAllPanel() {
     vibrate(50)
   }, [vibrate])
 
+  // Handle scroll for visual indicators and scroll-to-top button
+  const handleScrollAreaScroll = useCallback(() => {
+    const viewport = scrollViewportRef.current
+    if (viewport) {
+      const { scrollTop, scrollHeight, clientHeight } = viewport
+      setShowScrollToTop(scrollTop > 200) // Show button after scrolling down 200px
+      setShowTopShadow(scrollTop > 0)
+      setShowBottomShadow(scrollTop + clientHeight < scrollHeight)
+    }
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    scrollViewportRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+  }, [])
+
   // Memoized room list with enhanced styling
   const roomList = useMemo(() => {
-    return selectedRoomTypes.map((roomType) => {
+    return selectedRoomTypes.map((roomType, index) => {
       const config = roomConfigs[roomType]
       const count = roomCounts[roomType]
       const roomTotal = (config?.totalPrice || 0) * count
@@ -282,7 +368,9 @@ export function CollapsibleAddAllPanel() {
           className={cn(
             "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
             isFullscreen && "hover:shadow-lg",
+            "snap-start", // Scroll-snapping
           )}
+          ref={index === selectedRoomTypes.length - 1 ? lastItemRef : null} // For infinite scroll concept
         >
           <div
             className={cn(
@@ -403,8 +491,7 @@ export function CollapsibleAddAllPanel() {
                   <div>
                     <h2 className="text-xl font-bold">Review Your Selections</h2>
                     <p className="text-blue-100 text-sm">
-                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected •{" "}
-                      <span className="bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
                     </p>
                   </div>
                 </div>
@@ -570,20 +657,17 @@ export function CollapsibleAddAllPanel() {
             "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
             "border border-blue-500/20 backdrop-blur-sm relative",
           )}
-          aria-label="Toggle add all to cart panel"
+          aria-label="Toggle add to cart panel"
         >
           <div className="flex items-center gap-2">
             <div className="relative">
-              <div className="flex items-center">
-                <ShoppingCart className="h-5 w-5" />
-                <Plus className="h-3 w-3 -ml-1 -mt-1 text-white/80" />
-              </div>
+              <Plus className="h-5 w-5" />
               <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
                 {selectedRoomTypes.length}
               </Badge>
             </div>
             <div className="text-left">
-              <div className="text-sm font-bold">Add All</div>
+              <div className="text-sm font-bold">Add to Cart</div>
               <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
             </div>
             <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
@@ -598,7 +682,12 @@ export function CollapsibleAddAllPanel() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
+              className={cn(
+                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800",
+                "relative", // Needed for shadow pseudo-elements
+                showTopShadow && "before:shadow-top-gradient",
+                showBottomShadow && "after:shadow-bottom-gradient",
+              )}
               style={{ maxHeight: "70vh" }}
             >
               {/* Header */}
@@ -612,9 +701,6 @@ export function CollapsibleAddAllPanel() {
                       <h3 className="text-lg font-bold">Ready to Add</h3>
                       <p className="text-blue-100 text-sm">
                         {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                        {isScrollPaused && (
-                          <span className="ml-2 bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
-                        )}
                       </p>
                     </div>
                   </div>
@@ -640,12 +726,57 @@ export function CollapsibleAddAllPanel() {
                 </div>
               </div>
 
+              {/* Scroll Customization Option */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <Label htmlFor="momentum-scroll" className="text-sm font-medium">
+                  Enable Momentum Scroll
+                </Label>
+                <Switch
+                  id="momentum-scroll"
+                  checked={isMomentumScrollEnabled}
+                  onCheckedChange={setIsMomentumScrollEnabled}
+                />
+              </div>
+
               {/* Content */}
-              <ScrollArea className="flex-1" style={{ maxHeight: "400px" }}>
+              <ScrollArea
+                className="flex-1"
+                style={{ maxHeight: "400px" }}
+                viewportClassName="scroll-smooth snap-y snap-mandatory" // Scroll-snapping
+                onScroll={isMomentumScrollEnabled ? handleMomentumScroll : handleScrollAreaScroll} // Conditional momentum scroll
+                ref={scrollViewportRef} // Attach ref to viewport
+              >
                 <div className="p-4">
                   <div className="space-y-3 mb-4">{roomList}</div>
                 </div>
               </ScrollArea>
+
+              {/* Scroll to Top Button */}
+              <AnimatePresence>
+                {showScrollToTop && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="absolute bottom-24 right-4 z-10"
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="rounded-full shadow-md h-10 w-10"
+                          onClick={scrollToTop}
+                          aria-label="Scroll to top"
+                        >
+                          <ArrowUp className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Scroll to Top</TooltipContent>
+                    </Tooltip>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Footer */}
               <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">

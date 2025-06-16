@@ -48,25 +48,23 @@ export default function RootLayout({
               <CartProvider>
                 <RoomProvider>
                   <TourProvider>
-                    {/* Main layout container */}
-                    <div className="relative flex min-h-screen flex-col">
-                      <EnhancedHeader />
-                      <main className="flex-1">{children}</main>
-                      <EnhancedFooter />
-                    </div>
-                    {/* Left side panels */}
-                    <CollapsibleSettingsPanel />
-                    {/* Right side panels - properly aligned */}
-                    <CollapsibleSharePanel />
-                    <CollapsibleAddAllPanel />
-                    <CollapsibleCartPanel />
                     <TooltipProvider>
                       {" "}
-                      {/* Add TooltipProvider here */}
+                      {/* Moved TooltipProvider here */}
+                      {/* Main layout container */}
+                      <div className="relative flex min-h-screen flex-col">
+                        <EnhancedHeader />
+                        <main className="flex-1">{children}</main>
+                        <EnhancedFooter />
+                      </div>
+                      {/* Left side panels */}
+                      <CollapsibleSettingsPanel />
+                      {/* Right side panels - properly aligned */}
+                      <CollapsibleSharePanel />
+                      <CollapsibleAddAllPanel />
+                      <CollapsibleCartPanel />
                       <Toaster />
-                      {children}
-                    </TooltipProvider>{" "}
-                    {/* Close TooltipProvider here */}
+                    </TooltipProvider>
                   </TourProvider>
                 </RoomProvider>
               </CartProvider>
