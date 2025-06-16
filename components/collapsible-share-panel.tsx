@@ -287,4 +287,34 @@ export function CollapsibleSharePanel() {
 
                 {filteredPlatforms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity\
+                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    No platforms found.
+                  </div>
+                )}
+              </div>
+            </Tabs>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsExpanded(true)}
+            className={cn(
+              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
+              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border-l border-t border-b border-gray-200 dark:border-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
+            aria-label="Open share panel"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <Share2 className="h-5 w-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
