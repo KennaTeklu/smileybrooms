@@ -6,11 +6,11 @@ import { CartButton } from "./CartButton"
 import { CartPanel } from "./CartPanel"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
-import { useCartPosition } from "@/hooks/useCartPosition" // Import the modified hook
+import { useCartPosition } from "@/hooks/useCartPosition"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useCartA11y } from "@/hooks/useCartA11y"
 import { cn } from "@/lib/utils"
-import { FLOATING_LAYERS } from "@/lib/floating-system" // Assuming FLOATING_LAYERS is available
+import { FLOATING_LAYERS } from "@/lib/floating-system"
 
 export function FloatingCart() {
   const { cartItems, getTotalItems, getTotalPrice } = useCart()
