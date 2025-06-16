@@ -15,6 +15,7 @@ import {
   Minimize2,
   ArrowRight,
   Info,
+  CheckCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -41,18 +42,23 @@ export function CollapsibleAddAllPanel() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
+  const [addedItemsCount, setAddedItemsCount] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
 
-  // State for dynamic positioning
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("auto")
+  // State for dynamic positioning - always visible when requirements are met
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
 
   const selectedRoomTypes = getSelectedRoomTypes()
   const totalPrice = getTotalPrice()
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
+
+  // Check if selection requirements are met (2 or more rooms selected)
+  const selectionRequirementsMet = selectedRoomTypes.length >= 2
 
   useEffect(() => {
     setIsMounted(true)
@@ -60,7 +66,7 @@ export function CollapsibleAddAllPanel() {
 
   // Calculate panel position based on scroll and viewport
   const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current) return
+    if (!panelRef.current || isFullscreen) return
 
     const panelHeight = panelRef.current.offsetHeight
     const viewportHeight = window.innerHeight
@@ -79,7 +85,7 @@ export function CollapsibleAddAllPanel() {
     const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
 
     setPanelTopPosition(`${finalTop}px`)
-  }, [])
+  }, [isFullscreen])
 
   useEffect(() => {
     const handleScrollAndResize = () => {
@@ -99,30 +105,30 @@ export function CollapsibleAddAllPanel() {
       window.removeEventListener("resize", handleScrollAndResize)
       clearTimeout(timeoutId)
     }
-  }, [calculatePanelPosition, isFullscreen])
+  }, [calculatePanelPosition])
 
-  // Show panel when multi-selection is active
+  // Show panel immediately when selection requirements are met
   useEffect(() => {
-    if (isMultiSelection && totalItems > 0) {
-      // Enhanced pulse animation for visibility
+    if (selectionRequirementsMet) {
+      // Enhanced pulse animation for visibility when first appearing
       controls.start({
-        scale: [1, 1.05, 1],
+        scale: [1, 1.08, 1],
         boxShadow: [
           "0 4px 20px rgba(59, 130, 246, 0.3)",
-          "0 8px 40px rgba(59, 130, 246, 0.6)",
+          "0 12px 50px rgba(59, 130, 246, 0.8)",
           "0 4px 20px rgba(59, 130, 246, 0.3)",
         ],
-        transition: { duration: 2, repeat: 3, repeatType: "reverse" },
+        transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
       })
 
-      // Haptic feedback when items are ready
-      vibrate(100)
+      // Haptic feedback when panel first appears
+      vibrate(150)
     } else {
       setIsExpanded(false)
       setIsFullscreen(false)
       controls.stop()
     }
-  }, [isMultiSelection, totalItems, controls, vibrate])
+  }, [selectionRequirementsMet, controls, vibrate])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -136,7 +142,7 @@ export function CollapsibleAddAllPanel() {
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    "alt+a": () => isMultiSelection && setIsExpanded((prev) => !prev),
+    "alt+a": () => selectionRequirementsMet && setIsExpanded((prev) => !prev),
     Escape: () => {
       if (isFullscreen) {
         setIsFullscreen(false)
@@ -178,14 +184,20 @@ export function CollapsibleAddAllPanel() {
 
       if (addedCount > 0) {
         vibrate([100, 50, 100]) // Success pattern
-        toast({
-          title: "🎉 All items added to cart!",
-          description: `${addedCount} room type(s) have been added to your cart.`,
-          duration: 3000,
-        })
+
+        // Set success notification state
+        setAddedItemsCount(addedCount)
+        setShowSuccessNotification(true)
+
+        // Close panels
         setIsExpanded(false)
         setIsFullscreen(false)
         setReviewStep(0)
+
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          setShowSuccessNotification(false)
+        }, 3000)
       }
     } catch (error) {
       console.error("Error adding all items to cart:", error)
@@ -307,173 +319,205 @@ export function CollapsibleAddAllPanel() {
     return null
   }
 
-  // Don't show if no multi-selection is active
-  if (!isMultiSelection || totalItems === 0) {
-    return null
+  // Success notification overlay
+  const SuccessNotification = () => (
+    <AnimatePresence>
+      {showSuccessNotification && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 50 }}
+          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">Items Added to Cart!</div>
+              <div className="text-xs opacity-90">
+                {addedItemsCount} room type{addedItemsCount !== 1 ? "s" : ""} added successfully
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
+  // Don't show if selection requirements are not met
+  if (!selectionRequirementsMet) {
+    return <SuccessNotification />
   }
 
   // Fullscreen review mode
   if (isFullscreen) {
     return (
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-white dark:bg-gray-900 z-[999] overflow-hidden flex flex-col"
-        >
-          {/* Fullscreen Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
-            <div className="container mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-3">
+      <>
+        <SuccessNotification />
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white dark:bg-gray-900 z-[999] overflow-hidden flex flex-col"
+          >
+            {/* Fullscreen Header */}
+            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
+              <div className="container mx-auto flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackToPanel}
+                    className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <div>
+                    <h2 className="text-xl font-bold">Review Your Selections</h2>
+                    <p className="text-blue-100 text-sm">
+                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                    </p>
+                  </div>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleBackToPanel}
                   className="text-white hover:bg-white/20 rounded-full h-10 w-10"
                 >
-                  <ArrowLeft className="h-5 w-5" />
+                  <Minimize2 className="h-5 w-5" />
                 </Button>
-                <div>
-                  <h2 className="text-xl font-bold">Review Your Selections</h2>
-                  <p className="text-blue-100 text-sm">
-                    {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                  </p>
-                </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBackToPanel}
-                className="text-white hover:bg-white/20 rounded-full h-10 w-10"
-              >
-                <Minimize2 className="h-5 w-5" />
-              </Button>
             </div>
-          </div>
 
-          {/* Fullscreen Content */}
-          <div className="flex-1 overflow-auto">
-            <div className="container mx-auto py-6 px-4">
-              {reviewStep === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="grid gap-6 mb-8">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-3">
-                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-blue-800 dark:text-blue-300">Review Your Selections</h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-400">
-                          Please review your selected rooms before adding them to your cart. You can adjust quantities
-                          or remove items as needed.
-                        </p>
+            {/* Fullscreen Content */}
+            <div className="flex-1 overflow-auto">
+              <div className="container mx-auto py-6 px-4">
+                {reviewStep === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                  >
+                    <div className="grid gap-6 mb-8">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h3 className="font-medium text-blue-800 dark:text-blue-300">Review Your Selections</h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-400">
+                            Please review your selected rooms before adding them to your cart. You can adjust quantities
+                            or remove items as needed.
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-4">{roomList}</div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="max-w-2xl mx-auto"
-                >
-                  <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800 mb-8 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-800/30 rounded-full mb-4">
-                      <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      <div className="space-y-4">{roomList}</div>
                     </div>
-                    <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">Ready to Add to Cart</h3>
-                    <p className="text-green-700 dark:text-green-400 mb-4">
-                      You're about to add {selectedRoomTypes.length} room type
-                      {selectedRoomTypes.length !== 1 ? "s" : ""} to your cart for a total of{" "}
-                      {formatCurrency(totalPrice)}.
-                    </p>
-                    <div className="text-sm text-green-600 dark:text-green-500">
-                      Click "Add All to Cart" below to continue.
-                    </div>
-                  </div>
-
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                    <h4 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100">Order Summary</h4>
-                    <div className="space-y-2 mb-4">
-                      {selectedRoomTypes.map((roomType) => {
-                        const config = roomConfigs[roomType]
-                        const count = roomCounts[roomType]
-                        const roomTotal = (config?.totalPrice || 0) * count
-
-                        return (
-                          <div key={roomType} className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              {roomDisplayNames[roomType] || roomType} (x{count})
-                            </span>
-                            <span className="font-medium">{formatCurrency(roomTotal)}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-                      <div className="flex justify-between font-bold">
-                        <span>Total</span>
-                        <span className="text-blue-600 dark:text-blue-400">{formatCurrency(totalPrice)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          {/* Fullscreen Footer */}
-          <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4 shadow-lg">
-            <div className="container mx-auto flex items-center justify-between">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {reviewStep === 0 ? "Step 1 of 2: Review Items" : "Step 2 of 2: Confirm"}
-              </div>
-              <div className="flex gap-3">
-                {reviewStep === 1 ? (
-                  <>
-                    <Button variant="outline" onClick={handlePrevStep}>
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleAddAllToCart}
-                      disabled={!isOnline}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add All to Cart
-                    </Button>
-                  </>
+                  </motion.div>
                 ) : (
-                  <>
-                    <Button variant="outline" onClick={handleBackToPanel}>
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleNextStep}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                    >
-                      Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </>
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="max-w-2xl mx-auto"
+                  >
+                    <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800 mb-8 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-800/30 rounded-full mb-4">
+                        <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">
+                        Ready to Add to Cart
+                      </h3>
+                      <p className="text-green-700 dark:text-green-400 mb-4">
+                        You're about to add {selectedRoomTypes.length} room type
+                        {selectedRoomTypes.length !== 1 ? "s" : ""} to your cart for a total of{" "}
+                        {formatCurrency(totalPrice)}.
+                      </p>
+                      <div className="text-sm text-green-600 dark:text-green-500">
+                        Click "Add All to Cart" below to continue.
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                      <h4 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100">Order Summary</h4>
+                      <div className="space-y-2 mb-4">
+                        {selectedRoomTypes.map((roomType) => {
+                          const config = roomConfigs[roomType]
+                          const count = roomCounts[roomType]
+                          const roomTotal = (config?.totalPrice || 0) * count
+
+                          return (
+                            <div key={roomType} className="flex justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {roomDisplayNames[roomType] || roomType} (x{count})
+                              </span>
+                              <span className="font-medium">{formatCurrency(roomTotal)}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                        <div className="flex justify-between font-bold">
+                          <span>Total</span>
+                          <span className="text-blue-600 dark:text-blue-400">{formatCurrency(totalPrice)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 )}
               </div>
             </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+
+            {/* Fullscreen Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4 shadow-lg">
+              <div className="container mx-auto flex items-center justify-between">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {reviewStep === 0 ? "Step 1 of 2: Review Items" : "Step 2 of 2: Confirm"}
+                </div>
+                <div className="flex gap-3">
+                  {reviewStep === 1 ? (
+                    <>
+                      <Button variant="outline" onClick={handlePrevStep}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                      </Button>
+                      <Button
+                        onClick={handleAddAllToCart}
+                        disabled={!isOnline}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Add All to Cart
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleBackToPanel}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleNextStep}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      >
+                        Continue
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </>
     )
   }
 
   return (
     <TooltipProvider>
+      <SuccessNotification />
       <motion.div
         ref={panelRef}
         className="fixed z-[997]"
