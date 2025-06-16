@@ -15,6 +15,11 @@ import {
   CheckCircle,
   Trash2,
   ArrowUp,
+  ListChecks,
+  ListX,
+  Lightbulb,
+  Plus,
+  Minus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,15 +32,21 @@ import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import Link from "next/link"
 
 export function CollapsibleCartPanel() {
-  const { cartItems, getTotalPrice, removeItem, updateItemQuantity } = useCart()
+  // Corrected destructuring from useCart
+  const { cart, removeItem, updateQuantity } = useCart()
+  const cartItems = cart.items // Access items from the cart object
+  const totalPrice = cart.totalPrice // Access totalPrice from the cart object
+  const totalItems = cart.totalItems // Access totalItems from the cart object
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -73,9 +84,6 @@ export function CollapsibleCartPanel() {
 
   // State for dynamic positioning - start with fixed position, then adjust
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
-
-  const totalPrice = getTotalPrice()
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
   // Check if cart has items
   const cartHasItems = cartItems.length > 0
@@ -261,11 +269,11 @@ export function CollapsibleCartPanel() {
       if (newQuantity <= 0) {
         handleRemoveItem(itemId, cartItems.find((item) => item.id === itemId)?.name || "Item")
       } else {
-        updateItemQuantity(itemId, newQuantity)
+        updateQuantity(itemId, newQuantity) // Corrected function name
         vibrate(50) // Light feedback for quantity change
       }
     },
-    [updateItemQuantity, handleRemoveItem, cartItems, vibrate],
+    [updateQuantity, handleRemoveItem, cartItems, vibrate], // Corrected dependency
   )
 
   const handleReviewClick = useCallback(() => {
@@ -323,61 +331,130 @@ export function CollapsibleCartPanel() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         className={cn(
-          "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
+          "flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
           isFullscreen && "hover:shadow-lg",
           "snap-start", // Scroll-snapping
         )}
         ref={index === cartItems.length - 1 ? lastItemRef : null} // For infinite scroll concept
       >
-        <div
-          className={cn(
-            "relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md",
-            isFullscreen && "w-20 h-20",
-          )}
-        >
-          <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <h4
-            className={cn("font-bold text-base text-gray-900 dark:text-gray-100 truncate", isFullscreen && "text-lg")}
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md",
+              isFullscreen && "w-20 h-20",
+            )}
           >
-            {item.name}
-          </h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-            {item.metadata?.selectedTier || "One-time service"}
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Badge variant="secondary" className="text-xs">
-              Qty: {item.quantity}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {formatCurrency(item.price)}
-            </Badge>
+            <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h4
+              className={cn("font-bold text-base text-gray-900 dark:text-gray-100 truncate", isFullscreen && "text-lg")}
+            >
+              {item.name}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+              {item.metadata?.roomConfig?.selectedTier || "One-time service"}
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                Qty: {item.quantity}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {formatCurrency(item.price)}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="text-right flex-shrink-0">
+            <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
+              {formatCurrency(item.price * item.quantity)}
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveItem(item.id, item.name)}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove from cart</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
-        <div className="text-right flex-shrink-0">
-          <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
-            {formatCurrency(item.price * item.quantity)}
+        {/* Quantity Controls (only in expanded panel, not fullscreen review) */}
+        {!isFullscreen && (
+          <div className="flex items-center justify-between mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdateQuantity(item.id, Math.max(0, item.quantity - 1))}
+              className="h-8 w-8 p-0"
+              disabled={item.quantity <= 1}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="w-12 text-center text-sm font-medium">{item.quantity}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+              className="h-8 w-8 p-0"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemoveItem(item.id, item.name)}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Remove from cart</TooltipContent>
-          </Tooltip>
-        </div>
+        )}
+
+        {/* Detailed Breakdown */}
+        <Accordion type="single" collapsible className="w-full mt-2">
+          <AccordionItem value="details">
+            <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
+              View Service Details
+            </AccordionTrigger>
+            <AccordionContent className="pt-2 space-y-3">
+              {item.metadata?.detailedTasks && item.metadata.detailedTasks.length > 0 && (
+                <div>
+                  <h5 className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400 mb-1">
+                    <ListChecks className="h-4 w-4" /> Included Tasks:
+                  </h5>
+                  <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                    {item.metadata.detailedTasks.map((task: string, i: number) => (
+                      <li key={i}>{task}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {item.metadata?.notIncludedTasks && item.metadata.notIncludedTasks.length > 0 && (
+                <div>
+                  <h5 className="flex items-center gap-1 text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
+                    <ListX className="h-4 w-4" /> Not Included:
+                  </h5>
+                  <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                    {item.metadata.notIncludedTasks.map((task: string, i: number) => (
+                      <li key={i}>{task}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {item.metadata?.upsellMessage && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-md flex items-start gap-2">
+                  <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300">{item.metadata.upsellMessage}</p>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </motion.div>
     ))
-  }, [cartItems, handleRemoveItem, isFullscreen])
+  }, [cartItems, handleRemoveItem, handleUpdateQuantity, isFullscreen])
 
   // Don't render until mounted to avoid SSR issues
   if (!isMounted) {
@@ -504,11 +581,51 @@ export function CollapsibleCartPanel() {
                       <h4 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100">Order Summary</h4>
                       <div className="space-y-2 mb-4">
                         {cartItems.map((item) => (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              {item.name} (x{item.quantity})
-                            </span>
-                            <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
+                          <div key={item.id} className="flex flex-col gap-2 p-3 border-b last:border-b-0">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                {item.name} (x{item.quantity})
+                              </span>
+                              <span className="font-bold">{formatCurrency(item.price * item.quantity)}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              <p>Tier: {item.metadata?.roomConfig?.name || "N/A"}</p>
+                              {item.metadata?.roomConfig?.timeEstimate && (
+                                <p>Est. Time: {item.metadata.roomConfig.timeEstimate}</p>
+                              )}
+                            </div>
+                            {item.metadata?.detailedTasks && item.metadata.detailedTasks.length > 0 && (
+                              <div className="mt-2">
+                                <h5 className="flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400 mb-1">
+                                  <ListChecks className="h-3 w-3" /> Included:
+                                </h5>
+                                <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                  {item.metadata.detailedTasks.map((task: string, i: number) => (
+                                    <li key={i}>{task.replace(/ $$.*?$$/, "")}</li> // Remove time estimates for cleaner display
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {item.metadata?.notIncludedTasks && item.metadata.notIncludedTasks.length > 0 && (
+                              <div className="mt-2">
+                                <h5 className="flex items-center gap-1 text-xs font-semibold text-red-700 dark:text-red-400 mb-1">
+                                  <ListX className="h-3 w-3" /> Not Included:
+                                </h5>
+                                <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                  {item.metadata.notIncludedTasks.map((task: string, i: number) => (
+                                    <li key={i}>{task}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {item.metadata?.upsellMessage && (
+                              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-2 rounded-md flex items-start gap-1 mt-2">
+                                <Lightbulb className="h-3 w-3 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                                <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                                  {item.metadata.upsellMessage}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -537,22 +654,15 @@ export function CollapsibleCartPanel() {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back
                       </Button>
-                      <Button
-                        onClick={() => {
-                          // Placeholder for actual checkout logic
-                          toast({
-                            title: "Proceeding to Checkout",
-                            description: "This is a placeholder. Implement your checkout logic here!",
-                            duration: 3000,
-                          })
-                          vibrate(200)
-                        }}
-                        disabled={!isOnline || cartItems.length === 0}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Proceed to Checkout
-                      </Button>
+                      <Link href="/checkout">
+                        <Button
+                          disabled={!isOnline || cartItems.length === 0}
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Proceed to Checkout
+                        </Button>
+                      </Link>
                     </>
                   ) : (
                     <>

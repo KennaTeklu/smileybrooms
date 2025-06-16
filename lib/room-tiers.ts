@@ -8,6 +8,8 @@ export interface RoomTier {
   features: string[]
   timeEstimate: string
   detailedTasks: string[] // New field for detailed task breakdown
+  notIncludedTasks: string[] // New field for tasks not included
+  upsellMessage?: string // New field for upselling
 }
 
 export interface RoomAddOn {
@@ -43,6 +45,19 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Mirror/glass quick wipe (2min)",
         "✓ Quick floor spot-check (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Under-bed cleaning",
+        "✗ Closet organization",
+        "✗ Baseboard cleaning",
+        "✗ Window sill cleaning",
+        "✗ Light fixture dusting",
+        "✗ Mattress deep vacuum",
+        "✗ Wall spot cleaning",
+        "✗ Furniture polishing",
+        "✗ Ceiling fan detailed cleaning",
+        "✗ Air vent cleaning",
+      ],
+      upsellMessage: "For a more thorough clean including under-bed areas and baseboards, consider our ADVANCED CLEAN.",
     },
     {
       id: "bedroom-advanced",
@@ -64,7 +79,21 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Closet visible organization (15min)",
         "✓ Baseboards full wipe-down (8min)",
         "✓ Window sills + tracks detail (10min)",
+        "✓ Light fixture dusting (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Mattress deep vacuum & flip",
+        "✗ Light fixture interior cleaning",
+        "✗ Aroma mist treatment",
+        "✗ Wall spot cleaning",
+        "✗ Furniture polishing",
+        "✗ Ceiling fan detailed cleaning",
+        "✗ Closet deep organization",
+        "✗ Under furniture detailed cleaning",
+        "✗ Air vent cleaning",
+      ],
+      upsellMessage:
+        "Achieve maximum freshness with our PREMIUM CLEAN, covering every detail from mattress to ceiling fan.",
     },
     {
       id: "bedroom-premium",
@@ -95,7 +124,10 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Furniture polish + leather condition (25min)",
         "✓ Air vents remove + sanitize (20min)",
         "✓ Light fixtures disassemble + detail (25min)",
+        "✓ Door and doorframe cleaning (10min)",
+        "✓ Picture frame dusting (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   bathroom: [
@@ -115,6 +147,20 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Towel fold + hang (3min)",
         "✓ Quick surface sanitize (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Shower/tub scrubbing",
+        "✗ Toilet deep clean (interior/exterior)",
+        "✗ Floor detailed mopping",
+        "✗ Cabinet fronts cleaning",
+        "✗ Towel replacement",
+        "✗ Grout detailed cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Fixture polishing",
+        "✗ Aromatherapy treatment",
+        "✗ Shower door track cleaning",
+        "✗ Exhaust fan cleaning",
+      ],
+      upsellMessage: "For a deeper clean of your shower/tub and toilet, upgrade to our ADVANCED CLEAN.",
     },
     {
       id: "bathroom-advanced",
@@ -138,6 +184,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Cabinet fronts + handles (8min)",
         "✓ Fresh towels + bath mat (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Grout detailed cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Fixture polishing",
+        "✗ Aromatherapy treatment",
+        "✗ Shower door track cleaning",
+        "✗ Exhaust fan cleaning",
+        "✗ Mold/mildew treatment",
+        "✗ Tile wall cleaning",
+      ],
+      upsellMessage:
+        "Experience the ultimate bathroom refresh with our PREMIUM CLEAN, including grout and cabinet interiors.",
     },
     {
       id: "bathroom-premium",
@@ -169,7 +227,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Exhaust fan remove + wash (20min)",
         "✓ Mold/mildew treatment + prevention (25min)",
         "✓ Tile wall detail + protective coating (40min)",
+        "✓ Shower head descaling (10min)",
+        "✓ Drain cleaning (5min)",
+        "✓ Toilet tank cleaning (10min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   kitchen: [
@@ -189,6 +251,19 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Trash empty + new bag (2min)",
         "✓ Quick counter organize (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Appliance exterior cleaning",
+        "✗ Cabinet fronts wiping",
+        "✗ Floor detailed mopping",
+        "✗ Microwave interior cleaning",
+        "✗ Inside refrigerator cleaning",
+        "✗ Inside oven cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Dishwasher sanitizing cycle",
+        "✗ Range hood degreasing",
+      ],
+      upsellMessage:
+        "For a more comprehensive kitchen clean, including appliance exteriors and microwave interior, choose our ADVANCED CLEAN.",
     },
     {
       id: "kitchen-advanced",
@@ -212,6 +287,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Microwave interior + turntable (8min)",
         "✓ Trash + recycling organize (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Refrigerator interior organization",
+        "✗ Oven deep cleaning",
+        "✗ Cabinet interior organization (1-2 cabinets)",
+        "✗ Dishwasher sanitizing cycle",
+        "✗ Range hood degreasing",
+        "✗ Under sink cleaning",
+        "✗ Backsplash detailed cleaning",
+      ],
+      upsellMessage:
+        "For a truly spotless kitchen, our PREMIUM CLEAN offers deep cleaning of your oven, refrigerator interior, and more!",
     },
     {
       id: "kitchen-premium",
@@ -243,7 +329,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Under sink organize + pipe clean (25min)",
         "✓ Backsplash detail + grout treatment (35min)",
         "✓ Small appliances disassemble + detail (40min)",
+        "✓ Pantry organization (20min)",
+        "✓ Drawer cleaning and organization (15min)",
+        "✓ Cutting board sanitization (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   livingRoom: [
@@ -262,6 +352,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Quick floor spot vacuum (5min)",
         "✓ Trash empty + tidy (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Furniture vacuuming",
+        "✗ Under furniture cleaning",
+        "✗ Baseboard dusting",
+        "✗ Electronics dusting",
+        "✗ Upholstery spot treatment",
+        "✗ Ceiling fan detailed cleaning",
+        "✗ Window sill detailing",
+        "✗ Decor item individual cleaning",
+      ],
+      upsellMessage:
+        "For a more thorough clean including furniture vacuuming and under-furniture areas, consider our ADVANCED CLEAN.",
     },
     {
       id: "livingroom-advanced",
@@ -285,6 +387,17 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Electronics dust + cord organize (8min)",
         "✓ Decorative items dust + arrange (10min)",
       ],
+      notIncludedTasks: [
+        "✗ Upholstery spot treatment",
+        "✗ Ceiling fan detailed cleaning",
+        "✗ Window sill detailing",
+        "✗ Decor item individual cleaning",
+        "✗ Entertainment center organization",
+        "✗ Bookshelf dusting",
+        "✗ Light fixture cleaning",
+      ],
+      upsellMessage:
+        "For the ultimate living room transformation, our PREMIUM CLEAN offers upholstery spot treatment, detailed ceiling fan cleaning, and more!",
     },
     {
       id: "livingroom-premium",
@@ -315,7 +428,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Bookshelf organize + dust individual items (35min)",
         "✓ Light fixtures disassemble + crystal clean (25min)",
         "✓ Carpet spot treatment + deodorize (35min)",
+        "✓ Wall spot cleaning (10min)",
+        "✓ Air vent cleaning (10min)",
+        "✓ Furniture polishing (10min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   diningRoom: [
@@ -333,6 +450,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Light fixture dust (3min)",
         "✓ Quick surface organize (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Table polishing",
+        "✗ Chair detailed cleaning",
+        "✗ Baseboards dusting",
+        "✗ China cabinet exterior cleaning",
+        "✗ Floor detailed cleaning",
+        "✗ China/glassware cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Chandelier detailed cleaning",
+      ],
+      upsellMessage:
+        "For a more polished dining experience, our ADVANCED CLEAN includes table polishing and detailed chair cleaning.",
     },
     {
       id: "diningroom-advanced",
@@ -356,6 +485,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ China cabinet exterior + glass (10min)",
         "✓ Floor detail + under table (15min)",
       ],
+      notIncludedTasks: [
+        "✗ China/glassware cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Chandelier detailed cleaning",
+        "✗ Wall spot cleaning",
+        "✗ Upholstery spot treatment",
+        "✗ Decor item individual cleaning",
+      ],
+      upsellMessage:
+        "Transform your dining room into a sparkling haven with our PREMIUM CLEAN, featuring chandelier cleaning and fine china care!",
     },
     {
       id: "diningroom-premium",
@@ -379,7 +518,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Fine china hand wash + organize (40min)",
         "✓ Table leaf clean + proper storage (20min)",
         "✓ Silverware polish + anti-tarnish treatment (25min)",
+        "✓ Wall spot cleaning (10min)",
+        "✓ Upholstery spot treatment (10min)",
+        "✓ Decor item individual cleaning (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   homeOffice: [
@@ -397,6 +540,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Chair quick wipe (3min)",
         "✓ Papers stack neatly (6min)",
       ],
+      notIncludedTasks: [
+        "✗ Electronics dusting",
+        "✗ Bookshelf organization",
+        "✗ Chair cleaning",
+        "✗ Window sill cleaning",
+        "✗ Baseboard dusting",
+        "✗ Filing cabinet organization",
+        "✗ Keyboard and peripheral cleaning",
+        "✗ Monitor detailed cleaning",
+      ],
+      upsellMessage:
+        "Boost your productivity with our ADVANCED CLEAN, including detailed electronics dusting and bookshelf organization.",
     },
     {
       id: "office-advanced",
@@ -420,6 +575,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Window sill + blinds dust (10min)",
         "✓ Baseboards + corners (15min)",
       ],
+      notIncludedTasks: [
+        "✗ Filing cabinet organization",
+        "✗ Keyboard and peripheral cleaning",
+        "✗ Monitor detailed cleaning",
+        "✗ Cable management",
+        "✗ Drawer organization",
+        "✗ Wall spot cleaning",
+      ],
+      upsellMessage:
+        "For a truly professional and organized workspace, our PREMIUM CLEAN offers comprehensive filing system and keyboard cleaning!",
     },
     {
       id: "office-premium",
@@ -443,7 +608,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Monitor calibration clean + screen protect (20min)",
         "✓ Cable management + cord organization (35min)",
         "✓ Desk drawer complete organization (35min)",
+        "✓ Wall spot cleaning (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   laundryRoom: [
@@ -460,6 +627,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Sink quick rinse (4min)",
         "✓ Trash empty (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Washer/dryer exterior cleaning",
+        "✗ Countertop detailed cleaning",
+        "✗ Floor detailed mopping",
+        "✗ Cabinet fronts wiping",
+        "✗ Lint trap cleaning",
+        "✗ Washer drum cleaning",
+        "✗ Dryer vent cleaning",
+        "✗ Cabinet interior organization",
+      ],
+      upsellMessage:
+        "For a more hygienic laundry space, our ADVANCED CLEAN includes washer/dryer exterior cleaning and lint trap cleaning.",
     },
     {
       id: "laundry-advanced",
@@ -483,6 +662,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Cabinet fronts + handles (10min)",
         "✓ Lint trap + surrounding clean (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Washer drum cleaning",
+        "✗ Dryer vent cleaning",
+        "✗ Cabinet interior organization",
+        "✗ Utility sink deep cleaning",
+        "✗ Detergent area organization",
+        "✗ Wall spot cleaning",
+      ],
+      upsellMessage:
+        "For a truly deep clean, our PREMIUM CLEAN offers washer drum and dryer vent cleaning, plus cabinet interior organization!",
     },
     {
       id: "laundry-premium",
@@ -506,7 +695,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Cabinet interior organize + supplies (40min)",
         "✓ Utility sink deep scrub + pipe check (25min)",
         "✓ Detergent area organize + spill cleanup (15min)",
+        "✓ Wall spot cleaning (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   entryway: [
@@ -522,6 +713,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Surface dust + wipe (4min)",
         "✓ Door + handle clean (4min)",
       ],
+      notIncludedTasks: [
+        "✗ Floor detailed mopping",
+        "✗ Baseboard dusting",
+        "✗ Light fixture dusting",
+        "✗ Mirror cleaning",
+        "✗ Console table organization",
+        "✗ Chandelier detailed cleaning",
+        "✗ Wall spot cleaning",
+        "✗ Decor item individual cleaning",
+      ],
+      upsellMessage:
+        "Make a grander entrance with our ADVANCED CLEAN, including detailed floor mopping and baseboard dusting.",
     },
     {
       id: "entryway-advanced",
@@ -545,6 +748,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Mirror streak-free clean (3min)",
         "✓ Console table organize + dust (15min)",
       ],
+      notIncludedTasks: [
+        "✗ Chandelier detailed cleaning",
+        "✗ Wall spot cleaning",
+        "✗ Decor item individual cleaning",
+        "✗ Shoe organization",
+        "✗ Coat closet organization",
+        "✗ Door hardware polishing",
+      ],
+      upsellMessage:
+        "For an immaculate entryway, our PREMIUM CLEAN offers chandelier cleaning, shoe organization, and more!",
     },
     {
       id: "entryway-premium",
@@ -569,6 +782,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Coat closet complete organization (30min)",
         "✓ Door hardware polish + protect (8min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   hallway: [
@@ -584,6 +798,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Surface dust visible areas (4min)",
         "✓ Light fixture quick dust (4min)",
       ],
+      notIncludedTasks: [
+        "✗ Floor detailed mopping",
+        "✗ Baseboard dusting",
+        "✗ Wall spot cleaning",
+        "✗ Picture frame dusting",
+        "✗ Door cleaning",
+        "✗ Runner/carpet detailed cleaning",
+        "✗ Light fixture detailed cleaning",
+        "✗ Artwork/decor individual cleaning",
+      ],
+      upsellMessage:
+        "For a more pristine hallway, our ADVANCED CLEAN includes detailed floor mopping and baseboard dusting.",
     },
     {
       id: "hallway-advanced",
@@ -607,6 +833,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Picture frames dust (4min)",
         "✓ Doors + frames wipe (13min)",
       ],
+      notIncludedTasks: [
+        "✗ Runner/carpet detailed cleaning",
+        "✗ Light fixture detailed cleaning",
+        "✗ Artwork/decor individual cleaning",
+        "✗ Door hardware polishing",
+        "✗ Ceiling corner cobweb removal",
+        "✗ Air vent cleaning",
+      ],
+      upsellMessage:
+        "For a truly spotless corridor, our PREMIUM CLEAN offers deep cleaning of runners/carpets and detailed light fixture cleaning!",
     },
     {
       id: "hallway-premium",
@@ -630,7 +866,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Artwork individual clean + level (25min)",
         "✓ Door hardware polish + hinges (8min)",
         "✓ Ceiling corner cobweb + dust removal (20min)",
+        "✓ Air vent cleaning (5min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   stairs: [
@@ -647,6 +885,18 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Visible surfaces dust (4min)",
         "✓ Quick safety check (3min)",
       ],
+      notIncludedTasks: [
+        "✗ Step detailed cleaning",
+        "✗ Handrail detailed cleaning",
+        "✗ Baseboard dusting",
+        "✗ Spindle dusting",
+        "✗ Wall spot cleaning",
+        "✗ Carpet deep cleaning",
+        "✗ Spindle detailed cleaning",
+        "✗ Stair runner detailed cleaning",
+      ],
+      upsellMessage:
+        "For a more thorough staircase clean, our ADVANCED CLEAN includes detailed step and handrail cleaning.",
     },
     {
       id: "stairs-advanced",
@@ -670,6 +920,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Spindles dust + wipe (6min)",
         "✓ Wall spots + marks (13min)",
       ],
+      notIncludedTasks: [
+        "✗ Carpet deep cleaning",
+        "✗ Spindle detailed cleaning",
+        "✗ Stair runner detailed cleaning",
+        "✗ Under-stair visible areas",
+        "✗ Light fixture detailed cleaning",
+        "✗ Decorative element cleaning",
+      ],
+      upsellMessage:
+        "For a truly grand staircase, our PREMIUM CLEAN offers deep carpet cleaning and detailed spindle cleaning!",
     },
     {
       id: "stairs-premium",
@@ -693,7 +953,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Stair runner professional clean (30min)",
         "✓ Under-stair accessible area organize (15min)",
         "✓ Light fixtures disassemble + clean (15min)",
+        "✓ Decorative element cleaning (10min)",
       ],
+      notIncludedTasks: [],
     },
   ],
   default: [
@@ -705,6 +967,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       timeEstimate: "20 minutes",
       features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
       detailedTasks: ["✓ Surface dusting (5min)", "✓ Floor vacuum/sweep (8min)", "✓ General tidying (7min)"],
+      notIncludedTasks: [
+        "✗ Detailed dusting",
+        "✗ Floor detailed cleaning",
+        "✗ Baseboard attention",
+        "✗ Surface sanitizing",
+        "✗ Specialty surface treatment",
+        "✗ Detail work on fixtures",
+        "✗ Hard-to-reach areas",
+      ],
+      upsellMessage: "For a more thorough and detailed clean, consider our ADVANCED CLEAN.",
     },
     {
       id: "default-advanced",
@@ -728,6 +1000,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Surface sanitizing (10min)",
         "✓ Trash removal (5min)",
       ],
+      notIncludedTasks: [
+        "✗ Specialty surface treatment",
+        "✗ Detail work on fixtures",
+        "✗ Hard-to-reach areas",
+        "✗ Aromatherapy finishing",
+        "✗ Wall spot cleaning",
+        "✗ Ceiling corner cleaning",
+      ],
+      upsellMessage:
+        "For the most comprehensive clean, our PREMIUM CLEAN covers every nook and cranny with specialty treatments!",
     },
     {
       id: "default-premium",
@@ -763,6 +1045,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Furniture polishing (20min)",
         "✓ Decor item individual cleaning (20min)",
       ],
+      notIncludedTasks: [],
     },
   ],
 }

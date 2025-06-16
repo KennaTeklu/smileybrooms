@@ -17,13 +17,16 @@ import {
   Info,
   CheckCircle,
   ArrowUp,
+  ListChecks,
+  ListX,
+  Lightbulb,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area" // Modified to accept onScroll and viewportClassName
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Switch } from "@/components/ui/switch" // For scroll customization
-import { Label } from "@/components/ui/label" // For scroll customization
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { useRoomContext } from "@/lib/room-context"
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
@@ -36,8 +39,9 @@ import { formatCurrency } from "@/lib/utils"
 import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { useMomentumScroll } from "@/hooks/use-momentum-scroll" // For momentum scrolling
-import { useIntersectionObserver } from "@/hooks/use-intersection-observer" // For infinite scrolling concept
+import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export function CollapsibleAddAllPanel() {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -271,6 +275,9 @@ export function CollapsibleAddAllPanel() {
               roomConfig: config,
               isRecurring: false,
               frequency: "one_time",
+              detailedTasks: config.detailedTasks, // Pass detailed tasks
+              notIncludedTasks: config.notIncludedTasks, // Pass not included tasks
+              upsellMessage: config.upsellMessage, // Pass upsell message
             },
           })
 
@@ -366,63 +373,111 @@ export function CollapsibleAddAllPanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           className={cn(
-            "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
+            "flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
             isFullscreen && "hover:shadow-lg",
             "snap-start", // Scroll-snapping
           )}
           ref={index === selectedRoomTypes.length - 1 ? lastItemRef : null} // For infinite scroll concept
         >
-          <div
-            className={cn(
-              "relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md",
-              isFullscreen && "w-20 h-20",
-            )}
-          >
-            <Image
-              src={roomImages[roomType] || "/placeholder.svg"}
-              alt={roomDisplayNames[roomType] || roomType}
-              fill
-              className="object-cover"
-            />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h4
-              className={cn("font-bold text-base text-gray-900 dark:text-gray-100 truncate", isFullscreen && "text-lg")}
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md",
+                isFullscreen && "w-20 h-20",
+              )}
             >
-              {roomDisplayNames[roomType] || roomType}
-            </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-              {config?.selectedTier || "Essential Clean"}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="secondary" className="text-xs">
-                Qty: {count}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {formatCurrency(config?.totalPrice || 0)}
-              </Badge>
+              <Image
+                src={roomImages[roomType] || "/placeholder.svg"}
+                alt={roomDisplayNames[roomType] || roomType}
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h4
+                className={cn(
+                  "font-bold text-base text-gray-900 dark:text-gray-100 truncate",
+                  isFullscreen && "text-lg",
+                )}
+              >
+                {roomDisplayNames[roomType] || roomType}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                {config?.selectedTier || "Essential Clean"}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary" className="text-xs">
+                  Qty: {count}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {formatCurrency(config?.totalPrice || 0)}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="text-right flex-shrink-0">
+              <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
+                {formatCurrency(roomTotal)}
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRoom(roomType)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove from selection</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
-          <div className="text-right flex-shrink-0">
-            <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
-              {formatCurrency(roomTotal)}
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemoveRoom(roomType)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Remove from selection</TooltipContent>
-            </Tooltip>
-          </div>
+          {/* Detailed Breakdown */}
+          <Accordion type="single" collapsible className="w-full mt-2">
+            <AccordionItem value="details">
+              <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
+                View Details
+              </AccordionTrigger>
+              <AccordionContent className="pt-2 space-y-3">
+                {config?.detailedTasks && config.detailedTasks.length > 0 && (
+                  <div>
+                    <h5 className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400 mb-1">
+                      <ListChecks className="h-4 w-4" /> Included Tasks:
+                    </h5>
+                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                      {config.detailedTasks.map((task, i) => (
+                        <li key={i}>{task}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {config?.notIncludedTasks && config.notIncludedTasks.length > 0 && (
+                  <div>
+                    <h5 className="flex items-center gap-1 text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
+                      <ListX className="h-4 w-4" /> Not Included:
+                    </h5>
+                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                      {config.notIncludedTasks.map((task, i) => (
+                        <li key={i}>{task}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {config?.upsellMessage && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-md flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-yellow-800 dark:text-yellow-300">{config.upsellMessage}</p>
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </motion.div>
       )
     })
