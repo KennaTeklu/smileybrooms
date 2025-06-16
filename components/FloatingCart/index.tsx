@@ -1,100 +1,93 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { AnimatePresence } from "framer-motion"
-import { useCart } from "@/lib/cart-context"
-import { useCartPosition } from "@/hooks/useCartPosition"
-import { useCartA11y } from "@/hooks/useCartA11y"
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { CartButton } from "./CartButton"
 import { CartPanel } from "./CartPanel"
+import { useCart } from "@/lib/cart-context"
+import { useClickOutside } from "@/hooks/use-click-outside"
+import { useCartPosition } from "@/hooks/useCartPosition" // Import the modified hook
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { useCartA11y } from "@/hooks/useCartA11y"
 import { cn } from "@/lib/utils"
-import styles from "./cart.module.css"
+import { FLOATING_LAYERS } from "@/lib/floating-system" // Assuming FLOATING_LAYERS is available
 
-interface FloatingCartProps {
-  className?: string
-}
+export function FloatingCart() {
+  const { cartItems, getTotalItems, getTotalPrice } = useCart()
+  const itemCount = getTotalItems()
+  const totalPrice = getTotalPrice()
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
-export function FloatingCart({ className }: FloatingCartProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const { cart } = useCart()
-  const { cartRef, boundary } = useCartPosition()
-  const { a11yState, announceCartUpdate, trapFocus, focusTrapRef } = useCartA11y()
+  // Use the modified useCartPosition hook for sticky-page behavior
+  const { cartRef: buttonContainerRef, styles: buttonContainerStyles } = useCartPosition({
+    mode: "sticky-page",
+    padding: 20, // Bottom padding from document end for the cart button
+    initialViewportTopOffset: 20, // Initial offset from viewport top for the cart button
+    rightOffset: 20, // Right padding from viewport/document edge for the cart button
+  })
+
+  useClickOutside(panelRef, (event) => {
+    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+      return // Click was on the button, don't close panel
+    }
+    setIsPanelOpen(false)
+  })
+
+  useKeyboardShortcuts({
+    "alt+c": () => setIsPanelOpen((prev) => !prev),
+    Escape: () => setIsPanelOpen(false),
+  })
+
+  useCartA11y({ isPanelOpen, itemCount, totalPrice })
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  const handleOpenCart = () => {
-    setIsOpen(true)
-    announceCartUpdate("open", undefined, cart.totalItems)
-  }
-
-  const handleCloseCart = () => {
-    setIsOpen(false)
-    announceCartUpdate("close", undefined, cart.totalItems)
-  }
-
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        handleCloseCart()
-      }
+    if (itemCount === 0 && isPanelOpen) {
+      setIsPanelOpen(false)
     }
+  }, [itemCount, isPanelOpen])
 
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown)
-      trapFocus(true)
-
-      // Prevent body scroll
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = "unset"
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-      document.body.style.overflow = "unset"
-    }
-  }, [isOpen, trapFocus])
-
-  // Don't render until mounted to avoid SSR issues
-  if (!isMounted) {
-    return null
+  const handleButtonClick = () => {
+    setIsPanelOpen((prev) => !prev)
   }
 
   return (
-    <>
-      {/* Fixed Cart Container */}
-      <div ref={cartRef} className={cn(styles.cartContainer, className)} data-testid="floating-cart-container">
-        <CartButton itemCount={cart.totalItems} totalPrice={cart.totalPrice} onClick={handleOpenCart} isOpen={isOpen} />
-      </div>
+    <div
+      ref={buttonContainerRef} // Assign ref to the container div
+      className={cn(
+        `z-[${FLOATING_LAYERS.CART_BUTTON}] transition-all duration-300 ease-out`, // Use FLOATING_LAYERS
+        itemCount === 0 && "hidden", // Hide if no items
+      )}
+      style={buttonContainerStyles} // Apply calculated styles here
+    >
+      <CartButton
+        ref={buttonRef}
+        itemCount={itemCount}
+        totalPrice={totalPrice}
+        onClick={handleButtonClick}
+        isOpen={isPanelOpen}
+        disabled={itemCount === 0}
+      />
 
-      {/* Cart Panel with Animation */}
-      <AnimatePresence mode="wait">
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className={styles.cartBackdrop}
-              onClick={handleCloseCart}
-              aria-label="Close cart"
-              data-testid="cart-backdrop"
-            />
-
-            {/* Cart Panel */}
-            <div ref={focusTrapRef}>
-              <CartPanel isOpen={isOpen} onClose={handleCloseCart} cart={cart} />
-            </div>
-          </>
+      <AnimatePresence>
+        {isPanelOpen && (
+          <motion.div
+            ref={panelRef}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="absolute bottom-full right-0 mb-4 w-80 sm:w-96 max-h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+            id="cart-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-panel-title"
+          >
+            <CartPanel onClose={() => setIsPanelOpen(false)} />
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Screen Reader Announcements */}
-      <div id="cart-status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {a11yState.statusMessage}
-      </div>
-    </>
+    </div>
   )
 }

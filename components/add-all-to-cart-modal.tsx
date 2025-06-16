@@ -55,8 +55,10 @@ export function AddAllToCartModal() {
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
 
-  // State for dynamic top offset
-  const [topOffset, setTopOffset] = useState(72) // Default to 64px header + 8px gap
+  // Ref for the main container div to get its height
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [calculatedTop, setCalculatedTop] = useState<string>("auto")
+  const [calculatedRight, setCalculatedRight] = useState<string>("auto")
 
   // Motion values for interactive effects
   const mouseX = useMotionValue(0)
@@ -68,26 +70,52 @@ export function AddAllToCartModal() {
   const totalPrice = getTotalPrice()
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
 
-  // Calculate top offset based on header height + 2cm
+  // --- Positioning logic for "sticky to page bottom" for this specific component ---
+  const initialViewportTopOffset = 100 // How far from the top of the viewport it initially appears
+  const bottomPadding = 100 // How far from the bottom of the document it should stop
+  const rightPadding = "clamp(1rem, 3vw, 2rem)" // Right padding from viewport/document edge
+
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return
+
+    const elementHeight = containerRef.current.offsetHeight
+    const documentHeight = document.documentElement.scrollHeight
+    const scrollY = window.scrollY
+
+    // Calculate desired top position if it were to follow scroll
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+
+    // Calculate the maximum top position to stick to the bottom of the document
+    const maxTopAtDocumentBottom = documentHeight - elementHeight - bottomPadding
+
+    // The final top position is the minimum of (following scroll) and (sticking to document bottom)
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setCalculatedTop(`${finalTop}px`)
+    setCalculatedRight(rightPadding) // Use the right padding directly
+  }, [initialViewportTopOffset, bottomPadding, rightPadding])
+
   useEffect(() => {
-    const header = document.getElementById("main-header")
-    if (!header) {
-      console.warn("Header with ID 'main-header' not found. Button positioning might be off.")
-      return
+    const handleScrollAndResize = () => {
+      updatePosition()
     }
 
-    const updateOffset = () => {
-      const twoCmInPx = 2 * (96 / 2.54) // 1 inch = 96px, 1 inch = 2.54cm
-      setTopOffset(header.offsetHeight + twoCmInPx)
-    }
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+    window.addEventListener("orientationchange", handleScrollAndResize, { passive: true })
 
-    updateOffset()
-    window.addEventListener("resize", updateOffset)
+    // Initial calculation after component mounts and potentially renders
+    // Use a timeout to ensure element height is calculated after initial render
+    const timeoutId = setTimeout(updatePosition, 0)
 
     return () => {
-      window.removeEventListener("resize", updateOffset)
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+      window.removeEventListener("orientationchange", handleScrollAndResize)
+      clearTimeout(timeoutId)
     }
-  }, [])
+  }, [updatePosition])
+  // --- End positioning logic ---
 
   // Show button when multi-selection is active
   useEffect(() => {
@@ -256,10 +284,11 @@ export function AddAllToCartModal() {
   return (
     <TooltipProvider>
       <motion.div
-        className="fixed z-[999]"
+        ref={containerRef} // Assign ref here
+        className="absolute z-[999]" // Change from fixed to absolute
         style={{
-          top: `${topOffset}px`,
-          right: "clamp(1rem, 3vw, 2rem)",
+          top: calculatedTop, // Use calculated top
+          right: calculatedRight, // Use calculated right
           left: "auto",
           bottom: "auto",
           width: "fit-content",
