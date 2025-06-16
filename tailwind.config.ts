@@ -61,9 +61,13 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        "brooms-highlight": {
-          DEFAULT: "#22c55e", // A vibrant green for light mode (Tailwind green-500)
-          dark: "#86efac", // A lighter green for dark mode (Tailwind green-300)
+        "brooms-highlight-bg": {
+          DEFAULT: "#dcfce7", // Light green background for light mode (Tailwind green-100)
+          dark: "#166534", // Dark green background for dark mode (Tailwind green-800)
+        },
+        "brooms-highlight-text": {
+          DEFAULT: "#1f2937", // Dark gray text for light mode background
+          dark: "#f9fafb", // Light white text for dark mode background
         },
       },
       borderRadius: {

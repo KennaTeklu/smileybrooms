@@ -75,7 +75,7 @@ export default function ServiceEmailSummary({
         </CardTitle>
         <CardDescription>
           Review your service details and send them directly to{" "}
-          <span className="text-brooms-highlight">smileybrooms</span>
+          <span className="bg-brooms-highlight-bg text-brooms-highlight-text">smileybrooms</span>
         </CardDescription>
       </CardHeader>
       <CardContent>
