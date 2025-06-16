@@ -1,256 +1,675 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { PlusCircle, ChevronRight, X, CheckCircle, Maximize2, Minimize2, ShoppingCart } from "lucide-react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { motion, AnimatePresence, useAnimation } from "framer-motion"
+import {
+  ShoppingCart,
+  Plus,
+  Package,
+  Trash2,
+  X,
+  ChevronRight,
+  ArrowLeft,
+  Check,
+  Maximize2,
+  Minimize2,
+  ArrowRight,
+  Info,
+  CheckCircle,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useRoomContext } from "@/lib/room-context"
+import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
-import { RoomCategory } from "@/components/room-category"
-import { RoomConfig } from "@/lib/room-config"
+import { useClickOutside } from "@/hooks/use-click-outside"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { useVibration } from "@/hooks/use-vibration"
+import { useNetworkStatus } from "@/hooks/use-network-status"
+import { toast } from "@/components/ui/use-toast"
+import { formatCurrency } from "@/lib/utils"
+import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
+import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 export function CollapsibleAddAllPanel() {
-  const { cart, addRoomToCart, removeRoomFromCart } = useCart()
+  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
+  const isMultiSelection = useMultiSelection(roomCounts)
+  const { addItem } = useCart()
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isFullScreen, setIsFullScreen] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
+  const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
+  const [addedItemsCount, setAddedItemsCount] = useState(0)
+  const [isVisible, setIsVisible] = useState(false) // Control panel visibility
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const { vibrate } = useVibration()
+  const { isOnline } = useNetworkStatus()
+  const controls = useAnimation()
 
-  // Define configurable scroll range values
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const minBottomOffset = 100 // Minimum distance from the bottom of the viewport (increased for more scroll range)
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
+  // State for dynamic positioning - start with fixed position, then adjust
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
 
-  // Handle mounting for SSR
+  const selectedRoomTypes = getSelectedRoomTypes()
+  const totalPrice = getTotalPrice()
+  const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
+
+  // Check if selection requirements are met (2 or more rooms selected)
+  const selectionRequirementsMet = selectedRoomTypes.length >= 2
+
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  // Pause panel's scroll-following when expanded or in full screen
+  // Pause scroll tracking when panel is expanded or in fullscreen
   useEffect(() => {
-    setIsScrollPaused(isExpanded || isFullScreen)
-  }, [isExpanded, isFullScreen])
+    setIsScrollPaused(isExpanded || isFullscreen)
+  }, [isExpanded, isFullscreen])
 
-  // Track scroll position and panel height after mounting
+  // Immediate visibility control - show panel as soon as requirements are met
   useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
+    if (selectionRequirementsMet) {
+      setIsVisible(true)
 
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
+      // Force immediate positioning calculation
+      const calculateInitialPosition = () => {
+        const viewportHeight = window.innerHeight
+        const scrollY = window.scrollY
+
+        // Always start at 150px from current viewport top
+        const initialTop = scrollY + 150
+        setPanelTopPosition(`${initialTop}px`)
+      }
+
+      // Calculate position immediately
+      calculateInitialPosition()
+
+      // Enhanced pulse animation for visibility when first appearing
+      controls.start({
+        scale: [1, 1.08, 1],
+        boxShadow: [
+          "0 4px 20px rgba(59, 130, 246, 0.3)",
+          "0 12px 50px rgba(59, 130, 246, 0.8)",
+          "0 4px 20px rgba(59, 130, 246, 0.3)",
+        ],
+        transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
+      })
+
+      // Haptic feedback when panel first appears
+      vibrate(150)
+    } else {
+      setIsVisible(false)
+      setIsExpanded(false)
+      setIsFullscreen(false)
+      controls.stop()
+    }
+  }, [selectionRequirementsMet, controls, vibrate])
+
+  // Calculate panel position based on scroll and viewport (only after initial show)
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current || isFullscreen || !isVisible || isScrollPaused) return
+
+    const panelHeight = panelRef.current.offsetHeight || 200 // fallback height
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    // Start position: 150px from top of viewport (below share panel)
+    const initialViewportTopOffset = 150
+    const bottomPadding = 20 // Distance from bottom of document
+
+    // Calculate desired top position
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
+
+    // Use the minimum to ensure it doesn't go past the document bottom
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setPanelTopPosition(`${finalTop}px`)
+  }, [isFullscreen, isVisible, isScrollPaused])
+
+  useEffect(() => {
+    // Only set up scroll listeners after panel is visible and not paused
+    if (!isVisible || isScrollPaused) return
+
+    const handleScrollAndResize = () => {
+      if (!isFullscreen) {
+        calculatePanelPosition()
       }
     }
 
-    // No setTimeout here, attach listeners immediately
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
+    // Add listeners immediately
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+    // Initial calculation after listeners are set
+    calculatePanelPosition()
 
     return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
     }
-  }, [isMounted, isScrollPaused])
+  }, [calculatePanelPosition, isVisible, isScrollPaused])
 
-  // Handle click outside to collapse panel
-  useEffect(() => {
-    if (!isMounted) return
+  // Close panel when clicking outside
+  useClickOutside(panelRef, (event) => {
+    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+      return // Click was on the button, don't close panel
+    }
+    if (!isFullscreen) {
+      setIsExpanded(false)
+    }
+  })
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded && !isFullScreen) {
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    "alt+a": () => selectionRequirementsMet && setIsExpanded((prev) => !prev),
+    Escape: () => {
+      if (isFullscreen) {
+        setIsFullscreen(false)
+        setReviewStep(0)
+      } else {
         setIsExpanded(false)
       }
+    },
+  })
+
+  const handleAddAllToCart = useCallback(() => {
+    try {
+      let addedCount = 0
+
+      selectedRoomTypes.forEach((roomType) => {
+        const count = roomCounts[roomType]
+        const config = roomConfigs[roomType]
+
+        if (count > 0) {
+          addItem({
+            id: `custom-cleaning-${roomType}-${Date.now()}`,
+            name: `${config.roomName} Cleaning`,
+            price: config.totalPrice,
+            priceId: "price_custom_cleaning",
+            quantity: count,
+            image: roomImages[roomType] || "/placeholder.svg",
+            metadata: {
+              roomType,
+              roomConfig: config,
+              isRecurring: false,
+              frequency: "one_time",
+            },
+          })
+
+          updateRoomCount(roomType, 0)
+          addedCount++
+        }
+      })
+
+      if (addedCount > 0) {
+        vibrate([100, 50, 100]) // Success pattern
+
+        // Set success notification state
+        setAddedItemsCount(addedCount)
+        setShowSuccessNotification(true)
+
+        // Close panels
+        setIsExpanded(false)
+        setIsFullscreen(false)
+        setReviewStep(0)
+
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          setShowSuccessNotification(false)
+        }, 3000)
+      }
+    } catch (error) {
+      console.error("Error adding all items to cart:", error)
+      vibrate(300) // Error pattern
+      toast({
+        title: "Failed to add to cart",
+        description: "There was an error adding all items to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
+  }, [selectedRoomTypes, roomCounts, roomConfigs, addItem, updateRoomCount, vibrate])
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isFullScreen, isMounted])
+  const handleRemoveRoom = useCallback(
+    (roomType: string) => {
+      updateRoomCount(roomType, 0)
+      vibrate(50) // Light feedback
+    },
+    [updateRoomCount, vibrate],
+  )
 
-  // Determine if the panel should be visible
-  const showPanel = cart.rooms.length >= 2
+  const handleReviewClick = useCallback(() => {
+    setIsFullscreen(true)
+    vibrate(50)
+  }, [vibrate])
 
-  // Don't render until mounted to prevent SSR issues
+  const handleBackToPanel = useCallback(() => {
+    setIsFullscreen(false)
+    setReviewStep(0)
+    vibrate(50)
+  }, [vibrate])
+
+  const handleNextStep = useCallback(() => {
+    setReviewStep(1)
+    vibrate(50)
+  }, [vibrate])
+
+  const handlePrevStep = useCallback(() => {
+    setReviewStep(0)
+    vibrate(50)
+  }, [vibrate])
+
+  // Memoized room list with enhanced styling
+  const roomList = useMemo(() => {
+    return selectedRoomTypes.map((roomType) => {
+      const config = roomConfigs[roomType]
+      const count = roomCounts[roomType]
+      const roomTotal = (config?.totalPrice || 0) * count
+
+      return (
+        <motion.div
+          key={roomType}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className={cn(
+            "flex items-center gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
+            isFullscreen && "hover:shadow-lg",
+          )}
+        >
+          <div
+            className={cn(
+              "relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md",
+              isFullscreen && "w-20 h-20",
+            )}
+          >
+            <Image
+              src={roomImages[roomType] || "/placeholder.svg"}
+              alt={roomDisplayNames[roomType] || roomType}
+              fill
+              className="object-cover"
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h4
+              className={cn("font-bold text-base text-gray-900 dark:text-gray-100 truncate", isFullscreen && "text-lg")}
+            >
+              {roomDisplayNames[roomType] || roomType}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+              {config?.selectedTier || "Essential Clean"}
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs">
+                Qty: {count}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {formatCurrency(config?.totalPrice || 0)}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="text-right flex-shrink-0">
+            <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
+              {formatCurrency(roomTotal)}
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveRoom(roomType)}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove from selection</TooltipContent>
+            </Tooltip>
+          </div>
+        </motion.div>
+      )
+    })
+  }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, isFullscreen])
+
+  // Don't render until mounted to avoid SSR issues
   if (!isMounted) {
     return null
   }
 
-  // Calculate panel position based on scroll and document height
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const viewportHeight = window.innerHeight // Height of the viewport
+  // Success notification overlay
+  const SuccessNotification = () => (
+    <AnimatePresence>
+      {showSuccessNotification && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 50 }}
+          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">Items Added to Cart!</div>
+              <div className="text-xs opacity-90">
+                {addedItemsCount} room type{addedItemsCount !== 1 ? "s" : ""} added successfully
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 
-  // Calculate the maximum top position the panel can reach
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+  // Don't show if not visible or selection requirements are not met
+  if (!isVisible || !selectionRequirementsMet) {
+    return <SuccessNotification />
+  }
 
-  // Calculate the dynamic top position based on scroll
-  const dynamicTop = window.scrollY + initialScrollOffset
+  // Fullscreen review mode
+  if (isFullscreen) {
+    return (
+      <>
+        <SuccessNotification />
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white dark:bg-gray-900 z-[999] overflow-hidden flex flex-col"
+          >
+            {/* Fullscreen Header */}
+            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
+              <div className="container mx-auto flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackToPanel}
+                    className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <div>
+                    <h2 className="text-xl font-bold">Review Your Selections</h2>
+                    <p className="text-blue-100 text-sm">
+                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected •{" "}
+                      <span className="bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBackToPanel}
+                  className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                >
+                  <Minimize2 className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
 
-  // Ensure the panel doesn't go above minTopOffset or below minBottomOffset from viewport bottom
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(
-        minTopOffset,
-        Math.min(
-          dynamicTop,
-          viewportHeight - panelHeight - minBottomOffset, // Ensure it doesn't go too low in viewport
-          maxPanelTop, // Ensure it doesn't go off the bottom of the document
-        ),
-      )}px`
+            {/* Fullscreen Content */}
+            <div className="flex-1 overflow-auto">
+              <div className="container mx-auto py-6 px-4">
+                {reviewStep === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                  >
+                    <div className="grid gap-6 mb-8">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h3 className="font-medium text-blue-800 dark:text-blue-300">Review Your Selections</h3>
+                          <p className="text-sm text-blue-700 dark:text-blue-400">
+                            Please review your selected rooms before adding them to your cart. You can adjust quantities
+                            or remove items as needed.
+                          </p>
+                        </div>
+                      </div>
 
-  const handleAddAllToCart = useCallback(() => {
-    // Logic to add all remaining rooms to cart
-    const roomsToAdd = RoomConfig.filter((room) => !cart.rooms.some((cartRoom) => cartRoom.id === room.id))
-    roomsToAdd.forEach((room) => addRoomToCart(room))
-    setIsExpanded(false) // Collapse after adding
-    setIsFullScreen(false) // Exit full screen if active
-  }, [cart.rooms, addRoomToCart, setIsExpanded, setIsFullScreen])
+                      <div className="space-y-4">{roomList}</div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="max-w-2xl mx-auto"
+                  >
+                    <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800 mb-8 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-800/30 rounded-full mb-4">
+                        <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">
+                        Ready to Add to Cart
+                      </h3>
+                      <p className="text-green-700 dark:text-green-400 mb-4">
+                        You're about to add {selectedRoomTypes.length} room type
+                        {selectedRoomTypes.length !== 1 ? "s" : ""} to your cart for a total of{" "}
+                        {formatCurrency(totalPrice)}.
+                      </p>
+                      <div className="text-sm text-green-600 dark:text-green-500">
+                        Click "Add All to Cart" below to continue.
+                      </div>
+                    </div>
 
-  const handleRemoveAllFromCart = useCallback(() => {
-    // Logic to remove all rooms from cart
-    cart.rooms.forEach((room) => removeRoomFromCart(room.id))
-    setIsExpanded(false) // Collapse after removing
-    setIsFullScreen(false) // Exit full screen if active
-  }, [cart.rooms, removeRoomFromCart, setIsExpanded, setIsFullScreen])
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                      <h4 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100">Order Summary</h4>
+                      <div className="space-y-2 mb-4">
+                        {selectedRoomTypes.map((roomType) => {
+                          const config = roomConfigs[roomType]
+                          const count = roomCounts[roomType]
+                          const roomTotal = (config?.totalPrice || 0) * count
 
-  const totalRooms = RoomConfig.length
-  const roomsInCart = cart.rooms.length
-  const roomsRemaining = totalRooms - roomsInCart
+                          return (
+                            <div key={roomType} className="flex justify-between text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {roomDisplayNames[roomType] || roomType} (x{count})
+                              </span>
+                              <span className="font-medium">{formatCurrency(roomTotal)}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                        <div className="flex justify-between font-bold">
+                          <span>Total</span>
+                          <span className="text-blue-600 dark:text-blue-400">{formatCurrency(totalPrice)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
 
-  if (!showPanel) {
-    return null
+            {/* Fullscreen Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4 shadow-lg">
+              <div className="container mx-auto flex items-center justify-between">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {reviewStep === 0 ? "Step 1 of 2: Review Items" : "Step 2 of 2: Confirm"}
+                </div>
+                <div className="flex gap-3">
+                  {reviewStep === 1 ? (
+                    <>
+                      <Button variant="outline" onClick={handlePrevStep}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                      </Button>
+                      <Button
+                        onClick={handleAddAllToCart}
+                        disabled={!isOnline}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Add All to Cart
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleBackToPanel}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleNextStep}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      >
+                        Continue
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </>
+    )
   }
 
   return (
-    <div
-      ref={panelRef}
-      className={cn(
-        "fixed right-0 z-50 flex transition-all duration-300 ease-in-out",
-        isFullScreen ? "inset-0 w-full h-full" : "w-[380px]", // Increased width
-      )}
-      style={{ top: isFullScreen ? "0" : panelTopPosition }}
-    >
-      <AnimatePresence initial={false}>
-        {isExpanded || isFullScreen ? (
-          <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0, x: isFullScreen ? 0 : 320 }}
-            animate={{ width: isFullScreen ? "100%" : "380px", opacity: 1, x: 0 }} // Increased width
-            exit={{ width: 0, opacity: 0, x: isFullScreen ? 0 : 320 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={cn(
-              "bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800",
-              isFullScreen ? "rounded-none" : "",
-            )}
-          >
-            <Card className="h-full flex flex-col rounded-none border-none shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Add All to Cart
-                  {isScrollPaused && (
-                    <span className="text-xs bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 px-2 py-1 rounded ml-2">
-                      Scroll Fixed
+    <TooltipProvider>
+      <SuccessNotification />
+      <motion.div
+        ref={panelRef}
+        className="fixed z-[997]"
+        style={{
+          top: panelTopPosition,
+          right: "clamp(1rem, 3vw, 2rem)",
+          width: "fit-content",
+        }}
+        initial={{ x: "150%" }}
+        animate={{ x: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      >
+        {/* Trigger Button */}
+        <motion.button
+          ref={buttonRef}
+          animate={controls}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
+            "border border-blue-500/20 backdrop-blur-sm relative",
+          )}
+          aria-label="Toggle add all to cart panel"
+        >
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <div className="flex items-center">
+                <ShoppingCart className="h-5 w-5" />
+                <Plus className="h-3 w-3 -ml-1 -mt-1 text-white/80" />
+              </div>
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+                {selectedRoomTypes.length}
+              </Badge>
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-bold">Add All</div>
+              <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
+            </div>
+            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+          </div>
+        </motion.button>
+
+        {/* Expandable Panel */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
+              style={{ maxHeight: "70vh" }}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                      <Package className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Ready to Add</h3>
+                      <p className="text-blue-100 text-sm">
+                        {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                        {isScrollPaused && (
+                          <span className="ml-2 bg-blue-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleReviewClick}
+                      className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                      title="Fullscreen view"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsExpanded(false)}
+                      className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <ScrollArea className="flex-1" style={{ maxHeight: "400px" }}>
+                <div className="p-4">
+                  <div className="space-y-3 mb-4">{roomList}</div>
+                </div>
+              </ScrollArea>
+
+              {/* Footer */}
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleReviewClick}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                  >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="relative flex items-center justify-center">
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Review in Fullscreen
                     </span>
-                  )}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsFullScreen(!isFullScreen)}
-                    aria-label={isFullScreen ? "Minimize panel" : "Maximize panel"}
-                  >
-                    {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setIsExpanded(false)
-                      setIsFullScreen(false)
-                    }}
-                    aria-label="Close panel"
-                  >
-                    <X className="h-4 w-4" />
+                  <Button variant="outline" onClick={() => setIsExpanded(false)} className="w-full">
+                    Continue Shopping
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="flex-1 p-4 overflow-auto">
-                {/* Content inside this div is scrollable */}
-                <p className="text-sm text-muted-foreground mb-4">
-                  You have selected {roomsInCart} out of {totalRooms} rooms. Add the remaining {roomsRemaining} rooms to
-                  your cart with one click!
-                </p>
-                <div className="space-y-4">
-                  {RoomConfig.map((room) => {
-                    const isInCart = cart.rooms.some((cartRoom) => cartRoom.id === room.id)
-                    return (
-                      <div
-                        key={room.id}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-lg border",
-                          isInCart ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800" : "",
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <RoomCategory category={room.category} className="h-6 w-6" />
-                          <span className="font-medium">{room.name}</span>
-                        </div>
-                        {isInCart ? (
-                          <span className="text-green-600 dark:text-green-400 flex items-center gap-1 text-sm">
-                            <CheckCircle className="h-4 w-4" /> Added
-                          </span>
-                        ) : (
-                          <Button variant="outline" size="sm" onClick={() => addRoomToCart(room)} className="text-xs">
-                            Add
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 border-t flex flex-col gap-2">
-                <Button className="w-full" onClick={handleAddAllToCart} disabled={roomsRemaining === 0}>
-                  <PlusCircle className="h-4 w-4 mr-2" /> Add All Remaining ({roomsRemaining})
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleRemoveAllFromCart}
-                  disabled={roomsInCart === 0}
-                >
-                  Remove All from Cart
-                </Button>
-              </CardFooter>
-            </Card>
-          </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0, x: 320 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 320 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-l border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-            )}
-            aria-label="Open add all to cart panel"
-          >
-            <ChevronRight className="h-4 w-4" />
-            <PlusCircle className="h-5 w-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-    </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </TooltipProvider>
   )
 }

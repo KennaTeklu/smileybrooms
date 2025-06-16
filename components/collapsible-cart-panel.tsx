@@ -2,267 +2,297 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, ChevronRight, X, Trash2, Minus, Plus, Maximize2, Minimize2 } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, X, ShoppingBag, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useCart } from "@/lib/cart-context"
-import { formatPrice } from "@/lib/cart/utils"
-import { RoomCategory } from "@/components/room-category"
-import type { Room } from "@/lib/cart/types"
+import { CheckoutButton } from "@/components/checkout-button"
+import { useClickOutside } from "@/hooks/use-click-outside"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { cn } from "@/lib/utils"
 
 export function CollapsibleCartPanel() {
-  const { cart, addRoomToCart, removeRoomFromCart, updateRoomQuantity } = useCart()
+  const { cart, updateQuantity, removeItem, clearCart } = useCart()
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isFullScreen, setIsFullScreen] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // Define configurable scroll range values
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const minBottomOffset = 100 // Minimum distance from the bottom of the viewport (increased for more scroll range)
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
+  // State for dynamic positioning
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("auto")
 
-  const handleUpdateQuantity = useCallback(
-    (room: Room, delta: number) => {
-      const newQuantity = room.quantity + delta
-      if (newQuantity <= 0) {
-        removeRoomFromCart(room.id)
-      } else {
-        updateRoomQuantity(room.id, newQuantity)
-      }
-    },
-    [updateRoomQuantity, removeRoomFromCart],
-  )
-
-  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  // Pause panel's scroll-following when expanded or in full screen
+  // Pause scroll tracking when panel is expanded
   useEffect(() => {
-    setIsScrollPaused(isExpanded || isFullScreen)
-  }, [isExpanded, isFullScreen])
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
 
-  // Track scroll position and panel height after mounting
+  // Calculate panel position based on scroll and viewport
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current || isScrollPaused) return // Don't calculate when paused
+
+    const panelHeight = panelRef.current.offsetHeight
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    // Start position: 250px from top of viewport (below Add All panel)
+    const initialViewportTopOffset = 250
+    const bottomPadding = 20 // Distance from bottom of document
+
+    // Calculate desired top position
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = documentHeight - panelHeight - bottomPadding
+
+    // Use the minimum to ensure it doesn't go past the document bottom
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setPanelTopPosition(`${finalTop}px`)
+  }, [isScrollPaused])
+
   useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
+    if (!isMounted || isScrollPaused) return // Don't track scroll when paused
 
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
+    const handleScrollAndResize = () => {
+      calculatePanelPosition()
     }
 
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+    // Initial calculation
+    const timeoutId = setTimeout(calculatePanelPosition, 0)
 
     return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+      clearTimeout(timeoutId)
     }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
+  }, [calculatePanelPosition, isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
-  // Handle click outside to collapse panel
-  useEffect(() => {
-    if (!isMounted) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded && !isFullScreen) {
-        setIsExpanded(false)
-      }
+  // Close panel when clicking outside
+  useClickOutside(panelRef, (event) => {
+    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+      return // Click was on the button, don't close panel
     }
+    setIsExpanded(false)
+  })
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isFullScreen, isMounted])
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    "alt+c": () => setIsExpanded((prev) => !prev),
+    Escape: () => setIsExpanded(false),
+  })
 
-  // Don't render until mounted to prevent SSR issues
+  const handleClearCart = useCallback(() => {
+    clearCart()
+  }, [clearCart])
+
+  // Don't render until mounted to avoid SSR issues
   if (!isMounted) {
     return null
   }
 
-  // Calculate panel position based on scroll and document height
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const viewportHeight = window.innerHeight // Height of the viewport
-
-  // Calculate the maximum top position the panel can reach
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-
-  // Calculate the dynamic top position based on scroll
-  const dynamicTop = window.scrollY + initialScrollOffset
-
-  // Ensure the panel doesn't go above minTopOffset or below minBottomOffset from viewport bottom
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(
-        minTopOffset,
-        Math.min(
-          dynamicTop,
-          viewportHeight - panelHeight - minBottomOffset, // Ensure it doesn't go too low in viewport
-          maxPanelTop, // Ensure it doesn't go off the bottom of the document
-        ),
-      )}px`
-
-  const totalItems = cart.rooms.reduce((sum, room) => sum + room.quantity, 0)
-  const totalPrice = cart.rooms.reduce((sum, room) => sum + room.price * room.quantity, 0)
+  // Don't show if cart is empty
+  if (cart.totalItems === 0) {
+    return null
+  }
 
   return (
-    <div
+    <motion.div
       ref={panelRef}
-      className={cn(
-        "fixed right-0 z-50 flex transition-all duration-300 ease-in-out",
-        isFullScreen ? "inset-0 w-full h-full" : "w-[380px]", // Increased width
-      )}
-      style={{ top: isFullScreen ? "0" : panelTopPosition }}
+      className="fixed z-[996]"
+      style={{
+        top: panelTopPosition,
+        right: "clamp(1rem, 3vw, 2rem)",
+        width: "fit-content",
+      }}
+      initial={{ x: "150%" }}
+      animate={{ x: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
     >
-      <AnimatePresence initial={false}>
-        {isExpanded || isFullScreen ? (
-          <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0, x: isFullScreen ? 0 : 320 }}
-            animate={{ width: isFullScreen ? "100%" : "380px", opacity: 1, x: 0 }} // Increased width
-            exit={{ width: 0, opacity: 0, x: isFullScreen ? 0 : 320 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={cn(
-              "bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800",
-              isFullScreen ? "rounded-none" : "",
+      {/* Trigger Button */}
+      <motion.button
+        ref={buttonRef}
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          "flex items-center justify-center p-3 bg-gradient-to-r from-green-600 to-green-700 text-white",
+          "rounded-xl shadow-lg hover:from-green-700 hover:to-green-800",
+          "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50",
+          "border border-green-500/20 backdrop-blur-sm relative",
+        )}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        aria-label="Toggle cart panel"
+      >
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            {cart.totalItems > 0 && (
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+                {cart.totalItems}
+              </Badge>
             )}
+          </div>
+          <div className="text-left">
+            <div className="text-sm font-bold">Cart</div>
+            <div className="text-xs opacity-90">${cart.totalPrice.toFixed(2)}</div>
+          </div>
+          <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+        </div>
+      </motion.button>
+
+      {/* Expandable Panel */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-green-200 dark:border-green-800"
+            style={{ maxHeight: "70vh" }}
           >
-            <Card className="h-full flex flex-col rounded-none border-none shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Your Cart ({totalItems})
-                  {isScrollPaused && (
-                    <span className="text-xs bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 px-2 py-1 rounded ml-2">
-                      Scroll Fixed
-                    </span>
-                  )}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsFullScreen(!isFullScreen)}
-                    aria-label={isFullScreen ? "Minimize panel" : "Maximize panel"}
-                  >
-                    {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setIsExpanded(false)
-                      setIsFullScreen(false)
-                    }}
-                    aria-label="Close panel"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-600 via-green-700 to-green-800 text-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                    <ShoppingCart className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Shopping Cart</h3>
+                    <p className="text-green-100 text-sm">
+                      {cart.totalItems} item{cart.totalItems !== 1 ? "s" : ""} • ${cart.totalPrice.toFixed(2)}
+                      {isScrollPaused && (
+                        <span className="ml-2 bg-green-500/30 px-2 py-1 rounded text-xs">Scroll Paused</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="flex-1 p-4 overflow-auto">
-                {/* Content inside this div is scrollable */}
-                {cart.rooms.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Your cart is empty.</p>
-                    <p className="text-sm">Add some rooms to get started!</p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsExpanded(false)}
+                  className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <ScrollArea className="flex-1" style={{ maxHeight: "400px" }}>
+              <div className="p-4">
+                {cart.items.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <ShoppingBag className="mb-4 h-16 w-16 text-muted-foreground/50" />
+                    <h3 className="mb-2 text-lg font-semibold text-muted-foreground">Your cart is empty</h3>
+                    <p className="text-sm text-muted-foreground/80 mb-6">Add some cleaning services to get started!</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {cart.rooms.map((room) => (
+                    {cart.items.map((item) => (
                       <div
-                        key={room.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card text-card-foreground shadow-sm"
+                        key={item.id}
+                        className="group relative rounded-lg border border-border/50 p-4 transition-all hover:border-border hover:shadow-sm"
                       >
-                        <div className="flex items-center gap-3">
-                          <RoomCategory category={room.category} className="h-6 w-6" />
-                          <div>
-                            <p className="font-medium">{room.name}</p>
-                            <p className="text-sm text-muted-foreground">{formatPrice(room.price)} each</p>
+                        {item.image && (
+                          <div className="mb-3">
+                            <img
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              className="h-16 w-16 rounded-md object-cover"
+                            />
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleUpdateQuantity(room, -1)}
-                            aria-label={`Decrease quantity of ${room.name}`}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="font-semibold w-6 text-center">{room.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleUpdateQuantity(room, 1)}
-                            aria-label={`Increase quantity of ${room.name}`}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeRoomFromCart(room.id)}
-                            className="text-destructive hover:bg-destructive/10"
-                            aria-label={`Remove ${room.name} from cart`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        )}
+
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm leading-tight text-foreground">{item.name}</h4>
+                              <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                              {item.sourceSection && (
+                                <p className="text-xs text-muted-foreground/70 mt-1">{item.sourceSection}</p>
+                              )}
+                            </div>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeItem(item.id)}
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="Remove item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
+                                className="h-8 w-8 p-0"
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-12 text-center text-sm font-medium">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+
+                            <div className="text-sm font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-              <CardFooter className="p-4 border-t flex flex-col gap-2">
-                <div className="flex justify-between w-full text-lg font-semibold">
-                  <span>Total:</span>
-                  <span>{formatPrice(totalPrice)}</span>
+              </div>
+            </ScrollArea>
+
+            {/* Footer */}
+            {cart.items.length > 0 && (
+              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-base font-semibold">
+                    <span>Total ({cart.totalItems} items):</span>
+                    <span>${cart.totalPrice.toFixed(2)}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <CheckoutButton />
+                    <Button
+                      variant="outline"
+                      onClick={handleClearCart}
+                      className="w-full"
+                      disabled={cart.items.length === 0}
+                    >
+                      Clear Cart
+                    </Button>
+                  </div>
                 </div>
-                <Button className="w-full" disabled={cart.rooms.length === 0}>
-                  Proceed to Checkout
-                </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            )}
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0, x: 320 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 320 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-l border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-            )}
-            aria-label="Open cart panel"
-          >
-            <ChevronRight className="h-4 w-4" />
-            <ShoppingCart className="h-5 w-5" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold">
-                {totalItems}
-              </span>
-            )}
-          </motion.button>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }
