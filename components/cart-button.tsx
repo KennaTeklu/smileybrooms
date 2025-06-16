@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ShoppingCart, Package, Sparkles } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
 
 interface CartButtonProps {
   showLabel?: boolean
@@ -14,6 +13,7 @@ interface CartButtonProps {
   size?: "sm" | "md" | "lg"
   position?: "header" | "floating" | "inline"
   className?: string
+  onOpenCart?: () => void // Add callback for opening cart panel
 }
 
 export default function CartButton({
@@ -22,9 +22,9 @@ export default function CartButton({
   size = "sm",
   position = "header",
   className,
+  onOpenCart,
 }: CartButtonProps) {
   const { cart } = useCart()
-  const router = useRouter()
 
   // Memoized calculations for performance with safe fallbacks
   const cartMetrics = useMemo(
@@ -38,11 +38,12 @@ export default function CartButton({
     [cart?.totalItems, cart?.total, cart?.items?.length],
   )
 
-  // Optimized handler to navigate to cart page
-  const handleOpenCartPage = useCallback(() => {
-    console.log("Cart button clicked - navigating to /cart") // Debug log
-    router.push("/cart")
-  }, [router])
+  // Optimized handler to open cart panel
+  const handleOpenCart = useCallback(() => {
+    if (onOpenCart) {
+      onOpenCart()
+    }
+  }, [onOpenCart])
 
   // Dynamic styling based on variant and state
   const buttonVariants = {
@@ -82,10 +83,10 @@ export default function CartButton({
         position === "floating" && "fixed bottom-6 right-6 z-40",
         className,
       )}
-      onClick={handleOpenCartPage}
+      onClick={handleOpenCart}
       aria-label={`Open shopping cart (${cartMetrics.totalItems} items, $${cartMetrics.totalValue.toFixed(2)})`}
       aria-expanded={false}
-      aria-haspopup="page"
+      aria-haspopup="dialog"
     >
       <CartIcon
         className={cn(
