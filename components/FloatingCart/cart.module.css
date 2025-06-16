@@ -1,0 +1,142 @@
+/* Bulletproof fixed positioning with fallbacks */
+.cartContainer {
+  position: fixed;
+  bottom: clamp(16px, 4vw, 24px);
+  right: clamp(16px, 4vw, 24px);
+  z-index: 1001;
+  isolation: isolate; /* Prevent z-index conflicts */
+  contain: strict; /* Performance optimization */
+  will-change: transform; /* Optimize for animations */
+  backface-visibility: hidden; /* Prevent flickering */
+}
+
+/* Responsive positioning with safe areas */
+@media (max-width: 768px) {
+  .cartContainer {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: 16px;
+    left: auto; /* Reset any conflicting values */
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .cartContainer {
+    transform: translateZ(0); /* Force hardware acceleration */
+  }
+}
+
+/* Cart button base styles */
+.cartButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cartButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.cartButton:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Responsive button sizing */
+@media (min-width: 640px) {
+  .cartButton {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* Badge positioning */
+.cartBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Panel positioning */
+.cartPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 400px;
+  height: 100vh;
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  z-index: 1002;
+  contain: strict;
+  overflow: hidden;
+}
+
+/* Panel backdrop */
+.cartBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1001;
+}
+
+/* Scroll optimization */
+.cartContent {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.cartButton:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .cartButton,
+  .cartBadge {
+    transition: none;
+    animation: none;
+  }
+}
