@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ShoppingCart, Package, Sparkles } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation" // Import useRouter
+import { useRouter } from "next/navigation"
 
 interface CartButtonProps {
   showLabel?: boolean
@@ -24,7 +24,7 @@ export default function CartButton({
   className,
 }: CartButtonProps) {
   const { cart } = useCart()
-  const router = useRouter() // Initialize useRouter
+  const router = useRouter()
 
   // Memoized calculations for performance with safe fallbacks
   const cartMetrics = useMemo(
@@ -40,6 +40,7 @@ export default function CartButton({
 
   // Optimized handler to navigate to cart page
   const handleOpenCartPage = useCallback(() => {
+    console.log("Cart button clicked - navigating to /cart") // Debug log
     router.push("/cart")
   }, [router])
 
@@ -70,55 +71,53 @@ export default function CartButton({
   )
 
   return (
-    <>
-      <Button
-        variant={variant === "floating" ? "default" : "outline"}
-        size={size}
+    <Button
+      variant={variant === "floating" ? "default" : "outline"}
+      size={size}
+      className={cn(
+        buttonVariants[variant],
+        sizeVariants[size],
+        cartMetrics.hasItems && "ring-2 ring-blue-200 dark:ring-blue-800",
+        cartMetrics.isHighValue && "ring-purple-200 dark:ring-purple-800",
+        position === "floating" && "fixed bottom-6 right-6 z-40",
+        className,
+      )}
+      onClick={handleOpenCartPage}
+      aria-label={`Open shopping cart (${cartMetrics.totalItems} items, $${cartMetrics.totalValue.toFixed(2)})`}
+      aria-expanded={false}
+      aria-haspopup="page"
+    >
+      <CartIcon
         className={cn(
-          buttonVariants[variant],
-          sizeVariants[size],
-          cartMetrics.hasItems && "ring-2 ring-blue-200 dark:ring-blue-800",
-          cartMetrics.isHighValue && "ring-purple-200 dark:ring-purple-800",
-          position === "floating" && "fixed bottom-6 right-6 z-40",
-          className,
+          "transition-all duration-200",
+          size === "sm" ? "h-4 w-4" : size === "md" ? "h-5 w-5" : "h-6 w-6",
+          cartMetrics.hasItems && "text-blue-600 dark:text-blue-400",
+          cartMetrics.isHighValue && "text-purple-600 dark:text-purple-400",
         )}
-        onClick={handleOpenCartPage} // Changed to navigate to page
-        aria-label={`Open shopping cart (${cartMetrics.totalItems} items, $${cartMetrics.totalValue.toFixed(2)})`}
-        aria-expanded={false} // No longer a dialog, so expanded is false
-        aria-haspopup="page" // Indicates it opens a new page
-      >
-        <CartIcon
+      />
+
+      {showLabel && (
+        <span
           className={cn(
             "transition-all duration-200",
-            size === "sm" ? "h-4 w-4" : size === "md" ? "h-5 w-5" : "h-6 w-6",
-            cartMetrics.hasItems && "text-blue-600 dark:text-blue-400",
-            cartMetrics.isHighValue && "text-purple-600 dark:text-purple-400",
+            variant === "compact" ? "hidden sm:inline" : "hidden md:inline",
+            size === "sm" ? "text-xs" : size === "md" ? "text-sm" : "text-base",
           )}
-        />
+        >
+          Cart
+        </span>
+      )}
 
-        {showLabel && (
-          <span
-            className={cn(
-              "transition-all duration-200",
-              variant === "compact" ? "hidden sm:inline" : "hidden md:inline",
-              size === "sm" ? "text-xs" : size === "md" ? "text-sm" : "text-base",
-            )}
-          >
-            Cart
-          </span>
-        )}
+      {cartMetrics.hasItems && (
+        <Badge variant={badgeVariant} className={badgeClassName}>
+          {cartMetrics.totalItems > 99 ? "99+" : cartMetrics.totalItems}
+        </Badge>
+      )}
 
-        {cartMetrics.hasItems && (
-          <Badge variant={badgeVariant} className={badgeClassName}>
-            {cartMetrics.totalItems > 99 ? "99+" : cartMetrics.totalItems}
-          </Badge>
-        )}
-
-        {/* High value indicator */}
-        {cartMetrics.isHighValue && variant === "floating" && (
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" />
-        )}
-      </Button>
-    </>
+      {/* High value indicator */}
+      {cartMetrics.isHighValue && variant === "floating" && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" />
+      )}
+    </Button>
   )
 }
