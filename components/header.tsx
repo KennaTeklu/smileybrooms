@@ -50,10 +50,10 @@ export default function Header() {
 
   const visibleLinks = getVisibleLinks()
 
-  // Homepage with items - minimal header
+  // Homepage with items - minimal header with ID for positioning
   if (pathname === "/" && hasItems) {
     return (
-      <header className="fixed top-0 right-0 z-50 p-6">
+      <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }}>
         <div className="flex justify-end">
           <CartButton showLabel={false} variant="default" size="lg" />
         </div>
@@ -63,7 +63,10 @@ export default function Header() {
 
   // Don't show header on homepage without items
   if (pathname === "/" && !hasItems) {
-    return null
+    return (
+      // Hidden header with ID for positioning calculations
+      <header id="main-header" className="hidden" style={{ height: "0px" }} aria-hidden="true" />
+    )
   }
 
   // Main header for all other pages
@@ -75,6 +78,7 @@ export default function Header() {
         "border-b border-border/40",
         isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm" : "bg-background/90 backdrop-blur-sm",
       )}
+      style={{ height: "64px" }}
     >
       {/* Main container with proper spacing grid */}
       <div className="container mx-auto">
