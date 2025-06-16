@@ -533,7 +533,7 @@ export function CollapsibleCartPanel() {
             </div>
 
             {/* Fullscreen Content */}
-            <div className="flex-1 overflow-auto">
+            <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
               <div className="container mx-auto py-6 px-4">
                 {reviewStep === 0 ? (
                   <motion.div
