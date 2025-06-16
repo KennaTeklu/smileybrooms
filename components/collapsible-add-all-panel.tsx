@@ -143,19 +143,16 @@ export function CollapsibleAddAllPanel() {
       }
     }
 
-    // Add listeners with a small delay to ensure DOM is ready
-    const timeoutId = setTimeout(() => {
-      window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-      window.addEventListener("resize", handleScrollAndResize, { passive: true })
+    // Add listeners immediately
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
 
-      // Initial calculation after listeners are set
-      calculatePanelPosition()
-    }, 100)
+    // Initial calculation after listeners are set
+    calculatePanelPosition()
 
     return () => {
       window.removeEventListener("scroll", handleScrollAndResize)
       window.removeEventListener("resize", handleScrollAndResize)
-      clearTimeout(timeoutId)
     }
   }, [calculatePanelPosition, isVisible, isScrollPaused])
 
