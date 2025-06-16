@@ -96,7 +96,7 @@ export function CollapsibleSharePanel() {
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
   const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Define configurable scroll range values
@@ -110,14 +110,14 @@ export function CollapsibleSharePanel() {
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Pause scroll tracking when panel is expanded
+  // Pause panel's scroll-following when expanded
   useEffect(() => {
     setIsScrollPaused(isExpanded)
   }, [isExpanded])
 
   // Track scroll position and panel height after mounting
   useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when paused
+    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
 
     const updatePositionAndHeight = () => {
       setScrollPosition(window.scrollY)
@@ -159,10 +159,10 @@ export function CollapsibleSharePanel() {
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  // Use current scroll position if paused, otherwise calculate new position
+  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
   const panelTopPosition = isScrollPaused
-    ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
-    : Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   const copyToClipboard = async () => {
     try {
@@ -186,7 +186,7 @@ export function CollapsibleSharePanel() {
   }
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
+    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -202,8 +202,8 @@ export function CollapsibleSharePanel() {
                 <Share2 className="h-5 w-5" />
                 Share
                 {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
-                    Scroll Paused
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
+                    Scroll Fixed
                   </span>
                 )}
               </h2>
@@ -265,6 +265,7 @@ export function CollapsibleSharePanel() {
 
                 {/* Platform Grid */}
                 <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
+                  {/* Content inside this div is scrollable */}
                   {filteredPlatforms.map((platform) => (
                     <motion.button
                       key={platform.id}
@@ -286,34 +287,4 @@ export function CollapsibleSharePanel() {
 
                 {filteredPlatforms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No platforms found</p>
-                  </div>
-                )}
-              </div>
-            </Tabs>
-          </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-l border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-            )}
-            aria-label="Open share panel"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <Share2 className="h-5 w-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
+                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity\

@@ -34,7 +34,7 @@ export function CollapsibleSettingsPanel() {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -49,14 +49,14 @@ export function CollapsibleSettingsPanel() {
     setIsMounted(true)
   }, [])
 
-  // Pause scroll tracking when panel is expanded
+  // Pause panel's scroll-following when expanded
   useEffect(() => {
     setIsScrollPaused(isExpanded)
   }, [isExpanded])
 
   // Track scroll position and panel height after mounting
   useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when paused
+    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
 
     const updatePositionAndHeight = () => {
       setScrollPosition(window.scrollY)
@@ -105,13 +105,13 @@ export function CollapsibleSettingsPanel() {
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  // Use current scroll position if paused, otherwise calculate new position
+  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
   const panelTopPosition = isScrollPaused
-    ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
-    : Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
+    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -127,8 +127,8 @@ export function CollapsibleSettingsPanel() {
                 <Settings className="h-5 w-5" />
                 Settings
                 {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
-                    Scroll Paused
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
+                    Scroll Fixed
                   </span>
                 )}
               </h2>
@@ -150,6 +150,7 @@ export function CollapsibleSettingsPanel() {
               </TabsList>
 
               <div className="p-4 overflow-auto max-h-[60vh]">
+                {/* Content inside this div is scrollable */}
                 <TabsContent value="display" className="space-y-4 mt-0">
                   {/* Theme Toggle */}
                   <div className="flex flex-col space-y-2">
