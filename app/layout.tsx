@@ -16,6 +16,7 @@ import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-pane
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -53,16 +54,19 @@ export default function RootLayout({
                       <main className="flex-1">{children}</main>
                       <EnhancedFooter />
                     </div>
-
                     {/* Left side panels */}
                     <CollapsibleSettingsPanel />
-
                     {/* Right side panels - properly aligned */}
                     <CollapsibleSharePanel />
                     <CollapsibleAddAllPanel />
                     <CollapsibleCartPanel />
-
-                    <Toaster />
+                    <TooltipProvider>
+                      {" "}
+                      {/* Add TooltipProvider here */}
+                      <Toaster />
+                      {children}
+                    </TooltipProvider>{" "}
+                    {/* Close TooltipProvider here */}
                   </TourProvider>
                 </RoomProvider>
               </CartProvider>
