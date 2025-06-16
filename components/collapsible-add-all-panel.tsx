@@ -44,13 +44,14 @@ export function CollapsibleAddAllPanel() {
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
   const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [addedItemsCount, setAddedItemsCount] = useState(0)
+  const [isVisible, setIsVisible] = useState(false) // Control panel visibility
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
 
-  // State for dynamic positioning - always visible when requirements are met
+  // State for dynamic positioning - start with fixed position, then adjust
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
 
   const selectedRoomTypes = getSelectedRoomTypes()
@@ -64,52 +65,24 @@ export function CollapsibleAddAllPanel() {
     setIsMounted(true)
   }, [])
 
-  // Calculate panel position based on scroll and viewport
-  const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current || isFullscreen) return
-
-    const panelHeight = panelRef.current.offsetHeight
-    const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
-    const documentHeight = document.documentElement.scrollHeight
-
-    // Start position: 150px from top of viewport (below share panel)
-    const initialViewportTopOffset = 150
-    const bottomPadding = 20 // Distance from bottom of document
-
-    // Calculate desired top position
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = documentHeight - panelHeight - bottomPadding
-
-    // Use the minimum to ensure it doesn't go past the document bottom
-    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
-
-    setPanelTopPosition(`${finalTop}px`)
-  }, [isFullscreen])
-
-  useEffect(() => {
-    const handleScrollAndResize = () => {
-      if (!isFullscreen) {
-        calculatePanelPosition()
-      }
-    }
-
-    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-    window.addEventListener("resize", handleScrollAndResize, { passive: true })
-
-    // Initial calculation
-    const timeoutId = setTimeout(calculatePanelPosition, 0)
-
-    return () => {
-      window.removeEventListener("scroll", handleScrollAndResize)
-      window.removeEventListener("resize", handleScrollAndResize)
-      clearTimeout(timeoutId)
-    }
-  }, [calculatePanelPosition])
-
-  // Show panel immediately when selection requirements are met
+  // Immediate visibility control - show panel as soon as requirements are met
   useEffect(() => {
     if (selectionRequirementsMet) {
+      setIsVisible(true)
+
+      // Force immediate positioning calculation
+      const calculateInitialPosition = () => {
+        const viewportHeight = window.innerHeight
+        const scrollY = window.scrollY
+
+        // Always start at 150px from current viewport top
+        const initialTop = scrollY + 150
+        setPanelTopPosition(`${initialTop}px`)
+      }
+
+      // Calculate position immediately
+      calculateInitialPosition()
+
       // Enhanced pulse animation for visibility when first appearing
       controls.start({
         scale: [1, 1.08, 1],
@@ -124,11 +97,61 @@ export function CollapsibleAddAllPanel() {
       // Haptic feedback when panel first appears
       vibrate(150)
     } else {
+      setIsVisible(false)
       setIsExpanded(false)
       setIsFullscreen(false)
       controls.stop()
     }
   }, [selectionRequirementsMet, controls, vibrate])
+
+  // Calculate panel position based on scroll and viewport (only after initial show)
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current || isFullscreen || !isVisible) return
+
+    const panelHeight = panelRef.current.offsetHeight || 200 // fallback height
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    // Start position: 150px from top of viewport (below share panel)
+    const initialViewportTopOffset = 150
+    const bottomPadding = 20 // Distance from bottom of document
+
+    // Calculate desired top position
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
+
+    // Use the minimum to ensure it doesn't go past the document bottom
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setPanelTopPosition(`${finalTop}px`)
+  }, [isFullscreen, isVisible])
+
+  useEffect(() => {
+    // Only set up scroll listeners after panel is visible
+    if (!isVisible) return
+
+    const handleScrollAndResize = () => {
+      if (!isFullscreen) {
+        calculatePanelPosition()
+      }
+    }
+
+    // Add listeners with a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+      window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+      // Initial calculation after listeners are set
+      calculatePanelPosition()
+    }, 100)
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+      clearTimeout(timeoutId)
+    }
+  }, [calculatePanelPosition, isVisible])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -345,8 +368,8 @@ export function CollapsibleAddAllPanel() {
     </AnimatePresence>
   )
 
-  // Don't show if selection requirements are not met
-  if (!selectionRequirementsMet) {
+  // Don't show if not visible or selection requirements are not met
+  if (!isVisible || !selectionRequirementsMet) {
     return <SuccessNotification />
   }
 
