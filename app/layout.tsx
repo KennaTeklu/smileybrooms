@@ -15,7 +15,7 @@ import { EnhancedFooter } from "@/components/enhanced-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { AddAllToCartModal } from "@/components/add-all-to-cart-modal"
-import { Cart } from "@/components/cart"
+import { Cart } from "@/components/cart" // Ensure Cart is imported
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -45,6 +45,8 @@ export default function RootLayout({
           <ThemeProviderEnhanced>
             <AccessibilityProvider>
               <CartProvider>
+                {" "}
+                {/* CartProvider starts here */}
                 <RoomProvider>
                   <TourProvider>
                     <div className="relative flex min-h-screen flex-col">
@@ -60,14 +62,17 @@ export default function RootLayout({
                     <CollapsibleSharePanel />
                     <AddAllToCartModal />
 
+                    {/* Place Cart component here, inside CartProvider but outside the main layout div */}
+                    <Cart />
+
                     <Toaster />
                   </TourProvider>
                 </RoomProvider>
-              </CartProvider>
+              </CartProvider>{" "}
+              {/* CartProvider ends here */}
             </AccessibilityProvider>
           </ThemeProviderEnhanced>
         </QueryClientProvider>
-        <Cart />
       </body>
     </html>
   )
