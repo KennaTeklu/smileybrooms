@@ -33,6 +33,7 @@ export function CollapsibleSettingsPanel() {
   const [contrast, setContrast] = useState(1)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0) // New state for panel height
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -40,26 +41,33 @@ export function CollapsibleSettingsPanel() {
   // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const minBottomOffset = 20 // Significantly reduced to allow scrolling further down
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  // Track scroll position only after mounting
+  // Track scroll position and panel height after mounting
   useEffect(() => {
     if (!isMounted) return
 
-    const updatePosition = () => {
+    const updatePositionAndHeight = () => {
       setScrollPosition(window.scrollY)
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight)
+      }
     }
 
-    window.addEventListener("scroll", updatePosition, { passive: true })
-    updatePosition()
+    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
+    window.addEventListener("resize", updatePositionAndHeight, { passive: true }) // Update on resize too
+    updatePositionAndHeight() // Initial call
 
-    return () => window.removeEventListener("scroll", updatePosition)
-  }, [isMounted])
+    return () => {
+      window.removeEventListener("scroll", updatePositionAndHeight)
+      window.removeEventListener("resize", updatePositionAndHeight)
+    }
+  }, [isMounted, isExpanded]) // Recalculate height if expanded state changes
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -87,11 +95,11 @@ export function CollapsibleSettingsPanel() {
     return null
   }
 
-  // Calculate panel position based on scroll
-  const panelTopPosition = Math.max(
-    minTopOffset,
-    Math.min(scrollPosition + initialScrollOffset, window.innerHeight - minBottomOffset),
-  )
+  // Calculate panel position based on scroll and document height
+  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
+  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+
+  const panelTopPosition = Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
 
   return (
     <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
