@@ -782,6 +782,18 @@ export function CollapsibleAddAllPanel() {
               <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
                 <div className="space-y-3">
                   <Button
+                    onClick={handleAddAllToCart} // Direct add to cart button
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                    disabled={!isOnline}
+                  >
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="relative flex items-center justify-center">
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Add All to Cart
+                    </span>
+                  </Button>
+                  <Button
                     onClick={handleReviewClick}
                     size="lg"
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
