@@ -65,7 +65,7 @@ export default function RootLayout({
                   </TourProvider>
                 </RoomProvider>
 
-                {/* Floating Cart - moved to highest DOM level, outside all layout containers */}
+                {/* Floating Cart - positioned at highest DOM level, outside all layout containers */}
                 <Cart />
               </CartProvider>
             </AccessibilityProvider>

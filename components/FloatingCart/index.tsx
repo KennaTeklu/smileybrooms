@@ -26,6 +26,7 @@ export function FloatingCart() {
     position: "top-right", // Position at top-right
     topOffset: 100, // 100px from top of viewport
     rightOffset: 20, // 20px from right edge of viewport
+    enableBoundaryDetection: true,
   })
 
   useClickOutside(panelRef, (event) => {
@@ -52,14 +53,17 @@ export function FloatingCart() {
     setIsPanelOpen((prev) => !prev)
   }
 
+  // Don't render if no items in cart
+  if (itemCount === 0) {
+    return null
+  }
+
   return (
     <div
       ref={buttonContainerRef}
-      className={cn(
-        `z-[${FLOATING_LAYERS.CART_BUTTON}] transition-all duration-300 ease-out`,
-        itemCount === 0 && "hidden", // Hide if no items
-      )}
+      className={cn(`z-[${FLOATING_LAYERS.CART_BUTTON}]`, "transition-all duration-300 ease-out")}
       style={buttonContainerStyles} // Apply calculated styles for top positioning
+      data-testid="floating-cart-container"
     >
       <CartButton
         ref={buttonRef}
@@ -74,15 +78,16 @@ export function FloatingCart() {
         {isPanelOpen && (
           <motion.div
             ref={panelRef}
-            initial={{ opacity: 0, y: -20, scale: 0.95 }} // Changed y to -20 for top positioning
+            initial={{ opacity: 0, y: -20, scale: 0.95 }} // Animation from top
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }} // Changed y to -20 for top positioning
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
-            className="absolute top-full right-0 mt-4 w-80 sm:w-96 max-h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col" // Changed to top-full and mt-4
+            className="absolute top-full right-0 mt-4 w-80 sm:w-96 max-h-[70vh] bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
             id="cart-panel"
             role="dialog"
             aria-modal="true"
             aria-labelledby="cart-panel-title"
+            style={{ zIndex: FLOATING_LAYERS.CART_PANEL }}
           >
             <CartPanel onClose={() => setIsPanelOpen(false)} />
           </motion.div>

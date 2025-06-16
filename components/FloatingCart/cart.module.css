@@ -1,10 +1,9 @@
 .cartContainer {
-  /* These styles will now be controlled by the useCartPosition hook */
-  /* z-index is handled by the className in FloatingCart/index.tsx */
+  /* All positioning is now handled by useCartPosition hook via inline styles */
   isolation: isolate; /* Prevent z-index conflicts */
   contain: strict; /* Performance optimization */
-  /* Added for smooth JS-driven position adjustments */
-  transition: bottom 0.3s ease-out, right 0.3s ease-out, transform 0.3s ease;
+  /* Smooth transitions for JS-driven position adjustments */
+  transition: all 0.3s ease-out;
 }
 
 .cartButton {
@@ -18,6 +17,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
   overflow: hidden; /* For the high value indicator pulse */
+  cursor: pointer;
 }
 
 .cartButton:hover {
