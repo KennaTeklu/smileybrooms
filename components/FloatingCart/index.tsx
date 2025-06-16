@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils"
 import { FLOATING_LAYERS } from "@/lib/floating-system"
 
 export function FloatingCart() {
-  const { cartItems, getTotalItems, getTotalPrice } = useCart()
-  const itemCount = getTotalItems()
-  const totalPrice = getTotalPrice()
+  const { cart } = useCart() // Use the cart object directly
+  const itemCount = cart.totalItems // Access totalItems from cart object
+  const totalPrice = cart.totalPrice // Access totalPrice from cart object
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
