@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, Plus, Minus, Trash2, X, ShoppingBag } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, X, ShoppingBag, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -35,8 +35,8 @@ export function CollapsibleCartPanel() {
     const scrollY = window.scrollY
     const documentHeight = document.documentElement.scrollHeight
 
-    // Start position: 200px from top of viewport (below "Add All to Cart" button)
-    const initialViewportTopOffset = 200
+    // Start position: 250px from top of viewport (below Add All panel)
+    const initialViewportTopOffset = 250
     const bottomPadding = 20 // Distance from bottom of document
 
     // Calculate desired top position
@@ -77,7 +77,7 @@ export function CollapsibleCartPanel() {
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    "alt+s": () => setIsExpanded((prev) => !prev),
+    "alt+c": () => setIsExpanded((prev) => !prev),
     Escape: () => setIsExpanded(false),
   })
 
@@ -98,7 +98,7 @@ export function CollapsibleCartPanel() {
   return (
     <motion.div
       ref={panelRef}
-      className="fixed z-[998]"
+      className="fixed z-[996]"
       style={{
         top: panelTopPosition,
         right: "clamp(1rem, 3vw, 2rem)",
@@ -131,7 +131,11 @@ export function CollapsibleCartPanel() {
               </Badge>
             )}
           </div>
-          <span className="text-sm font-medium">Cart</span>
+          <div className="text-left">
+            <div className="text-sm font-bold">Cart</div>
+            <div className="text-xs opacity-90">${cart.totalPrice.toFixed(2)}</div>
+          </div>
+          <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
         </div>
       </motion.button>
 

@@ -14,7 +14,7 @@ import { EnhancedHeader } from "@/components/enhanced-header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
-import { AddAllToCartModal } from "@/components/add-all-to-cart-modal"
+import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -57,11 +57,9 @@ export default function RootLayout({
                     {/* Left side panels */}
                     <CollapsibleSettingsPanel />
 
-                    {/* Right side panels */}
+                    {/* Right side panels - properly aligned */}
                     <CollapsibleSharePanel />
-                    <AddAllToCartModal />
-
-                    {/* New Cart Panel - positioned below Add All to Cart */}
+                    <CollapsibleAddAllPanel />
                     <CollapsibleCartPanel />
 
                     <Toaster />
