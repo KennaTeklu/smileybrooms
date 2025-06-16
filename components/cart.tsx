@@ -186,23 +186,33 @@ export function Cart() {
 
   return (
     <>
-      {/* Cart Trigger Button - Fixed Position */}
-      <div className="fixed bottom-4 right-4 z-40">
+      {/* Enhanced Sticky Floating Cart Button */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
         <Button
           onClick={openCart}
-          className="relative h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          className="relative h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-110 bg-primary hover:bg-primary/90 border-2 border-background/20 backdrop-blur-sm"
           size="sm"
-          aria-label="Open shopping cart"
+          aria-label={`Open shopping cart (${cart.totalItems} items)`}
         >
-          <ShoppingCart className="h-5 w-5" />
+          <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground transition-transform duration-200" />
+
+          {/* Cart Items Badge */}
           {cart.totalItems > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -right-2 -top-2 h-6 w-6 rounded-full p-0 text-xs animate-pulse"
+              className="absolute -right-2 -top-2 h-6 w-6 sm:h-7 sm:w-7 rounded-full p-0 text-xs sm:text-sm font-bold animate-pulse border-2 border-background shadow-md"
             >
-              {cart.totalItems}
+              {cart.totalItems > 99 ? "99+" : cart.totalItems}
             </Badge>
           )}
+
+          {/* Subtle Glow Effect for High Value Carts */}
+          {cart.totalPrice > 200 && (
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse" />
+          )}
+
+          {/* Ripple Effect on Hover */}
+          <div className="absolute inset-0 rounded-full bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
         </Button>
       </div>
 
