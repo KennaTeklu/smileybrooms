@@ -26,29 +26,30 @@ export function useCartPosition(options: CartPositionOptions = {}) {
     if (!cartRef.current || !enableBoundaryDetection) return
 
     const rect = cartRef.current.getBoundingClientRect()
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
 
-    const adjustments = {
-      right: Math.max(padding, viewport.width - rect.right),
-      bottom: Math.max(padding, viewport.height - rect.bottom),
-      isOffScreen: rect.right > viewport.width || rect.bottom > viewport.height,
-    }
+    // Calculate desired right and bottom positions based on padding
+    // This ensures it's always 'padding' pixels from the edge
+    const desiredRight = padding
+    const desiredBottom = padding
 
-    setBoundary(adjustments)
+    // Apply these directly to the style
+    cartRef.current.style.right = `${desiredRight}px`
+    cartRef.current.style.bottom = `${desiredBottom}px`
 
-    // Apply adjustments if needed
-    if (adjustments.isOffScreen) {
-      const style = cartRef.current.style
-      if (rect.right > viewport.width) {
-        style.right = `${adjustments.right}px`
-      }
-      if (rect.bottom > viewport.height) {
-        style.bottom = `${adjustments.bottom}px`
-      }
-    }
+    // Check if it's off-screen after adjustment (shouldn't be if logic is correct)
+    const isOffScreen = rect.right > viewportWidth || rect.bottom > viewportHeight
+
+    setBoundary({
+      right: desiredRight,
+      bottom: desiredBottom,
+      isOffScreen: isOffScreen,
+    })
+
+    console.log(
+      `Cart position adjusted: right=${desiredRight}px, bottom=${desiredBottom}px, isOffScreen=${isOffScreen}`,
+    )
   }, [padding, enableBoundaryDetection])
 
   const resetPosition = useCallback(() => {
