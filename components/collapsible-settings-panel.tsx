@@ -37,6 +37,11 @@ export function CollapsibleSettingsPanel() {
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
 
+  // Define configurable scroll range values
+  const minTopOffset = 20 // Minimum distance from the top of the viewport
+  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
+  const minBottomOffset = 50 // Minimum distance from the bottom of the viewport
+
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
@@ -83,7 +88,10 @@ export function CollapsibleSettingsPanel() {
   }
 
   // Calculate panel position based on scroll
-  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
+  const panelTopPosition = Math.max(
+    minTopOffset,
+    Math.min(scrollPosition + initialScrollOffset, window.innerHeight - minBottomOffset),
+  )
 
   return (
     <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
