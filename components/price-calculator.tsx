@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles, AlertCircle, PlusCircle, Diamond } from "lucide-react" // Added PlusCircle, Diamond
+import { Home, Calendar, Sparkles, AlertCircle, PlusCircle, Diamond, DollarSign } from "lucide-react" // Added DollarSign
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
@@ -19,14 +19,15 @@ import {
   BASE_ROOM_RATES,
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
-  STRATEGIC_ADDONS, // Import new data
-  PREMIUM_EXCLUSIVE_SERVICES, // Import new data
+  STRATEGIC_ADDONS,
+  PREMIUM_EXCLUSIVE_SERVICES,
 } from "@/lib/pricing-config" // Import pricing data
 import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox
+import { Checkbox } from "@/components/ui/checkbox"
+import { PriceBreakdownDetailed } from "@/components/price-breakdown-detailed" // Import PriceBreakdownDetailed
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -203,17 +204,17 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, serv
 }
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
-  const { state, dispatch } = usePricing()
+  const { state, dispatch, isCalculating } = usePricing() // Destructure isCalculating
   const {
     serviceTier,
-    selectedRooms, // Changed from 'rooms' to 'selectedRooms' for consistency with context
+    selectedRooms,
     cleanlinessLevel,
     frequency,
     paymentFrequency,
     calculatedPrice,
     enforcedTierReason,
-    selectedAddons, // From context
-    selectedExclusiveServices, // From context
+    selectedAddons,
+    selectedExclusiveServices,
   } = state
 
   // Media query for responsive design (kept for potential future use, though not directly used in this phase's logic)
@@ -222,16 +223,15 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   // Effect to call onCalculationComplete when relevant state changes
   useEffect(() => {
     if (onCalculationComplete && calculatedPrice) {
-      // Ensure calculatedPrice is not null
       const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
       onCalculationComplete({
         rooms: selectedRooms,
         frequency,
-        firstServicePrice: calculatedPrice.firstServicePrice, // Use firstServicePrice from worker result
-        recurringServicePrice: calculatedPrice.recurringServicePrice, // Use recurringServicePrice from worker result
-        serviceType: serviceTier, // Use serviceTier from context
-        cleanlinessLevel: cleanlinessLevel, // Use cleanlinessLevel from context
-        priceMultiplier: CLEANLINESS_DIFFICULTY[cleanlinessLevel].multipliers[serviceTier], // Get actual multiplier
+        firstServicePrice: calculatedPrice.firstServicePrice,
+        recurringServicePrice: calculatedPrice.recurringServicePrice,
+        serviceType: serviceTier,
+        cleanlinessLevel: cleanlinessLevel,
+        priceMultiplier: CLEANLINESS_DIFFICULTY[cleanlinessLevel].multipliers[serviceTier],
         isServiceAvailable: true, // Worker will determine availability, for now assume true if no error
         addressId: "custom", // This would be replaced with actual address ID in a real implementation
         paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
@@ -311,11 +311,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   <h3 className="text-lg font-medium">Select Rooms</h3>
                 </div>
 
-                <RoomConfigurator
-                  selectedRooms={selectedRooms}
-                  serviceTier={serviceTier} // Pass serviceTier from context
-                  dispatch={dispatch} // Pass dispatch to RoomConfigurator
-                />
+                <RoomConfigurator selectedRooms={selectedRooms} serviceTier={serviceTier} dispatch={dispatch} />
               </CardContent>
             </Card>
 
@@ -566,6 +562,19 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   </AccordionContent>
                 </AccordionItem>
               )}
+
+              {/* Detailed Price Breakdown */}
+              <AccordionItem value="price-breakdown" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Detailed Price Breakdown</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <PriceBreakdownDetailed priceResult={calculatedPrice} isCalculating={isCalculating} />
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </TabsContent>
         ))}
@@ -610,7 +619,16 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
         )}
 
-        {/* Removed old isServiceAvailable check as it's now handled by enforcedTierReason */}
+        {calculatedPrice && calculatedPrice.estimatedDuration > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm text-muted-foreground">
+            <span>Estimated Cleaning Time:</span>
+            <span>
+              {Math.floor(calculatedPrice.estimatedDuration / 60)} hours {calculatedPrice.estimatedDuration % 60}{" "}
+              minutes
+            </span>
+          </div>
+        )}
+
         {state.enforcedTierReason && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
