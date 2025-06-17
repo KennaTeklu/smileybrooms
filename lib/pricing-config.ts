@@ -53,3 +53,27 @@ export const PREMIUM_EXCLUSIVE_SERVICES = [
   { id: "allergen_elimination", name: "Allergen Elimination", price: 200, unit: "/room" },
   { id: "emergency_2hr_response", name: "Emergency 2-Hr Response", price: 1000, unit: "" },
 ]
+
+export const AUTOMATIC_TIER_UPGRADES = [
+  {
+    condition: "sq_ft_over_3000",
+    threshold: 3000,
+    requiredTier: "premium",
+    message: "For homes over 3,000 sq ft, Premium service is required.",
+  },
+  { condition: "rental_property", requiredTier: "premium", message: "Rental properties require Premium service." },
+  { condition: "pet_owners", requiredTier: "premium", message: "Homes with pets require Premium service." },
+  { condition: "post_renovation", requiredTier: "elite", message: "Post-renovation cleanings require Elite service." },
+  {
+    condition: "mold_water_damage",
+    requiredTier: "elite",
+    message: "Mold/water damage situations require Elite service.",
+  },
+  { condition: "biohazard_situations", requiredTier: "elite", message: "Biohazard situations require Elite service." },
+]
+
+export const MINIMUM_JOB_VALUES = {
+  studio: { standard: 200, premium: 600, elite: 1000 },
+  "3br_home": { standard: 500, premium: 1500, elite: 2500 },
+  "5br_mansion": { standard: 900, premium: 2700, elite: 4500 },
+}
