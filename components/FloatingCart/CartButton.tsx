@@ -1,10 +1,11 @@
 "use client"
 
-import { forwardRef } from "react"
+import { forwardRef, useEffect } from "react" // Import useEffect
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useCartAnimation } from "@/hooks/useCartAnimation"
+import { useCartAnimation } from "@/hooks/useCartAnimation" // Keep this for core cart animation logic
+import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations" // Import useAdvancedAnimations
 import { cn } from "@/lib/utils"
 import styles from "./cart.module.css"
 
@@ -23,18 +24,38 @@ export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(
       enableFloat: !isOpen && itemCount > 0,
     })
 
+    // Use advanced animations for additional effects
+    const { animateHover, animatePress, animateFloat, getAnimatedStyle, resetAnimations } = useAdvancedAnimations()
+
+    useEffect(() => {
+      if (isOpen) {
+        resetAnimations() // Reset advanced animations when cart opens
+        stopFloating() // Stop the basic floating animation
+      } else if (itemCount > 0) {
+        startFloating() // Restart basic floating when cart closes and items exist
+      }
+    }, [isOpen, itemCount, resetAnimations, startFloating, stopFloating])
+
     const handleMouseEnter = () => {
       handleHover(true)
-      if (itemCount > 0) startFloating()
+      animateHover(true)
+      if (itemCount > 0 && !isOpen) startFloating()
     }
 
     const handleMouseLeave = () => {
       handleHover(false)
-      stopFloating()
+      animateHover(false)
+      if (itemCount > 0 && !isOpen) stopFloating() // Let useCartAnimation manage floating
     }
 
-    const handleMouseDown = () => handlePress(true)
-    const handleMouseUp = () => handlePress(false)
+    const handleMouseDown = () => {
+      handlePress(true)
+      animatePress(true)
+    }
+    const handleMouseUp = () => {
+      handlePress(false)
+      animatePress(false)
+    }
 
     const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
 
@@ -45,7 +66,7 @@ export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(
         disabled={disabled}
         className={cn(styles.cartButton, className)}
         style={{
-          transform: `translateY(${animationState.translateY}px) scale(${animationState.scale})`,
+          ...getAnimatedStyle(), // Apply advanced animations
           backgroundColor: "var(--primary)",
           color: "var(--primary-foreground)",
         }}
