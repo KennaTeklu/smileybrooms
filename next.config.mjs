@@ -7,7 +7,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // unoptimized: true, // Removed for production optimization
+    unoptimized: true,
   },
 }
 
