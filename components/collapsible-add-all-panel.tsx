@@ -42,6 +42,7 @@ import Image from "next/image"
 import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { usePanelManager } from "@/lib/panel-manager-context" // Import the panel manager
 
 export function CollapsibleAddAllPanel() {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -60,6 +61,7 @@ export function CollapsibleAddAllPanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
+  const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager() // Use panel manager
 
   // Scroll enhancements states and refs
   const scrollViewportRef = useRef<HTMLDivElement>(null) // Ref for the ScrollArea's viewport
@@ -94,7 +96,26 @@ export function CollapsibleAddAllPanel() {
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    registerPanel("addAllToCart", { isFullscreen: true, zIndex: 997 }) // Register this panel
+    return () => unregisterPanel("addAllToCart")
+  }, [registerPanel, unregisterPanel])
+
+  // Update panel manager when this panel's state changes
+  useEffect(() => {
+    if (isExpanded || isFullscreen) {
+      setActivePanel("addAllToCart")
+    } else if (activePanel === "addAllToCart") {
+      setActivePanel(null)
+    }
+  }, [isExpanded, isFullscreen, setActivePanel, activePanel])
+
+  // Close if another panel becomes active
+  useEffect(() => {
+    if (activePanel && activePanel !== "addAllToCart" && (isExpanded || isFullscreen)) {
+      setIsExpanded(false)
+      setIsFullscreen(false)
+    }
+  }, [activePanel, isExpanded, isFullscreen])
 
   // Pause scroll tracking when panel is expanded or in fullscreen
   useEffect(() => {
@@ -251,8 +272,24 @@ export function CollapsibleAddAllPanel() {
     }
 
     window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      // Ensure body overflow is reset when panel closes
+      document.body.style.overflow = ""
+      document.body.classList.remove("panel-locked")
+    }
   }, [isExpanded])
+
+  // Lock body scroll when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden"
+      document.body.classList.add("panel-locked")
+    } else {
+      document.body.style.overflow = ""
+      document.body.classList.remove("panel-locked")
+    }
+  }, [isFullscreen])
 
   const handleAddAllToCart = useCallback(() => {
     try {
@@ -293,7 +330,7 @@ export function CollapsibleAddAllPanel() {
         setAddedItemsCount(addedCount)
         setShowSuccessNotification(true)
 
-        // Close panels
+        // Close panels after adding to cart
         setIsExpanded(false)
         setIsFullscreen(false)
         setReviewStep(0)
@@ -323,8 +360,11 @@ export function CollapsibleAddAllPanel() {
     [updateRoomCount, vibrate],
   )
 
-  const handleReviewClick = useCallback(() => {
-    setIsFullscreen(true)
+  // Modified: Initial click on button opens fullscreen, not adds to cart
+  const handleTriggerPanel = useCallback(() => {
+    setIsExpanded(true)
+    setIsFullscreen(true) // Automatically go fullscreen for review
+    setReviewStep(0) // Always start at review step
     vibrate(50)
   }, [vibrate])
 
@@ -705,7 +745,7 @@ export function CollapsibleAddAllPanel() {
           animate={controls}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleTriggerPanel} // Changed to trigger panel, not add to cart directly
           className={cn(
             "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
             "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
@@ -763,7 +803,7 @@ export function CollapsibleAddAllPanel() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={handleReviewClick}
+                      onClick={handleTriggerPanel} // Changed to trigger fullscreen review
                       className="text-white hover:bg-white/20 rounded-full h-8 w-8"
                       title="Fullscreen view"
                     >
@@ -836,19 +876,7 @@ export function CollapsibleAddAllPanel() {
               <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
                 <div className="space-y-3">
                   <Button
-                    onClick={handleAddAllToCart} // Direct add to cart button
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
-                    disabled={!isOnline}
-                  >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="relative flex items-center justify-center">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add All to Cart
-                    </span>
-                  </Button>
-                  <Button
-                    onClick={handleReviewClick}
+                    onClick={handleTriggerPanel} // Changed to trigger fullscreen review
                     size="lg"
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
                   >

@@ -1,18 +1,18 @@
 "use client"
 
-import { forwardRef, useEffect, useRef, useState } from "react" // Import useState
+import { forwardRef, useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ShoppingBag, Trash2, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-// Removed: import { useFloatingUI } from "@/hooks/useFloatingUI" // Not needed for fixed sidebar
 import { useScrollContainerDetection } from "@/hooks/useScrollContainerDetection"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/cart/types"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
+import { usePanelManager } from "@/lib/panel-manager-context" // Import the panel manager
 
 interface CartPanelProps {
   isOpen: boolean
@@ -67,7 +67,33 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
   const { detectionRef, activeContainer } = useScrollContainerDetection()
   const { cart, updateQuantity, removeItem, clearCart } = useCart()
   const router = useRouter()
-  const [isCheckoutPending, setIsCheckoutPending] = useState(false) // New state to manage checkout initiation
+  const [isCheckoutPending, setIsCheckoutPending] = useState(false)
+  const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager() // Use panel manager
+
+  useEffect(() => {
+    registerPanel("cartPanel", { isFullscreen: false, zIndex: 998 }) // Register this panel
+    return () => unregisterPanel("cartPanel")
+  }, [registerPanel, unregisterPanel])
+
+  // Update panel manager when this panel's state changes
+  useEffect(() => {
+    if (isOpen) {
+      setActivePanel("cartPanel")
+      document.body.style.overflow = "hidden" // Lock body scroll when cart is open
+      document.body.classList.add("panel-locked")
+    } else if (activePanel === "cartPanel") {
+      setActivePanel(null)
+      document.body.style.overflow = "" // Unlock body scroll when cart closes
+      document.body.classList.remove("panel-locked")
+    }
+  }, [isOpen, setActivePanel, activePanel])
+
+  // Close if another panel becomes active
+  useEffect(() => {
+    if (activePanel && activePanel !== "cartPanel" && isOpen) {
+      onClose() // Close cart if another panel becomes active
+    }
+  }, [activePanel, isOpen, onClose])
 
   // Focus close button when panel opens
   useEffect(() => {
@@ -116,11 +142,11 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
       ref={ref}
       variants={panelVariants}
       initial="hidden"
-      animate={isOpen ? "visible" : "hidden"} // Explicitly animate based on isOpen
+      animate={isOpen ? "visible" : "hidden"}
       exit="exit"
-      onAnimationComplete={handleAnimationComplete} // Add this prop to delay navigation
+      onAnimationComplete={handleAnimationComplete}
       className={cn(
-        "fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background border-l shadow-2xl",
+        "fixed inset-y-0 right-0 z-[998] w-full max-w-md bg-background border-l shadow-2xl", // Increased z-index
         "flex flex-col",
         className,
       )}

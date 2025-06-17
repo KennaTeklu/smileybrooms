@@ -435,3 +435,15 @@ body.terms-locked {
 .dark .shadow-bottom-gradient::after {
   background: linear-gradient(to top, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
 }
+
+/* New class to disable pointer events on background when a panel is open */
+body.panel-locked > *:not(.fixed):not(.absolute):not(.relative) {
+  pointer-events: none;
+}
+
+/* Re-enable pointer events for fixed/absolute/relative elements within the locked body */
+body.panel-locked .fixed,
+body.panel-locked .absolute,
+body.panel-locked .relative {
+  pointer-events: auto;
+}
