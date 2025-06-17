@@ -1,13 +1,13 @@
 "use client"
 
-import { forwardRef, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion" // Import AnimatePresence
+import { forwardRef, useEffect, useRef, useState } from "react" // Import useState
+import { motion, AnimatePresence } from "framer-motion"
 import { X, ShoppingBag, Trash2, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { useFloatingUI } from "@/hooks/useFloatingUI"
+// Removed: import { useFloatingUI } from "@/hooks/useFloatingUI" // Not needed for fixed sidebar
 import { useScrollContainerDetection } from "@/hooks/useScrollContainerDetection"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/cart/types"
@@ -67,14 +67,7 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
   const { detectionRef, activeContainer } = useScrollContainerDetection()
   const { cart, updateQuantity, removeItem, clearCart } = useCart()
   const router = useRouter()
-
-  // Floating UI for advanced positioning
-  const { refs, floatingStyles, isHidden } = useFloatingUI({
-    placement: "top-end",
-    enableFlip: true,
-    enableShift: true,
-    enableHide: true,
-  })
+  const [isCheckoutPending, setIsCheckoutPending] = useState(false) // New state to manage checkout initiation
 
   // Focus close button when panel opens
   useEffect(() => {
@@ -100,8 +93,17 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
 
   // Handle checkout
   const handleCheckout = () => {
-    onClose()
-    router.push("/checkout")
+    setIsCheckoutPending(true) // Set flag to indicate checkout is pending
+    onClose() // Trigger the cart panel to close (start exit animation)
+  }
+
+  // Callback for when the animation completes
+  const handleAnimationComplete = (definition: string) => {
+    // If the exit animation just completed and checkout was pending, navigate
+    if (definition === "exit" && isCheckoutPending) {
+      router.push("/checkout")
+      setIsCheckoutPending(false) // Reset the flag
+    }
   }
 
   // Handle clear cart
@@ -109,23 +111,19 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
     clearCart()
   }
 
-  if (isHidden) {
-    return null
-  }
-
   return (
     <motion.div
       ref={ref}
       variants={panelVariants}
       initial="hidden"
-      animate="visible"
+      animate={isOpen ? "visible" : "hidden"} // Explicitly animate based on isOpen
       exit="exit"
+      onAnimationComplete={handleAnimationComplete} // Add this prop to delay navigation
       className={cn(
         "fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background border-l shadow-2xl",
         "flex flex-col",
         className,
       )}
-      style={floatingStyles}
       data-testid="cart-panel"
     >
       {/* Header */}
