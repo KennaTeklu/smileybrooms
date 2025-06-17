@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import QRCode from "qrcode.react" // Corrected import for QRCode as default export
+import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
 
 type SharePlatform = {
   id: string
@@ -241,7 +241,7 @@ export function CollapsibleSharePanel() {
                   className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
                 >
                   {/* Render the QR code here with image settings */}
-                  <QRCode
+                  <QRCodeSVG
                     value={currentUrl}
                     size={qrCodeSize}
                     level="H"
