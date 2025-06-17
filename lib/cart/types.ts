@@ -4,7 +4,22 @@ export interface CartItem {
   type: "service" | "product" | "subscription"
   unitPrice: number
   quantity: number
-  meta: Record<string, any>
+  meta: {
+    serviceTier?: string // e.g., "Standard", "Premium", "Elite"
+    cleanlinessLevel?: string // e.g., "Light", "Medium", "Heavy", "Biohazard"
+    roomType?: string // e.g., "bedroom", "bathroom"
+    addOns?: { id: string; quantity?: number }[] // Array of selected add-ons with optional quantity
+    exclusiveServices?: string[] // Array of selected exclusive service IDs
+    propertySize?: string // e.g., "Studio", "3BR Home", "5BR Mansion"
+    isRentalProperty?: boolean
+    hasPets?: boolean
+    isPostRenovation?: boolean
+    hasMoldWaterDamage?: boolean
+    isBiohazardSituation?: boolean
+    enforcedTierReason?: string // Reason for automatic tier upgrade
+    // Add any other relevant metadata from the pricing structure
+    [key: string]: any // Allow for existing or future arbitrary meta properties
+  }
 }
 
 export interface CartSummary {
