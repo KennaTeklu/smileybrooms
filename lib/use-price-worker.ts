@@ -13,6 +13,7 @@ export type ServiceConfig = {
   addons?: Record<string, number>
   zipCode?: string
   squareFootage?: number
+  paymentFrequency?: string // Added paymentFrequency
 }
 
 // Define the output result type
@@ -97,14 +98,12 @@ const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
   const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
   const priceAfterFrequency = priceAfterCleanliness * (1 - frequencyDiscount)
 
-  // Apply payment frequency discount (assuming 'yearly' is the only one with a discount here)
-  const paymentDiscount = 0
-  // Note: The paymentFrequency is not part of ServiceConfig, so this part might need adjustment
-  // if it's meant to be passed to the worker. For now, assuming it's handled outside or has a default.
-  // For simplicity in fallback, we'll omit payment frequency discount unless explicitly in config.
-  // If config.paymentFrequency was passed:
-  // if (config.paymentFrequency === "yearly") { paymentDiscount = 0.1; }
-  const recurringServicePrice = priceAfterFrequency * (1 - paymentDiscount)
+  // Apply payment frequency discount
+  let paymentDiscount = 0
+  if (config.paymentFrequency === "annually") {
+    paymentDiscount = 0.1
+  }
+  const priceAfterPayment = priceAfterFrequency * (1 - paymentDiscount)
 
   // Apply discounts and addons (simplified)
   let discountTotal = 0
@@ -119,7 +118,7 @@ const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
 
   // Final prices after all adjustments (for simplicity, applying to both for fallback)
   const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal + addonTotal)
-  const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal + addonTotal)
+  const finalRecurringServicePrice = Math.max(0, priceAfterPayment - discountTotal + addonTotal)
 
   // Return simplified result
   return {
@@ -130,6 +129,7 @@ const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
       cleanliness: priceAfterCleanliness - priceAfterServiceType,
       discounts: -discountTotal,
       addons: addonTotal,
+      paymentFrequency: priceAfterFrequency - priceAfterPayment,
     },
     firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
     recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
