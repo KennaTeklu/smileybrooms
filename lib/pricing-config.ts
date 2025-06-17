@@ -47,3 +47,9 @@ export const STRATEGIC_ADDONS = [
     includedInElite: false,
   },
 ]
+
+export const PREMIUM_EXCLUSIVE_SERVICES = [
+  { id: "microbial_certification", name: "Microbial Certification", price: 499, unit: "" },
+  { id: "allergen_elimination", name: "Allergen Elimination", price: 200, unit: "/room" },
+  { id: "emergency_2hr_response", name: "Emergency 2-Hr Response", price: 1000, unit: "" },
+]
