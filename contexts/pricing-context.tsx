@@ -1,147 +1,242 @@
-```ts file="lib/workers/price-calculator.worker.ts"
-[v0-no-op-code-block-prefix]// lib/workers/price-calculator.worker.ts
+"use client"
 
+import type React from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
+import { usePriceWorker } from "@/lib/use-price-worker"
+import type { ServiceConfig, PriceCalculationResult } from "@/lib/workers/price-calculator.worker"
 import {
-  ADDON_PRICING,
-  CLEANLINESS_LEVEL_MULTIPLIERS,
-  EXCLUSIVE_SERVICE_PRICING,
-  FREQUENCY_DISCOUNTS,
-  MINIMUM_JOB_VALUES,
-  ROOM_PRICES,
+  ROOM_CONFIG,
+  ADDON_CONFIG,
+  EXCLUSIVE_SERVICE_CONFIG,
   SERVICE_TIERS,
-  WAIVER_DISCOUNT,
-} from "../constants";
-import {
-  AddonId,
-  CleanlinessLevelId,
-  ExclusiveServiceId,
-  ServiceTierId,
-} from "../types";
+  CLEANLINESS_LEVELS,
+  FREQUENCY_OPTIONS,
+  PROPERTY_TYPES,
+  MINIMUM_JOB_VALUES,
+} from "@/lib/pricing-config"
+import type { AddonId, CleanlinessLevelId, ExclusiveServiceId, ServiceTierId } from "@/lib/types"
 
-export interface ServiceConfig {
-  rooms: Record<string, number>;
-  serviceTier: ServiceTierId;
-  cleanlinessLevel: CleanlinessLevelId;
-  frequency: string;
-  paymentFrequency: string;
-  selectedAddons: string[];
-  selectedExclusiveServices: string[];
-  waiverSigned: boolean;
-  propertySizeSqFt: number; // New
-  propertyType: 'studio' | '3br_home' | '5br_mansion' | null; // New
-  isRentalProperty: boolean; // New
-  hasPets: boolean; // New
-  isPostRenovation: boolean; // New
-  hasMoldWaterDamage: boolean; // New
+interface PricingContextType {
+  config: ServiceConfig
+  setConfig: React.Dispatch<React.SetStateAction<ServiceConfig>>
+  calculatedPrice: PriceCalculationResult | null
+  loading: boolean
+  error: Error | null
+  updateRoomCount: (roomType: string, count: number) => void
+  toggleAddon: (addonId: AddonId) => void
+  toggleExclusiveService: (serviceId: ExclusiveServiceId) => void
+  isAddonSelected: (addonId: AddonId) => boolean
+  isExclusiveServiceSelected: (serviceId: ExclusiveServiceId) => boolean
+  getAddonPrice: (addonId: AddonId) => number
+  getExclusiveServicePrice: (serviceId: ExclusiveServiceId) => number
+  getServiceTierMultiplier: (tierId: ServiceTierId) => number
+  getCleanlinessLevelMultiplier: (levelId: CleanlinessLevelId) => number
+  getFrequencyDiscount: (frequency: string) => number
+  getMinJobValue: (propertyType: string, serviceTier: ServiceTierId) => number
+  ROOM_CONFIG: typeof ROOM_CONFIG
+  ADDON_CONFIG: typeof ADDON_CONFIG
+  EXCLUSIVE_SERVICE_CONFIG: typeof EXCLUSIVE_SERVICE_CONFIG
+  SERVICE_TIERS: typeof SERVICE_TIERS
+  CLEANLINESS_LEVELS: typeof CLEANLINESS_LEVELS
+  FREQUENCY_OPTIONS: typeof FREQUENCY_OPTIONS
+  PROPERTY_TYPES: typeof PROPERTY_TYPES
 }
 
-export interface PriceBreakdownItem {
-  item: string;
-  value: number;
-  type: "room" | "addon" | "exclusiveService" | "discount" | "adjustment";
-}
+const PricingContext = createContext<PricingContextType | undefined>(undefined)
 
-export interface PriceCalculationResult {
-  total: number;
-  breakdown: PriceBreakdownItem[];
-}
+export function PricingProvider({ children }: { children: React.ReactNode }) {
+  const [config, setConfig] = useState<ServiceConfig>(() => ({
+    rooms: Object.keys(ROOM_CONFIG).reduce((acc, key) => ({ ...acc, [key]: 0 }), {}),
+    serviceTier: "standard",
+    cleanlinessLevel: "average",
+    frequency: "one-time",
+    paymentFrequency: "one-time",
+    selectedAddons: [],
+    selectedExclusiveServices: [],
+    waiverSigned: false,
+    propertySizeSqFt: 0,
+    propertyType: null,
+    isRentalProperty: false,
+    hasPets: false,
+    isPostRenovation: false,
+    hasMoldWaterDamage: false,
+  }))
 
-function calculatePrice(config: ServiceConfig): PriceCalculationResult {
-  let currentTotal = 0;
-  const breakdown: PriceBreakdownItem[] = [];
+  const { result: calculatedPrice, loading, error } = usePriceWorker(config)
 
-  // --- Room Pricing ---
-  for (const roomType in config.rooms) {
-    const roomCount = config.rooms[roomType];
-    const roomPrice = ROOM_PRICES[roomType] || 0; // Default to 0 if room price is not found
-    const roomTotal = roomCount * roomPrice;
+  const updateRoomCount = useCallback((roomType: string, count: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      rooms: {
+        ...prev.rooms,
+        [roomType]: Math.max(0, count),
+      },
+    }))
+  }, [])
 
-    breakdown.push({
-      item: \`${roomType} (${roomCount})`,\
-value: roomTotal, type
-: "room",
+  const toggleAddon = useCallback((addonId: AddonId) => {
+    setConfig((prev) => {
+      const newSelectedAddons = prev.selectedAddons.includes(addonId)
+        ? prev.selectedAddons.filter((id) => id !== addonId)
+        : [...prev.selectedAddons, addonId]
+
+      // Enforce Elite tier inclusion for certain addons
+      if (prev.serviceTier === "elite") {
+        // If an addon is part of Elite, it should always be considered selected
+        // This logic might need to be more sophisticated if Elite includes some but not all
+        // For now, we assume if it's in ADDON_CONFIG and marked as 'eliteIncluded', it's always on.
+        // The UI should reflect this by disabling the checkbox for Elite tier.
+      }
+
+      return { ...prev, selectedAddons: newSelectedAddons }
     })
-currentTotal += roomTotal
-}
+  }, [])
 
-// --- Service Tier Multiplier ---
-const tierMultiplier = SERVICE_TIERS[config.serviceTier].multiplier
-currentTotal *= tierMultiplier
-
-// --- Cleanliness Level Multiplier ---
-const cleanlinessMultiplier = CLEANLINESS_LEVEL_MULTIPLIERS[config.cleanlinessLevel]
-currentTotal *= cleanlinessMultiplier
-
-// --- Frequency Discount ---
-const frequencyDiscount = FREQUENCY_DISCOUNTS[config.frequency] || 0 // Default to 0 if frequency is not found
-breakdown.push({
-  item: `Frequency Discount (${config.frequency})`,
-  value: currentTotal * frequencyDiscount * -1,
-  type: "discount",
-})
-currentTotal *= 1 - frequencyDiscount
-
-// --- Addon Pricing ---
-for (const addonId of config.selectedAddons) {
-  const addonPrice = ADDON_PRICING[addonId as AddonId]
-  breakdown.push({
-    item: `Addon: ${addonId}`,
-    value: addonPrice,
-    type: "addon",
-  })
-  currentTotal += addonPrice
-}
-
-// --- Exclusive Service Pricing ---
-for (const serviceId of config.selectedExclusiveServices) {
-  const servicePrice = EXCLUSIVE_SERVICE_PRICING[serviceId as ExclusiveServiceId]
-  breakdown.push({
-    item: `Exclusive Service: ${serviceId}`,
-    value: servicePrice,
-    type: "exclusiveService",
-  })
-  currentTotal += servicePrice
-}
-
-// --- Waiver Discount ---
-if (config.waiverSigned) {
-  breakdown.push({
-    item: "Waiver Discount",
-    value: currentTotal * WAIVER_DISCOUNT * -1,
-    type: "discount",
-  })
-  currentTotal *= 1 - WAIVER_DISCOUNT
-}
-
-// --- Automatic Tier Upgrades Enforcement (Worker-side validation/override) ---
-// This logic should primarily live in the context, but the worker needs to be aware
-// of the final serviceTier passed to it. We'll ensure the worker uses the
-// `serviceTier` provided in the config, which the context will have already enforced.
-// The worker's role here is to apply the correct minimums and multipliers based on the *final* tier.
-
-// --- Minimum Job Value Enforcement ---
-if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType]) {
-  const minimumValueForTier = MINIMUM_JOB_VALUES[config.propertyType][config.serviceTier]
-  if (minimumValueForTier && currentTotal < minimumValueForTier) {
-    breakdown.push({
-      item: `Minimum Job Value (${config.propertyType} - ${SERVICE_TIERS[config.serviceTier].name})`,
-      value: minimumValueForTier - currentTotal,
-      type: "adjustment",
+  const toggleExclusiveService = useCallback((serviceId: ExclusiveServiceId) => {
+    setConfig((prev) => {
+      const newSelectedExclusiveServices = prev.selectedExclusiveServices.includes(serviceId)
+        ? prev.selectedExclusiveServices.filter((id) => id !== serviceId)
+        : [...prev.selectedExclusiveServices, serviceId]
+      return { ...prev, selectedExclusiveServices: newSelectedExclusiveServices }
     })
-    currentTotal = minimumValueForTier
+  }, [])
+
+  const isAddonSelected = useCallback(
+    (addonId: AddonId) => {
+      // If service tier is elite and addon is eliteIncluded, it's always selected
+      if (config.serviceTier === "elite" && ADDON_CONFIG[addonId]?.eliteIncluded) {
+        return true
+      }
+      return config.selectedAddons.includes(addonId)
+    },
+    [config.selectedAddons, config.serviceTier],
+  )
+
+  const isExclusiveServiceSelected = useCallback(
+    (serviceId: ExclusiveServiceId) => {
+      return config.selectedExclusiveServices.includes(serviceId)
+    },
+    [config.selectedExclusiveServices],
+  )
+
+  const getAddonPrice = useCallback((addonId: AddonId) => {
+    return ADDON_CONFIG[addonId]?.price || 0
+  }, [])
+
+  const getExclusiveServicePrice = useCallback((serviceId: ExclusiveServiceId) => {
+    return EXCLUSIVE_SERVICE_CONFIG[serviceId]?.price || 0
+  }, [])
+
+  const getServiceTierMultiplier = useCallback((tierId: ServiceTierId) => {
+    return SERVICE_TIERS[tierId]?.multiplier || 1
+  }, [])
+
+  const getCleanlinessLevelMultiplier = useCallback((levelId: CleanlinessLevelId) => {
+    return CLEANLINESS_LEVELS[levelId]?.multiplier || 1
+  }, [])
+
+  const getFrequencyDiscount = useCallback((frequency: string) => {
+    return FREQUENCY_OPTIONS[frequency]?.discount || 0
+  }, [])
+
+  const getMinJobValue = useCallback((propertyType: string, serviceTier: ServiceTierId) => {
+    if (propertyType && MINIMUM_JOB_VALUES[propertyType]) {
+      return MINIMUM_JOB_VALUES[propertyType][serviceTier] || 0
+    }
+    return 0
+  }, [])
+
+  // Enforce Elite tier rules: if Elite is selected, certain addons are automatically included
+  useEffect(() => {
+    if (config.serviceTier === "elite") {
+      setConfig((prev) => {
+        const eliteIncludedAddons = Object.entries(ADDON_CONFIG)
+          .filter(([, addon]) => addon.eliteIncluded)
+          .map(([id]) => id as AddonId)
+
+        const newSelectedAddons = Array.from(new Set([...prev.selectedAddons, ...eliteIncludedAddons]))
+
+        // Ensure exclusive services are only selectable if Elite tier is chosen
+        const newSelectedExclusiveServices = prev.selectedExclusiveServices.filter((serviceId) =>
+          EXCLUSIVE_SERVICE_CONFIG[serviceId]?.eliteOnly ? true : false,
+        )
+
+        return {
+          ...prev,
+          selectedAddons: newSelectedAddons,
+          selectedExclusiveServices: newSelectedExclusiveServices,
+        }
+      })
+    } else {
+      // If tier is not elite, remove elite-only exclusive services and elite-included addons
+      setConfig((prev) => {
+        const newSelectedExclusiveServices = prev.selectedExclusiveServices.filter(
+          (serviceId) => !EXCLUSIVE_SERVICE_CONFIG[serviceId]?.eliteOnly,
+        )
+        const newSelectedAddons = prev.selectedAddons.filter((addonId) =>
+          ADDON_CONFIG[addonId]?.eliteIncluded ? false : true,
+        )
+        return {
+          ...prev,
+          selectedExclusiveServices: newSelectedExclusiveServices,
+          selectedAddons: newSelectedAddons,
+        }
+      })
+    }
+  }, [config.serviceTier])
+
+  const value = useMemo(
+    () => ({
+      config,
+      setConfig,
+      calculatedPrice,
+      loading,
+      error,
+      updateRoomCount,
+      toggleAddon,
+      toggleExclusiveService,
+      isAddonSelected,
+      isExclusiveServiceSelected,
+      getAddonPrice,
+      getExclusiveServicePrice,
+      getServiceTierMultiplier,
+      getCleanlinessLevelMultiplier,
+      getFrequencyDiscount,
+      getMinJobValue,
+      ROOM_CONFIG,
+      ADDON_CONFIG,
+      EXCLUSIVE_SERVICE_CONFIG,
+      SERVICE_TIERS,
+      CLEANLINESS_LEVELS,
+      FREQUENCY_OPTIONS,
+      PROPERTY_TYPES,
+    }),
+    [
+      config,
+      calculatedPrice,
+      loading,
+      error,
+      updateRoomCount,
+      toggleAddon,
+      toggleExclusiveService,
+      isAddonSelected,
+      isExclusiveServiceSelected,
+      getAddonPrice,
+      getExclusiveServicePrice,
+      getServiceTierMultiplier,
+      getCleanlinessLevelMultiplier,
+      getFrequencyDiscount,
+      getMinJobValue,
+    ],
+  )
+
+  return <PricingContext.Provider value={value}>{children}</PricingContext.Provider>
+}
+
+export function usePricing() {
+  const context = useContext(PricingContext)
+  if (context === undefined) {
+    throw new Error("usePricing must be used within a PricingProvider")
   }
+  return context
 }
-
-return {
-    total: Number.parseFloat(currentTotal.toFixed(2)),
-    breakdown,
-  };
-}
-
-self.addEventListener("message", (event) =>
-{
-  const config: ServiceConfig = event.data
-  const result = calculatePrice(config)
-  self.postMessage(result)
-}
-)
