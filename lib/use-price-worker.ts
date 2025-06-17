@@ -19,7 +19,8 @@ export type ServiceConfig = {
 export type PriceResult = {
   basePrice: number
   adjustments: Record<string, number>
-  finalPrice: number
+  firstServicePrice: number // Added for first service
+  recurringServicePrice: number // Added for recurring services
   estimatedDuration: number // in minutes
   breakdown: {
     category: string
@@ -32,6 +33,26 @@ export type PriceResult = {
 const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
   // This is a simplified version of the calculation
   // In a real app, you'd duplicate the logic from the worker
+
+  // Define the frequency options and their discounts (duplicated for fallback)
+  const frequencyOptions = [
+    { id: "one_time", discount: 0 },
+    { id: "weekly", discount: 0.15 },
+    { id: "biweekly", discount: 0.1 },
+    { id: "monthly", discount: 0.05 },
+    { id: "semi_annual", discount: 0.02 },
+    { id: "annually", discount: 0.01 },
+    { id: "vip_daily", discount: 0.25 },
+  ]
+
+  // Define the cleanliness level multipliers (duplicated for fallback)
+  const cleanlinessMultipliers = [
+    { level: 1, multiplier: 0.8 },
+    { level: 2, multiplier: 1.0 },
+    { level: 3, multiplier: 1.2 },
+    { level: 4, multiplier: 1.5 },
+    { level: 5, multiplier: 2.0 },
+  ]
 
   // Calculate base price
   let basePrice = 0
@@ -61,35 +82,31 @@ const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
 
   // Apply service type multiplier
   const serviceMultiplier = config.serviceType === "detailing" ? 1.5 : 1.0
-  basePrice *= serviceMultiplier
-
-  // Apply frequency discount
-  const frequencyMultiplier =
-    {
-      one_time: 1.0,
-      weekly: 0.8,
-      biweekly: 0.85,
-      monthly: 0.9,
-      semi_annual: 0.95,
-      annually: 0.98,
-      vip_daily: 0.7,
-    }[config.frequency] || 1.0
-
-  basePrice *= frequencyMultiplier
+  const priceAfterServiceType = basePrice * serviceMultiplier
 
   // Apply cleanliness level multiplier
   const cleanlinessMultiplier =
-    {
-      1: 0.9,
-      2: 1.0,
-      3: 1.1,
-      4: 1.25,
-      5: 1.5,
-    }[config.cleanlinessLevel] || 1.0
+    cleanlinessMultipliers.find((c) => c.level === config.cleanlinessLevel)?.multiplier || 1.0
+  const priceAfterCleanliness = priceAfterServiceType * cleanlinessMultiplier
 
-  basePrice *= cleanlinessMultiplier
+  // Calculate the one-time price (first service price)
+  const firstServicePrice = priceAfterCleanliness
 
-  // Apply discounts and addons
+  // Apply frequency discount for recurring price
+  const selectedFrequency = frequencyOptions.find((f) => f.id === config.frequency)
+  const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
+  const priceAfterFrequency = priceAfterCleanliness * (1 - frequencyDiscount)
+
+  // Apply payment frequency discount (assuming 'yearly' is the only one with a discount here)
+  const paymentDiscount = 0
+  // Note: The paymentFrequency is not part of ServiceConfig, so this part might need adjustment
+  // if it's meant to be passed to the worker. For now, assuming it's handled outside or has a default.
+  // For simplicity in fallback, we'll omit payment frequency discount unless explicitly in config.
+  // If config.paymentFrequency was passed:
+  // if (config.paymentFrequency === "yearly") { paymentDiscount = 0.1; }
+  const recurringServicePrice = priceAfterFrequency * (1 - paymentDiscount)
+
+  // Apply discounts and addons (simplified)
   let discountTotal = 0
   if (config.discounts) {
     discountTotal = Object.values(config.discounts).reduce((sum, val) => sum + val, 0)
@@ -100,20 +117,23 @@ const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
     addonTotal = Object.values(config.addons).reduce((sum, val) => sum + val, 0)
   }
 
-  const finalPrice = Math.max(0, basePrice - discountTotal + addonTotal)
+  // Final prices after all adjustments (for simplicity, applying to both for fallback)
+  const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal + addonTotal)
+  const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal + addonTotal)
 
   // Return simplified result
   return {
     basePrice,
     adjustments: {
-      serviceType: basePrice * (serviceMultiplier - 1),
-      frequency: basePrice * (1 - frequencyMultiplier),
-      cleanliness: basePrice * (cleanlinessMultiplier - 1),
+      serviceType: priceAfterServiceType - basePrice,
+      frequency: priceAfterCleanliness - priceAfterFrequency,
+      cleanliness: priceAfterCleanliness - priceAfterServiceType,
       discounts: -discountTotal,
       addons: addonTotal,
     },
-    finalPrice,
-    estimatedDuration: Math.round(finalPrice * 0.8),
+    firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
+    recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
+    estimatedDuration: Math.round(finalFirstServicePrice * 0.8), // Duration based on first service
     breakdown: [
       {
         category: "Base Price",

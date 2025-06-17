@@ -3,20 +3,20 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, Copy, Check, QrCode, Search, ExternalLink, ChevronLeft } from "lucide-react"
+import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import QRCode from "qrcode.react"
+import { Button } from "@/components/ui/button"
+import { QRCode } from "qrcode.react" // Corrected import for QRCode
 
-interface SharePlatform {
+type SharePlatform = {
   id: string
   name: string
   url: string
-  category: string
-  color: string
   icon: React.ReactNode
+  color: string
+  category: string
 }
 
 const sharePlatforms: SharePlatform[] = [
@@ -24,49 +24,65 @@ const sharePlatforms: SharePlatform[] = [
     id: "twitter",
     name: "Twitter",
     url: "https://twitter.com/intent/tweet?url=",
-    category: "social",
-    color: "bg-blue-500",
     icon: <Share2 />,
+    color: "bg-blue-500",
+    category: "social",
   },
   {
     id: "facebook",
     name: "Facebook",
     url: "https://www.facebook.com/sharer/sharer.php?u=",
-    category: "social",
-    color: "bg-blue-700",
     icon: <Share2 />,
+    color: "bg-blue-700",
+    category: "social",
   },
   {
     id: "linkedin",
     name: "LinkedIn",
     url: "https://www.linkedin.com/shareArticle?url=",
-    category: "work",
+    icon: <Share2 />,
     color: "bg-blue-800",
-    icon: <Share2 />,
+    category: "work",
   },
   {
-    id: "whatsapp",
-    name: "WhatsApp",
-    url: "https://api.whatsapp.com/send?text=",
-    category: "chat",
-    color: "bg-green-500",
+    id: "reddit",
+    name: "Reddit",
+    url: "https://www.reddit.com/submit?url=",
     icon: <Share2 />,
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    url: "https://t.me/share/url?url=",
-    category: "chat",
-    color: "bg-blue-600",
-    icon: <Share2 />,
+    color: "bg-orange-500",
+    category: "social",
   },
   {
     id: "email",
     name: "Email",
     url: "mailto:?body=",
-    category: "more",
-    color: "bg-gray-500",
     icon: <Share2 />,
+    color: "bg-gray-500",
+    category: "more",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    url: "https://api.whatsapp.com/send?text=",
+    icon: <Share2 />,
+    color: "bg-green-500",
+    category: "chat",
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    url: "https://telegram.me/share/url?url=",
+    icon: <Share2 />,
+    color: "bg-blue-400",
+    category: "chat",
+  },
+  {
+    id: "copy",
+    name: "Copy Link",
+    url: "",
+    icon: <Share2 />,
+    color: "bg-gray-500",
+    category: "more",
   },
 ]
 

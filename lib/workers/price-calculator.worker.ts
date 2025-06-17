@@ -1,8 +1,7 @@
-// This is a Web Worker file that handles complex price calculations
-// It runs in a separate thread to avoid blocking the main UI thread
+/// <reference lib="webworker" />
 
-// Define the input configuration type
-type ServiceConfig = {
+// Define the input configuration type (duplicated for worker)
+export type ServiceConfig = {
   rooms: Record<string, number>
   serviceType: "standard" | "detailing"
   frequency: string
@@ -14,11 +13,12 @@ type ServiceConfig = {
   squareFootage?: number
 }
 
-// Define the output result type
-type PriceResult = {
+// Define the output result type (duplicated for worker)
+export type PriceResult = {
   basePrice: number
   adjustments: Record<string, number>
-  finalPrice: number
+  firstServicePrice: number // Added for first service
+  recurringServicePrice: number // Added for recurring services
   estimatedDuration: number // in minutes
   breakdown: {
     category: string
@@ -27,180 +27,119 @@ type PriceResult = {
   }[]
 }
 
-// Base prices per room type
-const BASE_PRICES = {
-  bathroom: 35,
-  bedroom: 30,
-  kitchen: 45,
-  living_room: 40,
-  dining_room: 25,
-  office: 30,
-  laundry_room: 20,
-  hallway: 15,
-  staircase: 25,
-  basement: 50,
-  garage: 40,
-  patio: 30,
-  other: 25,
-}
+// Define the room types and their base prices (duplicated for worker)
+const roomTypes = [
+  { id: "bedroom", basePrice: 30 },
+  { id: "bathroom", basePrice: 35 },
+  { id: "kitchen", basePrice: 45 },
+  { id: "living_room", basePrice: 40 },
+  { id: "dining_room", basePrice: 25 },
+  { id: "office", basePrice: 30 },
+  { id: "laundry_room", basePrice: 20 },
+  { id: "hallway", basePrice: 15 },
+  { id: "staircase", basePrice: 25 },
+  { id: "basement", basePrice: 50 },
+  { id: "garage", basePrice: 40 },
+  { id: "patio", basePrice: 30 },
+  { id: "other", basePrice: 25 },
+]
 
-// Multipliers for service type
-const SERVICE_TYPE_MULTIPLIERS = {
-  standard: 1.0,
-  detailing: 1.5,
-}
+// Define the frequency options and their discounts (duplicated for worker)
+const frequencyOptions = [
+  { id: "one_time", discount: 0 },
+  { id: "weekly", discount: 0.15 },
+  { id: "biweekly", discount: 0.1 },
+  { id: "monthly", discount: 0.05 },
+  { id: "semi_annual", discount: 0.02 },
+  { id: "annually", discount: 0.01 },
+  { id: "vip_daily", discount: 0.25 },
+]
 
-// Multipliers for frequency
-const FREQUENCY_MULTIPLIERS = {
-  one_time: 1.0,
-  weekly: 0.8,
-  biweekly: 0.85,
-  monthly: 0.9,
-  semi_annual: 0.95,
-  annually: 0.98,
-  vip_daily: 0.7,
-}
+// Define the cleanliness level multipliers (duplicated for worker)
+const cleanlinessMultipliers = [
+  { level: 1, multiplier: 0.8 },
+  { level: 2, multiplier: 1.0 },
+  { level: 3, multiplier: 1.2 },
+  { level: 4, multiplier: 1.5 },
+  { level: 5, multiplier: 2.0 },
+]
 
-// Multipliers for cleanliness level (1-5, where 5 is extremely dirty)
-const CLEANLINESS_MULTIPLIERS = {
-  1: 0.9, // Very clean, just maintenance
-  2: 1.0, // Standard cleanliness
-  3: 1.1, // Moderately dirty
-  4: 1.25, // Very dirty
-  5: 1.5, // Extremely dirty
-}
-
-// Calculate the price based on the service configuration
-function calculatePrice(config: ServiceConfig): PriceResult {
-  // Start with base calculation
-  let basePrice = 0
-  const breakdown: PriceResult["breakdown"] = []
-
-  // Calculate base price for each room type
-  for (const [roomType, count] of Object.entries(config.rooms)) {
-    if (count > 0 && BASE_PRICES[roomType as keyof typeof BASE_PRICES]) {
-      const roomBasePrice = BASE_PRICES[roomType as keyof typeof BASE_PRICES] * count
-      basePrice += roomBasePrice
-
-      breakdown.push({
-        category: "Rooms",
-        amount: roomBasePrice,
-        description: `${count} × ${roomType.replace(/_/g, " ")}`,
-      })
-    }
-  }
-
-  // Apply service type multiplier
-  const serviceTypeMultiplier = SERVICE_TYPE_MULTIPLIERS[config.serviceType]
-  const serviceTypeAdjustment = basePrice * (serviceTypeMultiplier - 1)
-  basePrice = basePrice * serviceTypeMultiplier
-
-  if (serviceTypeAdjustment !== 0) {
-    breakdown.push({
-      category: "Service Type",
-      amount: serviceTypeAdjustment,
-      description: `${config.serviceType} service (${serviceTypeMultiplier}x)`,
-    })
-  }
-
-  // Apply frequency multiplier
-  const frequencyMultiplier = FREQUENCY_MULTIPLIERS[config.frequency as keyof typeof FREQUENCY_MULTIPLIERS] || 1.0
-  const frequencyAdjustment = basePrice * (1 - frequencyMultiplier)
-  basePrice = basePrice * frequencyMultiplier
-
-  if (frequencyAdjustment !== 0) {
-    breakdown.push({
-      category: "Frequency",
-      amount: -frequencyAdjustment, // Negative because it's a discount
-      description: `${config.frequency.replace(/_/g, " ")} service (${frequencyMultiplier}x)`,
-    })
-  }
-
-  // Apply cleanliness level multiplier
-  const cleanlinessMultiplier =
-    CLEANLINESS_MULTIPLIERS[config.cleanlinessLevel as keyof typeof CLEANLINESS_MULTIPLIERS] || 1.0
-  const cleanlinessAdjustment = basePrice * (cleanlinessMultiplier - 1)
-  basePrice = basePrice * cleanlinessMultiplier
-
-  if (cleanlinessAdjustment !== 0) {
-    breakdown.push({
-      category: "Cleanliness",
-      amount: cleanlinessAdjustment,
-      description: `Level ${config.cleanlinessLevel} cleanliness (${cleanlinessMultiplier}x)`,
-    })
-  }
-
-  // Apply any special discounts
-  let discountTotal = 0
-  if (config.discounts) {
-    for (const [discountName, discountAmount] of Object.entries(config.discounts)) {
-      discountTotal += discountAmount
-      breakdown.push({
-        category: "Discount",
-        amount: -discountAmount, // Negative because it's a discount
-        description: discountName,
-      })
-    }
-  }
-
-  // Apply any add-ons
-  let addonTotal = 0
-  if (config.addons) {
-    for (const [addonName, addonAmount] of Object.entries(config.addons)) {
-      addonTotal += addonAmount
-      breakdown.push({
-        category: "Add-on",
-        amount: addonAmount,
-        description: addonName,
-      })
-    }
-  }
-
-  // Calculate final price
-  const finalPrice = Math.max(0, basePrice - discountTotal + addonTotal)
-
-  // Estimate duration based on price (rough estimate: $1 = 1 minute)
-  const estimatedDuration = Math.round(finalPrice * 0.8)
-
-  // Return the result
-  return {
-    basePrice: basePrice,
-    adjustments: {
-      serviceType: serviceTypeAdjustment,
-      frequency: -frequencyAdjustment, // Negative because it's a discount
-      cleanliness: cleanlinessAdjustment,
-      discounts: -discountTotal, // Negative because it's a discount
-      addons: addonTotal,
-    },
-    finalPrice: finalPrice,
-    estimatedDuration: estimatedDuration,
-    breakdown: breakdown,
-  }
-}
-
-// Set up the Web Worker message handler
-self.onmessage = (e: MessageEvent<ServiceConfig>) => {
+self.onmessage = (event: MessageEvent<ServiceConfig>) => {
   try {
-    // Simulate complex calculation with artificial delay for demonstration
-    // In a real scenario, this would be a genuinely complex calculation
-    const startTime = Date.now()
+    const config = event.data
 
-    // Calculate the price
-    const result = calculatePrice(e.data)
-
-    // Ensure minimum processing time of 100ms to demonstrate the worker's effect
-    const processingTime = Date.now() - startTime
-    if (processingTime < 100) {
-      setTimeout(() => {
-        self.postMessage(result)
-      }, 100 - processingTime)
-    } else {
-      self.postMessage(result)
+    // Calculate base price
+    let basePrice = 0
+    for (const [roomType, count] of Object.entries(config.rooms)) {
+      if (count > 0) {
+        const room = roomTypes.find((r) => r.id === roomType)
+        if (room) {
+          basePrice += room.basePrice * count
+        }
+      }
     }
-  } catch (error) {
-    self.postMessage({ error: error instanceof Error ? error.message : "Unknown error" })
+
+    // Apply service type multiplier
+    const serviceMultiplier = config.serviceType === "detailing" ? 1.5 : 1.0
+    const priceAfterServiceType = basePrice * serviceMultiplier
+
+    // Apply cleanliness level multiplier
+    const cleanlinessMultiplier =
+      cleanlinessMultipliers.find((c) => c.level === config.cleanlinessLevel)?.multiplier || 1.0
+    const priceAfterCleanliness = priceAfterServiceType * cleanlinessMultiplier
+
+    // Calculate the one-time price (first service price)
+    const firstServicePrice = priceAfterCleanliness
+
+    // Apply frequency discount for recurring price
+    const selectedFrequency = frequencyOptions.find((f) => f.id === config.frequency)
+    const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
+    const priceAfterFrequency = priceAfterCleanliness * (1 - frequencyDiscount)
+
+    // Apply payment frequency discount (assuming 'yearly' is the only one with a discount here)
+    const paymentDiscount = 0
+    // If config.paymentFrequency was passed:
+    // if (config.paymentFrequency === "yearly") { paymentDiscount = 0.1; }
+    const recurringServicePrice = priceAfterFrequency * (1 - paymentDiscount)
+
+    // Apply discounts and addons (simplified)
+    let discountTotal = 0
+    if (config.discounts) {
+      discountTotal = Object.values(config.discounts).reduce((sum, val) => sum + val, 0)
+    }
+
+    let addonTotal = 0
+    if (config.addons) {
+      addonTotal = Object.values(config.addons).reduce((sum, val) => sum + val, 0)
+    }
+
+    // Final prices after all adjustments (for simplicity, applying to both)
+    const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal + addonTotal)
+    const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal + addonTotal)
+
+    const result: PriceResult = {
+      basePrice,
+      adjustments: {
+        serviceType: priceAfterServiceType - basePrice,
+        frequency: priceAfterCleanliness - priceAfterFrequency,
+        cleanliness: priceAfterCleanliness - priceAfterServiceType,
+        discounts: -discountTotal,
+        addons: addonTotal,
+      },
+      firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
+      recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
+      estimatedDuration: Math.round(finalFirstServicePrice * 0.8), // Duration based on first service
+      breakdown: [
+        {
+          category: "Base Price",
+          amount: basePrice,
+          description: "Base price for selected rooms",
+        },
+      ],
+    }
+
+    self.postMessage(result)
+  } catch (error: any) {
+    self.postMessage({ error: error.message || "An unknown error occurred during calculation." })
   }
 }
-
-// Export empty type to satisfy TypeScript
-export {}

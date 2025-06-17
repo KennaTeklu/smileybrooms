@@ -21,7 +21,8 @@ interface PriceCalculatorProps {
   onCalculationComplete?: (data: {
     rooms: Record<string, number>
     frequency: string
-    totalPrice: number
+    firstServicePrice: number // Added for first service
+    recurringServicePrice: number // Added for recurring services
     serviceType: "standard" | "detailing"
     cleanlinessLevel: number
     priceMultiplier: number
@@ -217,7 +218,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [frequency, setFrequency] = useState("one_time")
   const [paymentFrequency, setPaymentFrequency] = useState("per_service")
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
-  const [totalPrice, setTotalPrice] = useState(0)
+  const [totalPrice, setTotalPrice] = useState(0) // This will be the displayed price (first service or one-time)
+  const [nextRecurringPrice, setNextRecurringPrice] = useState(0) // Price for subsequent recurring services
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
 
@@ -261,12 +263,15 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     // Apply service type multiplier
     const serviceMultiplier = serviceType === "standard" ? 1 : 1.5
 
+    // Apply cleanliness level multiplier
+    const cleanlinessMultiplier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
+
+    // Calculate the base price before frequency/payment discounts
+    const priceBeforeFrequency = basePrice * serviceMultiplier * cleanlinessMultiplier
+
     // Apply frequency discount
     const selectedFrequency = frequencyOptions.find((f) => f.id === frequency)
     const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-
-    // Apply cleanliness level multiplier
-    const cleanlinessMultiplier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
 
     // Apply payment frequency discount
     let paymentDiscount = 0
@@ -274,17 +279,26 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       paymentDiscount = 0.1 // 10% discount for annual subscription
     }
 
-    // Calculate total price
-    let calculatedPrice =
-      basePrice * serviceMultiplier * (1 - frequencyDiscount) * cleanlinessMultiplier * (1 - paymentDiscount)
+    // Calculate the recurring price
+    const calculatedRecurringPrice = priceBeforeFrequency * (1 - frequencyDiscount) * (1 - paymentDiscount)
 
-    // Round to 2 decimal places
-    calculatedPrice = Math.round(calculatedPrice * 100) / 100
+    // Determine the price for the first service
+    const calculatedFirstServicePrice = priceBeforeFrequency // Default to one-time price
+
+    // If a recurring frequency is selected, the first service is the one-time price
+    // Subsequent services get the recurring discount
+    if (frequency !== "one_time") {
+      setTotalPrice(Math.round(calculatedFirstServicePrice * 100) / 100)
+      setNextRecurringPrice(Math.round(calculatedRecurringPrice * 100) / 100)
+    } else {
+      // For one-time service, both are the same
+      setTotalPrice(Math.round(calculatedFirstServicePrice * 100) / 100)
+      setNextRecurringPrice(0) // No recurring price for one-time
+    }
 
     // Check if service is available (e.g., for extremely dirty conditions)
     const isAvailable = !(cleanlinessLevel === 5 && serviceType === "standard")
 
-    setTotalPrice(calculatedPrice)
     setIsServiceAvailable(isAvailable)
 
     // Call the onCalculationComplete callback if provided
@@ -293,7 +307,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       onCalculationComplete({
         rooms: selectedRooms,
         frequency,
-        totalPrice: calculatedPrice,
+        firstServicePrice: Math.round(calculatedFirstServicePrice * 100) / 100,
+        recurringServicePrice: Math.round(calculatedRecurringPrice * 100) / 100,
         serviceType,
         cleanlinessLevel,
         priceMultiplier: cleanlinessMultiplier,
@@ -538,7 +553,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-medium">Estimated Price</h3>
+            <h3 className="text-lg font-medium">
+              {frequency !== "one_time" ? "First Service Price" : "Estimated Price"}
+            </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
               {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
@@ -547,10 +564,27 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div className="text-right">
             <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {frequency !== "one_time" ? "Recurring" : "One-time"} service
+              {frequency !== "one_time" ? "One-time charge" : "One-time service"}
             </p>
           </div>
         </div>
+
+        {frequency !== "one_time" && nextRecurringPrice > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div>
+              <h4 className="text-base font-medium">Subsequent Services</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {frequencyOptions.find((f) => f.id === frequency)?.label}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-bold">${nextRecurringPrice.toFixed(2)}</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {paymentFrequency === "per_service" ? "per service" : `per ${paymentFrequency.replace("ly", "")}`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {!isServiceAvailable && (
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
