@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 import { Button } from "@/components/ui/button"
+import QRCode from "react-qr-code" // Import QRCode component
 
 type SharePlatform = {
   id: string
@@ -236,9 +236,15 @@ export function CollapsibleSharePanel() {
                   exit={{ opacity: 0, height: 0 }}
                   className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
                 >
-                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center">
-                    <QrCode className="h-16 w-16 text-gray-400" />
-                  </div>
+                  {/* Render the QR code here */}
+                  <QRCode
+                    value={currentUrl}
+                    size={128}
+                    level="H"
+                    bgColor="transparent" // Make background transparent to use parent's background
+                    fgColor="currentColor" // Use current text color for QR code
+                    className="text-gray-900 dark:text-gray-50" // Apply text color for dark/light mode
+                  />
                 </motion.div>
               )}
             </div>
