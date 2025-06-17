@@ -4,9 +4,10 @@ import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
   BASE_ROOM_RATES,
-  STRATEGIC_ADDONS, // New import
-  PREMIUM_EXCLUSIVE_SERVICES, // New import
-  AUTOMATIC_TIER_UPGRADES, // Will be used in next phases
+  STRATEGIC_ADDONS,
+  PREMIUM_EXCLUSIVE_SERVICES,
+  AUTOMATIC_TIER_UPGRADES,
+  MINIMUM_JOB_VALUES, // New import
 } from "../pricing-config"
 
 // Define the input configuration type
@@ -19,12 +20,12 @@ export type ServiceConfig = {
   discounts?: Record<string, number>
   zipCode?: string
   squareFootage?: number
-  propertyType?: string
+  propertyType?: "Studio" | "3BR Home" | "5BR Mansion" | string // Updated to reflect specific property sizes for minimums
   petOwners?: boolean
   postRenovation?: boolean
   moldWaterDamage?: boolean
   biohazardSituations?: boolean
-  selectedAddons?: { id: string; quantity?: number }[] // Updated to include quantity for per-unit addons
+  selectedAddons?: { id: string; quantity?: number }[]
   selectedExclusiveServices?: string[]
 }
 
@@ -153,13 +154,25 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
             })
           }
         }
-      } else {
-        // If exclusive services are selected but not Elite tier, they are ignored or an error could be thrown
-        // For now, we'll just ignore them as per the prompt's focus on calculation.
-        // A UI phase will handle preventing selection or showing warnings.
       }
     }
     currentTotal += exclusiveServicesTotal
+
+    // --- Minimum Job Value Enforcement ---
+    let minimumEnforcedAmount = 0
+    if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType as keyof typeof MINIMUM_JOB_VALUES]) {
+      const minimumForTier =
+        MINIMUM_JOB_VALUES[config.propertyType as keyof typeof MINIMUM_JOB_VALUES][currentServiceTier]
+      if (minimumForTier && currentTotal < minimumForTier) {
+        minimumEnforcedAmount = minimumForTier - currentTotal
+        currentTotal = minimumForTier
+        breakdown.push({
+          category: "Minimum Job Value Enforcement",
+          amount: minimumEnforcedAmount,
+          description: `Minimum job value of $${minimumForTier} enforced for ${config.propertyType} at ${currentServiceTier} tier`,
+        })
+      }
+    }
 
     // Calculate the one-time price (first service price)
     const firstServicePrice = currentTotal // This is the price before frequency discounts
@@ -201,7 +214,8 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
         cleanliness: priceAfterCleanliness - priceAfterServiceTier,
         addons: addonsTotal,
         exclusiveServices: exclusiveServicesTotal,
-        frequency: currentTotal - recurringServicePriceBeforePaymentDiscount, // Difference due to frequency
+        minimumEnforcement: minimumEnforcedAmount, // New adjustment
+        frequency: currentTotal - recurringServicePriceBeforePaymentDiscount,
         discounts: -discountTotal,
       },
       firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
