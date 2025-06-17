@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "@/components/ui/use-toast"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { usePanelManager } from "@/lib/panel-manager-context" // Import the panel manager
+import { usePanelManager } from "@/lib/panel-manager-context"
 import { cn } from "@/lib/utils"
 
 export function CollapsibleSharePanel() {
@@ -22,11 +22,10 @@ export function CollapsibleSharePanel() {
   const { registerPanel, unregisterPanel, setActivePanel, activePanel, getPanelConfig } = usePanelManager()
 
   useEffect(() => {
-    registerPanel("sharePanel", { isFullscreen: false, zIndex: 996 }) // Register this panel, not fullscreen
+    registerPanel("sharePanel", { isFullscreen: false, zIndex: 996 })
     return () => unregisterPanel("sharePanel")
   }, [registerPanel, unregisterPanel])
 
-  // Update panel manager when this panel's state changes
   useEffect(() => {
     if (isExpanded) {
       setActivePanel("sharePanel")
@@ -35,7 +34,6 @@ export function CollapsibleSharePanel() {
     }
   }, [isExpanded, setActivePanel, activePanel])
 
-  // Close if another panel becomes active
   useEffect(() => {
     if (activePanel && activePanel !== "sharePanel" && isExpanded) {
       setIsExpanded(false)
@@ -44,7 +42,7 @@ export function CollapsibleSharePanel() {
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-      return // Click was on the button, don't close panel
+      return
     }
     setIsExpanded(false)
   })
@@ -77,7 +75,6 @@ export function CollapsibleSharePanel() {
         } else if (platform === "email") {
           window.location.href = `mailto:?subject=Check out this cleaning service!&body=I found this amazing cleaning service: ${encodeURIComponent(shareUrl)}`
         } else if (platform === "qr") {
-          // In a real app, you'd generate a QR code image here
           toast({
             title: "QR Code Generated (Simulated)",
             description: "A QR code for this page would be generated here.",
@@ -102,14 +99,14 @@ export function CollapsibleSharePanel() {
     [shareUrl],
   )
 
-  const panelZIndex = getPanelConfig("sharePanel")?.zIndex || 996 // Get z-index from manager
+  const panelZIndex = getPanelConfig("sharePanel")?.zIndex || 996
 
   return (
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className="fixed top-[150px] right-[clamp(1rem,3vw,2rem)] z-[996]" // Fixed position, higher z-index
-        style={{ zIndex: panelZIndex }} // Apply dynamic z-index
+        className="fixed top-[150px] right-[clamp(1rem,3vw,2rem)] z-[996]"
+        style={{ zIndex: panelZIndex }}
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -120,7 +117,7 @@ export function CollapsibleSharePanel() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-center p-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 border border-purple-500/20 backdrop-blur-sm relative"
+          className="flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50 border border-blue-500/20 backdrop-blur-sm relative"
           aria-label="Toggle share panel"
         >
           <div className="flex items-center gap-2">
@@ -141,19 +138,17 @@ export function CollapsibleSharePanel() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute top-full right-0 mt-2 w-80 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-purple-200 dark:border-purple-800"
+              className="absolute top-full right-0 mt-2 w-80 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-4">
+              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
-                      <Share2 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Share This Page</h3>
-                      <p className="text-purple-100 text-sm">Spread the word about our services!</p>
-                    </div>
+                  <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                    <Share2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Share This Page</h3>
+                    <p className="text-blue-100 text-sm">Spread the word about our services!</p>
                   </div>
                   <Button
                     variant="ghost"
