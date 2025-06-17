@@ -2,21 +2,21 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Share2, Copy, Check, QrCode, Search, ExternalLink, ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import QRCode from "react-qr-code" // Import QRCode component
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import QRCode from "qrcode.react"
 
-type SharePlatform = {
+interface SharePlatform {
   id: string
   name: string
   url: string
-  icon: React.ReactNode
-  color: string
   category: string
+  color: string
+  icon: React.ReactNode
 }
 
 const sharePlatforms: SharePlatform[] = [
@@ -24,65 +24,49 @@ const sharePlatforms: SharePlatform[] = [
     id: "twitter",
     name: "Twitter",
     url: "https://twitter.com/intent/tweet?url=",
-    icon: <Share2 />,
-    color: "bg-blue-500",
     category: "social",
+    color: "bg-blue-500",
+    icon: <Share2 />,
   },
   {
     id: "facebook",
     name: "Facebook",
     url: "https://www.facebook.com/sharer/sharer.php?u=",
-    icon: <Share2 />,
-    color: "bg-blue-700",
     category: "social",
+    color: "bg-blue-700",
+    icon: <Share2 />,
   },
   {
     id: "linkedin",
     name: "LinkedIn",
     url: "https://www.linkedin.com/shareArticle?url=",
-    icon: <Share2 />,
-    color: "bg-blue-800",
     category: "work",
-  },
-  {
-    id: "reddit",
-    name: "Reddit",
-    url: "https://www.reddit.com/submit?url=",
+    color: "bg-blue-800",
     icon: <Share2 />,
-    color: "bg-orange-500",
-    category: "social",
-  },
-  {
-    id: "email",
-    name: "Email",
-    url: "mailto:?body=",
-    icon: <Share2 />,
-    color: "bg-gray-500",
-    category: "more",
   },
   {
     id: "whatsapp",
     name: "WhatsApp",
     url: "https://api.whatsapp.com/send?text=",
-    icon: <Share2 />,
-    color: "bg-green-500",
     category: "chat",
+    color: "bg-green-500",
+    icon: <Share2 />,
   },
   {
     id: "telegram",
     name: "Telegram",
-    url: "https://telegram.me/share/url?url=",
-    icon: <Share2 />,
-    color: "bg-blue-400",
+    url: "https://t.me/share/url?url=",
     category: "chat",
+    color: "bg-blue-600",
+    icon: <Share2 />,
   },
   {
-    id: "copy",
-    name: "Copy Link",
-    url: "",
-    icon: <Share2 />,
-    color: "bg-gray-500",
+    id: "email",
+    name: "Email",
+    url: "mailto:?body=",
     category: "more",
+    color: "bg-gray-500",
+    icon: <Share2 />,
   },
 ]
 
@@ -186,7 +170,7 @@ export function CollapsibleSharePanel() {
   }
 
   const qrCodeSize = 256
-  const logoSize = qrCodeSize * 0.25 // 25% of QR code size
+  const logoSize = qrCodeSize * 0.2 // Reduced to 20% of QR code size
   const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
   return (
