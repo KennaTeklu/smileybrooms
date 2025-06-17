@@ -17,14 +17,15 @@ import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider" // Ensure this is imported
-import { AnalyticsTracker } from "@/components/analytics-tracker" // Import the new component
+import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
+import { PanelManagerProvider } from "@/lib/panel-manager-context" // Import PanelManagerProvider
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "smileybrooms - Professional Cleaning Services", // Metadata title is plain text
+  title: "smileybrooms - Professional Cleaning Services",
   description: "Professional cleaning services that bring joy to your home",
   icons: {
     icon: "/favicon.png",
@@ -52,25 +53,27 @@ export default function RootLayout({
                 <RoomProvider>
                   <TourProvider>
                     <AbandonmentProvider>
-                      {" "}
-                      {/* Ensure AbandonmentProvider wraps content */}
                       <TooltipProvider>
-                        {/* Main layout container */}
-                        <div className="relative flex min-h-screen flex-col">
-                          <EnhancedHeader />
-                          <Suspense>
-                            <main className="flex-1">{children}</main>
-                          </Suspense>
-                          <EnhancedFooter />
-                        </div>
-                        {/* Left side panels */}
-                        <CollapsibleSettingsPanel />
-                        {/* Right side panels - properly aligned */}
-                        <CollapsibleSharePanel />
-                        <CollapsibleAddAllPanel />
-                        <CollapsibleCartPanel />
-                        <Toaster />
-                        <AnalyticsTracker /> {/* Add the AnalyticsTracker here */}
+                        <PanelManagerProvider>
+                          {" "}
+                          {/* Wrap with PanelManagerProvider */}
+                          {/* Main layout container */}
+                          <div className="relative flex min-h-screen flex-col">
+                            <EnhancedHeader />
+                            <Suspense>
+                              <main className="flex-1">{children}</main>
+                            </Suspense>
+                            <EnhancedFooter />
+                          </div>
+                          {/* Left side panels */}
+                          <CollapsibleSettingsPanel />
+                          {/* Right side panels - properly aligned */}
+                          <CollapsibleSharePanel />
+                          <CollapsibleAddAllPanel />
+                          <CollapsibleCartPanel />
+                          <Toaster />
+                          <AnalyticsTracker />
+                        </PanelManagerProvider>
                       </TooltipProvider>
                     </AbandonmentProvider>
                   </TourProvider>
