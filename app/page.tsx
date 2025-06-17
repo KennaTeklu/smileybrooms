@@ -6,6 +6,10 @@ import type { Metadata } from "next"
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getHomepageContent() // Fetch content to use in metadata
 
+  const ogImageUrl = new URL("/api/og", "https://www.smileybrooms.com") // Replace with your actual domain
+  ogImageUrl.searchParams.set("title", content.headline)
+  ogImageUrl.searchParams.set("description", content.description)
+
   return {
     title: content.headline,
     description: content.description,
@@ -17,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "SmileyBrooms",
       images: [
         {
-          url: "https://www.smileybrooms.com/professional-cleaning-service.png", // Replace with a high-quality image for social sharing
+          url: ogImageUrl.toString(), // Use the dynamically generated OG image
           width: 1200,
           height: 630,
           alt: "Professional Cleaning Service by SmileyBrooms",
@@ -31,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: content.headline,
       description: content.description,
       creator: "@smileybrooms", // Replace with your Twitter handle
-      images: ["https://www.smileybrooms.com/professional-cleaning-service.png"], // Same image as Open Graph
+      images: [ogImageUrl.toString()], // Same dynamic image as Open Graph
     },
     alternates: {
       canonical: "https://www.smileybrooms.com", // Replace with your actual domain
