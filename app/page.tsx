@@ -8,6 +8,8 @@ import AdvancedSearchFilter from "@/components/advanced-search-filter"
 import BookingTimeline from "@/components/booking-timeline" // Assuming this is the correct import path
 import { usePerformanceOptimization } from "@/hooks/usePerformanceOptimization" // Import the performance hook
 import { useState } from "react" // Import useState for BookingTimeline
+import SupabaseConnectionTester from "@/components/supabase-connection-tester" // Import the new component
+import ErrorTrigger from "@/components/error-trigger" // Keep for testing error boundary
 
 export default function Home() {
   const { metrics, getAdaptiveQuality } = usePerformanceOptimization({
@@ -41,6 +43,8 @@ export default function Home() {
           />
         </div>
         <FeedbackSurvey />
+        <SupabaseConnectionTester /> {/* Add the connection tester here */}
+        <ErrorTrigger /> {/* Keep for testing error boundary */}
         {/* Performance Monitoring Overlay (for development/debugging) */}
         {process.env.NODE_ENV === "development" && (
           <div className="fixed bottom-4 left-4 bg-black/70 text-white p-3 rounded-lg text-xs z-[1000]">
