@@ -4,6 +4,84 @@ export const SERVICE_TIERS = {
   ELITE: { id: "elite", name: "Elite", multiplier: 5.0 },
 }
 
+export const CLEANLINESS_LEVELS = {
+  LIGHT: { level: 1, name: "Light", multipliers: { standard: 1.0, premium: 1.0, elite: 1.0 } },
+  MEDIUM: { level: 2, name: "Medium", multipliers: { standard: 2.0, premium: 2.5, elite: 3.0 } },
+  HEAVY: { level: 3, name: "Heavy", multipliers: { standard: 3.0, premium: 4.0, elite: 6.0 } },
+  BIOHAZARD: { level: 4, name: "Biohazard", multipliers: { standard: 4.0, premium: 8.0, elite: 12.0 } },
+}
+
+export const ROOM_CONFIG = {
+  bedroom: { standard: 40, premium: 120, elite: 200 },
+  bathroom: { standard: 60, premium: 180, elite: 300 },
+  kitchen: { standard: 100, premium: 300, elite: 500 },
+  livingRoom: { standard: 80, premium: 240, elite: 400 },
+  homeOffice: { standard: 70, premium: 210, elite: 350 },
+}
+
+export const ADDON_CONFIG = {
+  appliance_interiors: {
+    name: "Appliance Interiors",
+    price: 50,
+    eliteIncluded: true,
+  },
+  window_cleaning: {
+    name: "Window Cleaning",
+    price: 8,
+    unit: "/window",
+    eliteIncluded: false,
+  },
+  grout_restoration: {
+    name: "Grout Restoration",
+    price: 1.5,
+    unit: "/sq ft",
+    eliteIncluded: false,
+  },
+  air_duct_sanitization: {
+    name: "Air Duct Sanitization",
+    price: 300,
+    eliteIncluded: false,
+  },
+}
+
+export const EXCLUSIVE_SERVICE_CONFIG = {
+  microbial_certification: {
+    name: "Microbial Certification",
+    price: 499,
+    eliteOnly: true,
+  },
+  allergen_elimination: {
+    name: "Allergen Elimination",
+    price: 200,
+    unit: "/room",
+    eliteOnly: true,
+  },
+  emergency_2hr_response: {
+    name: "Emergency 2-Hr Response",
+    price: 1000,
+    eliteOnly: true,
+  },
+}
+
+export const FREQUENCY_OPTIONS = {
+  "one-time": { name: "One Time", discount: 0 },
+  weekly: { name: "Weekly", discount: 0.1 },
+  biweekly: { name: "Bi-weekly", discount: 0.05 },
+  monthly: { name: "Monthly", discount: 0.02 },
+}
+
+export const PROPERTY_TYPES = {
+  studio: { name: "Studio", sqft: "< 500" },
+  "3br_home": { name: "3BR Home", sqft: "1000-2000" },
+  "5br_mansion": { name: "5BR Mansion", sqft: "3000+" },
+}
+
+export const MINIMUM_JOB_VALUES = {
+  studio: { standard: 200, premium: 600, elite: 1000 },
+  "3br_home": { standard: 500, premium: 1500, elite: 2500 },
+  "5br_mansion": { standard: 900, premium: 2700, elite: 4500 },
+}
+
 export const CLEANLINESS_DIFFICULTY = {
   LIGHT: { level: 1, name: "Light", multipliers: { standard: 1.0, premium: 1.0, elite: 1.0 } },
   MEDIUM: { level: 2, name: "Medium", multipliers: { standard: 2.0, premium: 2.5, elite: 3.0 } },
@@ -71,9 +149,3 @@ export const AUTOMATIC_TIER_UPGRADES = [
   },
   { condition: "biohazard_situations", requiredTier: "elite", message: "Biohazard situations require Elite service." },
 ]
-
-export const MINIMUM_JOB_VALUES = {
-  studio: { standard: 200, premium: 600, elite: 1000 },
-  "3br_home": { standard: 500, premium: 1500, elite: 2500 },
-  "5br_mansion": { standard: 900, premium: 2700, elite: 4500 },
-}

@@ -32,24 +32,3 @@ export function createServerSupabaseClient() {
     },
   )
 }
-
-// New function to get user with profile role
-export async function getUserWithRole() {
-  const supabase = createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { user: null, role: null }
-  }
-
-  const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single()
-
-  if (error) {
-    console.error("Error fetching user profile:", error.message)
-    return { user, role: null }
-  }
-
-  return { user, role: profile?.role || "user" }
-}

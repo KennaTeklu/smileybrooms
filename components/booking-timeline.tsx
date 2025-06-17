@@ -21,12 +21,7 @@ interface BookingTimelineProps {
   selectedTime?: string
 }
 
-export default function BookingTimeline({
-  onDateSelected,
-  onTimeSelected,
-  selectedDate,
-  selectedTime,
-}: BookingTimelineProps) {
+export function BookingTimeline({ onDateSelected, onTimeSelected, selectedDate, selectedTime }: BookingTimelineProps) {
   const [date, setDate] = useState<Date | undefined>(selectedDate)
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
     { time: "8:00 AM", available: true },
