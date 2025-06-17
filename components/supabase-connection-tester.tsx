@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client" // Import from your local client utility
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal, CheckCircle, XCircle } from "lucide-react"
@@ -14,7 +14,9 @@ export default function SupabaseConnectionTester() {
   useEffect(() => {
     async function testConnection() {
       try {
+        // Use your local createClient function
         const supabase = createClient()
+        // Attempt to fetch from 'profiles' table, which should exist after the SQL script
         const { data, error } = await supabase.from("profiles").select("*").limit(1)
 
         if (error) {
