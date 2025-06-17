@@ -13,6 +13,18 @@ interface State {
   errorInfo: ErrorInfo | null
 }
 
+// Mock function to simulate logging errors to an external service
+const logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
+  console.error("🚨 Error reported to service:", {
+    error: error.message,
+    stack: error.stack,
+    componentStack: errorInfo.componentStack,
+    timestamp: new Date().toISOString(),
+  })
+  // In a real application, you would send this data to Sentry, Datadog, Bugsnag, etc.
+  // Example: Sentry.captureException(error, { extra: errorInfo });
+}
+
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -26,14 +38,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo)
+    console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo)
     this.setState({
       error,
       errorInfo,
     })
 
-    // You can also log the error to an error reporting service like Sentry
-    // logErrorToService(error, errorInfo);
+    // Log the error to our simulated error reporting service
+    logErrorToService(error, errorInfo)
   }
 
   public render() {
@@ -48,6 +60,7 @@ class ErrorBoundary extends Component<Props, State> {
               <summary className="cursor-pointer">Technical details</summary>
               <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded overflow-auto text-xs">
                 {this.state.error && this.state.error.toString()}
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
               </pre>
             </details>
           </div>
