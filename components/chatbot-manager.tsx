@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import SafeJotformChatbot from "./safe-jotform-chatbot"
+import AiChatbot from "./ai-chatbot" // Import the new AI chatbot component
 
 export default function ChatbotManager() {
   const [isVisible, setIsVisible] = useState(false)
@@ -19,5 +19,10 @@ export default function ChatbotManager() {
 
   if (!isVisible) return null
 
-  return <SafeJotformChatbot />
+  // Render the AI Chatbot
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <AiChatbot />
+    </div>
+  )
 }
