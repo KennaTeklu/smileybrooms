@@ -18,3 +18,32 @@ export const BASE_ROOM_RATES = {
   livingRoom: { standard: 80, premium: 240, elite: 400 },
   homeOffice: { standard: 70, premium: 210, elite: 350 },
 }
+
+export const STRATEGIC_ADDONS = [
+  {
+    id: "appliance_interiors",
+    name: "Appliance Interiors",
+    prices: { standard: 50, premium: 100, elite: 0 },
+    includedInElite: true,
+  },
+  {
+    id: "window_cleaning",
+    name: "Window Cleaning",
+    prices: { standard: 8, premium: 15, elite: 20 },
+    unit: "/window",
+    includedInElite: false,
+  },
+  {
+    id: "grout_restoration",
+    name: "Grout Restoration",
+    prices: { standard: 1.5, premium: 3, elite: 5 },
+    unit: "/sq ft",
+    includedInElite: false,
+  },
+  {
+    id: "air_duct_sanitization",
+    name: "Air Duct Sanitization",
+    prices: { standard: 300, premium: 500, elite: 800 },
+    includedInElite: false,
+  },
+]
