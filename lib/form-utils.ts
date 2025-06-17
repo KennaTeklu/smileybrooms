@@ -131,6 +131,8 @@ export const getFormEmoji = (formType: string): string => {
       return "🔴"
     case "question":
       return "❓"
+    case "feedback":
+      return "⭐"
     default:
       return "⚪"
   }
