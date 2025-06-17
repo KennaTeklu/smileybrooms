@@ -10,3 +10,11 @@ export const CLEANLINESS_DIFFICULTY = {
   HEAVY: { level: 3, name: "Heavy", multipliers: { standard: 3.0, premium: 4.0, elite: 6.0 } },
   BIOHAZARD: { level: 4, name: "Biohazard", multipliers: { standard: 4.0, premium: 8.0, elite: 12.0 } },
 }
+
+export const BASE_ROOM_RATES = {
+  bedroom: { standard: 40, premium: 120, elite: 200 },
+  bathroom: { standard: 60, premium: 180, elite: 300 },
+  kitchen: { standard: 100, premium: 300, elite: 500 },
+  livingRoom: { standard: 80, premium: 240, elite: 400 },
+  homeOffice: { standard: 70, premium: 210, elite: 350 },
+}
