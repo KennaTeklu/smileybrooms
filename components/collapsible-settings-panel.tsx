@@ -16,7 +16,7 @@ import {
   Monitor,
   Mic,
   HelpCircle,
-  PanelLeft,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -25,6 +25,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAccessibility } from "@/lib/accessibility-context"
+import { usePanelManager } from "@/lib/panel-manager-context" // Import the panel manager
 
 export function CollapsibleSettingsPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -38,6 +39,7 @@ export function CollapsibleSettingsPanel() {
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
+  const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager() // Use panel manager
 
   // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
@@ -47,7 +49,25 @@ export function CollapsibleSettingsPanel() {
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    registerPanel("settingsPanel", { isFullscreen: false, zIndex: 995 }) // Register this panel
+    return () => unregisterPanel("settingsPanel")
+  }, [registerPanel, unregisterPanel])
+
+  // Update panel manager when this panel's state changes
+  useEffect(() => {
+    if (isExpanded) {
+      setActivePanel("settingsPanel")
+    } else if (activePanel === "settingsPanel") {
+      setActivePanel(null)
+    }
+  }, [isExpanded, setActivePanel, activePanel])
+
+  // Close if another panel becomes active
+  useEffect(() => {
+    if (activePanel && activePanel !== "settingsPanel" && isExpanded) {
+      setIsExpanded(false)
+    }
+  }, [activePanel, isExpanded])
 
   // Pause panel's scroll-following when expanded
   useEffect(() => {
@@ -111,7 +131,7 @@ export function CollapsibleSettingsPanel() {
     : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed left-0 z-[995]" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -122,7 +142,7 @@ export function CollapsibleSettingsPanel() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 rounded-r-lg shadow-lg overflow-hidden border-r border-t border-b border-gray-200 dark:border-gray-800"
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 Settings
@@ -137,8 +157,9 @@ export function CollapsibleSettingsPanel() {
                 size="icon"
                 onClick={() => setIsExpanded(false)}
                 aria-label="Collapse settings panel"
+                className="text-white hover:bg-white/20 rounded-full h-8 w-8"
               >
-                <PanelLeft className="h-4 w-4" />
+                <X className="h-4 w-4" /> {/* Changed to X for consistency */}
               </Button>
             </div>
 
@@ -374,10 +395,10 @@ export function CollapsibleSettingsPanel() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-r border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+              "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white", // Changed to blue gradient
+              "rounded-r-xl shadow-lg hover:from-blue-700 hover:to-blue-800", // Adjusted rounded-r-xl
+              "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
+              "border border-blue-500/20 backdrop-blur-sm relative",
             )}
             aria-label="Open settings"
           >
