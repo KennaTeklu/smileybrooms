@@ -53,9 +53,6 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom colors for "brooms" highlight
-        "brooms-bg-emphasis": "hsl(var(--primary))", // Uses primary color for background
-        "brooms-text-emphasis": "hsl(var(--primary-foreground))", // Uses primary-foreground for text
       },
       borderRadius: {
         lg: "var(--radius)",
