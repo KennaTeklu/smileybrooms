@@ -10,13 +10,16 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles } from "lucide-react"
+import { Home, Calendar, Sparkles, AlertCircle } from "lucide-react"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
 import { usePricing } from "@/contexts/pricing-context" // Import the context
 import { BASE_ROOM_RATES, SERVICE_TIERS, CLEANLINESS_DIFFICULTY } from "@/lib/pricing-config" // Import pricing data
 import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
+import { Input } from "@/components/ui/input" // Add this
+import { Switch } from "@/components/ui/switch" // Add this
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Add this
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -25,8 +28,8 @@ interface PriceCalculatorProps {
     frequency: string
     firstServicePrice: number
     recurringServicePrice: number
-    serviceType: ServiceTierId // Changed to ServiceTierId
-    cleanlinessLevel: CleanlinessLevelId // Changed to CleanlinessLevelId
+    serviceType: ServiceTierId // Changed type
+    cleanlinessLevel: CleanlinessLevelId // Changed type
     priceMultiplier: number
     isServiceAvailable: boolean
     addressId: string
@@ -406,6 +409,91 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   </div>
                 </AccordionContent>
               </AccordionItem>
+
+              {/* Property Details */}
+              <AccordionItem value="property-details" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Home className="h-5 w-5 mr-2 text-blue-600" />{" "}
+                    {/* Re-using Home icon, consider a new one if available */}
+                    <h3 className="text-lg font-medium">Property Details</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  <div>
+                    <Label htmlFor="sq-ft">Total Square Footage</Label>
+                    <Input
+                      id="sq-ft"
+                      type="number"
+                      placeholder="e.g., 1500"
+                      value={state.propertySizeSqFt || ""}
+                      onChange={(e) =>
+                        dispatch({ type: "SET_PROPERTY_SIZE_SQ_FT", payload: Number(e.target.value) || 0 })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Property Type</h4>
+                    <RadioGroup
+                      value={state.propertyType || ""}
+                      onValueChange={(value) =>
+                        dispatch({ type: "SET_PROPERTY_TYPE", payload: value as "studio" | "3br_home" | "5br_mansion" })
+                      }
+                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="studio" id="property-studio" />
+                        <Label htmlFor="property-studio">Studio / Small Apartment</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="3br_home" id="property-3br" />
+                        <Label htmlFor="property-3br">3+ Bedroom Home</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="5br_mansion" id="property-5br" />
+                        <Label htmlFor="property-5br">5+ Bedroom / Mansion</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is-rental">Is this a rental property?</Label>
+                      <Switch
+                        id="is-rental"
+                        checked={state.isRentalProperty}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_IS_RENTAL_PROPERTY", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="has-pets">Do you have pets?</Label>
+                      <Switch
+                        id="has-pets"
+                        checked={state.hasPets}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_HAS_PETS", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is-post-renovation">Is this a post-renovation clean?</Label>
+                      <Switch
+                        id="is-post-renovation"
+                        checked={state.isPostRenovation}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_IS_POST_RENOVATION", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="has-mold-water-damage">Is there mold or water damage?</Label>
+                      <Switch
+                        id="has-mold-water-damage"
+                        checked={state.hasMoldWaterDamage}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_HAS_MOLD_WATER_DAMAGE", payload: checked })}
+                      />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           </TabsContent>
         ))}
@@ -455,15 +543,37 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
         )}
 
-        {enforcedTierReason && (
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-800 dark:text-red-300 text-sm">
-            {enforcedTierReason}
-          </div>
+        {state.enforcedTierReason && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Tier Upgrade Required!</AlertTitle>
+            <AlertDescription>{state.enforcedTierReason}</AlertDescription>
+          </Alert>
+        )}
+
+        {state.cleanlinessLevel === 4 && ( // Biohazard is level 4
+          <Alert className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 text-yellow-800 dark:text-yellow-300">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Biohazard Situation Detected</AlertTitle>
+            <AlertDescription>
+              For biohazard situations, Elite service is required. A waiver must be signed before service.
+              {/* In a later phase, this would link to or embed the BiohazardWaiver component */}
+            </AlertDescription>
+          </Alert>
         )}
 
         {onAddToCart && (
           <div className="mt-4">
-            <Button onClick={onAddToCart} disabled={!hasSelectedRooms() || !isServiceAvailable} className="w-full">
+            <Button
+              onClick={onAddToCart}
+              disabled={
+                !hasSelectedRooms() ||
+                !isServiceAvailable ||
+                !!state.enforcedTierReason ||
+                (state.cleanlinessLevel === 4 && !state.waiverSigned)
+              }
+              className="w-full"
+            >
               Add to Cart
             </Button>
           </div>
