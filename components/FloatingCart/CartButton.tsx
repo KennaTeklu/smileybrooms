@@ -1,109 +1,40 @@
 "use client"
 
-import { forwardRef, useEffect } from "react" // Import useEffect
-import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useCartAnimation } from "@/hooks/useCartAnimation" // Keep this for core cart animation logic
-import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations" // Import useAdvancedAnimations
-import { cn } from "@/lib/utils"
-import styles from "./cart.module.css"
+import { ShoppingCart } from "lucide-react"
+import { useCart } from "@/lib/cart-context"
+import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations"
+import { motion } from "framer-motion"
+import { useAnalytics } from "@/hooks/use-analytics" // Import useAnalytics
 
-interface CartButtonProps {
-  itemCount: number
-  totalPrice: number
-  onClick: () => void
-  isOpen: boolean
-  className?: string
-  disabled?: boolean
-}
+export function CartButton() {
+  const { cartItems, toggleCartPanel } = useCart()
+  const { hoverProps, pressProps, floatingProps } = useAdvancedAnimations()
+  const { trackButtonClick } = useAnalytics() // Destructure trackButtonClick
 
-export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(
-  ({ itemCount, totalPrice, onClick, isOpen, className, disabled = false }, ref) => {
-    const { animationState, handleHover, handlePress, startFloating, stopFloating } = useCartAnimation({
-      enableFloat: !isOpen && itemCount > 0,
-    })
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
-    // Use advanced animations for additional effects
-    const { animateHover, animatePress, animateFloat, getAnimatedStyle, resetAnimations } = useAdvancedAnimations()
+  const handleCartClick = () => {
+    toggleCartPanel()
+    trackButtonClick("Cart Button", "Header", { itemCount }) // Track the click
+  }
 
-    useEffect(() => {
-      if (isOpen) {
-        resetAnimations() // Reset advanced animations when cart opens
-        stopFloating() // Stop the basic floating animation
-      } else if (itemCount > 0) {
-        startFloating() // Restart basic floating when cart closes and items exist
-      }
-    }, [isOpen, itemCount, resetAnimations, startFloating, stopFloating])
-
-    const handleMouseEnter = () => {
-      handleHover(true)
-      animateHover(true)
-      if (itemCount > 0 && !isOpen) startFloating()
-    }
-
-    const handleMouseLeave = () => {
-      handleHover(false)
-      animateHover(false)
-      if (itemCount > 0 && !isOpen) stopFloating() // Let useCartAnimation manage floating
-    }
-
-    const handleMouseDown = () => {
-      handlePress(true)
-      animatePress(true)
-    }
-    const handleMouseUp = () => {
-      handlePress(false)
-      animatePress(false)
-    }
-
-    const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
-
-    return (
+  return (
+    <motion.div className="relative" {...hoverProps} {...pressProps} {...floatingProps}>
       <Button
-        ref={ref}
-        onClick={onClick}
-        disabled={disabled}
-        className={cn(styles.cartButton, className)}
-        style={{
-          ...getAnimatedStyle(), // Apply advanced animations
-          backgroundColor: "var(--primary)",
-          color: "var(--primary-foreground)",
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-controls="cart-panel"
-        data-testid="floating-cart-button"
+        variant="ghost"
+        size="icon"
+        className="relative"
+        onClick={handleCartClick}
+        aria-label={`Shopping cart with ${itemCount} items`}
       >
-        <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
-
+        <ShoppingCart className="h-6 w-6" />
         {itemCount > 0 && (
-          <Badge
-            className={cn(styles.cartBadge)}
-            style={{
-              backgroundColor: "var(--destructive)",
-              color: "var(--destructive-foreground)",
-            }}
-            aria-label={`${itemCount} items in cart`}
-          >
-            {itemCount > 99 ? "99+" : itemCount}
-          </Badge>
-        )}
-
-        {/* High value indicator */}
-        {totalPrice > 200 && (
-          <div
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse"
-            aria-hidden="true"
-          />
+          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+            {itemCount}
+          </span>
         )}
       </Button>
-    )
-  },
-)
-
-CartButton.displayName = "CartButton"
+    </motion.div>
+  )
+}
