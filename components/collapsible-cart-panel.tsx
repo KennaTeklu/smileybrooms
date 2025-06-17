@@ -33,7 +33,7 @@ import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Link from "next/link"
-import { usePanelManager } from "@/lib/panel-manager-context" // Import the panel manager
+import { usePanelManager } from "@/lib/panel-manager-context"
 
 export function CollapsibleCartPanel() {
   const { cart, removeItem, updateQuantity } = useCart()
@@ -42,8 +42,6 @@ export function CollapsibleCartPanel() {
   const totalItems = cart.totalItems
 
   const [isExpanded, setIsExpanded] = useState(false)
-  // Removed isFullscreen state
-  // Removed reviewStep state
   const [isMounted, setIsMounted] = useState(false)
   const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [removedItemName, setRemovedItemName] = useState("")
@@ -54,7 +52,7 @@ export function CollapsibleCartPanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
-  const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager() // Use panel manager
+  const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager()
 
   const scrollViewportRef = useRef<HTMLDivElement>(null)
   const [showScrollToTop, setShowScrollToTop] = useState(false)
@@ -74,17 +72,17 @@ export function CollapsibleCartPanel() {
     { root: scrollViewportRef.current, threshold: 0.1 },
   )
 
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
+  // State for dynamic positioning - starts below the Add All panel
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("350px") // Adjusted initial position
 
   const cartHasItems = cartItems.length > 0
 
   useEffect(() => {
     setIsMounted(true)
-    registerPanel("cartPanel", { isFullscreen: false, zIndex: 997 }) // Register this panel
+    registerPanel("cartPanel", { isFullscreen: false, zIndex: 997 })
     return () => unregisterPanel("cartPanel")
   }, [registerPanel, unregisterPanel])
 
-  // Update panel manager when this panel's state changes
   useEffect(() => {
     if (isExpanded) {
       setActivePanel("cartPanel")
@@ -93,14 +91,12 @@ export function CollapsibleCartPanel() {
     }
   }, [isExpanded, setActivePanel, activePanel])
 
-  // Close if another panel becomes active
   useEffect(() => {
     if (activePanel && activePanel !== "cartPanel" && isExpanded) {
       setIsExpanded(false)
     }
   }, [activePanel, isExpanded])
 
-  // Pause scroll tracking when panel is expanded
   useEffect(() => {
     setIsScrollPaused(isExpanded)
   }, [isExpanded])
@@ -111,7 +107,7 @@ export function CollapsibleCartPanel() {
 
       const calculateInitialPosition = () => {
         const scrollY = window.scrollY
-        const initialTop = scrollY + 150
+        const initialTop = scrollY + 350 // Adjusted initial top offset
         setPanelTopPosition(`${initialTop}px`)
       }
 
@@ -131,19 +127,18 @@ export function CollapsibleCartPanel() {
     } else {
       setIsVisible(false)
       setIsExpanded(false)
-      // Removed setIsFullscreen(false)
       controls.stop()
     }
   }, [cartHasItems, controls, vibrate])
 
   const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current || !isVisible || isScrollPaused) return // Removed isFullscreen check
+    if (!panelRef.current || !isVisible || isScrollPaused) return
 
     const panelHeight = panelRef.current.offsetHeight || 200
     const scrollY = window.scrollY
     const documentHeight = document.documentElement.scrollHeight
 
-    const initialViewportTopOffset = 150
+    const initialViewportTopOffset = 350 // Adjusted initial top offset
     const bottomPadding = 20
 
     const desiredTopFromScroll = scrollY + initialViewportTopOffset
@@ -152,7 +147,7 @@ export function CollapsibleCartPanel() {
     const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
 
     setPanelTopPosition(`${finalTop}px`)
-  }, [isVisible, isScrollPaused]) // Removed isFullscreen dependency
+  }, [isVisible, isScrollPaused])
 
   useEffect(() => {
     if (!isVisible || isScrollPaused) return
@@ -176,13 +171,13 @@ export function CollapsibleCartPanel() {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
     }
-    setIsExpanded(false) // Removed isFullscreen check
+    setIsExpanded(false)
   })
 
   useKeyboardShortcuts({
     "alt+c": () => cartHasItems && setIsExpanded((prev) => !prev),
     Escape: () => {
-      setIsExpanded(false) // Simplified escape behavior
+      setIsExpanded(false)
     },
   })
 
@@ -256,8 +251,6 @@ export function CollapsibleCartPanel() {
     [updateQuantity, handleRemoveItem, cartItems, vibrate],
   )
 
-  // Removed handleReviewClick, handleBackToPanel, handleNextStep, handlePrevStep
-
   const handleScrollAreaScroll = useCallback(() => {
     const viewport = scrollViewportRef.current
     if (viewport) {
@@ -290,7 +283,7 @@ export function CollapsibleCartPanel() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         className={cn(
-          "flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
+          "flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
           "snap-start",
         )}
         ref={index === cartItems.length - 1 ? lastItemRef : null}
@@ -325,7 +318,7 @@ export function CollapsibleCartPanel() {
           </div>
 
           <div className="text-right flex-shrink-0">
-            <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400")}>
+            <div className={cn("font-bold text-lg text-emerald-600 dark:text-emerald-400")}>
               {formatCurrency(item.price * item.quantity)}
             </div>
             <Tooltip>
@@ -446,12 +439,8 @@ export function CollapsibleCartPanel() {
       <SuccessNotification />
       <motion.div
         ref={panelRef}
-        className="fixed z-[997]"
-        style={{
-          top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
-          width: "fit-content",
-        }}
+        className="fixed right-[clamp(1rem,3vw,2rem)] z-[997]"
+        style={{ top: panelTopPosition }} // Use dynamic top position
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -464,10 +453,10 @@ export function CollapsibleCartPanel() {
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
-            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-            "border border-blue-500/20 backdrop-blur-sm relative",
+            "flex items-center justify-center p-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white", // Changed to emerald gradient
+            "rounded-xl shadow-lg hover:from-emerald-700 hover:to-emerald-800", // Changed to emerald gradient
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/50", // Changed to emerald ring
+            "border border-emerald-500/20 backdrop-blur-sm relative", // Changed to emerald border
           )}
           aria-label="Toggle cart panel"
         >
@@ -495,7 +484,7 @@ export function CollapsibleCartPanel() {
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800",
+                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-emerald-200 dark:border-emerald-800", // Changed to emerald border
                 "relative flex flex-col",
                 showTopShadow && "before:shadow-top-gradient",
                 showBottomShadow && "after:shadow-bottom-gradient",
@@ -503,18 +492,16 @@ export function CollapsibleCartPanel() {
               style={{ maxHeight: "70vh" }}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
+              <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-emerald-800 text-white p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
-                      <ShoppingCart className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Your Cart</h3>
-                      <p className="text-blue-100 text-sm">
-                        {cartItems.length} item{cartItems.length !== 1 ? "s" : ""}
-                      </p>
-                    </div>
+                  <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                    <ShoppingCart className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Your Cart</h3>
+                    <p className="text-emerald-100 text-sm">
+                      {cartItems.length} item{cartItems.length !== 1 ? "s" : ""}
+                    </p>
                   </div>
                   <Button
                     variant="ghost"
@@ -585,9 +572,9 @@ export function CollapsibleCartPanel() {
                     <Button
                       disabled={!isOnline || cartItems.length === 0}
                       size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                      className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg" // Changed to emerald gradient
                     >
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-emerald-500 to-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <span className="relative flex items-center justify-center">
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Proceed to Checkout

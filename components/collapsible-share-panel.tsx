@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, X, Copy, Check, Facebook, Twitter, Mail, QrCode, ChevronRight } from "lucide-react"
+import { Share2, X, Copy, Check, Facebook, Twitter, Mail, QrCode, ChevronLeft } from "lucide-react" // Changed ChevronRight to ChevronLeft
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,6 +20,9 @@ export function CollapsibleSharePanel() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const shareUrl = typeof window !== "undefined" ? window.location.href : ""
   const { registerPanel, unregisterPanel, setActivePanel, activePanel, getPanelConfig } = usePanelManager()
+
+  // State for dynamic positioning
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px") // Initial position
 
   useEffect(() => {
     registerPanel("sharePanel", { isFullscreen: false, zIndex: 996 })
@@ -39,6 +42,42 @@ export function CollapsibleSharePanel() {
       setIsExpanded(false)
     }
   }, [activePanel, isExpanded])
+
+  // Calculate panel position based on scroll and viewport
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current) return
+
+    const panelHeight = panelRef.current.offsetHeight || 200 // fallback height
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    // Share panel starts at 150px from top of viewport
+    const initialViewportTopOffset = 150
+    const bottomPadding = 20 // Distance from bottom of document
+
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
+
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setPanelTopPosition(`${finalTop}px`)
+  }, [])
+
+  useEffect(() => {
+    const handleScrollAndResize = () => {
+      calculatePanelPosition()
+    }
+
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+    calculatePanelPosition() // Initial calculation
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+    }
+  }, [calculatePanelPosition])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -105,8 +144,8 @@ export function CollapsibleSharePanel() {
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className="fixed top-[150px] right-[clamp(1rem,3vw,2rem)] z-[996]"
-        style={{ zIndex: panelZIndex }}
+        className="fixed right-[clamp(1rem,3vw,2rem)] z-[996]"
+        style={{ zIndex: panelZIndex, top: panelTopPosition }} // Use dynamic top position
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -117,17 +156,11 @@ export function CollapsibleSharePanel() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50 border border-blue-500/20 backdrop-blur-sm relative"
+          className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50 border border-blue-500/20 backdrop-blur-sm relative"
           aria-label="Toggle share panel"
         >
-          <div className="flex items-center gap-2">
-            <Share2 className="h-5 w-5" />
-            <div className="text-left">
-              <div className="text-sm font-bold">Share</div>
-              <div className="text-xs opacity-90">Spread the word!</div>
-            </div>
-            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
-          </div>
+          <Share2 className="h-5 w-5" />
+          <ChevronLeft className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
         </motion.button>
 
         {/* Expandable Panel */}
