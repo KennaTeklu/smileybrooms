@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,20 +11,22 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Home, Calendar, Sparkles } from "lucide-react"
-import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
+import { usePricing } from "@/contexts/pricing-context" // Import the context
+import { BASE_ROOM_RATES, SERVICE_TIERS, CLEANLINESS_DIFFICULTY } from "@/lib/pricing-config" // Import pricing data
+import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
   onCalculationComplete?: (data: {
     rooms: Record<string, number>
     frequency: string
-    firstServicePrice: number // Added for first service
-    recurringServicePrice: number // Added for recurring services
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
+    firstServicePrice: number
+    recurringServicePrice: number
+    serviceType: ServiceTierId // Changed to ServiceTierId
+    cleanlinessLevel: CleanlinessLevelId // Changed to CleanlinessLevelId
     priceMultiplier: number
     isServiceAvailable: boolean
     addressId: string
@@ -35,10 +37,10 @@ interface PriceCalculatorProps {
   onAddToCart?: () => void
 }
 
-// Define the room types and their base prices
+// Define the room types (simplified as prices come from pricing-config)
 const roomTypes = roomConfig.roomTypes
 
-// Define the frequency options and their discounts
+// Define the frequency options and their discounts (kept local for now as per plan)
 const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
   { id: "weekly", label: "Weekly", discount: 0.15, isRecurring: true, recurringInterval: "week" },
@@ -49,42 +51,27 @@ const frequencyOptions = [
   { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
 ]
 
-// Define the payment frequency options
+// Define the payment frequency options (kept local for now as per plan)
 const paymentFrequencyOptions = [
   { id: "per_service", label: "Pay Per Service" },
   { id: "monthly", label: "Monthly Subscription" },
   { id: "yearly", label: "Annual Subscription (Save 10%)" },
 ]
 
-// Define the cleanliness level multipliers
-const cleanlinessMultipliers = [
-  { level: 1, multiplier: 0.8, label: "Mostly Clean" },
-  { level: 2, multiplier: 1.0, label: "Average" },
-  { level: 3, multiplier: 1.2, label: "Somewhat Dirty" },
-  { level: 4, multiplier: 1.5, label: "Very Dirty" },
-  { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
-]
-
 interface RoomConfiguratorProps {
   selectedRooms: Record<string, number>
-  setSelectedRooms: (rooms: Record<string, number>) => void
-  serviceType: "standard" | "detailing"
+  serviceTier: ServiceTierId // Changed to serviceTier
+  dispatch: ReturnType<typeof usePricing>["dispatch"] // Pass dispatch from context
 }
 
-const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, serviceTier, dispatch }) => {
   const incrementRoom = (roomId: string) => {
-    setSelectedRooms((prev) => ({
-      ...prev,
-      [roomId]: (prev[roomId] || 0) + 1,
-    }))
+    dispatch({ type: "SET_ROOM_COUNT", payload: { roomId, count: (selectedRooms[roomId] || 0) + 1 } })
   }
 
   const decrementRoom = (roomId: string) => {
     if (selectedRooms[roomId] > 0) {
-      setSelectedRooms((prev) => ({
-        ...prev,
-        [roomId]: prev[roomId] - 1,
-      }))
+      dispatch({ type: "SET_ROOM_COUNT", payload: { roomId, count: selectedRooms[roomId] - 1 } })
     }
   }
 
@@ -136,7 +123,8 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+                {/* Dynamically fetch price based on serviceTier */}$
+                {BASE_ROOM_RATES[room.id as keyof typeof BASE_ROOM_RATES][serviceTier]} per room
               </p>
             </div>
           ))}
@@ -188,7 +176,8 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+                {/* Dynamically fetch price based on serviceTier */}$
+                {BASE_ROOM_RATES[room.id as keyof typeof BASE_ROOM_RATES][serviceTier]} per room
               </p>
             </div>
           ))}
@@ -204,349 +193,222 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
 }
 
 export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
-  // State for selected rooms
-  const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(() => {
-    const initialRooms: Record<string, number> = {}
-    roomTypes.forEach((room) => {
-      initialRooms[room.id] = 0
-    })
-    return initialRooms
-  })
+  const { state, dispatch } = usePricing()
+  const {
+    serviceTier,
+    rooms,
+    cleanlinessLevel,
+    frequency,
+    paymentFrequency,
+    calculatedPrice,
+    nextRecurringPrice,
+    isServiceAvailable,
+    enforcedTierReason,
+  } = state
 
-  // State for other selections
-  const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
-  const [frequency, setFrequency] = useState("one_time")
-  const [paymentFrequency, setPaymentFrequency] = useState("per_service")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
-  const [totalPrice, setTotalPrice] = useState(0) // This will be the displayed price (first service or one-time)
-  const [nextRecurringPrice, setNextRecurringPrice] = useState(0) // Price for subsequent recurring services
-  const [isServiceAvailable, setIsServiceAvailable] = useState(true)
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
-
-  // Media query for responsive design
+  // Media query for responsive design (kept for potential future use, though not directly used in this phase's logic)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  // Calculate the total price whenever selections change
+  // Effect to call onCalculationComplete when relevant state changes
   useEffect(() => {
-    calculatePrice()
-  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
-
-  // Function to increment room count
-  const incrementRoom = (roomId: string) => {
-    setSelectedRooms((prev) => ({
-      ...prev,
-      [roomId]: (prev[roomId] || 0) + 1,
-    }))
-  }
-
-  // Function to decrement room count
-  const decrementRoom = (roomId: string) => {
-    if (selectedRooms[roomId] > 0) {
-      setSelectedRooms((prev) => ({
-        ...prev,
-        [roomId]: prev[roomId] - 1,
-      }))
-    }
-  }
-
-  // Function to calculate the total price
-  const calculatePrice = () => {
-    // Calculate base price from selected rooms
-    let basePrice = 0
-    Object.entries(selectedRooms).forEach(([roomId, count]) => {
-      const room = roomTypes.find((r) => r.id === roomId)
-      if (room) {
-        basePrice += room.basePrice * count
-      }
-    })
-
-    // Apply service type multiplier
-    const serviceMultiplier = serviceType === "standard" ? 1 : 1.5
-
-    // Apply cleanliness level multiplier
-    const cleanlinessMultiplier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
-
-    // Calculate the base price before frequency/payment discounts
-    const priceBeforeFrequency = basePrice * serviceMultiplier * cleanlinessMultiplier
-
-    // Apply frequency discount
-    const selectedFrequency = frequencyOptions.find((f) => f.id === frequency)
-    const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-
-    // Apply payment frequency discount
-    let paymentDiscount = 0
-    if (paymentFrequency === "yearly") {
-      paymentDiscount = 0.1 // 10% discount for annual subscription
-    }
-
-    // Calculate the recurring price
-    const calculatedRecurringPrice = priceBeforeFrequency * (1 - frequencyDiscount) * (1 - paymentDiscount)
-
-    // Determine the price for the first service
-    const calculatedFirstServicePrice = priceBeforeFrequency // Default to one-time price
-
-    // If a recurring frequency is selected, the first service is the one-time price
-    // Subsequent services get the recurring discount
-    if (frequency !== "one_time") {
-      setTotalPrice(Math.round(calculatedFirstServicePrice * 100) / 100)
-      setNextRecurringPrice(Math.round(calculatedRecurringPrice * 100) / 100)
-    } else {
-      // For one-time service, both are the same
-      setTotalPrice(Math.round(calculatedFirstServicePrice * 100) / 100)
-      setNextRecurringPrice(0) // No recurring price for one-time
-    }
-
-    // Check if service is available (e.g., for extremely dirty conditions)
-    const isAvailable = !(cleanlinessLevel === 5 && serviceType === "standard")
-
-    setIsServiceAvailable(isAvailable)
-
-    // Call the onCalculationComplete callback if provided
     if (onCalculationComplete) {
       const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
       onCalculationComplete({
-        rooms: selectedRooms,
+        rooms: rooms,
         frequency,
-        firstServicePrice: Math.round(calculatedFirstServicePrice * 100) / 100,
-        recurringServicePrice: Math.round(calculatedRecurringPrice * 100) / 100,
-        serviceType,
-        cleanlinessLevel,
-        priceMultiplier: cleanlinessMultiplier,
-        isServiceAvailable: isAvailable,
+        firstServicePrice: calculatedPrice.totalPrice,
+        recurringServicePrice: nextRecurringPrice,
+        serviceType: serviceTier, // Use serviceTier from context
+        cleanlinessLevel: cleanlinessLevel, // Use cleanlinessLevel from context
+        priceMultiplier: CLEANLINESS_DIFFICULTY[cleanlinessLevel].multipliers[serviceTier], // Get actual multiplier
+        isServiceAvailable: isServiceAvailable,
         addressId: "custom", // This would be replaced with actual address ID in a real implementation
         paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
         isRecurring: selectedFrequencyOption?.isRecurring || false,
         recurringInterval: selectedFrequencyOption?.recurringInterval as "week" | "month" | "year",
       })
     }
-  }
+  }, [
+    rooms,
+    frequency,
+    paymentFrequency,
+    serviceTier,
+    cleanlinessLevel,
+    calculatedPrice,
+    nextRecurringPrice,
+    isServiceAvailable,
+    onCalculationComplete,
+  ])
 
   // Function to check if any rooms are selected
   const hasSelectedRooms = () => {
-    return Object.values(selectedRooms).some((count) => count > 0)
+    return Object.values(rooms).some((count) => count > 0)
   }
 
-  // Function to toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
-  }
-
-  // Check if a section is expanded
-  const isSectionExpanded = (section: string) => {
-    return expandedSections.includes(section)
-  }
+  // Get cleanliness level options from pricing-config
+  const cleanlinessOptions = Object.values(CLEANLINESS_DIFFICULTY).map((level) => ({
+    id: level.level,
+    label: level.name,
+    multiplier: level.multipliers[serviceTier],
+  }))
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="standard" className="text-sm md:text-base">
-            Standard Cleaning
-          </TabsTrigger>
-          <TabsTrigger value="detailing" className="text-sm md:text-base">
-            Premium Detailing
-          </TabsTrigger>
+      <Tabs
+        value={serviceTier}
+        onValueChange={(value) => dispatch({ type: "SET_SERVICE_TIER", payload: value as ServiceTierId })}
+      >
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          {" "}
+          {/* Changed to 3 columns */}
+          {Object.values(SERVICE_TIERS).map((tier) => (
+            <TabsTrigger key={tier.id} value={tier.id} className="text-sm md:text-base">
+              {tier.name} Cleaning
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="standard" className="space-y-6">
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Standard Cleaning Service</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our standard cleaning covers all the basics to keep your space clean and tidy.
-            </p>
-          </div>
+        {Object.values(SERVICE_TIERS).map((tier) => (
+          <TabsContent key={tier.id} value={tier.id} className="space-y-6">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-medium">{tier.name} Cleaning Service</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {tier.id === "standard" &&
+                  "Our standard cleaning covers all the basics to keep your space clean and tidy."}
+                {tier.id === "premium" &&
+                  "Our premium service includes deep sanitization and premium products for a superior clean."}
+                {tier.id === "elite" &&
+                  "Our white-glove service offers unparalleled attention to detail and comprehensive guarantees."}
+              </p>
+            </div>
 
-          {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-blue-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
-              </div>
-
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Collapsible Sections */}
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
-            <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleaning Frequency</h3>
+            {/* Room Selection - Always visible */}
+            <Card
+              className={cn(
+                "border-2",
+                tier.id === "standard" && "border-blue-100 dark:border-blue-900",
+                tier.id === "premium" && "border-purple-100 dark:border-purple-900",
+                tier.id === "elite" && "border-green-100 dark:border-green-900",
+              )}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center mb-4">
+                  <Home
+                    className={cn(
+                      "h-5 w-5 mr-2",
+                      tier.id === "standard" && "text-blue-600",
+                      tier.id === "premium" && "text-purple-600",
+                      tier.id === "elite" && "text-green-600",
+                    )}
+                  />
+                  <h3 className="text-lg font-medium">Select Rooms</h3>
                 </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <RadioGroup
-                  value={frequency}
-                  onValueChange={setFrequency}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                >
-                  {frequencyOptions.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                      <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
-                        {option.label}
-                        {option.discount > 0 && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            Save {option.discount * 100}%
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
 
-                {frequency !== "one_time" && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
+                <RoomConfigurator
+                  selectedRooms={rooms}
+                  setSelectedRooms={(newRooms) => dispatch({ type: "SET_ROOM_COUNTS", payload: newRooms })}
+                  serviceTier={serviceTier} // Pass serviceTier from context
+                  dispatch={dispatch} // Pass dispatch to RoomConfigurator
+                />
+              </CardContent>
+            </Card>
+
+            {/* Collapsible Sections */}
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {/* Frequency Selection */}
+              <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Cleaning Frequency</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <RadioGroup
+                    value={frequency}
+                    onValueChange={(value) => dispatch({ type: "SET_FREQUENCY", payload: value })}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                  >
+                    {frequencyOptions.map((option) => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
+                        <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
+                          {option.label}
+                          {option.discount > 0 && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              Save {option.discount * 100}%
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+
+                  {frequency !== "one_time" && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
+                      <RadioGroup
+                        value={paymentFrequency}
+                        onValueChange={(value) => dispatch({ type: "SET_PAYMENT_FREQUENCY", payload: value })}
+                        className="grid grid-cols-1 gap-2"
+                      >
+                        {paymentFrequencyOptions.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
+                            <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Cleanliness Level */}
+              <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Cleanliness Level</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    {/* Replaced CleanlinessSlider with RadioGroup */}
                     <RadioGroup
-                      value={paymentFrequency}
-                      onValueChange={setPaymentFrequency}
-                      className="grid grid-cols-1 gap-2"
+                      value={cleanlinessLevel.toString()} // RadioGroup expects string value
+                      onValueChange={(value) =>
+                        dispatch({
+                          type: "SET_CLEANLINESS_LEVEL",
+                          payload: Number.parseInt(value) as CleanlinessLevelId,
+                        })
+                      }
+                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
                     >
-                      {paymentFrequencyOptions.map((option) => (
+                      {cleanlinessOptions.map((option) => (
                         <div key={option.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
-                          <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
+                          <RadioGroupItem value={option.id.toString()} id={`cleanliness-${option.id}`} />
+                          <Label htmlFor={`cleanliness-${option.id}`} className="flex items-center">
+                            {option.label}
+                            <span className="ml-2 text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full">
+                              {option.multiplier}x
+                            </span>
+                          </Label>
                         </div>
                       ))}
                     </RadioGroup>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Cleanliness Level */}
-            <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleanliness Level</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4">
-                  <CleanlinessSlider value={cleanlinessLevel} onChange={(value) => setCleanlinessLevel(value[0])} />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.label}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Price multiplier: {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier}x
-                    </p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-
-        <TabsContent value="detailing" className="space-y-6">
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Premium Detailing Service</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our premium service includes deep cleaning and attention to detail for a thorough clean.
-            </p>
-          </div>
-
-          {/* Room Selection - Always visible */}
-          <Card className="border-2 border-purple-100 dark:border-purple-900">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-purple-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
-              </div>
-
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Collapsible Sections */}
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
-            <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleaning Frequency</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <RadioGroup
-                  value={frequency}
-                  onValueChange={setFrequency}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                >
-                  {frequencyOptions.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                      <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
-                        {option.label}
-                        {option.discount > 0 && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            Save {option.discount * 100}%
-                          </span>
-                        )}
-                      </Label>
+                    <div className="text-center">
+                      <p className="font-medium">{cleanlinessOptions.find((c) => c.id === cleanlinessLevel)?.label}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Price multiplier: {cleanlinessOptions.find((c) => c.id === cleanlinessLevel)?.multiplier}x
+                      </p>
                     </div>
-                  ))}
-                </RadioGroup>
-
-                {frequency !== "one_time" && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
-                    <RadioGroup
-                      value={paymentFrequency}
-                      onValueChange={setPaymentFrequency}
-                      className="grid grid-cols-1 gap-2"
-                    >
-                      {paymentFrequencyOptions.map((option) => (
-                        <div key={option.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
-                          <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
                   </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Cleanliness Level */}
-            <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleanliness Level</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4">
-                  <CleanlinessSlider value={cleanlinessLevel} onChange={(value) => setCleanlinessLevel(value[0])} />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.label}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Price multiplier: {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier}x
-                    </p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+        ))}
       </Tabs>
 
       {/* Price Summary */}
@@ -557,12 +419,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               {frequency !== "one_time" ? "First Service Price" : "Estimated Price"}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
-              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+              {SERVICE_TIERS[serviceTier].name} Cleaning
+              {hasSelectedRooms() && ` • ${Object.values(rooms).reduce((a, b) => a + b, 0)} rooms`}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${calculatedPrice.totalPrice.toFixed(2)}</div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {frequency !== "one_time" ? "One-time charge" : "One-time service"}
             </p>
@@ -590,6 +452,12 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
             For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
             quote.
+          </div>
+        )}
+
+        {enforcedTierReason && (
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-800 dark:text-red-300 text-sm">
+            {enforcedTierReason}
           </div>
         )}
 
