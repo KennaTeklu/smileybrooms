@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { QRCode } from "qrcode.react" // Corrected import for QRCode
+import QRCode from "qrcode.react" // Corrected import for QRCode as default export
 
 type SharePlatform = {
   id: string
