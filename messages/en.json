@@ -1,0 +1,14 @@
+{
+  "Hero": {
+    "headline": "You rest, we take care of the rest!",
+    "description": "Experience the joy of coming home to a perfectly clean space. Our professional cleaning services are tailored to your needs, schedule, and budget.",
+    "buttonText": "Book New Services"
+  },
+  "Dashboard": {
+    "title": "Analytics Dashboard",
+    "cartHealth": "Cart Health Overview",
+    "formSubmissions": "Form Submission Trends",
+    "userEngagement": "User Engagement",
+    "revenueOverview": "Revenue Overview"
+  }
+}

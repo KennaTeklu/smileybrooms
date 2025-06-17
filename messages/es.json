@@ -1,0 +1,14 @@
+{
+  "Hero": {
+    "headline": "¡Tú descansas, nosotros nos encargamos del resto!",
+    "description": "Experimenta la alegría de llegar a casa a un espacio perfectamente limpio. Nuestros servicios de limpieza profesional se adaptan a tus necesidades, horario y presupuesto.",
+    "buttonText": "Reservar Nuevos Servicios"
+  },
+  "Dashboard": {
+    "title": "Panel de Análisis",
+    "cartHealth": "Resumen de Salud del Carrito",
+    "formSubmissions": "Tendencias de Envío de Formularios",
+    "userEngagement": "Compromiso del Usuario",
+    "revenueOverview": "Resumen de Ingresos"
+  }
+}

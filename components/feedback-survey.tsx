@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import {
   Dialog,
@@ -14,11 +15,9 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Star, Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { processFormSubmission } from "@/lib/form-utils"
+import { Star } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { processFormSubmission } from "@/lib/form-utils" // Assuming this utility exists
 
 interface FeedbackSurveyProps {
   isOpen: boolean
@@ -26,63 +25,42 @@ interface FeedbackSurveyProps {
 }
 
 export default function FeedbackSurvey({ isOpen, onClose }: FeedbackSurveyProps) {
-  const [rating, setRating] = useState<number | null>(null)
-  const [comments, setComments] = useState("")
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState("")
   const [email, setEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { toast } = useToast()
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success" | "error">("idle")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (rating === null) {
-      toast({
-        title: "Rating required",
-        description: "Please select a star rating.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSubmitting(true)
+    setSubmissionStatus("idle")
+
+    const formData = new FormData()
+    formData.append("rating", rating.toString())
+    formData.append("comment", comment)
+    if (email) {
+      formData.append("email", email)
+    }
+    formData.append("formType", "feedback_survey") // Identify form type for Google Sheets
 
     try {
-      const scriptURL =
-        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec" // Re-using the same Google Sheets script URL
+      // Assuming processFormSubmission sends data to Google Sheets or similar backend
+      const response = await processFormSubmission(formData)
 
-      const baseData = {
-        rating: rating,
-        comments: comments || "No comments provided",
-        email: email || "not provided",
-        message: `⭐ Feedback: ${rating} stars`, // Main message for spreadsheet
+      if (response.success) {
+        setSubmissionStatus("success")
+        // Optionally clear form after success
+        setRating(0)
+        setComment("")
+        setEmail("")
+        setTimeout(onClose, 2000) // Close after a short delay
+      } else {
+        setSubmissionStatus("error")
       }
-
-      const metaData = {
-        formType: "feedback",
-        page: window.location.pathname,
-        ratingValue: rating,
-        commentLength: comments.length,
-      }
-
-      await processFormSubmission(scriptURL, "feedback", baseData, metaData)
-
-      toast({
-        title: "Feedback submitted!",
-        description: "Thank you for your valuable feedback.",
-      })
-
-      // Reset form and close
-      setRating(null)
-      setComments("")
-      setEmail("")
-      onClose()
     } catch (error) {
-      console.error("Error submitting feedback:", error)
-      toast({
-        title: "Submission failed",
-        description: "There was an error sending your feedback. Please try again.",
-        variant: "destructive",
-      })
+      console.error("Feedback submission error:", error)
+      setSubmissionStatus("error")
     } finally {
       setIsSubmitting(false)
     }
@@ -93,49 +71,42 @@ export default function FeedbackSurvey({ isOpen, onClose }: FeedbackSurveyProps)
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Share Your Feedback</DialogTitle>
-          <DialogDescription>We'd love to hear about your experience.</DialogDescription>
+          <DialogDescription>
+            We'd love to hear about your experience. Your feedback helps us improve!
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="rating">Overall Rating</Label>
-            <RadioGroup
-              onValueChange={(value) => setRating(Number.parseInt(value))}
-              value={rating?.toString() || ""}
-              className="flex gap-1"
-            >
-              {[1, 2, 3, 4, 5].map((starValue) => (
-                <Label
-                  key={starValue}
-                  htmlFor={`star-${starValue}`}
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
                   className={cn(
-                    "cursor-pointer text-gray-400 hover:text-yellow-500 transition-colors",
-                    rating && starValue <= rating && "text-yellow-500",
+                    "h-8 w-8 cursor-pointer transition-colors",
+                    rating >= star ? "fill-yellow-400 text-yellow-400" : "fill-gray-300 text-gray-300",
                   )}
-                >
-                  <RadioGroupItem
-                    value={starValue.toString()}
-                    id={`star-${starValue}`}
-                    className="sr-only" // Hide the actual radio button
-                  />
-                  <Star className="h-8 w-8 fill-current" />
-                </Label>
+                  onClick={() => setRating(star)}
+                  aria-label={`${star} star rating`}
+                />
               ))}
-            </RadioGroup>
+            </div>
+            {rating === 0 && submissionStatus === "error" && (
+              <p className="text-sm text-red-500">Please provide a rating.</p>
+            )}
           </div>
-
           <div className="grid gap-2">
-            <Label htmlFor="comments">Comments (Optional)</Label>
+            <Label htmlFor="comment">Comments (Optional)</Label>
             <Textarea
-              id="comments"
+              id="comment"
               placeholder="Tell us what you think..."
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
               rows={4}
             />
           </div>
-
           <div className="grid gap-2">
-            <Label htmlFor="email">Your Email (Optional)</Label>
+            <Label htmlFor="email">Email (Optional)</Label>
             <Input
               id="email"
               type="email"
@@ -144,17 +115,15 @@ export default function FeedbackSurvey({ isOpen, onClose }: FeedbackSurveyProps)
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-
           <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit Feedback"
-              )}
+            {submissionStatus === "success" && (
+              <p className="text-green-600 text-sm mr-4">Thank you for your feedback!</p>
+            )}
+            {submissionStatus === "error" && (
+              <p className="text-red-600 text-sm mr-4">Failed to submit feedback. Please try again.</p>
+            )}
+            <Button type="submit" disabled={isSubmitting || rating === 0}>
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
             </Button>
           </DialogFooter>
         </form>
