@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
+import { useAccessibility } from "@/hooks/use-accessibility" // Import useAccessibility
 
 export default function AccessibilityPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,6 +29,7 @@ export default function AccessibilityPanel() {
   const { theme, setTheme } = useTheme()
 
   const panelRef = useRef<HTMLDivElement>(null)
+  const { trapFocus } = useAccessibility() // Use the trapFocus hook
 
   // Smooth scroll position with spring physics
   const smoothScrollY = useSpring(0, {
@@ -58,6 +60,19 @@ export default function AccessibilityPanel() {
       setIsOpen(false)
     }
   })
+
+  // Apply focus trapping when the panel is open
+  useEffect(() => {
+    let cleanupTrapFocus: (() => void) | undefined
+    if (isOpen && panelRef.current) {
+      cleanupTrapFocus = trapFocus(`#${panelRef.current.id}`)
+    }
+    return () => {
+      if (cleanupTrapFocus) {
+        cleanupTrapFocus()
+      }
+    }
+  }, [isOpen, trapFocus])
 
   // Apply font size to body
   useEffect(() => {
@@ -138,6 +153,7 @@ export default function AccessibilityPanel() {
 
   return (
     <motion.div
+      id="accessibility-panel" // Added ID for trapFocus
       className="fixed left-0 z-50"
       style={{
         top: scrollY > 100 ? "auto" : "50%",
