@@ -171,7 +171,12 @@ export default function Footer() {
 
           {/* Copyright - Always visible */}
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            &copy; {currentYear} Smiley Brooms. All rights reserved.
+            &copy; {currentYear}{" "}
+            <span className="inline-flex items-center">
+              smiley
+              <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
+            </span>
+            . All rights reserved.
           </div>
         </div>
       </div>

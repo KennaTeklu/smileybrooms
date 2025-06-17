@@ -61,13 +61,14 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        "brooms-highlight-bg": {
-          DEFAULT: "#dcfce7", // Light green background for light mode (Tailwind green-100)
-          dark: "#166534", // Dark green background for dark mode (Tailwind green-800)
+        // New colors for "brooms" background emphasis
+        "brooms-bg-emphasis": {
+          DEFAULT: "hsl(var(--primary))", // Uses primary color for background in light mode
+          dark: "hsl(var(--primary-foreground))", // Uses primary-foreground for background in dark mode
         },
-        "brooms-highlight-text": {
-          DEFAULT: "#1f2937", // Dark gray text for light mode background
-          dark: "#f9fafb", // Light white text for dark mode background
+        "brooms-text-emphasis": {
+          DEFAULT: "hsl(var(--primary-foreground))", // Uses primary-foreground for text on primary background
+          dark: "hsl(var(--primary))", // Uses primary color for text on primary-foreground background
         },
       },
       borderRadius: {

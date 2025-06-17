@@ -1,23 +1,29 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
+import { ArrowRight, Check, Copy, Mail } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatFormDataForEmail, openGmailWithFormData } from "@/lib/email-utils"
-import { Mail, Copy, Check, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
 interface ServiceEmailSummaryProps {
-  formData: Record<string, any>
+  formData: any // Replace 'any' with the actual type of your form data
+  emailTo: string
   onClose?: () => void
-  emailTo?: string
+  formatFormDataForEmail: (data: any) => string // Replace 'any' with the actual type
+  openGmailWithFormData: (data: any, email: string) => void
 }
 
-export default function ServiceEmailSummary({
+const ServiceEmailSummary: React.FC<ServiceEmailSummaryProps> = ({
   formData,
+  emailTo,
   onClose,
-  emailTo = "customize@smileybrooms.com", // Email address, no highlighting
-}: ServiceEmailSummaryProps) {
+  formatFormDataForEmail,
+  openGmailWithFormData,
+}) => {
   const [isCopied, setIsCopied] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const { toast } = useToast()
@@ -75,7 +81,9 @@ export default function ServiceEmailSummary({
         </CardTitle>
         <CardDescription>
           Review your service details and send them directly to{" "}
-          <span className="bg-brooms-highlight-bg text-brooms-highlight-text">smileybrooms</span>
+          <span className="inline-flex items-center">
+            smiley<span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -97,3 +105,5 @@ export default function ServiceEmailSummary({
     </Card>
   )
 }
+
+export default ServiceEmailSummary

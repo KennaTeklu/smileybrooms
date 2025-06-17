@@ -211,16 +211,17 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
         }
         /* Custom highlight for "brooms" */
         .brooms-highlighted-word {
-            background-color: #dcfce7; /* Light green background for light mode */
-            color: #1f2937; /* Dark text for light mode */
+            background-color: #667eea; /* Primary blue for light mode */
+            color: white; /* White text on blue background */
             font-weight: 600;
-            padding: 2px 4px; /* Add some padding for the background */
-            border-radius: 4px; /* Slightly rounded corners */
+            padding: 2px 4px;
+            border-radius: 4px;
+            display: inline-block; /* Ensure padding and background apply correctly */
         }
         @media (prefers-color-scheme: dark) {
             .brooms-highlighted-word {
-                background-color: #166534; /* Dark green background for dark mode */
-                color: #f9fafb; /* Light text for dark mode */
+                background-color: white; /* White background for dark mode */
+                color: #667eea; /* Primary blue text on white background */
             }
         }
 
@@ -249,7 +250,7 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
     <div class="email-container">
         <div class="header">
             <h1>🧹 Custom Quote Request</h1>
-            <p><span class="brooms-highlighted-word">smileybrooms</span> Professional Cleaning Services</p>
+            <p>smiley<span class="brooms-highlighted-word">brooms</span> Professional Cleaning Services</p>
         </div>
         
         <div class="content">
@@ -374,7 +375,7 @@ export function generateCustomQuoteHTML(formData: QuoteFormData): string {
         </div>
         
         <div class="footer">
-            <p><strong><span class="brooms-highlighted-word">smileybrooms</span> Professional Cleaning Services</strong></p>
+            <p><strong>smiley<span class="brooms-highlighted-word">brooms</span> Professional Cleaning Services</strong></p>
             <p>Making your space sparkle, one room at a time! ✨</p>
             <p>📧 custom@smileybrooms.com | 📞 (555) 123-4567</p>
         </div>
