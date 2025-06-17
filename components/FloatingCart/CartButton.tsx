@@ -3,38 +3,47 @@
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations"
-import { motion } from "framer-motion"
-import { useAnalytics } from "@/hooks/use-analytics" // Import useAnalytics
+import { useAnalytics } from "@/hooks/use-analytics"
+import { useFeatureFlag } from "@/hooks/use-feature-flag" // Import the new hook
 
-export function CartButton() {
-  const { cartItems, toggleCartPanel } = useCart()
-  const { hoverProps, pressProps, floatingProps } = useAdvancedAnimations()
-  const { trackButtonClick } = useAnalytics() // Destructure trackButtonClick
+interface CartButtonProps {
+  onClick: () => void
+}
 
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+export default function CartButton({ onClick }: CartButtonProps) {
+  const { cartItems } = useCart()
+  const { trackButtonClick } = useAnalytics()
+  const { isEnabled: isNewCartExperienceEnabled } = useFeatureFlag("newCartExperience") // Use the feature flag
 
-  const handleCartClick = () => {
-    toggleCartPanel()
-    trackButtonClick("Cart Button", "Header", { itemCount }) // Track the click
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+  const handleClick = () => {
+    trackButtonClick("Cart Button Click", {
+      location: "Floating Cart",
+      totalItemsInCart: totalItems,
+    })
+    onClick()
+  }
+
+  // Conditionally render the button based on the feature flag
+  if (!isNewCartExperienceEnabled) {
+    return null // Don't render the button if the feature is disabled
   }
 
   return (
-    <motion.div className="relative" {...hoverProps} {...pressProps} {...floatingProps}>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative"
-        onClick={handleCartClick}
-        aria-label={`Shopping cart with ${itemCount} items`}
-      >
-        <ShoppingCart className="h-6 w-6" />
-        {itemCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
-            {itemCount}
-          </span>
-        )}
-      </Button>
-    </motion.div>
+    <Button
+      variant="default"
+      size="lg"
+      className="relative rounded-full p-3 shadow-lg transition-all duration-300 hover:scale-105"
+      onClick={handleClick}
+      aria-label={`View cart with ${totalItems} items`}
+    >
+      <ShoppingCart className="h-6 w-6" />
+      {totalItems > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+          {totalItems}
+        </span>
+      )}
+    </Button>
   )
 }

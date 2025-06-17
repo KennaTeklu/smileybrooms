@@ -11,6 +11,13 @@ export interface ABTestConfig {
   }
 }
 
+export interface FeatureFlagConfig {
+  [flagName: string]: {
+    defaultValue: boolean // Default state of the feature flag
+    description?: string // Optional description for the flag
+  }
+}
+
 // Define your A/B test configurations here
 export const AB_TEST_CONFIG: ABTestConfig = {
   heroHeadlineTest: {
@@ -39,4 +46,17 @@ export const AB_TEST_CONFIG: ABTestConfig = {
     defaultVariation: "control",
   },
   // Add more A/B tests here as needed
+}
+
+// Define your feature flag configurations here
+export const FEATURE_FLAG_CONFIG: FeatureFlagConfig = {
+  newCartExperience: {
+    defaultValue: true, // Set to true to enable the new cart experience by default
+    description: "Enables a new, experimental cart user interface.",
+  },
+  // Add more feature flags here as needed
+  betaContactForm: {
+    defaultValue: false,
+    description: "Enables a beta version of the contact form with new fields.",
+  },
 }
