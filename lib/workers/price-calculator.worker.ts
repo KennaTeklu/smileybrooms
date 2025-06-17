@@ -2,7 +2,7 @@
 
 import {
   SERVICE_TIERS,
-  CLEANLINESS_DIFFICULTY, // Will be used in next phases
+  CLEANLINESS_DIFFICULTY,
   BASE_ROOM_RATES,
   AUTOMATIC_TIER_UPGRADES, // Will be used in next phases
 } from "../pricing-config"
@@ -12,7 +12,7 @@ export type ServiceConfig = {
   rooms: Record<string, number>
   serviceTier: "standard" | "premium" | "elite" // Updated from serviceType
   frequency: string
-  cleanlinessLevel: number
+  cleanlinessLevel: number // This will correspond to the 'level' in CLEANLINESS_DIFFICULTY
   specialRequests?: string[]
   discounts?: Record<string, number>
   addons?: Record<string, number> // This will be updated to string[] later
@@ -54,14 +54,7 @@ const frequencyOptions = [
   { id: "vip_daily", discount: 0.25 },
 ]
 
-// Define the cleanliness level multipliers (existing, no change, but will be replaced by CLEANLINESS_DIFFICULTY in next phase)
-const cleanlinessMultipliers = [
-  { level: 1, multiplier: 0.8 },
-  { level: 2, multiplier: 1.0 },
-  { level: 3, multiplier: 1.2 },
-  { level: 4, multiplier: 1.5 },
-  { level: 5, multiplier: 2.0 },
-]
+// Removed the old cleanlinessMultipliers array as it's now sourced from pricing-config.ts
 
 self.onmessage = (event: MessageEvent<ServiceConfig>) => {
   try {
@@ -73,10 +66,9 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
     // --- Automatic Tier Upgrades (Preliminary check, full logic in Phase 17) ---
     // This is a simplified placeholder for now, full enforcement logic will be in Phase 17
     // For example, if biohazard is selected, enforce Elite
-    if (
-      config.cleanlinessLevel === CLEANLINESS_DIFFICULTY.BIOHAZARD.level &&
-      currentServiceTier !== SERVICE_TIERS.ELITE.id
-    ) {
+    const cleanlinessLevelData = Object.values(CLEANLINESS_DIFFICULTY).find((c) => c.level === config.cleanlinessLevel)
+
+    if (cleanlinessLevelData?.name === "Biohazard" && currentServiceTier !== SERVICE_TIERS.ELITE.id) {
       currentServiceTier = SERVICE_TIERS.ELITE.id
       enforcedTierReason = AUTOMATIC_TIER_UPGRADES.find((u) => u.condition === "biohazard_situations")?.message
     }
@@ -110,14 +102,13 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
       description: `${SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.name} tier (${serviceTierMultiplier}x)`,
     })
 
-    // Apply cleanliness level multiplier (using existing cleanlinessMultipliers for now, will be updated in Phase 10)
-    const cleanlinessMultiplier =
-      cleanlinessMultipliers.find((c) => c.level === config.cleanlinessLevel)?.multiplier || 1.0
+    // Apply cleanliness level multiplier using the new CLEANLINESS_DIFFICULTY data
+    const cleanlinessMultiplier = cleanlinessLevelData?.multipliers[currentServiceTier] || 1.0
     const priceAfterCleanliness = priceAfterServiceTier * cleanlinessMultiplier
     breakdown.push({
       category: "Cleanliness Level Multiplier",
       amount: priceAfterCleanliness - priceAfterServiceTier,
-      description: `Cleanliness level ${config.cleanlinessLevel} (${cleanlinessMultiplier}x)`,
+      description: `${cleanlinessLevelData?.name} level (${cleanlinessMultiplier}x)`,
     })
 
     // Calculate the one-time price (first service price)
@@ -139,6 +130,7 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
     }
 
     let addonTotal = 0
+    // The 'addons' field in config will be replaced by 'selectedAddons' and 'selectedExclusiveServices' in Phase 11
     if (config.addons) {
       addonTotal = Object.values(config.addons).reduce((sum, val) => sum + val, 0)
     }
