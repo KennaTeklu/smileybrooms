@@ -4,27 +4,28 @@ import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
   BASE_ROOM_RATES,
+  STRATEGIC_ADDONS, // New import
+  PREMIUM_EXCLUSIVE_SERVICES, // New import
   AUTOMATIC_TIER_UPGRADES, // Will be used in next phases
 } from "../pricing-config"
 
 // Define the input configuration type
 export type ServiceConfig = {
   rooms: Record<string, number>
-  serviceTier: "standard" | "premium" | "elite" // Updated from serviceType
+  serviceTier: "standard" | "premium" | "elite"
   frequency: string
-  cleanlinessLevel: number // This will correspond to the 'level' in CLEANLINESS_DIFFICULTY
+  cleanlinessLevel: number
   specialRequests?: string[]
   discounts?: Record<string, number>
-  addons?: Record<string, number> // This will be updated to string[] later
   zipCode?: string
   squareFootage?: number
-  propertyType?: string // Added for automatic tier upgrades
-  petOwners?: boolean // Added for automatic tier upgrades
-  postRenovation?: boolean // Added for automatic tier upgrades
-  moldWaterDamage?: boolean // Added for automatic tier upgrades
-  biohazardSituations?: boolean // Added for automatic tier upgrades
-  selectedAddons?: string[] // New field for selected add-ons by ID
-  selectedExclusiveServices?: string[] // New field for selected exclusive services by ID
+  propertyType?: string
+  petOwners?: boolean
+  postRenovation?: boolean
+  moldWaterDamage?: boolean
+  biohazardSituations?: boolean
+  selectedAddons?: { id: string; quantity?: number }[] // Updated to include quantity for per-unit addons
+  selectedExclusiveServices?: string[]
 }
 
 // Define the output result type
@@ -39,8 +40,8 @@ export type PriceResult = {
     amount: number
     description: string
   }[]
-  enforcedTier?: "standard" | "premium" | "elite" // New field for enforced tier
-  enforcedTierReason?: string // New field for enforced tier reason
+  enforcedTier?: "standard" | "premium" | "elite"
+  enforcedTierReason?: string
 }
 
 // Define the frequency options and their discounts (existing, no change)
@@ -54,8 +55,6 @@ const frequencyOptions = [
   { id: "vip_daily", discount: 0.25 },
 ]
 
-// Removed the old cleanlinessMultipliers array as it's now sourced from pricing-config.ts
-
 self.onmessage = (event: MessageEvent<ServiceConfig>) => {
   try {
     const config = event.data
@@ -63,18 +62,15 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
     let currentServiceTier = config.serviceTier
     let enforcedTierReason: string | undefined
 
-    // --- Automatic Tier Upgrades (Preliminary check, full logic in Phase 17) ---
-    // This is a simplified placeholder for now, full enforcement logic will be in Phase 17
-    // For example, if biohazard is selected, enforce Elite
     const cleanlinessLevelData = Object.values(CLEANLINESS_DIFFICULTY).find((c) => c.level === config.cleanlinessLevel)
 
+    // --- Automatic Tier Upgrades (Preliminary check, full logic in Phase 17) ---
     if (cleanlinessLevelData?.name === "Biohazard" && currentServiceTier !== SERVICE_TIERS.ELITE.id) {
       currentServiceTier = SERVICE_TIERS.ELITE.id
       enforcedTierReason = AUTOMATIC_TIER_UPGRADES.find((u) => u.condition === "biohazard_situations")?.message
     }
     // Add other preliminary checks here if needed for immediate enforcement feedback
 
-    // Calculate base price based on selected rooms and the (potentially enforced) service tier
     let basePrice = 0
     const breakdown = []
 
@@ -92,7 +88,6 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
       }
     }
 
-    // Apply service tier multiplier
     const serviceTierMultiplier =
       SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.multiplier || 1.0
     const priceAfterServiceTier = basePrice * serviceTierMultiplier
@@ -102,7 +97,6 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
       description: `${SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.name} tier (${serviceTierMultiplier}x)`,
     })
 
-    // Apply cleanliness level multiplier using the new CLEANLINESS_DIFFICULTY data
     const cleanlinessMultiplier = cleanlinessLevelData?.multipliers[currentServiceTier] || 1.0
     const priceAfterCleanliness = priceAfterServiceTier * cleanlinessMultiplier
     breakdown.push({
@@ -111,47 +105,109 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
       description: `${cleanlinessLevelData?.name} level (${cleanlinessMultiplier}x)`,
     })
 
+    let currentTotal = priceAfterCleanliness
+
+    // --- Strategic Add-Ons Calculation ---
+    let addonsTotal = 0
+    if (config.selectedAddons && config.selectedAddons.length > 0) {
+      for (const selectedAddon of config.selectedAddons) {
+        const addon = STRATEGIC_ADDONS.find((a) => a.id === selectedAddon.id)
+        if (addon) {
+          let addonPrice = addon.prices[currentServiceTier]
+          // Handle "Included in Elite"
+          if (addon.includedInElite && currentServiceTier === SERVICE_TIERS.ELITE.id) {
+            addonPrice = 0 // Price is 0 if included in Elite
+          }
+
+          const quantity = selectedAddon.quantity || 1 // Default quantity to 1 if not specified
+          const totalAddonCost = addonPrice * quantity
+          addonsTotal += totalAddonCost
+          breakdown.push({
+            category: `Add-On: ${addon.name}`,
+            amount: totalAddonCost,
+            description: `${addon.name} (${quantity}${addon.unit || ""}) at ${currentServiceTier} tier`,
+          })
+        }
+      }
+    }
+    currentTotal += addonsTotal
+
+    // --- Premium-Exclusive Services Calculation ---
+    let exclusiveServicesTotal = 0
+    if (config.selectedExclusiveServices && config.selectedExclusiveServices.length > 0) {
+      if (currentServiceTier === SERVICE_TIERS.ELITE.id) {
+        for (const selectedServiceId of config.selectedExclusiveServices) {
+          const service = PREMIUM_EXCLUSIVE_SERVICES.find((s) => s.id === selectedServiceId)
+          if (service) {
+            let serviceCost = service.price
+            // Handle per-room exclusive services
+            if (service.unit === "/room") {
+              const totalRooms = Object.values(config.rooms).reduce((sum, count) => sum + count, 0)
+              serviceCost *= totalRooms
+            }
+            exclusiveServicesTotal += serviceCost
+            breakdown.push({
+              category: `Exclusive Service: ${service.name}`,
+              amount: serviceCost,
+              description: `${service.name} (Elite Only)`,
+            })
+          }
+        }
+      } else {
+        // If exclusive services are selected but not Elite tier, they are ignored or an error could be thrown
+        // For now, we'll just ignore them as per the prompt's focus on calculation.
+        // A UI phase will handle preventing selection or showing warnings.
+      }
+    }
+    currentTotal += exclusiveServicesTotal
+
     // Calculate the one-time price (first service price)
-    const firstServicePrice = priceAfterCleanliness
+    const firstServicePrice = currentTotal // This is the price before frequency discounts
 
     // Apply frequency discount for recurring price
     const selectedFrequency = frequencyOptions.find((f) => f.id === config.frequency)
     const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-    const priceAfterFrequency = priceAfterCleanliness * (1 - frequencyDiscount)
+    const recurringServicePriceBeforePaymentDiscount = currentTotal * (1 - frequencyDiscount)
+    breakdown.push({
+      category: "Frequency Discount",
+      amount: -(currentTotal - recurringServicePriceBeforePaymentDiscount),
+      description: `${selectedFrequency?.name} discount (${(frequencyDiscount * 100).toFixed(0)}%)`,
+    })
 
     // Apply payment frequency discount (assuming 'yearly' is the only one with a discount here)
     const paymentDiscount = 0
-    const recurringServicePrice = priceAfterFrequency * (1 - paymentDiscount)
+    const recurringServicePrice = recurringServicePriceBeforePaymentDiscount * (1 - paymentDiscount)
 
-    // Apply discounts and addons (simplified, will be updated in Phase 11)
+    // Apply general discounts (from config.discounts)
     let discountTotal = 0
     if (config.discounts) {
       discountTotal = Object.values(config.discounts).reduce((sum, val) => sum + val, 0)
+      if (discountTotal > 0) {
+        breakdown.push({
+          category: "General Discounts",
+          amount: -discountTotal,
+          description: "Applied general discounts",
+        })
+      }
     }
 
-    let addonTotal = 0
-    // The 'addons' field in config will be replaced by 'selectedAddons' and 'selectedExclusiveServices' in Phase 11
-    if (config.addons) {
-      addonTotal = Object.values(config.addons).reduce((sum, val) => sum + val, 0)
-    }
-
-    // Final prices after all adjustments (for simplicity, applying to both)
-    const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal + addonTotal)
-    const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal + addonTotal)
+    const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal)
+    const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal)
 
     const result: PriceResult = {
-      basePrice,
+      basePrice, // This is the initial base price before multipliers
       adjustments: {
         serviceTier: priceAfterServiceTier - basePrice,
         cleanliness: priceAfterCleanliness - priceAfterServiceTier,
-        frequency: priceAfterCleanliness - priceAfterFrequency,
+        addons: addonsTotal,
+        exclusiveServices: exclusiveServicesTotal,
+        frequency: currentTotal - recurringServicePriceBeforePaymentDiscount, // Difference due to frequency
         discounts: -discountTotal,
-        addons: addonTotal,
       },
       firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
       recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
       estimatedDuration: Math.round(finalFirstServicePrice * 0.8), // Duration based on first service
-      breakdown: breakdown, // Use the detailed breakdown
+      breakdown: breakdown,
       enforcedTier: enforcedTierReason ? currentServiceTier : undefined,
       enforcedTierReason: enforcedTierReason,
     }
