@@ -56,6 +56,7 @@
     "keen-slider": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
+    "next-intl": "latest",
     "next-themes": "latest",
     "qrcode.react": "latest",
     "react": "^19",
