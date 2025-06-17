@@ -10,16 +10,23 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles, AlertCircle } from "lucide-react"
+import { Home, Calendar, Sparkles, AlertCircle, PlusCircle, Diamond } from "lucide-react" // Added PlusCircle, Diamond
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
 import { usePricing } from "@/contexts/pricing-context" // Import the context
-import { BASE_ROOM_RATES, SERVICE_TIERS, CLEANLINESS_DIFFICULTY } from "@/lib/pricing-config" // Import pricing data
+import {
+  BASE_ROOM_RATES,
+  SERVICE_TIERS,
+  CLEANLINESS_DIFFICULTY,
+  STRATEGIC_ADDONS, // Import new data
+  PREMIUM_EXCLUSIVE_SERVICES, // Import new data
+} from "@/lib/pricing-config" // Import pricing data
 import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
-import { Input } from "@/components/ui/input" // Add this
-import { Switch } from "@/components/ui/switch" // Add this
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert" // Add this
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -199,14 +206,14 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const { state, dispatch } = usePricing()
   const {
     serviceTier,
-    rooms,
+    selectedRooms, // Changed from 'rooms' to 'selectedRooms' for consistency with context
     cleanlinessLevel,
     frequency,
     paymentFrequency,
     calculatedPrice,
-    nextRecurringPrice,
-    isServiceAvailable,
     enforcedTierReason,
+    selectedAddons, // From context
+    selectedExclusiveServices, // From context
   } = state
 
   // Media query for responsive design (kept for potential future use, though not directly used in this phase's logic)
@@ -214,17 +221,18 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
   // Effect to call onCalculationComplete when relevant state changes
   useEffect(() => {
-    if (onCalculationComplete) {
+    if (onCalculationComplete && calculatedPrice) {
+      // Ensure calculatedPrice is not null
       const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
       onCalculationComplete({
-        rooms: rooms,
+        rooms: selectedRooms,
         frequency,
-        firstServicePrice: calculatedPrice.totalPrice,
-        recurringServicePrice: nextRecurringPrice,
+        firstServicePrice: calculatedPrice.firstServicePrice, // Use firstServicePrice from worker result
+        recurringServicePrice: calculatedPrice.recurringServicePrice, // Use recurringServicePrice from worker result
         serviceType: serviceTier, // Use serviceTier from context
         cleanlinessLevel: cleanlinessLevel, // Use cleanlinessLevel from context
         priceMultiplier: CLEANLINESS_DIFFICULTY[cleanlinessLevel].multipliers[serviceTier], // Get actual multiplier
-        isServiceAvailable: isServiceAvailable,
+        isServiceAvailable: true, // Worker will determine availability, for now assume true if no error
         addressId: "custom", // This would be replaced with actual address ID in a real implementation
         paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
         isRecurring: selectedFrequencyOption?.isRecurring || false,
@@ -232,20 +240,18 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       })
     }
   }, [
-    rooms,
+    selectedRooms,
     frequency,
     paymentFrequency,
     serviceTier,
     cleanlinessLevel,
     calculatedPrice,
-    nextRecurringPrice,
-    isServiceAvailable,
     onCalculationComplete,
   ])
 
   // Function to check if any rooms are selected
   const hasSelectedRooms = () => {
-    return Object.values(rooms).some((count) => count > 0)
+    return Object.values(selectedRooms).some((count) => count > 0)
   }
 
   // Get cleanliness level options from pricing-config
@@ -262,8 +268,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         onValueChange={(value) => dispatch({ type: "SET_SERVICE_TIER", payload: value as ServiceTierId })}
       >
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          {" "}
-          {/* Changed to 3 columns */}
           {Object.values(SERVICE_TIERS).map((tier) => (
             <TabsTrigger key={tier.id} value={tier.id} className="text-sm md:text-base">
               {tier.name} Cleaning
@@ -308,8 +312,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 </div>
 
                 <RoomConfigurator
-                  selectedRooms={rooms}
-                  setSelectedRooms={(newRooms) => dispatch({ type: "SET_ROOM_COUNTS", payload: newRooms })}
+                  selectedRooms={selectedRooms}
                   serviceTier={serviceTier} // Pass serviceTier from context
                   dispatch={dispatch} // Pass dispatch to RoomConfigurator
                 />
@@ -377,9 +380,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-4">
-                    {/* Replaced CleanlinessSlider with RadioGroup */}
                     <RadioGroup
-                      value={cleanlinessLevel.toString()} // RadioGroup expects string value
+                      value={cleanlinessLevel.toString()}
                       onValueChange={(value) =>
                         dispatch({
                           type: "SET_CLEANLINESS_LEVEL",
@@ -415,7 +417,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex items-center">
                     <Home className="h-5 w-5 mr-2 text-blue-600" />{" "}
-                    {/* Re-using Home icon, consider a new one if available */}
                     <h3 className="text-lg font-medium">Property Details</h3>
                   </div>
                 </AccordionTrigger>
@@ -426,7 +427,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                       id="sq-ft"
                       type="number"
                       placeholder="e.g., 1500"
-                      value={state.propertySizeSqFt || ""}
+                      value={state.squareFootage || ""}
                       onChange={(e) =>
                         dispatch({ type: "SET_PROPERTY_SIZE_SQ_FT", payload: Number(e.target.value) || 0 })
                       }
@@ -494,6 +495,77 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   </div>
                 </AccordionContent>
               </AccordionItem>
+
+              {/* Strategic Add-Ons */}
+              <AccordionItem value="strategic-addons" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <PlusCircle className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Strategic Add-Ons</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-3">
+                  {STRATEGIC_ADDONS.map((addon) => (
+                    <div key={addon.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`addon-${addon.id}`}
+                          checked={selectedAddons.some((a) => a.id === addon.id)}
+                          onCheckedChange={(checked) =>
+                            dispatch({ type: "TOGGLE_ADDON", payload: { addonId: addon.id, quantity: 1 } })
+                          }
+                        />
+                        <Label htmlFor={`addon-${addon.id}`}>{addon.name}</Label>
+                      </div>
+                      <div className="text-right">
+                        {addon.includedInElite && serviceTier === SERVICE_TIERS.ELITE.id ? (
+                          <span className="text-sm text-green-600 dark:text-green-400">Included</span>
+                        ) : (
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            +${addon.prices[serviceTier]}
+                            {addon.unit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Premium-Exclusive Services */}
+              {serviceTier === SERVICE_TIERS.ELITE.id && (
+                <AccordionItem value="exclusive-services" className="border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center">
+                      <Diamond className="h-5 w-5 mr-2 text-green-600" />
+                      <h3 className="text-lg font-medium">Elite-Exclusive Services</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 space-y-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      These specialized services are available only with the Elite tier.
+                    </p>
+                    {PREMIUM_EXCLUSIVE_SERVICES.map((service) => (
+                      <div key={service.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`exclusive-service-${service.id}`}
+                            checked={selectedExclusiveServices.includes(service.id)}
+                            onCheckedChange={(checked) =>
+                              dispatch({ type: "TOGGLE_EXCLUSIVE_SERVICE", payload: service.id })
+                            }
+                          />
+                          <Label htmlFor={`exclusive-service-${service.id}`}>{service.name}</Label>
+                        </div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          +${service.price}
+                          {service.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
             </Accordion>
           </TabsContent>
         ))}
@@ -508,18 +580,20 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {SERVICE_TIERS[serviceTier].name} Cleaning
-              {hasSelectedRooms() && ` • ${Object.values(rooms).reduce((a, b) => a + b, 0)} rooms`}
+              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
             </p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold">${calculatedPrice.totalPrice.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${calculatedPrice ? calculatedPrice.firstServicePrice.toFixed(2) : "0.00"}
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {frequency !== "one_time" ? "One-time charge" : "One-time service"}
             </p>
           </div>
         </div>
 
-        {frequency !== "one_time" && nextRecurringPrice > 0 && (
+        {frequency !== "one_time" && calculatedPrice && calculatedPrice.recurringServicePrice > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <div>
               <h4 className="text-base font-medium">Subsequent Services</h4>
@@ -528,7 +602,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </p>
             </div>
             <div className="text-right">
-              <div className="text-xl font-bold">${nextRecurringPrice.toFixed(2)}</div>
+              <div className="text-xl font-bold">${calculatedPrice.recurringServicePrice.toFixed(2)}</div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {paymentFrequency === "per_service" ? "per service" : `per ${paymentFrequency.replace("ly", "")}`}
               </p>
@@ -536,13 +610,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           </div>
         )}
 
-        {!isServiceAvailable && (
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-            For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
-            quote.
-          </div>
-        )}
-
+        {/* Removed old isServiceAvailable check as it's now handled by enforcedTierReason */}
         {state.enforcedTierReason && (
           <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
@@ -557,7 +625,14 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             <AlertTitle>Biohazard Situation Detected</AlertTitle>
             <AlertDescription>
               For biohazard situations, Elite service is required. A waiver must be signed before service.
-              {/* In a later phase, this would link to or embed the BiohazardWaiver component */}
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="biohazard-waiver"
+                  checked={state.waiverSigned}
+                  onCheckedChange={(checked) => dispatch({ type: "SET_WAIVER_SIGNED", payload: checked })}
+                />
+                <Label htmlFor="biohazard-waiver">I agree to the Biohazard Waiver terms.</Label>
+              </div>
             </AlertDescription>
           </Alert>
         )}
@@ -568,9 +643,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               onClick={onAddToCart}
               disabled={
                 !hasSelectedRooms() ||
-                !isServiceAvailable ||
                 !!state.enforcedTierReason ||
-                (state.cleanlinessLevel === 4 && !state.waiverSigned)
+                (state.cleanlinessLevel === 4 && !state.waiverSigned) ||
+                !calculatedPrice // Disable if price hasn't been calculated yet
               }
               className="w-full"
             >
