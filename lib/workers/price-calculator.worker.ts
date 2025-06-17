@@ -1,50 +1,49 @@
 /// <reference lib="webworker" />
 
-// Define the input configuration type (duplicated for worker)
+import {
+  SERVICE_TIERS,
+  CLEANLINESS_DIFFICULTY, // Will be used in next phases
+  BASE_ROOM_RATES,
+  AUTOMATIC_TIER_UPGRADES, // Will be used in next phases
+} from "../pricing-config"
+
+// Define the input configuration type
 export type ServiceConfig = {
   rooms: Record<string, number>
-  serviceType: "standard" | "detailing"
+  serviceTier: "standard" | "premium" | "elite" // Updated from serviceType
   frequency: string
   cleanlinessLevel: number
   specialRequests?: string[]
   discounts?: Record<string, number>
-  addons?: Record<string, number>
+  addons?: Record<string, number> // This will be updated to string[] later
   zipCode?: string
   squareFootage?: number
+  propertyType?: string // Added for automatic tier upgrades
+  petOwners?: boolean // Added for automatic tier upgrades
+  postRenovation?: boolean // Added for automatic tier upgrades
+  moldWaterDamage?: boolean // Added for automatic tier upgrades
+  biohazardSituations?: boolean // Added for automatic tier upgrades
+  selectedAddons?: string[] // New field for selected add-ons by ID
+  selectedExclusiveServices?: string[] // New field for selected exclusive services by ID
 }
 
-// Define the output result type (duplicated for worker)
+// Define the output result type
 export type PriceResult = {
   basePrice: number
   adjustments: Record<string, number>
-  firstServicePrice: number // Added for first service
-  recurringServicePrice: number // Added for recurring services
+  firstServicePrice: number
+  recurringServicePrice: number
   estimatedDuration: number // in minutes
   breakdown: {
     category: string
     amount: number
     description: string
   }[]
+  enforcedTier?: "standard" | "premium" | "elite" // New field for enforced tier
+  enforcedTierReason?: string // New field for enforced tier reason
 }
 
-// Define the room types and their base prices (duplicated for worker)
-const roomTypes = [
-  { id: "bedroom", basePrice: 30 },
-  { id: "bathroom", basePrice: 35 },
-  { id: "kitchen", basePrice: 45 },
-  { id: "living_room", basePrice: 40 },
-  { id: "dining_room", basePrice: 25 },
-  { id: "office", basePrice: 30 },
-  { id: "laundry_room", basePrice: 20 },
-  { id: "hallway", basePrice: 15 },
-  { id: "staircase", basePrice: 25 },
-  { id: "basement", basePrice: 50 },
-  { id: "garage", basePrice: 40 },
-  { id: "patio", basePrice: 30 },
-  { id: "other", basePrice: 25 },
-]
-
-// Define the frequency options and their discounts (duplicated for worker)
+// Define the frequency options and their discounts (existing, no change)
 const frequencyOptions = [
   { id: "one_time", discount: 0 },
   { id: "weekly", discount: 0.15 },
@@ -55,7 +54,7 @@ const frequencyOptions = [
   { id: "vip_daily", discount: 0.25 },
 ]
 
-// Define the cleanliness level multipliers (duplicated for worker)
+// Define the cleanliness level multipliers (existing, no change, but will be replaced by CLEANLINESS_DIFFICULTY in next phase)
 const cleanlinessMultipliers = [
   { level: 1, multiplier: 0.8 },
   { level: 2, multiplier: 1.0 },
@@ -68,25 +67,58 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
   try {
     const config = event.data
 
-    // Calculate base price
+    let currentServiceTier = config.serviceTier
+    let enforcedTierReason: string | undefined
+
+    // --- Automatic Tier Upgrades (Preliminary check, full logic in Phase 17) ---
+    // This is a simplified placeholder for now, full enforcement logic will be in Phase 17
+    // For example, if biohazard is selected, enforce Elite
+    if (
+      config.cleanlinessLevel === CLEANLINESS_DIFFICULTY.BIOHAZARD.level &&
+      currentServiceTier !== SERVICE_TIERS.ELITE.id
+    ) {
+      currentServiceTier = SERVICE_TIERS.ELITE.id
+      enforcedTierReason = AUTOMATIC_TIER_UPGRADES.find((u) => u.condition === "biohazard_situations")?.message
+    }
+    // Add other preliminary checks here if needed for immediate enforcement feedback
+
+    // Calculate base price based on selected rooms and the (potentially enforced) service tier
     let basePrice = 0
+    const breakdown = []
+
     for (const [roomType, count] of Object.entries(config.rooms)) {
       if (count > 0) {
-        const room = roomTypes.find((r) => r.id === roomType)
-        if (room) {
-          basePrice += room.basePrice * count
+        const roomRate = BASE_ROOM_RATES[roomType as keyof typeof BASE_ROOM_RATES]?.[currentServiceTier]
+        if (roomRate !== undefined) {
+          basePrice += roomRate * count
+          breakdown.push({
+            category: `${roomType} (${count})`,
+            amount: roomRate * count,
+            description: `Base rate for ${count} ${roomType}(s) at ${currentServiceTier} tier`,
+          })
         }
       }
     }
 
-    // Apply service type multiplier
-    const serviceMultiplier = config.serviceType === "detailing" ? 1.5 : 1.0
-    const priceAfterServiceType = basePrice * serviceMultiplier
+    // Apply service tier multiplier
+    const serviceTierMultiplier =
+      SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.multiplier || 1.0
+    const priceAfterServiceTier = basePrice * serviceTierMultiplier
+    breakdown.push({
+      category: "Service Tier Multiplier",
+      amount: priceAfterServiceTier - basePrice,
+      description: `${SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.name} tier (${serviceTierMultiplier}x)`,
+    })
 
-    // Apply cleanliness level multiplier
+    // Apply cleanliness level multiplier (using existing cleanlinessMultipliers for now, will be updated in Phase 10)
     const cleanlinessMultiplier =
       cleanlinessMultipliers.find((c) => c.level === config.cleanlinessLevel)?.multiplier || 1.0
-    const priceAfterCleanliness = priceAfterServiceType * cleanlinessMultiplier
+    const priceAfterCleanliness = priceAfterServiceTier * cleanlinessMultiplier
+    breakdown.push({
+      category: "Cleanliness Level Multiplier",
+      amount: priceAfterCleanliness - priceAfterServiceTier,
+      description: `Cleanliness level ${config.cleanlinessLevel} (${cleanlinessMultiplier}x)`,
+    })
 
     // Calculate the one-time price (first service price)
     const firstServicePrice = priceAfterCleanliness
@@ -98,11 +130,9 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
 
     // Apply payment frequency discount (assuming 'yearly' is the only one with a discount here)
     const paymentDiscount = 0
-    // If config.paymentFrequency was passed:
-    // if (config.paymentFrequency === "yearly") { paymentDiscount = 0.1; }
     const recurringServicePrice = priceAfterFrequency * (1 - paymentDiscount)
 
-    // Apply discounts and addons (simplified)
+    // Apply discounts and addons (simplified, will be updated in Phase 11)
     let discountTotal = 0
     if (config.discounts) {
       discountTotal = Object.values(config.discounts).reduce((sum, val) => sum + val, 0)
@@ -120,22 +150,18 @@ self.onmessage = (event: MessageEvent<ServiceConfig>) => {
     const result: PriceResult = {
       basePrice,
       adjustments: {
-        serviceType: priceAfterServiceType - basePrice,
+        serviceTier: priceAfterServiceTier - basePrice,
+        cleanliness: priceAfterCleanliness - priceAfterServiceTier,
         frequency: priceAfterCleanliness - priceAfterFrequency,
-        cleanliness: priceAfterCleanliness - priceAfterServiceType,
         discounts: -discountTotal,
         addons: addonTotal,
       },
       firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
       recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
       estimatedDuration: Math.round(finalFirstServicePrice * 0.8), // Duration based on first service
-      breakdown: [
-        {
-          category: "Base Price",
-          amount: basePrice,
-          description: "Base price for selected rooms",
-        },
-      ],
+      breakdown: breakdown, // Use the detailed breakdown
+      enforcedTier: enforcedTierReason ? currentServiceTier : undefined,
+      enforcedTierReason: enforcedTierReason,
     }
 
     self.postMessage(result)
