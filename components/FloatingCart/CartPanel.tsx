@@ -11,6 +11,8 @@ import { useFloatingUI } from "@/hooks/useFloatingUI"
 import { useScrollContainerDetection } from "@/hooks/useScrollContainerDetection"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/cart/types"
+import { useCart } from "@/lib/cart-context" // Import useCart
+import { useRouter } from "next/navigation" // Import useRouter
 
 interface CartPanelProps {
   isOpen: boolean
@@ -53,9 +55,11 @@ const panelVariants = {
   },
 }
 
-export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, onClose, cart, className }, ref) => {
+export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, onClose, className }, ref) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const { detectionRef, activeContainer } = useScrollContainerDetection()
+  const { cart, updateQuantity, removeItem, clearCart } = useCart() // Use useCart hook
+  const router = useRouter()
 
   // Floating UI for advanced positioning
   const { refs, floatingStyles, isHidden } = useFloatingUI({
@@ -76,25 +80,26 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
 
   // Handle quantity changes
   const handleQuantityChange = (itemId: string, change: number) => {
-    // This would integrate with your cart context
-    console.log(`Changing quantity for ${itemId} by ${change}`)
+    const currentItem = cart.items.find((item) => item.id === itemId)
+    if (currentItem) {
+      updateQuantity(itemId, currentItem.quantity + change)
+    }
   }
 
   // Handle item removal
   const handleRemoveItem = (itemId: string) => {
-    // This would integrate with your cart context
-    console.log(`Removing item ${itemId}`)
+    removeItem(itemId)
   }
 
   // Handle checkout
   const handleCheckout = () => {
-    console.log("Proceeding to checkout")
     onClose()
+    router.push("/checkout")
   }
 
   // Handle clear cart
   const handleClearCart = () => {
-    console.log("Clearing cart")
+    clearCart()
   }
 
   if (isHidden) {
