@@ -37,7 +37,7 @@ export function formatFormDataForEmail(emailData: any): string {
 
   // Compile the email content
   return `
-New Cleaning Service Request - smileybrooms
+New Cleaning Service Request - SmileBrooms
 
 CUSTOMER INFORMATION:
 Name: ${customer.name || "Not provided"}
@@ -63,7 +63,7 @@ ADDITIONAL INFORMATION:
 ${specialInstructions}
 ${videoRecording}
 
-This request was submitted through the smileybrooms website pricing calculator.
+This request was submitted through the SmileBrooms website pricing calculator.
 
 Please contact the customer to confirm the appointment and arrange payment.
 `.trim()

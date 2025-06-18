@@ -1,11 +1,10 @@
 "use client"
 
-import React from "react"
-
-import { useState, useEffect, useCallback, memo } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
+import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 import {
   Drawer,
   DrawerClose,
@@ -20,37 +19,27 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useTheme } from "next-themes"
-import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
 
 interface AccessibilityToolbarProps {
   className?: string
 }
 
-const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: AccessibilityToolbarProps) {
+export default function AccessibilityToolbar({ className }: AccessibilityToolbarProps) {
   const [isReading, setIsReading] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [fontSize, setFontSize] = useState(1)
   const [showSubtitles, setShowSubtitles] = useState(false)
   const [subtitle, setSubtitle] = useState("")
   const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [readingSpeed, setReadingSpeed] = useState(0.9)
   const [readingPitch, setReadingPitch] = useState(1)
-  const [volume, setVolume] = useState(1)
-  const [prevVolume, setPrevVolume] = useState(1)
+  const [volume, setVolume] = useState(1) // New volume state
+  const [prevVolume, setPrevVolume] = useState(1) // To store volume before muting
   const [highContrast, setHighContrast] = useState(false)
-  const [showSharePanel, setShowSharePanel] = useState(false)
   const { theme, setTheme } = useTheme()
-
-  // Memoized scroll config to prevent re-renders
-  const scrollConfig = React.useMemo(
-    () => ({
-      defaultPosition: "center" as const,
-      scrollPosition: "bottom" as const,
-      offset: { bottom: 100, left: 20 },
-    }),
-    [],
-  )
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -61,6 +50,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
       u.volume = volume
       setUtterance(u)
 
+      // Handle speech events
       u.onstart = () => setIsReading(true)
       u.onend = () => {
         setIsReading(false)
@@ -104,19 +94,22 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
     if (utterance) {
       utterance.volume = volume
 
+      // If volume is set to 0, pause the speech
       if (volume === 0 && isReading) {
         window.speechSynthesis.pause()
         setIsMuted(true)
       } else if (volume > 0 && isMuted && isReading) {
+        // If coming back from volume 0, resume the speech
         window.speechSynthesis.resume()
         setIsMuted(false)
       }
     }
   }, [volume, utterance, isReading, isMuted])
 
-  const readPage = useCallback(() => {
+  const readPage = () => {
     if (!utterance || !window.speechSynthesis) return
 
+    // If already reading, stop
     if (isReading) {
       window.speechSynthesis.cancel()
       setIsReading(false)
@@ -124,25 +117,29 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
       return
     }
 
+    // Get all visible text from the page
     const textContent = document.body.innerText
     utterance.text = textContent
     utterance.rate = readingSpeed
     utterance.pitch = readingPitch
     utterance.volume = volume
 
+    // Start reading
     window.speechSynthesis.speak(utterance)
-  }, [utterance, isReading, readingSpeed, readingPitch, volume])
+  }
 
-  const toggleMute = useCallback(() => {
+  const toggleMute = () => {
     if (!utterance) return
 
     if (isMuted) {
+      // Restore previous volume
       setVolume(prevVolume)
       utterance.volume = prevVolume
       if (isReading) {
         window.speechSynthesis.resume()
       }
     } else {
+      // Store current volume and mute
       setPrevVolume(volume)
       setVolume(0)
       utterance.volume = 0
@@ -152,92 +149,71 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
     }
 
     setIsMuted(!isMuted)
-  }, [utterance, isMuted, prevVolume, volume, isReading])
+  }
 
-  const handleVolumeChange = useCallback(
-    (value: number[]) => {
-      const newVolume = value[0]
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0]
 
-      if (newVolume === 0) {
-        if (!isMuted) {
-          setPrevVolume(volume)
-          setIsMuted(true)
-          if (isReading) {
-            window.speechSynthesis.pause()
-          }
-        }
-      } else {
-        if (isMuted) {
-          setIsMuted(false)
-          if (isReading) {
-            window.speechSynthesis.resume()
-          }
+    // If new volume is 0, set to muted
+    if (newVolume === 0) {
+      if (!isMuted) {
+        setPrevVolume(volume) // Remember previous volume
+        setIsMuted(true)
+        if (isReading) {
+          window.speechSynthesis.pause()
         }
       }
-
-      setVolume(newVolume)
-      if (utterance) {
-        utterance.volume = newVolume
+    } else {
+      // If coming from 0, unmute
+      if (isMuted) {
+        setIsMuted(false)
+        if (isReading) {
+          window.speechSynthesis.resume()
+        }
       }
-    },
-    [isMuted, volume, isReading, utterance],
-  )
+    }
 
-  const increaseFontSize = useCallback(() => {
+    setVolume(newVolume)
+    if (utterance) {
+      utterance.volume = newVolume
+    }
+  }
+
+  const increaseFontSize = () => {
     if (fontSize < 1.5) {
       setFontSize((prev) => Math.min(prev + 0.1, 1.5))
     }
-  }, [fontSize])
+  }
 
-  const decreaseFontSize = useCallback(() => {
+  const decreaseFontSize = () => {
     if (fontSize > 0.8) {
       setFontSize((prev) => Math.max(prev - 0.1, 0.8))
     }
-  }, [fontSize])
+  }
 
-  const handleReadingSpeedChange = useCallback(
-    (value: number[]) => {
-      const newSpeed = value[0]
-      setReadingSpeed(newSpeed)
-      if (utterance) {
-        utterance.rate = newSpeed
-      }
-    },
-    [utterance],
-  )
+  const toggleSubtitles = () => {
+    setShowSubtitles(!showSubtitles)
+  }
 
-  const handlePitchChange = useCallback(
-    (value: number[]) => {
-      const newPitch = value[0]
-      setReadingPitch(newPitch)
-      if (utterance) {
-        utterance.pitch = newPitch
-      }
-    },
-    [utterance],
-  )
-
-  const handleShare = useCallback(() => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: document.title,
-          url: window.location.href,
-        })
-        .catch((error) => {
-          console.log("Error sharing:", error)
-          // Fallback to clipboard
-          navigator.clipboard.writeText(window.location.href)
-        })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
+  const handleReadingSpeedChange = (value: number[]) => {
+    const newSpeed = value[0]
+    setReadingSpeed(newSpeed)
+    if (utterance) {
+      utterance.rate = newSpeed
     }
-    setShowSharePanel(false)
-  }, [])
+  }
+
+  const handlePitchChange = (value: number[]) => {
+    const newPitch = value[0]
+    setReadingPitch(newPitch)
+    if (utterance) {
+      utterance.pitch = newPitch
+    }
+  }
 
   return (
     <>
-      <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
+      <div className={cn("fixed bottom-4 right-4 z-50", className)}>
         <TooltipProvider>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
             <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -345,14 +321,6 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                         onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Share</h3>
-                      <Button variant="outline" size="sm" className="w-full" onClick={handleShare}>
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share Page
-                      </Button>
-                    </div>
                   </div>
                   <DrawerFooter>
                     <Button onClick={() => setIsDrawerOpen(false)}>Save Changes</Button>
@@ -375,7 +343,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                   {isReading ? <Volume2 className="h-4 w-4" /> : <VolumeUp className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="left">
                 <p>{isReading ? "Stop Reading" : "Read Page Aloud"}</p>
               </TooltipContent>
             </Tooltip>
@@ -386,7 +354,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                   {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="left">
                 <p>{isMuted ? "Unmute" : "Mute"}</p>
               </TooltipContent>
             </Tooltip>
@@ -396,13 +364,13 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setShowSubtitles(!showSubtitles)}
+                  onClick={toggleSubtitles}
                   className={showSubtitles ? "bg-primary text-primary-foreground" : ""}
                 >
                   <Type className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="left">
                 <p>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</p>
               </TooltipContent>
             </Tooltip>
@@ -413,7 +381,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="left">
                 <p>Increase Font Size</p>
               </TooltipContent>
             </Tooltip>
@@ -424,61 +392,20 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">
+              <TooltipContent side="left">
                 <p>Decrease Font Size</p>
               </TooltipContent>
             </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowSharePanel(!showSharePanel)}
-                  className={showSharePanel ? "bg-primary text-primary-foreground" : ""}
-                >
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Share Page</p>
-              </TooltipContent>
-            </Tooltip>
-
-            {showSharePanel && (
-              <div className="absolute top-0 right-full mr-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg p-3 w-48">
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-xs">Share Page</h4>
-                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleShare}>
-                    <Share2 className="h-3 w-3 mr-1" />
-                    Share
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      navigator.clipboard.writeText(window.location.href)
-                      setShowSharePanel(false)
-                    }}
-                  >
-                    Copy Link
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </TooltipProvider>
-      </ScrollAwareWrapper>
+      </div>
 
       {/* Subtitle display */}
       {showSubtitles && isReading && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center z-50">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center">
           {subtitle || "..."}
         </div>
       )}
     </>
   )
-})
-
-export default AccessibilityToolbar
+}

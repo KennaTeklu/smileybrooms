@@ -13,13 +13,7 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">
-              About{" "}
-              <span className="inline-flex items-center">
-                smiley
-                <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-              </span>
-            </h1>
+            <h1 className="text-4xl font-bold mb-4">About smileybrooms</h1>
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
               We're on a mission to make cleaning a happy experience for everyone.
             </p>

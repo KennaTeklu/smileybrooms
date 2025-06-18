@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown, Phone } from "lucide-react"
-import Logo from "@/components/logo" // Ensure this imports the updated Logo
+import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
@@ -71,7 +71,7 @@ export default function UnifiedFooter() {
         <div className="flex flex-col items-center justify-center gap-4">
           {/* Logo and Toggle Button */}
           <div className="flex items-center justify-center w-full">
-            <Logo className="h-8 w-auto" iconOnly={false} /> {/* This will now use favicon.png */}
+            <Logo className="h-8 w-auto" iconOnly={false} />
             <button
               onClick={handleToggle}
               className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"

@@ -1,7 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import "./chatbot.css"
+import { UnifiedChatbot } from "@/components/unified-chatbot"
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -16,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <UnifiedChatbot />
+      </body>
     </html>
   )
 }

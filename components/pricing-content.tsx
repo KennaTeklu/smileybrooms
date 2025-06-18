@@ -9,55 +9,109 @@ import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
-import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 
-function PricingContent() {
+interface RoomCount {
+  [key: string]: number
+}
+
+interface RoomConfig {
+  roomName: string
+  selectedTier: string
+  selectedAddOns: string[]
+  selectedReductions: string[]
+  basePrice: number
+  tierUpgradePrice: number
+  addOnsPrice: number
+  reductionsPrice: number
+  totalPrice: number
+}
+
+export default function PricingContent() {
   const { toast } = useToast()
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
+  const [roomCounts, setRoomCounts] = useState<RoomCount>({
+    bedroom: 0,
+    bathroom: 0,
+    kitchen: 0,
+    livingRoom: 0,
+    diningRoom: 0,
+    homeOffice: 0,
+    laundryRoom: 0,
+    entryway: 0,
+    hallway: 0,
+    stairs: 0,
+  })
 
-  const {
-    roomCounts,
-    roomConfigs,
-    selectedRoomForMap,
-    updateRoomCount,
-    updateRoomConfig,
-    setSelectedRoomForMap,
-    getSelectedRoomTypes,
-  } = useRoomContext()
+  const [roomConfigurations, setRoomConfigurations] = useState<RoomConfig[]>([])
+  const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
+  const [serviceFee, setServiceFee] = useState(25) // Default service fee
 
-  const [serviceFee, setServiceFee] = useState(25)
-
+  // Core rooms and additional spaces categorization
   const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
   const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
 
+  // Handle room count changes
   const handleRoomCountChange = (roomType: string, count: number) => {
-    const newCount = Math.max(0, count)
-    updateRoomCount(roomType, newCount)
+    setRoomCounts((prev) => {
+      const newCount = Math.max(0, count)
+      return { ...prev, [roomType]: newCount }
+    })
 
-    if (newCount > 0 && (roomCounts[roomType] || 0) === 0) {
+    // If incrementing and this is a new room, add default configuration
+    if (count > 0 && (roomCounts[roomType] || 0) === 0) {
+      const newConfig: RoomConfig = {
+        roomName: roomType,
+        selectedTier: "ESSENTIAL CLEAN",
+        selectedAddOns: [],
+        selectedReductions: [],
+        basePrice: 25,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: 25,
+      }
+
+      setRoomConfigurations((prev) => [...prev, newConfig])
+
+      // Set this as the selected room for the service map if none is selected
       if (!selectedRoomForMap) {
         setSelectedRoomForMap(roomType)
       }
     }
 
-    if (newCount === 0 && (roomCounts[roomType] || 0) > 0) {
+    // If decrementing to zero, remove configuration
+    if (count === 0 && (roomCounts[roomType] || 0) > 0) {
+      setRoomConfigurations((prev) => prev.filter((config) => config.roomName !== roomType))
+
+      // If this was the selected room for the service map, select another one
       if (selectedRoomForMap === roomType) {
         const activeRooms = Object.entries(roomCounts)
-          .filter(([key, currentCount]) => key !== roomType && currentCount > 0)
+          .filter(([key, count]) => key !== roomType && count > 0)
           .map(([key]) => key)
+
         setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
       }
     }
   }
 
-  const handleRoomConfigChange = (roomType: string, config: RoomConfig) => {
-    updateRoomConfig(roomType, config)
+  // Handle room configuration changes
+  const handleRoomConfigChange = (roomId: string, config: RoomConfig) => {
+    setRoomConfigurations((prev) => {
+      const index = prev.findIndex((c) => c.roomName === roomId)
+      if (index >= 0) {
+        const newConfigs = [...prev]
+        newConfigs[index] = config
+        return newConfigs
+      }
+      return [...prev, config]
+    })
   }
 
+  // Get room configuration
   const getRoomConfig = (roomType: string): RoomConfig => {
     return (
-      roomConfigs[roomType] || {
+      roomConfigurations.find((config) => config.roomName === roomType) || {
         roomName: roomType,
         selectedTier: "ESSENTIAL CLEAN",
         selectedAddOns: [],
@@ -71,10 +125,14 @@ function PricingContent() {
     )
   }
 
+  // Get active room configurations
   const getActiveRoomConfigs = () => {
-    return getSelectedRoomTypes()
+    return Object.entries(roomCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([roomType]) => roomType)
   }
 
+  // Update service fee based on total rooms
   useEffect(() => {
     const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
     if (totalRooms <= 2) {
@@ -152,7 +210,7 @@ function PricingContent() {
             </CardContent>
           </Card>
 
-          {/* Selected Rooms Summary */}
+          {/* Simple Summary for Selected Rooms */}
           {getActiveRoomConfigs().length > 0 && (
             <Card className="shadow-sm">
               <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
@@ -237,6 +295,3 @@ function PricingContent() {
     </main>
   )
 }
-
-export default PricingContent
-export { PricingContent }

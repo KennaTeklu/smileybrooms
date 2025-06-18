@@ -5,24 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Mic,
-  Keyboard,
-  Eye,
-  Monitor,
-  HelpCircle,
-  Maximize2,
-  ZoomIn,
-  Zap,
-  MousePointer2,
-  Volume2,
-  Sun,
-  Moon,
-} from "lucide-react"
+import { Mic, Keyboard, Eye, Monitor, HelpCircle, Maximize2, ZoomIn, Zap, MousePointer2, Volume2 } from "lucide-react"
 import { useAccessibility } from "@/lib/accessibility-context"
 import { useVoiceCommands } from "@/lib/voice-commands"
 import { useKeyboardNavigation } from "@/lib/keyboard-navigation"
-import { useTheme } from "next-themes"
 
 export function EnhancedAccessibilityPanel() {
   const [open, setOpen] = useState(false)
@@ -31,7 +17,6 @@ export function EnhancedAccessibilityPanel() {
   const voiceCommands = useVoiceCommands()
   const keyboardNav = useKeyboardNavigation()
   const [isListening, setIsListening] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   // Set up voice command state change listener
   if (voiceCommands) {
@@ -120,24 +105,6 @@ export function EnhancedAccessibilityPanel() {
         },
         description: "Clear shopping cart",
       },
-      {
-        phrases: ["dark mode", "switch to dark mode", "enable dark mode"],
-        handler: () => {
-          setTheme("dark")
-          updatePreference("prefersDarkTheme", true)
-          updatePreference("prefersLightTheme", false)
-        },
-        description: "Switch to dark mode",
-      },
-      {
-        phrases: ["light mode", "switch to light mode", "enable light mode"],
-        handler: () => {
-          setTheme("light")
-          updatePreference("prefersLightTheme", true)
-          updatePreference("prefersDarkTheme", false)
-        },
-        description: "Switch to light mode",
-      },
     ])
   }
 
@@ -166,16 +133,6 @@ export function EnhancedAccessibilityPanel() {
         description: "Go to homepage",
         handler: () => {
           console.log("Keyboard shortcut: Going to homepage")
-        },
-      },
-      {
-        key: "d",
-        altKey: true,
-        description: "Toggle dark/light mode",
-        handler: () => {
-          setTheme(theme === "dark" ? "light" : "dark")
-          updatePreference("prefersDarkTheme", theme !== "dark")
-          updatePreference("prefersLightTheme", theme === "dark")
         },
       },
     ])
@@ -216,41 +173,6 @@ export function EnhancedAccessibilityPanel() {
             </TabsList>
 
             <TabsContent value="preferences" className="space-y-4">
-              {/* Theme Selection */}
-              <div className="flex items-start space-x-4 p-3 border rounded-lg">
-                <div className="mt-0.5">
-                  {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium">Theme</h4>
-                  <p className="text-xs text-muted-foreground">Choose between light and dark mode</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={theme === "light" ? "default" : "outline"}
-                    onClick={() => {
-                      setTheme("light")
-                      updatePreference("prefersLightTheme", true)
-                      updatePreference("prefersDarkTheme", false)
-                    }}
-                  >
-                    <Sun className="h-4 w-4 mr-1" /> Light
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={theme === "dark" ? "default" : "outline"}
-                    onClick={() => {
-                      setTheme("dark")
-                      updatePreference("prefersDarkTheme", true)
-                      updatePreference("prefersLightTheme", false)
-                    }}
-                  >
-                    <Moon className="h-4 w-4 mr-1" /> Dark
-                  </Button>
-                </div>
-              </div>
-
               {preferenceItems.slice(0, 4).map((item) => (
                 <div key={item.id} className="flex items-start space-x-4 p-3 border rounded-lg">
                   <div className="mt-0.5">{item.icon}</div>

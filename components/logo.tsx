@@ -1,7 +1,6 @@
 "use client"
 
-import Image from "next/image"
-import Link from "next/link"
+import { Smile } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface LogoProps {
@@ -9,21 +8,18 @@ interface LogoProps {
   iconOnly?: boolean
 }
 
-export function Logo({ className, iconOnly = false }: LogoProps) {
+export default function Logo({ className, iconOnly = false }: LogoProps) {
   return (
-    <Link href="/" className={cn("flex items-center", className)}>
-      <div className="relative flex items-center justify-center h-8 w-8 rounded-full overflow-hidden">
-        <Image src="/favicon.png" alt="SmileyBrooms Logo" width={32} height={32} className="object-contain" />
+    <div className={cn("flex items-center", className)}>
+      <div className="relative flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white overflow-hidden">
+        <Smile className="h-5 w-5 animate-pulse" />
       </div>
 
       {!iconOnly && (
-        <span className="ml-2 font-bold text-xl tracking-tight inline-flex items-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-          smiley
-          <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-        </span>
+        <div className="ml-2 font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          SmileyBrooms
+        </div>
       )}
-    </Link>
+    </div>
   )
 }
-
-export default Logo

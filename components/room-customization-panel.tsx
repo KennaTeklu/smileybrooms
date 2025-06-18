@@ -2,470 +2,1067 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerClose,
-} from "@/components/ui/drawer"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect, useRef } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { formatCurrency } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
-import { Check, X, AlertCircle } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
-import { getMatrixServices } from "@/lib/matrix-services"
-import { calculateVideoDiscount } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  X,
+  Settings,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Calendar,
+  Repeat,
+  PlusCircle,
+  MinusCircle,
+  Sliders,
+  ArrowUp,
+  ArrowDown,
+  Check,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { isolateScrolling } from "@/lib/scroll-utils"
+import type { RoomTier, RoomAddOn, RoomReduction } from "@/components/room-configurator"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
-interface RoomConfig {
-  roomName: string
-  selectedTier: string
-  selectedAddOns: string[]
-  basePrice: number
-  tierUpgradePrice: number
-  addOnsPrice: number
-  totalPrice: number
-  videoDiscountAmount?: number
+interface MatrixService {
+  id: string
+  name: string
+  price: number
+  description: string
 }
 
-interface RoomCustomizationDrawerProps {
+interface RoomCustomizationPanelProps {
   isOpen: boolean
   onClose: () => void
-  roomType: string
   roomName: string
-  roomIcon: React.ReactNode
+  roomIcon: string
   roomCount: number
-  config: RoomConfig
-  onConfigChange: (config: RoomConfig) => void
-  allowVideoRecording?: boolean
+  baseTier: RoomTier
+  tiers: RoomTier[]
+  addOns: RoomAddOn[]
+  reductions: RoomReduction[]
+  selectedTier: string
+  selectedAddOns: string[]
+  selectedReductions: string[]
+  matrixAddServices?: MatrixService[]
+  matrixRemoveServices?: MatrixService[]
+  selectedMatrixAddServices?: string[]
+  selectedMatrixRemoveServices?: string[]
+  frequencyOptions?: { id: string; name: string; discount: number }[]
+  selectedFrequency?: string
+  onConfigChange: (config: {
+    selectedTier: string
+    selectedAddOns: string[]
+    selectedReductions: string[]
+    totalPrice: number
+  }) => void
+  onMatrixSelectionChange?: (selection: { addServices: string[]; removeServices: string[] }) => void
+  onFrequencyChange?: (frequency: string, discount: number) => void
 }
 
-export function RoomCustomizationDrawer({
+export function RoomCustomizationPanel({
   isOpen,
   onClose,
-  roomType,
   roomName,
   roomIcon,
   roomCount,
-  config,
+  baseTier,
+  tiers,
+  addOns,
+  reductions,
+  selectedTier,
+  selectedAddOns,
+  selectedReductions,
+  matrixAddServices = [],
+  matrixRemoveServices = [],
+  selectedMatrixAddServices = [],
+  selectedMatrixRemoveServices = [],
+  frequencyOptions = [
+    { id: "one_time", name: "One-time Service", discount: 0 },
+    { id: "weekly", name: "Weekly Service", discount: 15 },
+    { id: "bi_weekly", name: "Bi-weekly Service", discount: 10 },
+    { id: "monthly", name: "Monthly Service", discount: 5 },
+  ],
+  selectedFrequency = "one_time",
   onConfigChange,
-  allowVideoRecording = false,
-}: RoomCustomizationDrawerProps) {
+  onMatrixSelectionChange,
+  onFrequencyChange,
+}: RoomCustomizationPanelProps) {
+  const [localSelectedTier, setLocalSelectedTier] = useState(selectedTier)
+  const [localSelectedAddOns, setLocalSelectedAddOns] = useState<string[]>(selectedAddOns)
+  const [localSelectedReductions, setLocalSelectedReductions] = useState<string[]>(selectedReductions)
+  const [localSelectedMatrixAddServices, setLocalSelectedMatrixAddServices] =
+    useState<string[]>(selectedMatrixAddServices)
+  const [localSelectedMatrixRemoveServices, setLocalSelectedMatrixRemoveServices] =
+    useState<string[]>(selectedMatrixRemoveServices)
+  const [localSelectedFrequency, setLocalSelectedFrequency] = useState(selectedFrequency)
   const [activeTab, setActiveTab] = useState("basic")
-  const [selectedTier, setSelectedTier] = useState(config.selectedTier)
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
-  const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
-  const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
-  const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
-  const [error, setError] = useState<string | null>(null)
+  const [expandedSections, setExpandedSections] = useState({
+    tiers: true,
+    addOns: false,
+    reductions: false,
+    matrix: false,
+    frequency: false,
+  })
+  const [showScrollButtons, setShowScrollButtons] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [maxScroll, setMaxScroll] = useState(0)
+  const [tabScrollPositions, setTabScrollPositions] = useState({
+    basic: 0,
+    advanced: 0,
+    schedule: 0,
+  })
 
-  // Get room tiers, add-ons, and reductions
-  const tiers = getRoomTiers(roomType) || []
-  const addOns = getRoomAddOns(roomType) || []
-  const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
-  // Get base tier (Essential Clean)
-  const baseTier = tiers[0] || { name: "ESSENTIAL CLEAN", price: 25, description: "Basic cleaning", features: [] }
+  // Calculate the total price based on selections
+  const calculateTotalPrice = () => {
+    const tierPrice = tiers.find((tier) => tier.name === localSelectedTier)?.price || baseTier.price
+    const addOnsTotal = localSelectedAddOns.reduce((total, addOnId) => {
+      const addOn = addOns.find((a) => a.id === addOnId)
+      return total + (addOn?.price || 0)
+    }, 0)
+    const reductionsTotal = localSelectedReductions.reduce((total, reductionId) => {
+      const reduction = reductions.find((r) => r.id === reductionId)
+      return total + (reduction?.discount || 0)
+    }, 0)
 
-  // Calculate prices - memoized to prevent recalculation on every render
-  const calculatePrices = useCallback(() => {
-    try {
-      // Base price is always the price of the Essential Clean tier
-      const basePrice = baseTier.price
+    // Matrix services
+    const matrixAddTotal = localSelectedMatrixAddServices.reduce((total, serviceId) => {
+      const service = matrixAddServices.find((s) => s.id === serviceId)
+      return total + (service?.price || 0)
+    }, 0)
+    const matrixRemoveTotal = localSelectedMatrixRemoveServices.reduce((total, serviceId) => {
+      const service = matrixRemoveServices.find((s) => s.id === serviceId)
+      return total + (service?.price || 0)
+    }, 0)
 
-      // Calculate tier upgrade price (difference between selected tier and base tier)
-      const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
-      const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
+    // Calculate base price with all additions and reductions
+    const basePrice = tierPrice + addOnsTotal - reductionsTotal + matrixAddTotal - matrixRemoveTotal
 
-      // Calculate add-ons price
-      const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
-        const addOn = addOns.find((a) => a.id === addOnId)
-        return total + (addOn?.price || 0)
-      }, 0)
+    // Apply frequency discount if applicable
+    const selectedFrequencyOption = frequencyOptions.find((option) => option.id === localSelectedFrequency)
+    const discount = selectedFrequencyOption?.discount || 0
+    const discountAmount = basePrice * (discount / 100)
 
-      // Calculate matrix add services price
-      const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
-        const service = matrixServices.add.find((s) => s.id === serviceId)
-        return total + (service?.price || 0)
-      }, 0)
+    return basePrice - discountAmount
+  }
 
-      // Calculate matrix remove services price
-      const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
-        const service = matrixServices.remove.find((s) => s.id === serviceId)
-        return total + (service?.price || 0)
-      }, 0)
+  // Update parent component when configuration changes
+  const updateConfiguration = () => {
+    const totalPrice = calculateTotalPrice()
+    onConfigChange({
+      selectedTier: localSelectedTier,
+      selectedAddOns: localSelectedAddOns,
+      selectedReductions: localSelectedReductions,
+      totalPrice,
+    })
 
-      // Calculate subtotal before video discount
-      let currentSubtotal = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
-
-      // Apply video recording discount if allowed
-      const videoDiscountAmount = allowVideoRecording ? calculateVideoDiscount(currentSubtotal) : 0
-      currentSubtotal = Math.max(0, currentSubtotal - videoDiscountAmount)
-
-      return {
-        basePrice,
-        tierUpgradePrice,
-        addOnsPrice: addOnsPrice + matrixAddPrice,
-        totalPrice: currentSubtotal,
-        videoDiscountAmount,
-      }
-    } catch (err) {
-      console.error("Error calculating prices:", err)
-      setError("Error calculating prices. Please try again.")
-      return {
-        basePrice: baseTier.price,
-        tierUpgradePrice: 0,
-        addOnsPrice: 0,
-        totalPrice: baseTier.price,
-        videoDiscountAmount: 0,
-      }
-    }
-  }, [
-    baseTier.price,
-    tiers,
-    selectedTier,
-    selectedAddOns,
-    matrixAddServices,
-    matrixRemoveServices,
-    addOns,
-    matrixServices.add,
-    matrixServices.remove,
-    allowVideoRecording,
-  ])
-
-  // Update local config when selections change
-  useEffect(() => {
-    try {
-      const prices = calculatePrices()
-      setLocalConfig({
-        ...config,
-        selectedTier,
-        selectedAddOns,
-        ...prices,
+    // Update matrix selections if callback provided
+    if (onMatrixSelectionChange) {
+      onMatrixSelectionChange({
+        addServices: localSelectedMatrixAddServices,
+        removeServices: localSelectedMatrixRemoveServices,
       })
-      setError(null)
-    } catch (err) {
-      console.error("Error updating local config:", err)
-      setError("Error updating configuration. Please try again.")
     }
-  }, [selectedTier, selectedAddOns, matrixAddServices, matrixRemoveServices, calculatePrices, config])
 
-  // Reset selections when drawer opens with new config
-  useEffect(() => {
-    if (isOpen) {
-      try {
-        setSelectedTier(config.selectedTier)
-        setSelectedAddOns([...config.selectedAddOns])
-        setMatrixAddServices([])
-        setMatrixRemoveServices([])
-        setActiveTab("basic")
-        setLocalConfig(config)
-        setError(null)
-      } catch (err) {
-        console.error("Error resetting selections:", err)
-        setError("Error loading configuration. Please try again.")
+    // Update frequency if callback provided
+    if (onFrequencyChange) {
+      const selectedFrequencyOption = frequencyOptions.find((option) => option.id === localSelectedFrequency)
+      if (selectedFrequencyOption) {
+        onFrequencyChange(localSelectedFrequency, selectedFrequencyOption.discount)
       }
     }
-  }, [isOpen, config])
+  }
 
   // Handle tier selection
   const handleTierChange = (tier: string) => {
-    setSelectedTier(tier)
+    setLocalSelectedTier(tier)
   }
 
   // Handle add-on selection
   const handleAddOnChange = (addOnId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedAddOns((prev) => [...prev, addOnId])
-    } else {
-      setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
-    }
+    setLocalSelectedAddOns((prev) => {
+      if (checked) {
+        return [...prev, addOnId]
+      } else {
+        return prev.filter((id) => id !== addOnId)
+      }
+    })
+  }
+
+  // Handle reduction selection
+  const handleReductionChange = (reductionId: string, checked: boolean) => {
+    setLocalSelectedReductions((prev) => {
+      if (checked) {
+        return [...prev, reductionId]
+      } else {
+        return prev.filter((id) => id !== reductionId)
+      }
+    })
   }
 
   // Handle matrix add service selection
   const handleMatrixAddServiceChange = (serviceId: string, checked: boolean) => {
-    if (checked) {
-      setMatrixAddServices((prev) => [...prev, serviceId])
-    } else {
-      setMatrixAddServices((prev) => prev.filter((id) => id !== serviceId))
-    }
+    setLocalSelectedMatrixAddServices((prev) => {
+      if (checked) {
+        return [...prev, serviceId]
+      } else {
+        return prev.filter((id) => id !== serviceId)
+      }
+    })
   }
 
   // Handle matrix remove service selection
   const handleMatrixRemoveServiceChange = (serviceId: string, checked: boolean) => {
-    if (checked) {
-      setMatrixRemoveServices((prev) => [...prev, serviceId])
-    } else {
-      setMatrixRemoveServices((prev) => prev.filter((id) => id !== serviceId))
+    setLocalSelectedMatrixRemoveServices((prev) => {
+      if (checked) {
+        return [...prev, serviceId]
+      } else {
+        return prev.filter((id) => id !== serviceId)
+      }
+    })
+  }
+
+  // Handle frequency selection
+  const handleFrequencyChange = (frequency: string) => {
+    setLocalSelectedFrequency(frequency)
+  }
+
+  // Toggle section expansion
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }))
+  }
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    // Save current scroll position for the active tab
+    if (scrollContainerRef.current) {
+      setTabScrollPositions((prev) => ({
+        ...prev,
+        [activeTab]: scrollContainerRef.current?.scrollTop || 0,
+      }))
+    }
+
+    // Change the tab
+    setActiveTab(value)
+
+    // Restore scroll position for the new tab after a short delay
+    // to allow the tab content to render
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = tabScrollPositions[value as keyof typeof tabScrollPositions] || 0
+      }
+    }, 50)
+  }
+
+  // Custom scroll functions
+  const scrollTo = (position: number) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = position
+      updateScrollPosition()
     }
   }
 
-  // Handle apply changes - only call parent's onConfigChange when the user explicitly applies changes
-  const handleApplyChanges = () => {
-    try {
-      onConfigChange(localConfig)
-      onClose()
-    } catch (err) {
-      console.error("Error applying changes:", err)
-      setError("Error applying changes. Please try again.")
+  // Scroll to top of panel
+  const scrollToTop = () => {
+    scrollTo(0)
+  }
+
+  // Scroll to bottom of panel
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollTo(scrollContainerRef.current.scrollHeight - scrollContainerRef.current.clientHeight)
     }
   }
+
+  // Update scroll position state
+  const updateScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+      setScrollPosition(scrollTop)
+      setMaxScroll(scrollHeight - clientHeight)
+      setShowScrollButtons(scrollHeight > clientHeight)
+    }
+  }
+
+  // Handle scroll event
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    updateScrollPosition()
+  }
+
+  // Update configuration when local state changes
+  useEffect(() => {
+    updateConfiguration()
+  }, [
+    localSelectedTier,
+    localSelectedAddOns,
+    localSelectedReductions,
+    localSelectedMatrixAddServices,
+    localSelectedMatrixRemoveServices,
+    localSelectedFrequency,
+  ])
+
+  // Prevent body scroll when panel is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "unset"
+    }
+    return () => {
+      document.body.style.overflow = "unset"
+    }
+  }, [isOpen])
+
+  // Initialize scroll state and observe content changes
+  useEffect(() => {
+    if (isOpen && scrollContainerRef.current) {
+      updateScrollPosition()
+
+      // Isolate scrolling to prevent scroll chaining
+      const cleanup = isolateScrolling(scrollContainerRef.current)
+
+      // Use ResizeObserver to detect content size changes
+      const resizeObserver = new ResizeObserver(() => {
+        updateScrollPosition()
+      })
+
+      if (scrollContainerRef.current) {
+        resizeObserver.observe(scrollContainerRef.current)
+      }
+
+      return () => {
+        cleanup()
+        if (scrollContainerRef.current) {
+          resizeObserver.disconnect()
+        }
+      }
+    }
+  }, [isOpen, activeTab, expandedSections]) // Add expandedSections to dependencies
+
+  // Update scroll position when sections expand/collapse
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to allow animation to start
+      const timer = setTimeout(() => {
+        updateScrollPosition()
+      }, 100)
+
+      return () => clearTimeout(timer)
+    }
+  }, [expandedSections, isOpen])
+
+  // Get frequency discount
+  const getFrequencyDiscount = () => {
+    const selectedFrequencyOption = frequencyOptions.find((option) => option.id === localSelectedFrequency)
+    return selectedFrequencyOption?.discount || 0
+  }
+
+  // Get frequency name
+  const getFrequencyName = () => {
+    const selectedFrequencyOption = frequencyOptions.find((option) => option.id === localSelectedFrequency)
+    return selectedFrequencyOption?.name || "One-time Service"
+  }
+
+  // Render the price summary
+  const renderPriceSummary = () => (
+    <Card className="border-blue-200 bg-blue-50">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Base Service:</span>
+            <span>${tiers.find((t) => t.name === localSelectedTier)?.price.toFixed(2)}</span>
+          </div>
+          {localSelectedAddOns.length > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>Add-ons:</span>
+              <span>
+                +$
+                {localSelectedAddOns
+                  .reduce((total, addOnId) => {
+                    const addOn = addOns.find((a) => a.id === addOnId)
+                    return total + (addOn?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedReductions.length > 0 && (
+            <div className="flex justify-between items-center text-red-600">
+              <span>Reductions:</span>
+              <span>
+                -$
+                {localSelectedReductions
+                  .reduce((total, reductionId) => {
+                    const reduction = reductions.find((r) => r.id === reductionId)
+                    return total + (reduction?.discount || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedMatrixAddServices.length > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>Specialized Add-ons:</span>
+              <span>
+                +$
+                {localSelectedMatrixAddServices
+                  .reduce((total, serviceId) => {
+                    const service = matrixAddServices.find((s) => s.id === serviceId)
+                    return total + (service?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {localSelectedMatrixRemoveServices.length > 0 && (
+            <div className="flex justify-between items-center text-red-600">
+              <span>Service Exclusions:</span>
+              <span>
+                -$
+                {localSelectedMatrixRemoveServices
+                  .reduce((total, serviceId) => {
+                    const service = matrixRemoveServices.find((s) => s.id === serviceId)
+                    return total + (service?.price || 0)
+                  }, 0)
+                  .toFixed(2)}
+              </span>
+            </div>
+          )}
+          {getFrequencyDiscount() > 0 && (
+            <div className="flex justify-between items-center text-green-600">
+              <span>{getFrequencyName()} Discount:</span>
+              <span>-{getFrequencyDiscount()}%</span>
+            </div>
+          )}
+          <Separator />
+          <div className="flex justify-between items-center font-bold text-lg">
+            <span>Total per Room:</span>
+            <span>${calculateTotalPrice().toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <span>
+              Total for {roomCount} {roomCount === 1 ? "room" : "rooms"}:
+            </span>
+            <span>${(calculateTotalPrice() * roomCount).toFixed(2)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   // Generate unique IDs for accessibility
-  const drawerTitleId = `drawer-title-${roomType}`
-  const drawerDescId = `drawer-desc-${roomType}`
+  const panelId = `room-panel-${roomName.toLowerCase().replace(/\s+/g, "-")}`
+  const headerId = `${panelId}-header`
+  const contentId = `${panelId}-content`
 
   return (
-    <Drawer
-      open={isOpen}
-      onOpenChange={(open) => !open && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={drawerTitleId}
-      aria-describedby={drawerDescId}
-    >
-      <DrawerContent className="max-h-[90vh]">
-        <DrawerHeader>
-          <DrawerTitle id={drawerTitleId} className="flex items-center gap-2 text-xl">
-            <span className="text-2xl" aria-hidden="true">
-              {roomIcon}
-            </span>
-            {roomName} Configuration
-          </DrawerTitle>
-          <DrawerDescription id={drawerDescId}>
-            Customize your {roomName.toLowerCase()} cleaning options
-          </DrawerDescription>
-        </DrawerHeader>
-
-        {error && (
-          <div className="mx-4 mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
+    <>
+      {/* Backdrop */}
+      <div
+        className={cn(
+          "fixed inset-0 bg-black/50 z-40 transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-        <div className="px-4 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic" aria-controls="basic-tab-content">
-                Basic
-              </TabsTrigger>
-              <TabsTrigger value="advanced" aria-controls="advanced-tab-content">
-                Advanced
-              </TabsTrigger>
-              <TabsTrigger value="schedule" aria-controls="schedule-tab-content">
-                Schedule
-              </TabsTrigger>
-            </TabsList>
+      {/* Side Panel */}
+      <div
+        ref={panelRef}
+        id={panelId}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headerId}
+        aria-describedby={contentId}
+        className={cn(
+          "fixed top-0 right-0 h-full bg-white shadow-2xl z-50 transition-transform duration-300 ease-in-out",
+          "w-full sm:w-[480px] lg:w-[520px] xl:w-[600px]",
+          isOpen ? "translate-x-0" : "translate-x-full",
+        )}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header - Fixed at the top */}
+          <div id={headerId} className="flex items-center justify-between p-4 border-b bg-blue-50 sticky top-0 z-10">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl" aria-hidden="true">
+                {roomIcon}
+              </span>
+              <div>
+                <h1 className="text-xl font-bold">{roomName}</h1>
+                <p className="text-sm text-gray-600">
+                  {roomCount} {roomCount === 1 ? "room" : "rooms"} selected
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-white">
+                ${calculateTotalPrice().toFixed(2)}
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close panel">
+                <X className="h-5 w-5" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
 
-            <div className="overflow-y-auto h-[50vh] mt-4">
-              <TabsContent value="basic" id="basic-tab-content" role="tabpanel" className="h-full">
-                <div className="space-y-6 py-4 pr-4">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Select Cleaning Tier</h3>
-                    <RadioGroup
-                      value={selectedTier}
-                      onValueChange={handleTierChange}
-                      className="space-y-4"
-                      aria-label="Cleaning tier options"
-                    >
-                      {tiers.map((tier, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <RadioGroupItem value={tier.name} id={`tier-${index}`} className="mt-1" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label
-                              htmlFor={`tier-${index}`}
-                              className="text-base font-medium flex items-center justify-between"
-                            >
-                              <span>{tier.name}</span>
-                              <span>{formatCurrency(tier.price)}</span>
-                            </Label>
-                            <p className="text-sm text-muted-foreground">{tier.description}</p>
+          {/* Tabs - Fixed below header */}
+          <div className="border-b bg-white z-10">
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid w-full grid-cols-3" aria-label="Room customization options">
+                <TabsTrigger value="basic" className="text-xs sm:text-sm" id="tab-basic" aria-controls="panel-basic">
+                  <Settings className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
+                  <span>Basic</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="advanced"
+                  className="text-xs sm:text-sm"
+                  id="tab-advanced"
+                  aria-controls="panel-advanced"
+                >
+                  <Sliders className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
+                  <span>Advanced</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="schedule"
+                  className="text-xs sm:text-sm"
+                  id="tab-schedule"
+                  aria-controls="panel-schedule"
+                >
+                  <Calendar className="h-4 w-4 mr-1 sm:mr-2" aria-hidden="true" />
+                  <span>Schedule</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Content Area with proper height constraint */}
+          <main id={contentId} className="flex-1 min-h-0 relative">
+            <ScrollArea className="absolute inset-0" forceScrollable={true}>
+              <div ref={scrollContainerRef} className="p-4 space-y-6" onScroll={handleScroll}>
+                {activeTab === "basic" && (
+                  <div id="panel-basic" className="space-y-6">
+                    {/* Service Tiers Section */}
+                    <Card>
+                      <CardHeader
+                        className="cursor-pointer"
+                        onClick={() => toggleSection("tiers")}
+                        role="button"
+                        aria-expanded={expandedSections.tiers}
+                        aria-controls="tiers-content"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                            <CardTitle className="text-lg">Service Tiers</CardTitle>
                           </div>
+                          {expandedSections.tiers ? (
+                            <ChevronUp className="h-5 w-5" aria-hidden="true" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+                          )}
                         </div>
-                      ))}
-                    </RadioGroup>
+                        <CardDescription>Choose your cleaning intensity level</CardDescription>
+                      </CardHeader>
+                      {expandedSections.tiers && (
+                        <CardContent id="tiers-content">
+                          <RadioGroup
+                            value={localSelectedTier}
+                            onValueChange={handleTierChange}
+                            className="space-y-3"
+                            aria-label="Service tier options"
+                          >
+                            {tiers.map((tier, index) => (
+                              <div
+                                key={tier.name}
+                                className={cn(
+                                  "p-3 rounded-lg border transition-colors",
+                                  localSelectedTier === tier.name ? "border-blue-500 bg-blue-50" : "border-gray-200",
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <RadioGroupItem
+                                    value={tier.name}
+                                    id={`tier-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                    className="mt-1"
+                                    aria-labelledby={`tier-label-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <Label
+                                        htmlFor={`tier-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                        className="font-medium flex items-center gap-1.5"
+                                        id={`tier-label-${tier.name.toLowerCase().replace(/\s+/g, "-")}`}
+                                      >
+                                        {tier.name}
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Info className="h-4 w-4 text-blue-500 cursor-help" aria-hidden="true" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                              <div className="space-y-2 p-1">
+                                                <p className="font-medium">What's included:</p>
+                                                <ul className="text-xs space-y-1">
+                                                  {tier.features.map((feature, i) => (
+                                                    <li key={i} className="flex items-start">
+                                                      <Check className="h-3 w-3 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
+                                                      <span>{feature}</span>
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              </div>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      </Label>
+                                      <Badge
+                                        variant={index === 0 ? "default" : index === 1 ? "secondary" : "destructive"}
+                                      >
+                                        ${tier.price}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2">{tier.description}</p>
+                                    <Collapsible>
+                                      <CollapsibleTrigger className="flex items-center text-xs text-blue-600 mb-1 hover:underline">
+                                        <span>What's included</span>
+                                        <ChevronDown className="h-3 w-3 ml-1" />
+                                      </CollapsibleTrigger>
+                                      <CollapsibleContent className="space-y-1 pl-1 animate-collapsible-down">
+                                        {tier.features.map((feature, i) => (
+                                          <div key={i} className="text-xs flex items-start">
+                                            <Check className="h-3 w-3 text-green-500 mr-1.5 mt-0.5 flex-shrink-0" />
+                                            <span>{feature}</span>
+                                          </div>
+                                        ))}
+                                      </CollapsibleContent>
+                                    </Collapsible>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </CardContent>
+                      )}
+                    </Card>
+
+                    {/* Add-ons Section */}
+                    {addOns.length > 0 && (
+                      <Card>
+                        <CardHeader
+                          className="cursor-pointer"
+                          onClick={() => toggleSection("addOns")}
+                          role="button"
+                          aria-expanded={expandedSections.addOns}
+                          aria-controls="addons-content"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-5 w-5 bg-green-100 rounded flex items-center justify-center"
+                                aria-hidden="true"
+                              >
+                                <span className="text-green-600 text-xs font-bold">+</span>
+                              </div>
+                              <CardTitle className="text-lg">Additional Services</CardTitle>
+                            </div>
+                            {expandedSections.addOns ? (
+                              <ChevronUp className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </div>
+                          <CardDescription>Enhance your cleaning service</CardDescription>
+                        </CardHeader>
+                        {expandedSections.addOns && (
+                          <CardContent id="addons-content">
+                            <div className="space-y-3" role="group" aria-label="Additional services options">
+                              {addOns.map((addOn) => (
+                                <div key={addOn.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                  <Checkbox
+                                    id={`addon-${addOn.id}`}
+                                    checked={localSelectedAddOns.includes(addOn.id)}
+                                    onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked === true)}
+                                    className="mt-1"
+                                    aria-labelledby={`addon-label-${addOn.id}`}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                      <Label
+                                        htmlFor={`addon-${addOn.id}`}
+                                        className="font-medium"
+                                        id={`addon-label-${addOn.id}`}
+                                      >
+                                        {addOn.name}
+                                      </Label>
+                                      <Badge variant="outline" className="text-green-600">
+                                        +${addOn.price.toFixed(2)}
+                                      </Badge>
+                                    </div>
+                                    {addOn.description && (
+                                      <p className="text-xs text-gray-500 mt-1">{addOn.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    )}
+
+                    {/* Reductions Section */}
+                    {reductions.length > 0 && (
+                      <Card>
+                        <CardHeader
+                          className="cursor-pointer"
+                          onClick={() => toggleSection("reductions")}
+                          role="button"
+                          aria-expanded={expandedSections.reductions}
+                          aria-controls="reductions-content"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-5 w-5 bg-red-100 rounded flex items-center justify-center"
+                                aria-hidden="true"
+                              >
+                                <span className="text-red-600 text-xs font-bold">-</span>
+                              </div>
+                              <CardTitle className="text-lg">Service Reductions</CardTitle>
+                            </div>
+                            {expandedSections.reductions ? (
+                              <ChevronUp className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </div>
+                          <CardDescription>Remove services you don't need</CardDescription>
+                        </CardHeader>
+                        {expandedSections.reductions && (
+                          <CardContent id="reductions-content">
+                            <div className="space-y-3" role="group" aria-label="Service reductions options">
+                              {reductions.map((reduction) => (
+                                <div
+                                  key={reduction.id}
+                                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50"
+                                >
+                                  <Checkbox
+                                    id={`reduction-${reduction.id}`}
+                                    checked={localSelectedReductions.includes(reduction.id)}
+                                    onCheckedChange={(checked) => handleReductionChange(reduction.id, checked === true)}
+                                    className="mt-1"
+                                    aria-labelledby={`reduction-label-${reduction.id}`}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                      <Label
+                                        htmlFor={`reduction-${reduction.id}`}
+                                        className="font-medium"
+                                        id={`reduction-label-${reduction.id}`}
+                                      >
+                                        {reduction.name}
+                                      </Label>
+                                      <Badge variant="outline" className="text-red-600">
+                                        -${reduction.discount.toFixed(2)}
+                                      </Badge>
+                                    </div>
+                                    {reduction.description && (
+                                      <p className="text-xs text-gray-500 mt-1">{reduction.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        )}
+                      </Card>
+                    )}
                   </div>
+                )}
 
-                  {addOns.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Add-on Services</h3>
-                      <div className="space-y-3">
-                        {addOns.map((addOn, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <Checkbox
-                              id={`addon-${index}`}
-                              checked={selectedAddOns.includes(addOn.id)}
-                              onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked as boolean)}
-                              className="mt-1"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label
-                                htmlFor={`addon-${index}`}
-                                className="text-base font-medium flex items-center justify-between"
-                              >
-                                <span>{addOn.name}</span>
-                                <span>+{formatCurrency(addOn.price)}</span>
-                              </Label>
-                              <p className="text-sm text-muted-foreground">{addOn.description}</p>
-                            </div>
+                {activeTab === "advanced" && (
+                  <div id="panel-advanced" className="space-y-6">
+                    {/* Matrix Add Services */}
+                    {matrixAddServices.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <PlusCircle className="h-5 w-5 text-green-600" aria-hidden="true" />
+                            <CardTitle className="text-lg">Specialized Add-ons</CardTitle>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="advanced" id="advanced-tab-content" role="tabpanel" className="h-full">
-                <div className="space-y-6 py-4 pr-4">
-                  {matrixServices.add.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Additional Services</h3>
-                      <div className="space-y-3">
-                        {matrixServices.add.map((service, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <Checkbox
-                              id={`matrix-add-${index}`}
-                              checked={matrixAddServices.includes(service.id)}
-                              onCheckedChange={(checked) =>
-                                handleMatrixAddServiceChange(service.id, checked as boolean)
-                              }
-                              className="mt-1"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label
-                                htmlFor={`matrix-add-${index}`}
-                                className="text-base font-medium flex items-center justify-between"
-                              >
-                                <span>{service.name}</span>
-                                <span>+{formatCurrency(service.price)}</span>
-                              </Label>
-                              <p className="text-sm text-muted-foreground">{service.description}</p>
-                            </div>
+                          <CardDescription>Additional specialized services for this room</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3" role="group" aria-label="Specialized add-ons options">
+                            {matrixAddServices.map((service) => (
+                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                <Checkbox
+                                  id={`matrix-add-${service.id}`}
+                                  checked={localSelectedMatrixAddServices.includes(service.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMatrixAddServiceChange(service.id, checked === true)
+                                  }
+                                  className="mt-1"
+                                  aria-labelledby={`matrix-add-label-${service.id}`}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label
+                                      htmlFor={`matrix-add-${service.id}`}
+                                      className="font-medium"
+                                      id={`matrix-add-label-${service.id}`}
+                                    >
+                                      {service.name}
+                                    </Label>
+                                    <Badge variant="outline" className="text-green-600">
+                                      +${service.price.toFixed(2)}
+                                    </Badge>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {matrixServices.remove.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Remove Services</h3>
-                      <div className="space-y-3">
-                        {matrixServices.remove.map((service, index) => (
-                          <div key={index} className="flex items-start space-x-3">
-                            <Checkbox
-                              id={`matrix-remove-${index}`}
-                              checked={matrixRemoveServices.includes(service.id)}
-                              onCheckedChange={(checked) =>
-                                handleMatrixRemoveServiceChange(service.id, checked as boolean)
-                              }
-                              className="mt-1"
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label
-                                htmlFor={`matrix-remove-${index}`}
-                                className="text-base font-medium flex items-center justify-between"
-                              >
-                                <span>Skip {service.name}</span>
-                                <span>-{formatCurrency(service.price)}</span>
-                              </Label>
-                              <p className="text-sm text-muted-foreground">{service.description}</p>
-                            </div>
+                    {/* Matrix Remove Services */}
+                    {matrixRemoveServices.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <MinusCircle className="h-5 w-5 text-red-600" aria-hidden="true" />
+                            <CardTitle className="text-lg">Service Exclusions</CardTitle>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <CardDescription>Remove specific services to customize your cleaning</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3" role="group" aria-label="Service exclusions options">
+                            {matrixRemoveServices.map((service) => (
+                              <div key={service.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                                <Checkbox
+                                  id={`matrix-remove-${service.id}`}
+                                  checked={localSelectedMatrixRemoveServices.includes(service.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMatrixRemoveServiceChange(service.id, checked === true)
+                                  }
+                                  className="mt-1"
+                                  aria-labelledby={`matrix-remove-label-${service.id}`}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label
+                                      htmlFor={`matrix-remove-${service.id}`}
+                                      className="font-medium"
+                                      id={`matrix-remove-label-${service.id}`}
+                                    >
+                                      {service.name}
+                                    </Label>
+                                    <Badge variant="outline" className="text-red-600">
+                                      -${service.price.toFixed(2)}
+                                    </Badge>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
 
-                  {matrixServices.add.length === 0 && matrixServices.remove.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-32 text-center">
-                      <p className="text-gray-500">No advanced options available for this room type.</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                    {/* Special Instructions */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Info className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                          <CardTitle className="text-lg">Special Instructions</CardTitle>
+                        </div>
+                        <CardDescription>Add any specific instructions for this room</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <textarea
+                          className="w-full p-3 border rounded-md h-24 text-sm"
+                          placeholder="Enter any special instructions or notes for the cleaning team..."
+                          aria-label="Special instructions for cleaning team"
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
-              <TabsContent value="schedule" id="schedule-tab-content" role="tabpanel" className="h-full">
-                <div className="space-y-6 py-4 pr-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Scheduling Options</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Scheduling options will be available in the next update.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
+                {activeTab === "schedule" && (
+                  <div id="panel-schedule" className="space-y-6">
+                    {/* Frequency Selection */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Repeat className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                          <CardTitle className="text-lg">Service Frequency</CardTitle>
+                        </div>
+                        <CardDescription>Choose how often you'd like this service</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <RadioGroup
+                          value={localSelectedFrequency}
+                          onValueChange={handleFrequencyChange}
+                          className="space-y-3"
+                          aria-label="Service frequency options"
+                        >
+                          {frequencyOptions.map((option) => (
+                            <div
+                              key={option.id}
+                              className={cn(
+                                "p-3 rounded-lg border transition-colors",
+                                localSelectedFrequency === option.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <RadioGroupItem
+                                  value={option.id}
+                                  id={`frequency-${option.id}`}
+                                  aria-labelledby={`frequency-label-${option.id}`}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center">
+                                    <Label
+                                      htmlFor={`frequency-${option.id}`}
+                                      className="font-medium"
+                                      id={`frequency-label-${option.id}`}
+                                    >
+                                      {option.name}
+                                    </Label>
+                                    {option.discount > 0 && (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                        {option.discount}% off
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </CardContent>
+                    </Card>
+
+                    {/* Estimated Duration */}
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                          <CardTitle className="text-lg">Estimated Duration</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div
+                          className="p-3 rounded-lg border border-gray-200"
+                          role="region"
+                          aria-label="Estimated cleaning duration"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Estimated cleaning time:</span>
+                            <span className="text-lg font-bold">
+                              {Math.max(1, Math.ceil(roomCount * 0.75))}{" "}
+                              {Math.max(1, Math.ceil(roomCount * 0.75)) === 1 ? "hour" : "hours"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            This is an estimate based on your selected tier and add-ons. Actual time may vary depending
+                            on the condition of your space.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Price Summary - Always visible at the bottom */}
+                {renderPriceSummary()}
+
+                {/* Add extra padding at the bottom to ensure content is scrollable past the footer */}
+                <div className="h-4"></div>
+              </div>
+            </ScrollArea>
+
+            {/* Scroll navigation buttons */}
+            {showScrollButtons && (
+              <div className="absolute right-4 bottom-20 flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full shadow-md bg-white hover:bg-gray-100"
+                  onClick={scrollToTop}
+                  aria-label="Scroll to top"
+                >
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full shadow-md bg-white hover:bg-gray-100"
+                  onClick={scrollToBottom}
+                  aria-label="Scroll to bottom"
+                >
+                  <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            )}
+
+            {/* Scroll progress indicator */}
+            {showScrollButtons && (
+              <div
+                className="absolute left-0 right-0 bottom-0 h-1 bg-gray-200"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={maxScroll > 0 ? Math.round((scrollPosition / maxScroll) * 100) : 0}
+                aria-label="Scroll position"
+              >
+                <div
+                  className="h-full bg-blue-500 transition-all duration-100"
+                  style={{
+                    width: `${maxScroll > 0 ? (scrollPosition / maxScroll) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+            )}
+          </main>
+
+          {/* Footer - Fixed at the bottom */}
+          <div className="border-t p-4 bg-gray-50 sticky bottom-0 z-10">
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={onClose} className="flex-1">
+                Apply Changes
+              </Button>
             </div>
-          </Tabs>
+          </div>
         </div>
-
-        <Separator className="my-4" />
-
-        <div className="px-4 pb-2">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">Room Count:</span>
-            <span>{roomCount}</span>
-          </div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">Base Price:</span>
-            <span>{formatCurrency(localConfig.basePrice)}</span>
-          </div>
-          {localConfig.tierUpgradePrice > 0 && (
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Tier Upgrade:</span>
-              <span>+{formatCurrency(localConfig.tierUpgradePrice)}</span>
-            </div>
-          )}
-          {localConfig.addOnsPrice > 0 && (
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Add-ons:</span>
-              <span>+{formatCurrency(localConfig.addOnsPrice)}</span>
-            </div>
-          )}
-          {localConfig.videoDiscountAmount && localConfig.videoDiscountAmount > 0 && (
-            <div className="flex justify-between items-center mb-2 text-green-600">
-              <span className="font-medium">Video Recording Discount:</span>
-              <span>-{formatCurrency(localConfig.videoDiscountAmount)}</span>
-            </div>
-          )}
-          <Separator className="my-2" />
-          <div className="flex justify-between items-center font-bold">
-            <span>Total Per Room:</span>
-            <span>{formatCurrency(localConfig.totalPrice)}</span>
-          </div>
-          <div className="flex justify-between items-center font-bold mt-1">
-            <span>Total ({roomCount} rooms):</span>
-            <span>{formatCurrency(localConfig.totalPrice * roomCount)}</span>
-          </div>
-        </div>
-
-        <DrawerFooter className="pt-2">
-          <Button onClick={handleApplyChanges} className="w-full">
-            <Check className="mr-2 h-4 w-4" aria-hidden="true" />
-            Apply Changes
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline">
-              <X className="mr-2 h-4 w-4" aria-hidden="true" />
-              Cancel
-            </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </>
   )
 }

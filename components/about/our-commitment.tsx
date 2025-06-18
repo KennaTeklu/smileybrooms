@@ -47,5 +47,3 @@ export function OurCommitment() {
     </section>
   )
 }
-
-export default OurCommitment

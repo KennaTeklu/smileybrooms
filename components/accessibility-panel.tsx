@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useSpring } from "framer-motion"
-import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw, Share2 } from "lucide-react"
+import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
@@ -11,11 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
-import { useAccessibility } from "@/lib/accessibility-context"
 
 export default function AccessibilityPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const { preferences, updatePreference, resetPreferences } = useAccessibility()
+  const [fontSize, setFontSize] = useState(1)
+  const [contrast, setContrast] = useState(1)
+  const [saturation, setSaturation] = useState(1)
+  const [motionReduced, setMotionReduced] = useState(false)
+  const [highContrast, setHighContrast] = useState(false)
+  const [dyslexicFont, setDyslexicFont] = useState(false)
+  const [cursorSize, setCursorSize] = useState(1)
+  const [soundEffects, setSoundEffects] = useState(false)
+  const [keyboardMode, setKeyboardMode] = useState(false)
+  const [focusIndicators, setFocusIndicators] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const { theme, setTheme } = useTheme()
 
@@ -51,6 +59,83 @@ export default function AccessibilityPanel() {
     }
   })
 
+  // Apply font size to body
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
+    }
+  }, [fontSize])
+
+  // Apply contrast and saturation
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-contrast", contrast.toString())
+      document.documentElement.style.setProperty("--accessibility-saturation", saturation.toString())
+    }
+  }, [contrast, saturation])
+
+    // Apply high contrast mode
+    useEffect(() => {
+      if (typeof document !== "undefined") {
+        if (highContrast) {
+          document.body.classList.add("high-contrast")
+        } else {
+          document.body.classList.remove("high-contrast")
+        }
+      }
+    }, [highContrast])
+
+  // Apply dyslexic font
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (dyslexicFont) {
+        document.body.classList.add("dyslexic-font")
+      } else {
+        document.body.classList.remove("dyslexic-font")
+      }
+    }
+  }, [dyslexicFont])
+
+  // Apply motion reduction
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (motionReduced) {
+        document.body.classList.add("motion-reduced")
+      } else {
+        document.body.classList.remove("motion-reduced")
+      }
+    }
+  }, [motionReduced])
+
+  // Apply keyboard mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (keyboardMode) {
+        document.body.classList.add("keyboard-mode")
+      } else {
+        document.body.classList.remove("keyboard-mode")
+      }
+    }
+  }, [keyboardMode])
+
+  // Apply focus indicators
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (focusIndicators) {
+        document.body.classList.add("focus-indicators")
+      } else {
+        document.body.classList.remove("focus-indicators")
+      }
+    }
+  }, [focusIndicators])
+
+  // Apply cursor size
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-cursor-scale", cursorSize.toString())
+    }
+  }, [cursorSize])
+
   return (
     <motion.div
       className="fixed left-0 z-50"
@@ -77,30 +162,16 @@ export default function AccessibilityPanel() {
                   <Settings className="h-5 w-5" />
                   Accessibility
                 </h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsOpen(false)}
-                  aria-label="Close accessibility settings"
-                >
+                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="Close accessibility settings">
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
               </div>
 
               <Tabs defaultValue="vision" className="w-full">
-                <TabsList className="grid grid-cols-4 mb-4">
-                  <TabsTrigger value="vision" aria-label="Vision settings">
-                    Vision
-                  </TabsTrigger>
-                  <TabsTrigger value="motion" aria-label="Motion settings">
-                    Motion
-                  </TabsTrigger>
-                  <TabsTrigger value="input" aria-label="Input settings">
-                    Input
-                  </TabsTrigger>
-                  <TabsTrigger value="share" aria-label="Share settings">
-                    Share
-                  </TabsTrigger>
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="vision" aria-label="Vision settings">Vision</TabsTrigger>
+                  <TabsTrigger value="motion" aria-label="Motion settings">Motion</TabsTrigger>
+                  <TabsTrigger value="input" aria-label="Input settings">Input</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="vision" className="space-y-4">
@@ -111,7 +182,7 @@ export default function AccessibilityPanel() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updatePreference("largeText", false)}
+                          onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
                           aria-label="Decrease text size"
                         >
                           <ZoomOut className="h-4 w-4" />
@@ -119,7 +190,7 @@ export default function AccessibilityPanel() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updatePreference("largeText", true)}
+                          onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
                           aria-label="Increase text size"
                         >
                           <ZoomIn className="h-4 w-4" />
@@ -128,15 +199,39 @@ export default function AccessibilityPanel() {
                     </div>
                     <Slider
                       id="font-size"
-                      value={[preferences.largeText ? 120 : 100]}
+                      value={[fontSize * 100]}
                       min={80}
                       max={150}
                       step={5}
-                      onValueChange={(value) => updatePreference("largeText", value[0] > 100)}
+                      onValueChange={(value) => setFontSize(value[0] / 100)}
                     />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {Math.round(preferences.largeText ? 120 : 100)}%
-                    </p>
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(fontSize * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contrast">Contrast</Label>
+                    <Slider
+                      id="contrast"
+                      value={[contrast * 100]}
+                      min={75}
+                      max={150}
+                      step={5}
+                      onValueChange={(value) => setContrast(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(contrast * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="saturation">Saturation</Label>
+                    <Slider
+                      id="saturation"
+                      value={[saturation * 100]}
+                      min={0}
+                      max={200}
+                      step={5}
+                      onValueChange={(value) => setSaturation(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(saturation * 100)}%</p>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -144,12 +239,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="high-contrast">High Contrast</Label>
                       <p className="text-xs text-muted-foreground">Increase text/background contrast</p>
                     </div>
-                    <Switch
-                      id="high-contrast"
-                      checked={preferences.highContrast}
-                      onCheckedChange={(checked) => updatePreference("highContrast", checked)}
-                      aria-label="Toggle high contrast mode"
-                    />
+                    <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} aria-label="Toggle high contrast mode" />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -157,12 +247,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="dyslexic-font">Dyslexia Friendly</Label>
                       <p className="text-xs text-muted-foreground">Use dyslexia-friendly font</p>
                     </div>
-                    <Switch
-                      id="dyslexic-font"
-                      checked={preferences.dyslexicFont}
-                      onCheckedChange={(checked) => updatePreference("dyslexicFont", checked)}
-                      aria-label="Toggle dyslexia friendly font"
-                    />
+                    <Switch id="dyslexic-font" checked={dyslexicFont} onCheckedChange={setDyslexicFont} aria-label="Toggle dyslexia friendly font" />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -173,11 +258,7 @@ export default function AccessibilityPanel() {
                     <Switch
                       id="dark-mode"
                       checked={theme === "dark"}
-                      onCheckedChange={(checked) => {
-                        setTheme(checked ? "dark" : "light")
-                        updatePreference("prefersDarkTheme", checked)
-                        updatePreference("prefersLightTheme", !checked)
-                      }}
+                      onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
                       aria-label="Toggle dark mode"
                     />
                   </div>
@@ -189,12 +270,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="reduce-motion">Reduce Motion</Label>
                       <p className="text-xs text-muted-foreground">Minimize animations</p>
                     </div>
-                    <Switch
-                      id="reduce-motion"
-                      checked={preferences.reducedMotion}
-                      onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
-                      aria-label="Toggle reduce motion"
-                    />
+                    <Switch id="reduce-motion" checked={motionReduced} onCheckedChange={setMotionReduced} aria-label="Toggle reduce motion" />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -202,27 +278,30 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="sound-effects">Sound Effects</Label>
                       <p className="text-xs text-muted-foreground">Enable interface sounds</p>
                     </div>
-                    <Switch
-                      id="sound-effects"
-                      checked={preferences.soundEffects}
-                      onCheckedChange={(checked) => updatePreference("soundEffects", checked)}
-                      aria-label="Toggle sound effects"
-                    />
+                    <Switch id="sound-effects" checked={soundEffects} onCheckedChange={setSoundEffects} aria-label="Toggle sound effects" />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="input" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cursor-size">Cursor Size</Label>
+                    <Slider
+                      id="cursor-size"
+                      value={[cursorSize * 100]}
+                      min={100}
+                      max={200}
+                      step={10}
+                      onValueChange={(value) => setCursorSize(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(cursorSize * 100)}%</p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="keyboard-mode">Keyboard Navigation</Label>
                       <p className="text-xs text-muted-foreground">Optimize for keyboard use</p>
                     </div>
-                    <Switch
-                      id="keyboard-mode"
-                      checked={preferences.keyboardOnly}
-                      onCheckedChange={(checked) => updatePreference("keyboardOnly", checked)}
-                      aria-label="Toggle keyboard navigation"
-                    />
+                    <Switch id="keyboard-mode" checked={keyboardMode} onCheckedChange={setKeyboardMode} aria-label="Toggle keyboard navigation" />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -230,58 +309,7 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="focus-indicators">Focus Indicators</Label>
                       <p className="text-xs text-muted-foreground">Highlight focused elements</p>
                     </div>
-                    <Switch
-                      id="focus-indicators"
-                      checked={preferences.focusIndicators}
-                      onCheckedChange={(checked) => updatePreference("focusIndicators", checked)}
-                      aria-label="Toggle focus indicators"
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="share" className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="quick-share">Quick Share</Label>
-                        <p className="text-xs text-muted-foreground">Share this page with others</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (navigator.share) {
-                            navigator.share({
-                              title: document.title,
-                              url: window.location.href,
-                            })
-                          } else {
-                            navigator.clipboard.writeText(window.location.href)
-                          }
-                        }}
-                        aria-label="Share page"
-                      >
-                        <Share2 className="h-4 w-4 mr-2" />
-                        Share
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="copy-link">Copy Link</Label>
-                        <p className="text-xs text-muted-foreground">Copy page URL to clipboard</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(window.location.href)
-                        }}
-                        aria-label="Copy link"
-                      >
-                        Copy URL
-                      </Button>
-                    </div>
+                    <Switch id="focus-indicators" checked={focusIndicators} onCheckedChange={setFocusIndicators} aria-label="Toggle focus indicators" />
                   </div>
                 </TabsContent>
               </Tabs>
@@ -291,7 +319,18 @@ export default function AccessibilityPanel() {
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={resetPreferences}
+                  onClick={() => {
+                    setFontSize(1)
+                    setContrast(1)
+                    setSaturation(1)
+                    setMotionReduced(false)
+                    setHighContrast(false)
+                    setDyslexicFont(false)
+                    setCursorSize(1)
+                    setSoundEffects(false)
+                    setKeyboardMode(false)
+                    setFocusIndicators(false)
+                  }}
                   aria-label="Reset all accessibility settings"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />

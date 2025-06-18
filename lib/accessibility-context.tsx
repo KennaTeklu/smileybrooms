@@ -1,7 +1,6 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useTheme } from "next-themes"
 
 type AccessibilityPreferences = {
   highContrast: boolean
@@ -10,8 +9,6 @@ type AccessibilityPreferences = {
   screenReader: boolean
   voiceControl: boolean
   keyboardOnly: boolean
-  prefersDarkTheme: boolean // Added theme preference
-  prefersLightTheme: boolean // Added theme preference
 }
 
 type AccessibilityContextType = {
@@ -28,8 +25,6 @@ const defaultPreferences: AccessibilityPreferences = {
   screenReader: false,
   voiceControl: false,
   keyboardOnly: false,
-  prefersDarkTheme: false,
-  prefersLightTheme: false,
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
@@ -38,7 +33,6 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
   const [announcement, setAnnouncement] = useState("")
   const [isAssertive, setIsAssertive] = useState(false)
-  const { setTheme } = useTheme()
 
   // Load preferences from localStorage on initial render
   useEffect(() => {
@@ -53,12 +47,6 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
         }
         if (window.matchMedia("(prefers-contrast: more)").matches) {
           updatePreference("highContrast", true)
-        }
-        // Check for color scheme preference
-        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-          updatePreference("prefersDarkTheme", true)
-        } else {
-          updatePreference("prefersLightTheme", true)
         }
       }
     } catch (error) {
@@ -78,17 +66,10 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       document.documentElement.classList.toggle("screen-reader", preferences.screenReader)
       document.documentElement.classList.toggle("voice-control", preferences.voiceControl)
       document.documentElement.classList.toggle("keyboard-only", preferences.keyboardOnly)
-
-      // Apply theme preferences
-      if (preferences.prefersDarkTheme) {
-        setTheme("dark")
-      } else if (preferences.prefersLightTheme) {
-        setTheme("light")
-      }
     } catch (error) {
       console.error("Error saving accessibility preferences:", error)
     }
-  }, [preferences, setTheme])
+  }, [preferences])
 
   // Clear announcement after it's been read
   useEffect(() => {
@@ -103,14 +84,6 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const updatePreference = <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => {
     setPreferences((prev) => {
       const newPreferences = { ...prev, [key]: value }
-
-      // Handle theme preference changes
-      if (key === "prefersDarkTheme" && value === true) {
-        newPreferences.prefersLightTheme = false
-      } else if (key === "prefersLightTheme" && value === true) {
-        newPreferences.prefersDarkTheme = false
-      }
-
       return newPreferences
     })
   }

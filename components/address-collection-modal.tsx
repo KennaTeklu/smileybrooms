@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { MapPin, CreditCard } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { MapPin, CreditCard, Info } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -28,16 +30,24 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
+  allowVideoRecording: boolean
+  videoRecordingDiscount: number
 }
 
 interface AddressCollectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: AddressData) => void
+  calculatedPrice: number
 }
 
-export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: AddressCollectionModalProps) {
-  const [formData, setFormData] = useState<AddressData>({
+export default function AddressCollectionModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  calculatedPrice,
+}: AddressCollectionModalProps) {
+  const [formData, setFormData] = useState<Omit<AddressData, "videoRecordingDiscount">>({
     fullName: "",
     email: "",
     phone: "",
@@ -46,6 +56,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     state: "",
     zipCode: "",
     specialInstructions: "",
+    allowVideoRecording: false,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -62,6 +73,10 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         return newErrors
       })
     }
+  }
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData((prev) => ({ ...prev, allowVideoRecording: checked }))
   }
 
   const validateForm = () => {
@@ -85,7 +100,13 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     e.preventDefault()
 
     if (validateForm()) {
-      onSubmit(formData)
+      // Calculate video recording discount
+      const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
+
+      onSubmit({
+        ...formData,
+        videoRecordingDiscount,
+      })
 
       // Reset form
       setFormData({
@@ -97,6 +118,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         state: "",
         zipCode: "",
         specialInstructions: "",
+        allowVideoRecording: false,
       })
 
       onClose()
@@ -252,13 +274,45 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                 className="h-20"
               />
             </div>
+
+            {/* Video Recording Discount */}
+            <div className="flex items-start space-x-3 pt-2">
+              <Checkbox
+                id="allowVideoRecording"
+                checked={formData.allowVideoRecording}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <div>
+                <div className="flex items-center">
+                  <Label htmlFor="allowVideoRecording" className="font-medium cursor-pointer">
+                    Allow video recording for $25 off
+                  </Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        We may record cleaning sessions for training and social media purposes. By allowing this, you'll
+                        receive $25 off your order.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll record parts of the cleaning process for our social media and training.
+                </p>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="pt-4">
             <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-left">
                 <p className="text-sm text-gray-600">Total Price:</p>
-                <p className="text-xl font-bold">{/* Price will be displayed in the cart component */}</p>
+                <p className="text-xl font-bold">
+                  ${(formData.allowVideoRecording ? calculatedPrice - 25 : calculatedPrice).toFixed(2)}
+                </p>
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
@@ -266,7 +320,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                 </Button>
                 <Button type="submit" className="gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Add to Cart
+                  Continue to Checkout
                 </Button>
               </div>
             </div>

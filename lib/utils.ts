@@ -5,20 +5,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Formats a number as USD currency
+ * @param amount - The amount to format
+ * @returns Formatted currency string
+ */
 export function formatCurrency(amount: number): string {
+  // Handle invalid input
+  if (typeof amount !== "number" || isNaN(amount)) {
+    return "$0.00"
+  }
+
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount)
-}
-
-export function isClient(): boolean {
-  return typeof window !== "undefined"
-}
-
-export function calculateVideoDiscount(hasVideo: boolean, basePrice: number): number {
-  if (!hasVideo) return 0
-
-  // 5% discount for customers who provide video walkthrough
-  return Math.round(basePrice * 0.05 * 100) / 100
 }

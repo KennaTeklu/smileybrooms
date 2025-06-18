@@ -30,9 +30,6 @@
     --accessibility-contrast: 1;
     --accessibility-saturation: 1;
     --accessibility-cursor-scale: 1;
-
-    /* Header height in centimeters */
-    --header-height-cm: 1.69; /* 64px / 37.8 = 1.69cm */
   }
 
   .dark {
@@ -62,12 +59,8 @@
   * {
     @apply border-border;
   }
-
-  /* Critical CSS foundations */
   body {
     @apply bg-background text-foreground;
-    position: relative;
-    overflow-x: hidden;
     filter: contrast(var(--accessibility-contrast)) saturate(var(--accessibility-saturation));
   }
 
@@ -81,28 +74,6 @@
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3Cpath d='m13 13 6 6'/%3E%3C/svg%3E")
       0 0, auto;
     transform: scale(var(--accessibility-cursor-scale));
-  }
-
-  /* Sticky header styles */
-  .sticky-header {
-    position: sticky;
-    top: 0;
-    z-index: 1001;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  /* Floating button critical styles */
-  .floating-cart-button {
-    position: absolute;
-    top: 0;
-    right: 20px;
-    z-index: 1000;
-    transition: none;
-    contain: content;
-    will-change: transform;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
   }
 }
 
@@ -394,56 +365,4 @@ body.terms-locked {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-}
-
-.sticky-container {
-  contain: layout style;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-/* Visual scroll indicators (shadows) */
-.shadow-top-gradient::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px; /* Height of the shadow */
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
-  pointer-events: none;
-  z-index: 10;
-}
-
-.shadow-bottom-gradient::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 20px; /* Height of the shadow */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* For dark mode */
-.dark .shadow-top-gradient::before {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
-}
-
-.dark .shadow-bottom-gradient::after {
-  background: linear-gradient(to top, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
-}
-
-/* New class to disable pointer events on background when a panel is open */
-body.panel-locked > *:not(.fixed):not(.absolute):not(.relative) {
-  pointer-events: none;
-}
-
-/* Re-enable pointer events for fixed/absolute/relative elements within the locked body */
-body.panel-locked .fixed,
-body.panel-locked .absolute,
-body.panel-locked .relative {
-  pointer-events: auto;
 }

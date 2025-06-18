@@ -4,15 +4,17 @@ import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
+  reductionsPrice: number
   totalPrice: number
 }
 
@@ -37,24 +39,30 @@ export function SimpleCustomizationPanel({
   config,
   onConfigChange,
 }: SimpleCustomizationPanelProps) {
+  // Initialize with config values
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
 
+  // Memoize room data
   const roomData = useMemo(() => {
     try {
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
+        reductions: getRoomReductions(roomType) || [],
       }
     } catch (error) {
       console.error("Error getting room data:", error)
       return {
         tiers: [],
         addOns: [],
+        reductions: [],
       }
     }
   }, [roomType])
 
+  // Calculate pricing
   const pricing = useMemo(() => {
     try {
       if (roomData.tiers.length === 0) {
@@ -62,6 +70,7 @@ export function SimpleCustomizationPanel({
           basePrice: 0,
           tierUpgradePrice: 0,
           addOnsPrice: 0,
+          reductionsPrice: 0,
           totalPrice: 0,
         }
       }
@@ -76,13 +85,19 @@ export function SimpleCustomizationPanel({
         return sum + (addOn?.price || 0)
       }, 0)
 
-      const totalPrice = currentTier.price + addOnsPrice
+      const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
+        const reduction = roomData.reductions.find((r) => r.id === reductionId)
+        return sum + (reduction?.discount || 0)
+      }, 0)
+
+      const totalPrice = Math.max(0, currentTier.price + addOnsPrice - reductionsPrice)
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
-        totalPrice: Math.max(0, totalPrice),
+        reductionsPrice,
+        totalPrice,
       }
     } catch (error) {
       console.error("Error calculating pricing:", error)
@@ -90,29 +105,42 @@ export function SimpleCustomizationPanel({
         basePrice: 0,
         tierUpgradePrice: 0,
         addOnsPrice: 0,
+        reductionsPrice: 0,
         totalPrice: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, roomData])
+  }, [selectedTier, selectedAddOns, selectedReductions, roomData])
 
+  // Create config object
   const currentConfig = useMemo(
     () => ({
       roomName: roomType,
       selectedTier,
       selectedAddOns,
+      selectedReductions,
       ...pricing,
     }),
-    [roomType, selectedTier, selectedAddOns, pricing],
+    [roomType, selectedTier, selectedAddOns, selectedReductions, pricing],
   )
 
+  // Handle tier selection
   const handleTierSelect = useCallback((tierName: string) => {
     setSelectedTier(tierName)
   }, [])
 
+  // Handle add-on toggle
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
   }, [])
 
+  // Handle reduction toggle
+  const toggleReduction = useCallback((reductionId: string) => {
+    setSelectedReductions((prev) =>
+      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
+    )
+  }, [])
+
+  // Handle apply changes - only call onConfigChange when user clicks apply
   const handleApplyChanges = useCallback(() => {
     try {
       if (onConfigChange) {
@@ -129,10 +157,13 @@ export function SimpleCustomizationPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
+      {/* Panel */}
       <div className="relative ml-auto w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
         <div className="flex h-full flex-col">
+          {/* Header */}
           <div className="flex items-center justify-between border-b p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{roomIcon}</span>
@@ -148,7 +179,9 @@ export function SimpleCustomizationPanel({
             </Button>
           </div>
 
+          {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Cleaning Tiers */}
             {roomData.tiers.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Cleaning Level</h3>
@@ -181,6 +214,7 @@ export function SimpleCustomizationPanel({
               </div>
             )}
 
+            {/* Add-ons */}
             {roomData.addOns.length > 0 && (
               <div>
                 <h3 className="font-medium mb-3">Add-ons</h3>
@@ -213,7 +247,43 @@ export function SimpleCustomizationPanel({
               </div>
             )}
 
-            {roomData.tiers.length === 0 && roomData.addOns.length === 0 && (
+            {/* Reductions */}
+            {roomData.reductions.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
+                <div className="space-y-2">
+                  {roomData.reductions.map((reduction, index) => (
+                    <Card
+                      key={reduction.id || index}
+                      className={`cursor-pointer transition-colors ${
+                        selectedReductions.includes(reduction.id)
+                          ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      onClick={() => toggleReduction(reduction.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{reduction.name}</span>
+                              {selectedReductions.includes(reduction.id) && (
+                                <Check className="h-4 w-4 text-orange-600" />
+                              )}
+                            </div>
+                            {reduction.description && <p className="text-sm text-gray-500">{reduction.description}</p>}
+                          </div>
+                          <span className="font-medium text-orange-600">-${reduction.discount}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fallback if no data */}
+            {roomData.tiers.length === 0 && roomData.addOns.length === 0 && roomData.reductions.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-500">No customization options available for this room type.</p>
                 <p className="text-sm text-gray-400 mt-2">Room type: {roomType}</p>
@@ -221,6 +291,7 @@ export function SimpleCustomizationPanel({
             )}
           </div>
 
+          {/* Footer */}
           <div className="border-t p-4">
             <div className="flex items-center justify-between mb-4">
               <span className="font-medium">Total per room:</span>

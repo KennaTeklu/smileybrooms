@@ -2,11 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, CreditCard, ArrowRight } from "lucide-react"
+import { createCheckoutSession } from "@/lib/actions"
+import { Loader2, CreditCard } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
-import { createCheckoutSession } from "@/lib/actions" // Ensure this is imported
 
 interface CheckoutButtonProps {
   priceId?: string
@@ -17,9 +16,8 @@ interface CheckoutButtonProps {
   className?: string
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
-  useCheckoutPage?: boolean // New prop to control behavior
   isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year"
+  recurringInterval?: "week" | "month" | "year"
   paymentMethod?: "card" | "bank" | "wallet"
   customerData?: {
     name?: string
@@ -33,14 +31,9 @@ interface CheckoutButtonProps {
       country?: string
     }
   }
-  shippingAddressCollection?: { allowed_countries: string[] }
-  automaticTax?: { enabled: boolean }
-  trialPeriodDays?: number
-  cancelAtPeriodEnd?: boolean
-  allowPromotions?: boolean
 }
 
-export function CheckoutButton({
+export default function CheckoutButton({
   priceId,
   productName,
   productPrice,
@@ -49,67 +42,32 @@ export function CheckoutButton({
   className,
   variant = "default",
   size = "default",
-  useCheckoutPage = true, // Default to using checkout page
   isRecurring = false,
   recurringInterval = "month",
   paymentMethod = "card",
   customerData,
-  shippingAddressCollection,
-  automaticTax,
-  trialPeriodDays,
-  cancelAtPeriodEnd,
-  allowPromotions,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const { cart } = useCart()
-  const router = useRouter()
 
   const handleCheckout = async () => {
     setIsLoading(true)
-
     try {
-      if (useCheckoutPage) {
-        // Navigate to checkout page instead of direct Stripe
-        if (cart.items.length === 0) {
-          toast({
-            title: "Cart is empty",
-            description: "Please add items to your cart before checking out.",
-            variant: "destructive",
-          })
-          setIsLoading(false) // Ensure loading state is reset
-          return
-        }
-
-        router.push("/checkout")
-        return
-      }
-
-      // Original Stripe direct checkout logic (kept for backward compatibility)
-      // This path is typically used for single product "Buy Now" buttons, not a full cart checkout
-      const commonParams = {
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        isRecurring,
-        recurringInterval,
-        customerEmail: customerData?.email,
-        customerData,
-        shippingAddressCollection,
-        automaticTax,
-        trialPeriodDays,
-        cancelAtPeriodEnd,
-        allowPromotions,
-        paymentMethodTypes: [paymentMethod],
-      }
-
       let checkoutUrl: string | undefined
 
       if (priceId) {
+        // Use price ID for standard products
         checkoutUrl = await createCheckoutSession({
           lineItems: [{ price: priceId, quantity }],
-          ...commonParams,
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/canceled`,
+          isRecurring,
+          recurringInterval,
+          customerData,
         })
       } else if (productName && productPrice) {
+        // Use custom line items for custom products
         checkoutUrl = await createCheckoutSession({
           customLineItems: [
             {
@@ -122,7 +80,11 @@ export function CheckoutButton({
               },
             },
           ],
-          ...commonParams,
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/canceled`,
+          isRecurring,
+          recurringInterval,
+          customerData,
         })
       } else {
         throw new Error("Either priceId or productName and productPrice must be provided")
@@ -148,26 +110,14 @@ export function CheckoutButton({
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {useCheckoutPage ? "Loading..." : "Processing..."}
+          Processing...
         </>
       ) : (
         <>
-          {useCheckoutPage ? (
-            <>
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Proceed to Checkout
-            </>
-          ) : (
-            <>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Checkout Now
-            </>
-          )}
+          <CreditCard className="mr-2 h-4 w-4" />
+          Checkout Now
         </>
       )}
     </Button>
   )
 }
-
-// Also provide default export for backward compatibility
-export default CheckoutButton

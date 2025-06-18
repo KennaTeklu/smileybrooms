@@ -13,15 +13,18 @@ export default function LoadingAnimation({ className }: LoadingAnimationProps) {
   const [explosiveEffect, setExplosiveEffect] = useState(false)
 
   useEffect(() => {
+    // Alternate between smiley face and broom emoji with explosive transitions
     const emojiInterval = setInterval(() => {
       setIsAnimating(true)
       setExplosiveEffect(true)
 
+      // Reset explosion effect after short delay
       setTimeout(() => {
         setCurrentEmoji((prev) => (prev === "😊" ? "🧹" : "😊"))
         setExplosiveEffect(false)
       }, 150)
 
+      // Reset animation after it completes
       setTimeout(() => setIsAnimating(false), 500)
     }, 1000)
 
@@ -52,5 +55,3 @@ export default function LoadingAnimation({ className }: LoadingAnimationProps) {
     </div>
   )
 }
-
-export { LoadingAnimation }

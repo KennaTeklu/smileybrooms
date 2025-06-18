@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
 import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
@@ -15,9 +15,11 @@ interface RoomConfig {
   roomName: string
   selectedTier: string
   selectedAddOns: string[]
+  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
   addOnsPrice: number
+  reductionsPrice: number
   totalPrice: number
 }
 
@@ -63,6 +65,7 @@ export function MultiStepCustomizationWizard({
   const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(config?.selectedReductions || [])
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
   const [addressData, setAddressData] = useState<any>(null)
@@ -70,6 +73,7 @@ export function MultiStepCustomizationWizard({
   const { addItem } = useCart()
   const { toast } = useToast()
 
+  // Auto-scroll to top when wizard opens for better visibility
   useEffect(() => {
     if (isOpen) {
       window.scrollTo({
@@ -79,18 +83,21 @@ export function MultiStepCustomizationWizard({
     }
   }, [isOpen])
 
+  // Get room data
   const roomData = useMemo(() => {
     try {
       return {
         tiers: getRoomTiers(roomType) || [],
         addOns: getRoomAddOns(roomType) || [],
+        reductions: getRoomReductions(roomType) || [],
       }
     } catch (error) {
       console.error("Error getting room data:", error)
-      return { tiers: [], addOns: [] }
+      return { tiers: [], addOns: [], reductions: [] }
     }
   }, [roomType])
 
+  // Calculate pricing
   const pricing = useMemo(() => {
     try {
       if (roomData.tiers.length === 0) {
@@ -98,6 +105,7 @@ export function MultiStepCustomizationWizard({
           basePrice: 0,
           tierUpgradePrice: 0,
           addOnsPrice: 0,
+          reductionsPrice: 0,
           totalPrice: 0,
         }
       }
@@ -110,15 +118,25 @@ export function MultiStepCustomizationWizard({
         const addOn = roomData.addOns.find((a) => a.id === addOnId)
         return sum + (addOn?.price || 0)
       }, 0)
+      const reductionsPrice = selectedReductions.reduce((sum, reductionId) => {
+        const reduction = roomData.reductions.find((r) => r.id === reductionId)
+        return sum + (reduction?.discount || 0)
+      }, 0)
 
-      let totalPrice = currentTier.price + addOnsPrice
-      const discountAmount = totalPrice * (frequencyDiscount / 100)
-      totalPrice = Math.max(0, totalPrice - discountAmount)
+      const subtotal = currentTier.price + addOnsPrice - reductionsPrice
+      const discountAmount = subtotal * (frequencyDiscount / 100)
+      let totalPrice = Math.max(0, subtotal - discountAmount)
+
+      // Apply video recording discount if applicable
+      if (addressData?.allowVideoRecording) {
+        totalPrice = Math.max(0, totalPrice - 25)
+      }
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
         addOnsPrice,
+        reductionsPrice,
         totalPrice,
       }
     } catch (error) {
@@ -127,16 +145,19 @@ export function MultiStepCustomizationWizard({
         basePrice: 0,
         tierUpgradePrice: 0,
         addOnsPrice: 0,
+        reductionsPrice: 0,
         totalPrice: 0,
       }
     }
-  }, [selectedTier, selectedAddOns, frequencyDiscount, roomData])
+  }, [selectedTier, selectedAddOns, selectedReductions, frequencyDiscount, roomData, addressData])
 
+  // Steps configuration
   const steps: WizardStep[] = ["room-config", "frequency", "configuration-manager", "address", "review"]
   const currentStepIndex = steps.indexOf(currentStep)
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === steps.length - 1
 
+  // Navigation handlers
   const goToNextStep = useCallback(() => {
     if (!isLastStep) {
       setCurrentStep(steps[currentStepIndex + 1])
@@ -149,8 +170,15 @@ export function MultiStepCustomizationWizard({
     }
   }, [currentStepIndex, isFirstStep, steps])
 
+  // Event handlers
   const toggleAddOn = useCallback((addOnId: string) => {
     setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
+  }, [])
+
+  const toggleReduction = useCallback((reductionId: string) => {
+    setSelectedReductions((prev) =>
+      prev.includes(reductionId) ? prev.filter((id) => id !== reductionId) : [...prev, reductionId],
+    )
   }, [])
 
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
@@ -159,14 +187,17 @@ export function MultiStepCustomizationWizard({
   }, [])
 
   const handleLoadConfig = useCallback((loadedConfig: any) => {
+    // Apply loaded configuration
     if (loadedConfig.rooms && loadedConfig.rooms.length > 0) {
       const roomConfig = loadedConfig.rooms[0]
       setSelectedTier(roomConfig.tier || "ESSENTIAL CLEAN")
+      // You can extend this to load other settings
     }
   }, [])
 
   const handleAddressSubmit = useCallback((data: any) => {
     setAddressData(data)
+    // Don't auto-advance to next step, let user click Next
   }, [])
 
   const handleAddToCart = useCallback(() => {
@@ -181,6 +212,7 @@ export function MultiStepCustomizationWizard({
           roomType,
           selectedTier,
           selectedAddOns,
+          selectedReductions,
           frequency: selectedFrequency,
           customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
@@ -212,6 +244,7 @@ export function MultiStepCustomizationWizard({
     roomType,
     selectedTier,
     selectedAddOns,
+    selectedReductions,
     selectedFrequency,
     addressData,
     addItem,
@@ -219,6 +252,7 @@ export function MultiStepCustomizationWizard({
     onClose,
   ])
 
+  // Validation for next button
   const canProceedToNext = useMemo(() => {
     switch (currentStep) {
       case "room-config":
@@ -226,11 +260,11 @@ export function MultiStepCustomizationWizard({
       case "frequency":
         return selectedFrequency !== ""
       case "configuration-manager":
-        return true
+        return true // Always can proceed
       case "address":
-        return true
+        return true // Always can proceed - user can skip address for now
       case "review":
-        return false
+        return false // Last step
       default:
         return false
     }
@@ -241,9 +275,12 @@ export function MultiStepCustomizationWizard({
   return (
     <>
       <div className="fixed inset-0 z-50 flex">
+        {/* Backdrop */}
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
+        {/* Panel - Content-aware height */}
         <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
+          {/* Header - Fixed */}
           <div className="flex-shrink-0 border-b p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -258,6 +295,7 @@ export function MultiStepCustomizationWizard({
               </Button>
             </div>
 
+            {/* Progress indicator */}
             <div className="flex items-center gap-2">
               {steps.map((step, index) => (
                 <div
@@ -274,9 +312,11 @@ export function MultiStepCustomizationWizard({
             </div>
           </div>
 
+          {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
             {currentStep === "room-config" && (
               <div className="space-y-6">
+                {/* Cleaning Tiers */}
                 {roomData.tiers.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">Cleaning Level</h3>
@@ -309,6 +349,7 @@ export function MultiStepCustomizationWizard({
                   </div>
                 )}
 
+                {/* Add-ons */}
                 {roomData.addOns.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">Add-ons</h3>
@@ -333,6 +374,43 @@ export function MultiStepCustomizationWizard({
                                 {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
                               </div>
                               <span className="font-medium">+${addOn.price}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reductions */}
+                {roomData.reductions.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Skip Services (Discounts)</h3>
+                    <div className="space-y-2">
+                      {roomData.reductions.map((reduction, index) => (
+                        <Card
+                          key={reduction.id || index}
+                          className={`cursor-pointer transition-colors ${
+                            selectedReductions.includes(reduction.id)
+                              ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => toggleReduction(reduction.id)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{reduction.name}</span>
+                                  {selectedReductions.includes(reduction.id) && (
+                                    <Check className="h-4 w-4 text-orange-600" />
+                                  )}
+                                </div>
+                                {reduction.description && (
+                                  <p className="text-sm text-gray-500">{reduction.description}</p>
+                                )}
+                              </div>
+                              <span className="font-medium text-orange-600">-${reduction.discount}</span>
                             </div>
                           </CardContent>
                         </Card>
@@ -377,6 +455,7 @@ export function MultiStepCustomizationWizard({
                     roomCount,
                     selectedTier,
                     selectedAddOns,
+                    selectedReductions,
                     frequency: selectedFrequency,
                   }}
                 />
@@ -424,6 +503,12 @@ export function MultiStepCustomizationWizard({
                                 {addressData.city}, {addressData.state}
                               </span>
                             </div>
+                            {addressData.allowVideoRecording && (
+                              <div className="flex justify-between text-green-600">
+                                <span>Video Recording Discount:</span>
+                                <span className="font-medium">-$25.00</span>
+                              </div>
+                            )}
                           </>
                         )}
                         <div className="border-t pt-3">
@@ -449,7 +534,9 @@ export function MultiStepCustomizationWizard({
             )}
           </div>
 
+          {/* Footer - Fixed at bottom, always visible */}
           <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900 p-4">
+            {/* Only show total on review step */}
             {currentStep === "review" && (
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium">Total:</span>
