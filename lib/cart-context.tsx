@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
+// Import the new matching utilities
 import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
-import { usePanelManager } from "@/lib/panel-manager-context" // Import usePanelManager
 
 export type CartItem = {
   id: string
@@ -50,6 +50,7 @@ const calculateCartTotals = (items: CartItem[]): { totalItems: number; totalPric
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
+      // Check if there's a similar item using advanced matching criteria
       const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
 
       let updatedItems: CartItem[]
@@ -62,6 +63,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           return item
         })
       } else {
+        // Generate a more reliable ID for the new item
         const itemSignature = getItemSignature(action.payload)
         const enhancedItem = {
           ...action.payload,
@@ -131,7 +133,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
   const { toast } = useToast()
-  const { setActivePanel, activePanel } = usePanelManager() // Use panel manager
 
   // Load cart from localStorage on initial render
   useEffect(() => {
@@ -145,6 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error loading cart from localStorage:", error)
+      // Reset to initial state if there's an error
       dispatch({ type: "CLEAR_CART" })
     }
   }, [])
@@ -155,6 +157,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("cart", JSON.stringify(cart))
     } catch (error) {
       console.error("Error saving cart to localStorage:", error)
+      // Notify user of the error
       if (toast) {
         toast({
           title: "Error saving cart",
@@ -175,16 +178,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart`,
-        duration: 3000,
+        duration: 3000, // Auto-dismiss after 3 seconds
       })
-    }
-
-    // Automatically open the cart panel after adding an item
-    // Only open if it's not already the active panel
-    if (activePanel !== "cart") {
-      setTimeout(() => {
-        setActivePanel("cart")
-      }, 300) // Small delay for toast to appear first
     }
   }
 
