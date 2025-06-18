@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import MinimalHero from "@/components/minimal-hero"
 import ErrorBoundary from "@/components/error-boundary"
 

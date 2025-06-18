@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import dynamic from "next/dynamic"
 import LoadingAnimation from "@/components/loading-animation"
 

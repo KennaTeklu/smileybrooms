@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import type { Metadata } from "next"
 import { TechVersionsInfo } from "@/components/tech-versions-info"
 
