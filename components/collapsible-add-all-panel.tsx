@@ -84,7 +84,8 @@ export function CollapsibleAddAllPanel() {
 
   useEffect(() => {
     setIsMounted(true)
-    registerPanel("addAllToCart", { isFullscreen: isMobile, zIndex: 997 }) // Fullscreen on mobile
+    // Register with isFullscreen: false for both desktop and mobile, as it's now a shorter panel
+    registerPanel("addAllToCart", { isFullscreen: false, zIndex: 997 })
     return () => unregisterPanel("addAllToCart")
   }, [registerPanel, unregisterPanel, isMobile])
 
@@ -502,9 +503,15 @@ export function CollapsibleAddAllPanel() {
         aria-describedby="add-all-panel-desc"
         className={cn(
           "fixed z-[997] transition-all duration-320 ease-[cubic-bezier(0.32,0.72,0,1)]", // Apply cubic-bezier
-          isMobile
-            ? "bottom-0 left-0 w-full h-[85vh] rounded-t-2xl" // Mobile: bottom sheet
-            : "top-0 right-0 h-full max-w-[480px] w-[33vw] rounded-l-2xl", // Desktop: right panel
+          "right-[clamp(1rem,3vw,2rem)]", // Consistent right position for the panel
+          "bg-white dark:bg-gray-900 shadow-2xl overflow-hidden border-2 border-emerald-200 dark:border-emerald-800",
+          "relative flex flex-col",
+          showTopShadow && "before:shadow-top-gradient",
+          showBottomShadow && "after:shadow-bottom-gradient",
+          // Desktop styles
+          "top-1/2 -translate-y-1/2 max-h-[70vh] w-[min(480px,33vw)] rounded-l-2xl",
+          // Mobile styles
+          "max-sm:bottom-0 max-sm:left-0 max-sm:w-full max-sm:max-h-[85vh] max-sm:rounded-t-2xl max-sm:top-auto max-sm:-translate-y-0",
           isExpanded
             ? isMobile
               ? "translate-y-0"

@@ -69,8 +69,8 @@ export default function RootLayout({
                           <CollapsibleSettingsPanel />
                           {/* Right side panels - properly aligned */}
                           <CollapsibleSharePanel style={{ top: "100px" }} />
-                          <CollapsibleAddAllPanel style={{ top: "200px" }} />
-                          <CollapsibleCartPanel style={{ top: "300px" }} />
+                          <CollapsibleAddAllPanel style={{ top: "200px" }} /> {/* Adjusted top for shorter panel */}
+                          <CollapsibleCartPanel style={{ top: "300px" }} /> {/* Adjusted top for shorter panel */}
                           <Toaster />
                           <AnalyticsTracker />
                         </PanelManagerProvider>
