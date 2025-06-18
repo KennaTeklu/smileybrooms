@@ -1,16 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useDeviceDetection } from "@/hooks/use-device-detection"
 import { cn } from "@/lib/utils"
 
 export default function SafeJotformChatbot() {
   const { isMobile } = useDeviceDetection()
   const [isMounted, setIsMounted] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (isMounted && iframeRef.current) {
+      // Dynamically load the Jotform embed handler script
+      const script = document.createElement("script")
+      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
+      script.async = true
+      script.onload = () => {
+        // Ensure the script is loaded before calling the handler
+        if (window.jotformEmbedHandler) {
+          window.jotformEmbedHandler(`iframe[id='${iframeRef.current?.id}']`, "https://www.jotform.com")
+        }
+      }
+      document.body.appendChild(script)
+
+      return () => {
+        // Clean up the script when the component unmounts
+        document.body.removeChild(script)
+      }
+    }
+  }, [isMounted])
 
   if (!isMounted) {
     return null
@@ -24,29 +46,42 @@ export default function SafeJotformChatbot() {
   return (
     <div
       className={cn(
-        "fixed z-50", // Ensure it's fixed and on top
+        "fixed z-50", // Ensure it's fixed and on top of general content
         positionClasses,
       )}
+      style={{
+        // Ensure the container allows the iframe to be positioned correctly
+        width: isMobile ? "calc(100% - 32px)" : "400px", // Example width, adjust as needed
+        height: isMobile ? "calc(100% - 32px)" : "688px", // Example height, adjust as needed
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
     >
-      {/* Placeholder for the Jotform chatbot button/widget */}
-      <div className="bg-blue-600 text-white rounded-full p-3 shadow-lg cursor-pointer hover:bg-blue-700 transition-colors">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="lucide lucide-message-circle"
-        >
-          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-        </svg>
-      </div>
-      {/* In a real application, you would embed your Jotform chatbot script here */}
-      {/* <script src="https://form.jotform.com/jsform/YOUR_FORM_ID"></script> */}
+      <iframe
+        ref={iframeRef}
+        id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+        title="smileybrooms.com: Customer Support Representative"
+        onLoad={() => window.parent.scrollTo(0, 0)}
+        allowTransparency={true}
+        allow="geolocation; microphone; camera; fullscreen"
+        src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+        frameBorder="0"
+        style={{
+          minWidth: "100%",
+          maxWidth: "100%",
+          height: "100%", // Use 100% to fill the parent div
+          border: "none",
+          width: "100%",
+        }}
+        scrolling="no"
+      ></iframe>
     </div>
   )
+}
+
+// Extend the Window interface to include jotformEmbedHandler
+declare global {
+  interface Window {
+    jotformEmbedHandler: (selector: string, baseUrl: string) => void
+  }
 }
