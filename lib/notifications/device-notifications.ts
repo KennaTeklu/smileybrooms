@@ -23,7 +23,7 @@ interface NotificationOptions {
   requireInteraction?: boolean
 }
 
-export function useNotifications() {
+export function useDeviceNotifications() {
   // Renamed from useDeviceNotifications for clarity
   const [permission, setPermission] = useState<NotificationPermission>("default")
   const { isIOS, isAndroid, isMobile } = useDeviceDetection()
