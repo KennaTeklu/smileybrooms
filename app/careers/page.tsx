@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 "use client"
 import { useRouter } from "next/navigation"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"

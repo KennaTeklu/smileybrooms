@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { TikTokScroll } from "@/components/tiktok-scroll"
 import { OurStory } from "@/components/about/our-story"

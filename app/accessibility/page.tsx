@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 "use client"
 
 import { AccessibilityProvider } from "@/lib/accessibility-context"

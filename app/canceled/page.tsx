@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { XCircle, ShoppingCart, ArrowLeft } from "lucide-react"
