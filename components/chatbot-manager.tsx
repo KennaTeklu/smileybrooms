@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import AiChatbot from "./ai-chatbot" // Import the new AI chatbot component
+import UnifiedChatbot from "./unified-chatbot"
+import FloatingChatbotButton from "./floating-chatbot-button"
+import { ChatbotProvider } from "@/lib/chatbot-context"
 
 export default function ChatbotManager() {
   const [isVisible, setIsVisible] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
-    // Simple visibility logic
+    // Show chatbot after a delay
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 2000)
@@ -19,10 +21,10 @@ export default function ChatbotManager() {
 
   if (!isVisible) return null
 
-  // Render the AI Chatbot
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <AiChatbot />
-    </div>
+    <ChatbotProvider>
+      <FloatingChatbotButton />
+      <UnifiedChatbot />
+    </ChatbotProvider>
   )
 }
