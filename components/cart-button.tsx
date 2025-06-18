@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Package, Sparkles } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 interface CartButtonProps {
@@ -13,7 +14,6 @@ interface CartButtonProps {
   size?: "sm" | "md" | "lg"
   position?: "header" | "floating" | "inline"
   className?: string
-  onOpenCart?: () => void // Add callback for opening cart panel
 }
 
 export default function CartButton({
@@ -22,11 +22,10 @@ export default function CartButton({
   size = "sm",
   position = "header",
   className,
-  onOpenCart,
 }: CartButtonProps) {
   const { cart } = useCart()
+  const router = useRouter()
 
-  // Memoized calculations for performance with safe fallbacks
   const cartMetrics = useMemo(
     () => ({
       totalItems: cart?.totalItems || 0,
@@ -38,14 +37,10 @@ export default function CartButton({
     [cart?.totalItems, cart?.total, cart?.items?.length],
   )
 
-  // Optimized handler to open cart panel
   const handleOpenCart = useCallback(() => {
-    if (onOpenCart) {
-      onOpenCart()
-    }
-  }, [onOpenCart])
+    router.push("/cart")
+  }, [router])
 
-  // Dynamic styling based on variant and state
   const buttonVariants = {
     default: "relative flex items-center gap-2 transition-all duration-200 hover:scale-105",
     floating:
@@ -60,10 +55,8 @@ export default function CartButton({
     lg: variant === "floating" ? "h-16 px-8" : "h-12 px-6",
   }
 
-  // Icon selection based on cart state
   const CartIcon = cartMetrics.hasItems ? (cartMetrics.isHighValue ? Sparkles : Package) : ShoppingCart
 
-  // Badge styling based on cart value
   const badgeVariant = cartMetrics.isHighValue ? "default" : "destructive"
   const badgeClassName = cn(
     "ml-1 px-1.5 py-0 text-xs font-medium transition-all duration-200",
@@ -115,7 +108,6 @@ export default function CartButton({
         </Badge>
       )}
 
-      {/* High value indicator */}
       {cartMetrics.isHighValue && variant === "floating" && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse" />
       )}

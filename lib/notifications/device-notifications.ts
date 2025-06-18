@@ -60,16 +60,12 @@ export function useDeviceNotifications() {
       }
     }
 
-    // Device-specific optimizations
     const deviceOptions = { ...options }
 
     if (isIOS) {
-      // iOS-specific options
       deviceOptions.silent = options.priority === "low" ? true : options.silent
-      // iOS doesn't support vibration patterns via web notifications
       delete deviceOptions.vibrate
     } else if (isAndroid) {
-      // Android-specific options
       deviceOptions.vibrate = options.priority === "high" ? [200, 100, 200] : options.vibrate
       deviceOptions.requireInteraction = options.priority === "high" ? true : options.requireInteraction
     }
@@ -86,7 +82,6 @@ export function useDeviceNotifications() {
         requireInteraction: deviceOptions.requireInteraction,
       })
 
-      // Handle notification actions
       if (deviceOptions.actions && deviceOptions.actions.length > 0) {
         notification.onclick = () => {
           deviceOptions.actions?.[0].action()
@@ -116,6 +111,6 @@ export function useDeviceNotifications() {
 // sendNotification({
 //   title: "Your Cleaning is Booked!",
 //   body: "😊smileybrooms.com is waiting for you!",
-//   icon: "/favicon.png", // Or a specific notification icon
+//   icon: "/favicon.png",
 //   tag: "checkout-success",
 // });

@@ -15,9 +15,9 @@ import { formatCurrency } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
-import { createCheckoutSession } from "@/lib/actions" // Import the server action
-import DynamicPaymentSelector from "@/components/dynamic-payment-selector" // Import the dynamic payment selector
-import type { PaymentMethod } from "@/lib/payment-config" // Import PaymentMethod type
+import { createCheckoutSession } from "@/lib/actions"
+import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
+import type { PaymentMethod } from "@/lib/payment-config"
 
 type CustomerData = {
   firstName: string
@@ -68,20 +68,18 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [agreeToTerms, setAgreeToTerms] = useState(false)
-  const [optInNotifications, setOptInNotifications] = useState(false) // New state for notification opt-in
+  const [optInNotifications, setOptInNotifications] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Redirect if cart is empty
   useEffect(() => {
     if (cart.items.length === 0) {
-      router.push("/pricing")
+      router.push("/cart")
     }
   }, [cart.items.length, router])
 
-  // Calculate totals
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const notificationDiscountAmount = optInNotifications ? 0.99 : 0 // Fixed $0.99 discount for opting into notifications
-  const tax = (subtotal - notificationDiscountAmount) * 0.08 // 8% tax
+  const notificationDiscountAmount = optInNotifications ? 0.99 : 0
+  const tax = (subtotal - notificationDiscountAmount) * 0.08
   const total = subtotal - notificationDiscountAmount + tax
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
@@ -155,7 +153,6 @@ export default function CheckoutPage() {
     const stepIndex = steps.findIndex((step) => step.id === stepId)
     const currentIndex = steps.findIndex((step) => step.id === currentStep)
 
-    // Allow going back to completed steps or the next step if current is valid
     if (stepIndex <= currentIndex || (stepIndex === currentIndex + 1 && validateStep(currentStep))) {
       setCurrentStep(stepId)
     }
@@ -174,7 +171,6 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      // Prepare line items from cart
       const customLineItems = cart.items.map((item) => ({
         name: item.name,
         amount: item.price,
@@ -183,11 +179,10 @@ export default function CheckoutPage() {
         metadata: item.metadata,
       }))
 
-      // Add notification discount as a line item if applicable
       if (notificationDiscountAmount > 0) {
         customLineItems.push({
           name: "Notification Opt-in Discount",
-          amount: -notificationDiscountAmount, // Negative amount for discount
+          amount: -notificationDiscountAmount,
           quantity: 1,
           description: "Discount for opting into notifications",
         })
@@ -212,15 +207,15 @@ export default function CheckoutPage() {
           },
         },
         paymentMethodTypes: [paymentMethod],
-        automaticTax: { enabled: true }, // Enable automatic tax calculation on Stripe
-        allowPromotions: true, // Allow promotion codes if applicable
+        automaticTax: { enabled: true },
+        allowPromotions: true,
         metadata: {
-          optInNotifications: optInNotifications ? "true" : "false", // Pass opt-in status
+          optInNotifications: optInNotifications ? "true" : "false",
         },
       })
 
       if (checkoutUrl) {
-        clearCart() // Clear cart only if Stripe checkout is successfully initiated
+        clearCart()
         window.location.href = checkoutUrl
       } else {
         throw new Error("Failed to get checkout URL from Stripe.")
@@ -272,7 +267,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="John"
                     required
-                    autoComplete="given-name" // Autofill
+                    autoComplete="given-name"
                   />
                 </div>
                 <div>
@@ -286,7 +281,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="Doe"
                     required
-                    autoComplete="family-name" // Autofill
+                    autoComplete="family-name"
                   />
                 </div>
               </div>
@@ -303,7 +298,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="john.doe@example.com"
                   required
-                  autoComplete="email" // Autofill
+                  autoComplete="email"
                 />
               </div>
 
@@ -319,7 +314,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="(555) 123-4567"
                   required
-                  autoComplete="tel" // Autofill
+                  autoComplete="tel"
                 />
               </div>
             </div>
@@ -352,7 +347,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="123 Main Street"
                   required
-                  autoComplete="address-line1" // Autofill
+                  autoComplete="address-line1"
                 />
               </div>
 
@@ -366,7 +361,7 @@ export default function CheckoutPage() {
                   onChange={(e) => handleInputChange("address.line2", e.target.value)}
                   className="mt-2 h-12"
                   placeholder="Apt 4B"
-                  autoComplete="address-line2" // Autofill
+                  autoComplete="address-line2"
                 />
               </div>
 
@@ -382,7 +377,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="New York"
                     required
-                    autoComplete="address-level2" // Autofill
+                    autoComplete="address-level2"
                   />
                 </div>
                 <div>
@@ -396,7 +391,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="NY"
                     required
-                    autoComplete="address-level1" // Autofill
+                    autoComplete="address-level1"
                   />
                 </div>
               </div>
@@ -412,7 +407,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="10001"
                   required
-                  autoComplete="postal-code" // Autofill
+                  autoComplete="postal-code"
                 />
               </div>
             </div>
@@ -434,10 +429,8 @@ export default function CheckoutPage() {
             </div>
 
             <div className="max-w-lg mx-auto space-y-6">
-              {/* Dynamic Payment Selector */}
               <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
 
-              {/* Stripe Elements Placeholder */}
               <div className="mt-8 p-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-gray-800">
                 <div className="text-center">
                   <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -479,26 +472,24 @@ export default function CheckoutPage() {
             </div>
 
             <div className="max-w-2xl mx-auto space-y-8">
-              {/* Order Summary */}
+              {/* Minimal Cart Summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle>Order Summary ({cart.totalItems} items)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {cart.items.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
-                        <div>
-                          <h4 className="font-medium">{item.name}</h4>
-                          <div className="text-sm text-gray-500 space-y-1">
-                            {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
-                            {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
-                            <p>Quantity: {item.quantity}</p>
-                          </div>
-                        </div>
-                        <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
+                  <div className="space-y-2">
+                    {cart.items.slice(0, 3).map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>
+                          {item.name} x{item.quantity}
+                        </span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
+                    {cart.items.length > 3 && (
+                      <div className="text-sm text-muted-foreground">...and {cart.items.length - 3} more items</div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -608,11 +599,11 @@ export default function CheckoutPage() {
         {/* Header */}
         <div className="mb-12">
           <Link
-            href="/pricing"
+            href="/cart"
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Services
+            Back to Cart
           </Link>
 
           <div className="text-center">

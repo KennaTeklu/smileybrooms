@@ -6,46 +6,41 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations"
 import { usePerformanceOptimization } from "@/hooks/usePerformanceOptimization"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import styles from "./cart.module.css"
 
 interface OptimizedCartButtonProps {
   itemCount: number
   totalPrice: number
-  onClick: () => void
   isOpen: boolean
   className?: string
   disabled?: boolean
 }
 
 export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartButtonProps>(
-  ({ itemCount, totalPrice, onClick, isOpen, className, disabled = false }, ref) => {
+  ({ itemCount, totalPrice, isOpen, className, disabled = false }, ref) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
     const lastItemCountRef = useRef(itemCount)
+    const router = useRouter()
 
-    // Advanced physics-based animations
     const { animateHover, animatePress, animateFloat, animatePulse, animateBounce, getAnimatedStyle, isAnimating } =
       useAdvancedAnimations()
 
-    // Performance monitoring
     const { startInteractionMeasurement, endInteractionMeasurement, getAdaptiveQuality } = usePerformanceOptimization({
       enableFPSMonitoring: true,
       enableRenderTimeTracking: true,
     })
 
-    // Adaptive quality based on performance
     const quality = getAdaptiveQuality()
     const shouldUseReducedAnimations = quality === "low"
 
-    // Handle item count changes with animation
     useEffect(() => {
       if (itemCount > lastItemCountRef.current && itemCount > 0) {
-        // New item added - bounce animation
         if (!shouldUseReducedAnimations) {
           animateBounce()
         }
       } else if (itemCount === 1 && lastItemCountRef.current === 0) {
-        // First item added - pulse animation
         if (!shouldUseReducedAnimations) {
           animatePulse()
         }
@@ -54,7 +49,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
       lastItemCountRef.current = itemCount
     }, [itemCount, animateBounce, animatePulse, shouldUseReducedAnimations])
 
-    // Floating animation when cart has items
     useEffect(() => {
       let floatingInterval: NodeJS.Timeout
 
@@ -71,7 +65,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
       }
     }, [itemCount, isOpen, animateFloat, shouldUseReducedAnimations])
 
-    // Optimized event handlers
     const handleMouseEnter = useCallback(() => {
       if (!shouldUseReducedAnimations) {
         animateHover(true)
@@ -99,17 +92,15 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
 
     const handleClick = useCallback(() => {
       endInteractionMeasurement()
-      onClick()
-    }, [onClick, endInteractionMeasurement])
+      router.push("/cart")
+    }, [router, endInteractionMeasurement])
 
-    // Haptic feedback for mobile
     const triggerHapticFeedback = useCallback(() => {
       if ("vibrate" in navigator && /Mobi|Android/i.test(navigator.userAgent)) {
         navigator.vibrate(15)
       }
     }, [])
 
-    // Enhanced click handler with haptic feedback
     const handleEnhancedClick = useCallback(() => {
       triggerHapticFeedback()
       handleClick()
@@ -127,7 +118,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
           ...getAnimatedStyle(),
           backgroundColor: "var(--primary)",
           color: "var(--primary-foreground)",
-          // Performance optimizations
           backfaceVisibility: "hidden",
           perspective: 1000,
           transformStyle: "preserve-3d",
@@ -149,7 +139,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
           className="h-5 w-5 sm:h-6 sm:w-6"
           aria-hidden="true"
           style={{
-            // Optimize icon rendering
             willChange: shouldUseReducedAnimations ? "auto" : "transform",
           }}
         />
@@ -160,7 +149,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
             style={{
               backgroundColor: "var(--destructive)",
               color: "var(--destructive-foreground)",
-              // Optimize badge rendering
               willChange: shouldUseReducedAnimations ? "auto" : "transform, opacity",
               animation: shouldUseReducedAnimations ? "none" : undefined,
             }}
@@ -170,7 +158,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
           </Badge>
         )}
 
-        {/* High value indicator with performance optimization */}
         {totalPrice > 200 && !shouldUseReducedAnimations && (
           <div
             className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse"
@@ -182,7 +169,6 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
           />
         )}
 
-        {/* Performance indicator (development only) */}
         {process.env.NODE_ENV === "development" && (
           <div
             className="absolute -top-2 -left-2 w-2 h-2 rounded-full"
