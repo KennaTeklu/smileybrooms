@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useDeviceDetection } from "@/hooks/use-device-detection"
+import { useEnhancedDeviceDetection } from "@/hooks/use-enhanced-device-detection"
 import { cn } from "@/lib/utils"
 
 export default function SafeJotformChatbot() {
-  const { isMobile } = useDeviceDetection()
+  const { isMobile, screenHeight } = useEnhancedDeviceDetection()
   const [isMounted, setIsMounted] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -38,21 +38,25 @@ export default function SafeJotformChatbot() {
     return null
   }
 
+  // Determine header height (from globals.css comment: 64px)
+  const headerHeightPx = 64
+  // Desired fixed pixel offset from the bottom of the header
+  const fixedOffsetFromHeader = 20
+  const calculatedTop = headerHeightPx + fixedOffsetFromHeader // 84px from the top of the viewport
+
   // Adjust positioning for mobile vs desktop
-  const positionClasses = isMobile
-    ? "bottom-4 left-4" // Slightly off the very bottom-left for mobile thumb zone
-    : "bottom-8 left-8" // More generous spacing for desktop
+  const leftPosition = isMobile ? 16 : 32 // 16px for mobile (equivalent to px-4), 32px for desktop (equivalent to px-8)
 
   return (
     <div
       className={cn(
         "fixed z-50", // Ensure it's fixed and on top of general content
-        positionClasses,
       )}
       style={{
-        // Ensure the container allows the iframe to be positioned correctly
+        top: `${calculatedTop}px`,
+        left: `${leftPosition}px`,
         width: isMobile ? "calc(100% - 32px)" : "400px", // Example width, adjust as needed
-        height: isMobile ? "calc(100% - 32px)" : "688px", // Example height, adjust as needed
+        height: isMobile ? `calc(${screenHeight}px - ${calculatedTop}px - 16px)` : "688px", // Adjust height for mobile to fit remaining space
         maxWidth: "100%",
         maxHeight: "100%",
       }}
