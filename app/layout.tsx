@@ -21,7 +21,7 @@ import { AbandonmentProvider } from "@/components/abandonment/abandonment-provid
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
 import { PanelManagerProvider } from "@/lib/panel-manager-context" // Import PanelManagerProvider
-import { SafeJotformChatbot } from "@/components/safe-jotform-chatbot"
+import SafeJotformChatbot from "@/components/safe-jotform-chatbot"
 
 const inter = Inter({ subsets: ["latin"] })
 
