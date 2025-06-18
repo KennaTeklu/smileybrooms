@@ -21,7 +21,6 @@ import { AbandonmentProvider } from "@/components/abandonment/abandonment-provid
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
 import { PanelManagerProvider } from "@/lib/panel-manager-context" // Import PanelManagerProvider
-import SafeJotformChatbot from "@/components/safe-jotform-chatbot"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -74,8 +73,6 @@ export default function RootLayout({
                           <CollapsibleCartPanel />
                           <Toaster />
                           <AnalyticsTracker />
-                          {/* The SafeJotformChatbot is here, making it present on every page */}
-                          <SafeJotformChatbot />
                         </PanelManagerProvider>
                       </TooltipProvider>
                     </AbandonmentProvider>
