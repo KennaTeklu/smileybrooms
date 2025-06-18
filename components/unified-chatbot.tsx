@@ -1,62 +1,65 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { MessageCircle, X, Send, Phone, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface Message {
-  id: string
-  content: string
-  sender: "user" | "bot"
-  timestamp: Date
-  type?: "text" | "quick-reply" | "service-suggestion"
-}
-
-interface QuickReply {
+type Message = {
   id: string
   text: string
-  action: string
+  isUser: boolean
+  timestamp: Date
+  quickReplies?: string[]
 }
 
-const QUICK_REPLIES: QuickReply[] = [
-  { id: "pricing", text: "Get Pricing", action: "pricing" },
-  { id: "services", text: "Our Services", action: "services" },
-  { id: "booking", text: "Book Now", action: "booking" },
-  { id: "contact", text: "Contact Us", action: "contact" },
+const quickReplies = [
+  "What services do you offer?",
+  "How much does cleaning cost?",
+  "How do I book a service?",
+  "What areas do you serve?",
+  "Do you bring your own supplies?",
 ]
 
-const BOT_RESPONSES: Record<string, string> = {
-  greeting: "Hi! I'm your Smiley Brooms assistant. How can I help you today?",
-  pricing: "I'd be happy to help with pricing! Our services start at $25 per room. Would you like a custom quote?",
-  services:
-    "We offer comprehensive cleaning services including bedrooms, bathrooms, kitchens, and more. Each room has Essential, Advanced, and Premium tiers.",
-  booking: "Ready to book? I can help you get started! What type of cleaning service are you looking for?",
-  contact: "You can reach us at support@smileybrooms.com or call (555) 123-4567. We're here to help!",
-  default: "I'm here to help with any questions about our cleaning services. What would you like to know?",
+const responses: Record<string, { text: string; quickReplies?: string[] }> = {
+  "what services do you offer?": {
+    text: "We offer comprehensive cleaning services including:\n• Regular house cleaning\n• Deep cleaning\n• Move-in/move-out cleaning\n• Office cleaning\n• Post-construction cleanup\n• Window cleaning\n\nAll services are customizable to your needs!",
+    quickReplies: ["How much does it cost?", "How do I book?", "What's included?"],
+  },
+  "how much does cleaning cost?": {
+    text: "Our pricing is competitive and depends on:\n• Size of your space\n• Type of cleaning needed\n• Frequency of service\n• Special requirements\n\nBasic cleaning starts at $80. Use our price calculator for an accurate quote!",
+    quickReplies: ["Get a quote", "What's included?", "Any discounts?"],
+  },
+  "how do i book a service?": {
+    text: "Booking is easy! You can:\n• Use our online booking form\n• Call us at (602) 800-0605\n• Chat with us here\n\nWe'll confirm your appointment within 24 hours and send you all the details.",
+    quickReplies: ["What info do you need?", "How far in advance?", "Can I reschedule?"],
+  },
+  "what areas do you serve?": {
+    text: "We proudly serve the Phoenix metropolitan area including:\n• Phoenix\n• Scottsdale\n• Tempe\n• Mesa\n• Chandler\n• Glendale\n• Peoria\n\nNot sure if we serve your area? Just ask!",
+    quickReplies: ["Do you serve my zip code?", "Travel fees?", "Service hours?"],
+  },
+  "do you bring your own supplies?": {
+    text: "Yes! We bring all necessary cleaning supplies and equipment including:\n• Eco-friendly cleaning products\n• Professional-grade equipment\n• Microfiber cloths and mops\n• Vacuum cleaners\n\nYou don't need to provide anything - just relax while we clean!",
+    quickReplies: ["Are products safe?", "What if I have allergies?", "Green cleaning?"],
+  },
 }
 
 export function UnifiedChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: "welcome",
-      content: BOT_RESPONSES.greeting,
-      sender: "bot",
+      id: "1",
+      text: "Hi! I'm here to help with any questions about our cleaning services. How can I assist you today?",
+      isUser: false,
       timestamp: new Date(),
-      type: "text",
+      quickReplies: quickReplies,
     },
   ])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -66,229 +69,243 @@ export function UnifiedChatbot() {
     scrollToBottom()
   }, [messages])
 
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [isOpen])
+  const generateResponse = (userMessage: string): { text: string; quickReplies?: string[] } => {
+    const lowerMessage = userMessage.toLowerCase()
 
-  const generateBotResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase()
-
-    if (message.includes("price") || message.includes("cost") || message.includes("how much")) {
-      return BOT_RESPONSES.pricing
-    }
-    if (message.includes("service") || message.includes("clean") || message.includes("what do you")) {
-      return BOT_RESPONSES.services
-    }
-    if (message.includes("book") || message.includes("schedule") || message.includes("appointment")) {
-      return BOT_RESPONSES.booking
-    }
-    if (message.includes("contact") || message.includes("phone") || message.includes("email")) {
-      return BOT_RESPONSES.contact
-    }
-    if (message.includes("hello") || message.includes("hi") || message.includes("hey")) {
-      return BOT_RESPONSES.greeting
+    // Check for exact matches first
+    if (responses[lowerMessage]) {
+      return responses[lowerMessage]
     }
 
-    return BOT_RESPONSES.default
+    // Check for partial matches
+    if (lowerMessage.includes("service") || lowerMessage.includes("clean")) {
+      return responses["what services do you offer?"]
+    }
+    if (lowerMessage.includes("price") || lowerMessage.includes("cost") || lowerMessage.includes("much")) {
+      return responses["how much does cleaning cost?"]
+    }
+    if (lowerMessage.includes("book") || lowerMessage.includes("schedule") || lowerMessage.includes("appointment")) {
+      return responses["how do i book a service?"]
+    }
+    if (lowerMessage.includes("area") || lowerMessage.includes("location") || lowerMessage.includes("serve")) {
+      return responses["what areas do you serve?"]
+    }
+    if (lowerMessage.includes("supply") || lowerMessage.includes("bring") || lowerMessage.includes("equipment")) {
+      return responses["do you bring your own supplies?"]
+    }
+    if (lowerMessage.includes("hello") || lowerMessage.includes("hi") || lowerMessage.includes("hey")) {
+      return {
+        text: "Hello! Welcome to Smiley Brooms! I'm here to help you with any questions about our professional cleaning services. What would you like to know?",
+        quickReplies: quickReplies,
+      }
+    }
+    if (lowerMessage.includes("thank") || lowerMessage.includes("thanks")) {
+      return {
+        text: "You're very welcome! Is there anything else I can help you with today?",
+        quickReplies: ["Book a service", "Get a quote", "Contact info"],
+      }
+    }
+
+    // Default response
+    return {
+      text: "I'd be happy to help! You can ask me about our services, pricing, booking process, or anything else related to our cleaning services. You can also call us directly at (602) 800-0605.",
+      quickReplies: quickReplies,
+    }
   }
 
-  const handleSendMessage = async (content: string) => {
-    if (!content.trim()) return
+  const handleSendMessage = (text: string) => {
+    if (!text.trim()) return
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: content.trim(),
-      sender: "user",
+      text: text.trim(),
+      isUser: true,
       timestamp: new Date(),
-      type: "text",
     }
 
     setMessages((prev) => [...prev, userMessage])
     setInputValue("")
     setIsTyping(true)
 
-    // Simulate bot typing delay
+    // Simulate typing delay
     setTimeout(
       () => {
-        const botResponse: Message = {
+        const response = generateResponse(text)
+        const botMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: generateBotResponse(content),
-          sender: "bot",
+          text: response.text,
+          isUser: false,
           timestamp: new Date(),
-          type: "text",
+          quickReplies: response.quickReplies,
         }
 
-        setMessages((prev) => [...prev, botResponse])
+        setMessages((prev) => [...prev, botMessage])
         setIsTyping(false)
       },
       1000 + Math.random() * 1000,
     )
   }
 
-  const handleQuickReply = (reply: QuickReply) => {
-    handleSendMessage(reply.text)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage(inputValue)
-    }
+  const handleQuickReply = (reply: string) => {
+    handleSendMessage(reply)
   }
 
   return (
     <>
-      {/* Chat Toggle Button */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg transition-all duration-300",
-          "bg-blue-600 hover:bg-blue-700 text-white",
-          isOpen && "rotate-180",
-        )}
-        size="icon"
-        aria-label={isOpen ? "Close chat" : "Open chat"}
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-      </Button>
-
-      {/* Chat Window */}
-      <div
-        className={cn(
-          "fixed bottom-24 right-6 z-40 w-80 sm:w-96 transition-all duration-300 ease-in-out",
-          isOpen ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-4 scale-95 pointer-events-none",
-        )}
-      >
-        <Card className="shadow-2xl border-0 bg-white">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Bot className="h-5 w-5" />
-              Smiley Brooms Assistant
-              <Badge variant="secondary" className="ml-auto bg-blue-500 text-white">
-                Online
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {/* Messages Area */}
-            <ScrollArea className="h-80 p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn("flex gap-2", message.sender === "user" ? "justify-end" : "justify-start")}
-                  >
-                    {message.sender === "bot" && (
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-blue-600" />
-                      </div>
-                    )}
-
-                    <div
-                      className={cn(
-                        "max-w-[75%] rounded-lg px-3 py-2 text-sm",
-                        message.sender === "user"
-                          ? "bg-blue-600 text-white rounded-br-sm"
-                          : "bg-gray-100 text-gray-900 rounded-bl-sm",
-                      )}
-                    >
-                      {message.content}
-                      <div
-                        className={cn(
-                          "text-xs mt-1 opacity-70",
-                          message.sender === "user" ? "text-blue-100" : "text-gray-500",
-                        )}
-                      >
-                        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </div>
-                    </div>
-
-                    {message.sender === "user" && (
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Typing Indicator */}
-                {isTyping && (
-                  <div className="flex gap-2 justify-start">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="bg-gray-100 rounded-lg rounded-bl-sm px-3 py-2">
-                      <div className="flex gap-1">
-                        <div
-                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0ms" }}
-                        />
-                        <div
-                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "150ms" }}
-                        />
-                        <div
-                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "300ms" }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Quick Replies */}
-            {messages.length === 1 && (
-              <div className="px-4 pb-2">
-                <div className="flex flex-wrap gap-2">
-                  {QUICK_REPLIES.map((reply) => (
-                    <Button
-                      key={reply.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickReply(reply)}
-                      className="text-xs h-7 px-2"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      {reply.text}
-                    </Button>
-                  ))}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-20 right-4 w-80 h-96 bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-50"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-primary text-white rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                <div>
+                  <h3 className="font-semibold">Smiley Brooms Chat</h3>
+                  <p className="text-xs opacity-90">We're here to help!</p>
                 </div>
               </div>
-            )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-            {/* Input Area */}
-            <div className="border-t p-4">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
+                <div key={message.id}>
+                  <div className={cn("flex", message.isUser ? "justify-end" : "justify-start")}>
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-line",
+                        message.isUser
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+                      )}
+                    >
+                      {message.text}
+                    </div>
+                  </div>
+
+                  {/* Quick Replies */}
+                  {message.quickReplies && !message.isUser && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {message.quickReplies.map((reply, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => handleQuickReply(reply)}
+                        >
+                          {reply}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Typing Indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex gap-2">
                 <Input
-                  ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleSendMessage(inputValue)
+                    }
+                  }}
                   className="flex-1"
-                  disabled={isTyping}
                 />
-                <Button
-                  onClick={() => handleSendMessage(inputValue)}
-                  disabled={!inputValue.trim() || isTyping}
-                  size="icon"
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
+                <Button onClick={() => handleSendMessage(inputValue)} disabled={!inputValue.trim()} size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Contact Info */}
+              <div className="flex items-center justify-center gap-4 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  <span>(602) 800-0605</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>24/7 Support</span>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Button */}
+      <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-4 right-4 w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg flex items-center justify-center z-50"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1 }}
+      >
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <X className="h-6 w-6" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="chat"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MessageCircle className="h-6 w-6" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
     </>
   )
 }
