@@ -107,3 +107,15 @@ export function useDeviceNotifications() {
     isSupported: typeof window !== "undefined" && "Notification" in window,
   }
 }
+
+// Example usage for the requested notification message:
+// import { useDeviceNotifications } from "@/lib/notifications/device-notifications";
+// const { sendNotification } = useDeviceNotifications();
+//
+// // Call this function when the user successfully completes checkout and has opted in
+// sendNotification({
+//   title: "Your Cleaning is Booked!",
+//   body: "😊smileybrooms.com is waiting for you!",
+//   icon: "/favicon.png", // Or a specific notification icon
+//   tag: "checkout-success",
+// });

@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, ArrowRight, CreditCard, Shield, Truck, Clock, MapPin, User, Check, Package } from "lucide-react"
 import Link from "next/link"
@@ -18,6 +16,8 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
+import DynamicPaymentSelector from "@/components/dynamic-payment-selector" // Import the dynamic payment selector
+import type { PaymentMethod } from "@/lib/payment-config" // Import PaymentMethod type
 
 type CustomerData = {
   firstName: string
@@ -33,8 +33,6 @@ type CustomerData = {
     country: string
   }
 }
-
-type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
 type CheckoutStep = "contact" | "address" | "payment" | "review"
 
@@ -70,7 +68,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [agreeToTerms, setAgreeToTerms] = useState(false)
-  const [allowVideoRecording, setAllowVideoRecording] = useState(false)
+  const [optInNotifications, setOptInNotifications] = useState(false) // New state for notification opt-in
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Redirect if cart is empty
@@ -80,11 +78,11 @@ export default function CheckoutPage() {
     }
   }, [cart.items.length, router])
 
-  // Calculate totals (these will be passed to server action for final calculation)
+  // Calculate totals
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const videoDiscountAmount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const tax = (subtotal - videoDiscountAmount) * 0.08 // 8% tax
-  const total = subtotal - videoDiscountAmount + tax
+  const notificationDiscountAmount = optInNotifications ? 0.99 : 0 // Fixed $0.99 discount for opting into notifications
+  const tax = (subtotal - notificationDiscountAmount) * 0.08 // 8% tax
+  const total = subtotal - notificationDiscountAmount + tax
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
   const progress = ((currentStepIndex + 1) / steps.length) * 100
@@ -185,13 +183,13 @@ export default function CheckoutPage() {
         metadata: item.metadata,
       }))
 
-      // Add video recording discount as a line item if applicable
-      if (videoDiscountAmount > 0) {
+      // Add notification discount as a line item if applicable
+      if (notificationDiscountAmount > 0) {
         customLineItems.push({
-          name: "Video Recording Discount",
-          amount: -videoDiscountAmount, // Negative amount for discount
+          name: "Notification Opt-in Discount",
+          amount: -notificationDiscountAmount, // Negative amount for discount
           quantity: 1,
-          description: "Discount for allowing video recording",
+          description: "Discount for opting into notifications",
         })
       }
 
@@ -216,6 +214,9 @@ export default function CheckoutPage() {
         paymentMethodTypes: [paymentMethod],
         automaticTax: { enabled: true }, // Enable automatic tax calculation on Stripe
         allowPromotions: true, // Allow promotion codes if applicable
+        metadata: {
+          optInNotifications: optInNotifications ? "true" : "false", // Pass opt-in status
+        },
       })
 
       if (checkoutUrl) {
@@ -271,6 +272,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="John"
                     required
+                    autoComplete="given-name" // Autofill
                   />
                 </div>
                 <div>
@@ -284,6 +286,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="Doe"
                     required
+                    autoComplete="family-name" // Autofill
                   />
                 </div>
               </div>
@@ -300,6 +303,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="john.doe@example.com"
                   required
+                  autoComplete="email" // Autofill
                 />
               </div>
 
@@ -315,6 +319,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="(555) 123-4567"
                   required
+                  autoComplete="tel" // Autofill
                 />
               </div>
             </div>
@@ -347,6 +352,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="123 Main Street"
                   required
+                  autoComplete="address-line1" // Autofill
                 />
               </div>
 
@@ -360,6 +366,7 @@ export default function CheckoutPage() {
                   onChange={(e) => handleInputChange("address.line2", e.target.value)}
                   className="mt-2 h-12"
                   placeholder="Apt 4B"
+                  autoComplete="address-line2" // Autofill
                 />
               </div>
 
@@ -375,6 +382,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="New York"
                     required
+                    autoComplete="address-level2" // Autofill
                   />
                 </div>
                 <div>
@@ -388,6 +396,7 @@ export default function CheckoutPage() {
                     className="mt-2 h-12"
                     placeholder="NY"
                     required
+                    autoComplete="address-level1" // Autofill
                   />
                 </div>
               </div>
@@ -403,6 +412,7 @@ export default function CheckoutPage() {
                   className="mt-2 h-12"
                   placeholder="10001"
                   required
+                  autoComplete="postal-code" // Autofill
                 />
               </div>
             </div>
@@ -424,56 +434,8 @@ export default function CheckoutPage() {
             </div>
 
             <div className="max-w-lg mx-auto space-y-6">
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                    <RadioGroupItem value="card" id="card" className="h-5 w-5" />
-                    <Label htmlFor="card" className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-lg">Credit or Debit Card</div>
-                          <div className="text-sm text-gray-500">Visa, Mastercard, American Express</div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Badge variant="outline">Visa</Badge>
-                          <Badge variant="outline">Mastercard</Badge>
-                          <Badge variant="outline">Amex</Badge>
-                        </div>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                    <RadioGroupItem value="paypal" id="paypal" className="h-5 w-5" />
-                    <Label htmlFor="paypal" className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-lg">PayPal</div>
-                          <div className="text-sm text-gray-500">Pay with your PayPal account</div>
-                        </div>
-                        <Badge variant="outline" className="bg-blue-50">
-                          PayPal
-                        </Badge>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-4 p-6 border-2 rounded-xl hover:border-blue-300 transition-colors">
-                    <RadioGroupItem value="apple_pay" id="apple_pay" className="h-5 w-5" />
-                    <Label htmlFor="apple_pay" className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-lg">Apple Pay</div>
-                          <div className="text-sm text-gray-500">Touch ID or Face ID</div>
-                        </div>
-                        <Badge variant="outline" className="bg-gray-50">
-                          Apple Pay
-                        </Badge>
-                      </div>
-                    </Label>
-                  </div>
-                </div>
-              </RadioGroup>
+              {/* Dynamic Payment Selector */}
+              <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
 
               {/* Stripe Elements Placeholder */}
               <div className="mt-8 p-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-gray-800">
@@ -575,15 +537,17 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <Checkbox
-                      id="videoRecording"
-                      checked={allowVideoRecording}
-                      onCheckedChange={setAllowVideoRecording}
+                      id="optInNotifications"
+                      checked={optInNotifications}
+                      onCheckedChange={setOptInNotifications}
                     />
-                    <Label htmlFor="videoRecording" className="text-base">
-                      Allow video recording for quality assurance and social media use
-                      <span className="text-green-600 font-medium ml-2">
-                        (Save {videoDiscountAmount > 0 ? formatCurrency(videoDiscountAmount) : "10%"})
-                      </span>
+                    <Label htmlFor="optInNotifications" className="text-base">
+                      Opt-in for notifications and receive a small discount
+                      {notificationDiscountAmount > 0 && (
+                        <span className="text-green-600 font-medium ml-2">
+                          (Save {formatCurrency(notificationDiscountAmount)})
+                        </span>
+                      )}
                     </Label>
                   </div>
 
@@ -611,10 +575,10 @@ export default function CheckoutPage() {
                       <span>Subtotal</span>
                       <span>{formatCurrency(subtotal)}</span>
                     </div>
-                    {videoDiscountAmount > 0 && (
+                    {notificationDiscountAmount > 0 && (
                       <div className="flex justify-between text-lg text-green-600">
-                        <span>Video Recording Discount</span>
-                        <span>-{formatCurrency(videoDiscountAmount)}</span>
+                        <span>Notification Discount</span>
+                        <span>-{formatCurrency(notificationDiscountAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg">

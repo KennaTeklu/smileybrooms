@@ -22,7 +22,11 @@ export function CollapsibleSharePanel() {
   const { registerPanel, unregisterPanel, setActivePanel, activePanel, getPanelConfig } = usePanelManager()
 
   // State for dynamic positioning
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px") // Initial position
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("100px") // Initial position
+
+  // Define configurable scroll range values
+  const basePanelOffset = 100 // Base distance from the top of the viewport for settings/share
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   useEffect(() => {
     registerPanel("sharePanel", { isFullscreen: false, zIndex: 996 })
@@ -51,12 +55,8 @@ export function CollapsibleSharePanel() {
     const scrollY = window.scrollY
     const documentHeight = document.documentElement.scrollHeight
 
-    // Share panel starts at 150px from top of viewport
-    const initialViewportTopOffset = 150
-    const bottomPadding = 20 // Distance from bottom of document
-
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
+    const desiredTopFromScroll = scrollY + basePanelOffset
+    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPageMargin, scrollY + 50)
 
     const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
 
@@ -156,11 +156,18 @@ export function CollapsibleSharePanel() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50 border border-blue-500/20 backdrop-blur-sm relative"
+          className={cn(
+            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
+            "border border-blue-500/20 backdrop-blur-sm relative",
+            "sm:p-4 sm:rounded-xl", // Larger padding for larger screens
+            "max-sm:p-2 max-sm:rounded-lg max-sm:w-10 max-sm:h-10 max-sm:overflow-hidden", // Smaller for small screens, icon only
+          )}
           aria-label="Toggle share panel"
         >
           <Share2 className="h-5 w-5" />
-          <ChevronLeft className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+          <ChevronLeft className="h-4 w-4 max-sm:hidden" /> {/* Hide chevron on small screens */}
         </motion.button>
 
         {/* Expandable Panel */}

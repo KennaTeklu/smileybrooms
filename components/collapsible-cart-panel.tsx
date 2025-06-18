@@ -73,7 +73,9 @@ export function CollapsibleCartPanel() {
   )
 
   // State for dynamic positioning - starts below the Add All panel
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("350px") // Adjusted initial position
+  const basePanelOffset = 100 // Base distance from the top of the viewport for settings/share
+  const panelSpacing = 100 // Spacing between right-side panels
+  const [panelTopPosition, setPanelTopPosition] = useState<string>(`${basePanelOffset + 2 * panelSpacing}px`) // Adjusted initial position
 
   const cartHasItems = cartItems.length > 0
 
@@ -107,7 +109,7 @@ export function CollapsibleCartPanel() {
 
       const calculateInitialPosition = () => {
         const scrollY = window.scrollY
-        const initialTop = scrollY + 350 // Adjusted initial top offset
+        const initialTop = scrollY + basePanelOffset + 2 * panelSpacing // Adjusted initial top offset
         setPanelTopPosition(`${initialTop}px`)
       }
 
@@ -116,9 +118,9 @@ export function CollapsibleCartPanel() {
       controls.start({
         scale: [1, 1.08, 1],
         boxShadow: [
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
-          "0 12px 50px rgba(59, 130, 246, 0.8)",
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
+          "0 4px 20px rgba(16, 185, 129, 0.3)", // Emerald shadow
+          "0 12px 50px rgba(16, 185, 129, 0.8)", // Emerald shadow
+          "0 4px 20px rgba(16, 185, 129, 0.3)", // Emerald shadow
         ],
         transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
       })
@@ -138,7 +140,7 @@ export function CollapsibleCartPanel() {
     const scrollY = window.scrollY
     const documentHeight = document.documentElement.scrollHeight
 
-    const initialViewportTopOffset = 350 // Adjusted initial top offset
+    const initialViewportTopOffset = basePanelOffset + 2 * panelSpacing // Adjusted initial top offset
     const bottomPadding = 20
 
     const desiredTopFromScroll = scrollY + initialViewportTopOffset
@@ -457,6 +459,8 @@ export function CollapsibleCartPanel() {
             "rounded-xl shadow-lg hover:from-emerald-700 hover:to-emerald-800", // Changed to emerald gradient
             "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/50", // Changed to emerald ring
             "border border-emerald-500/20 backdrop-blur-sm relative", // Changed to emerald border
+            "sm:p-4 sm:rounded-xl", // Larger padding for larger screens
+            "max-sm:p-2 max-sm:rounded-lg max-sm:w-10 max-sm:h-10 max-sm:overflow-hidden", // Smaller for small screens, icon only
           )}
           aria-label="Toggle cart panel"
         >
@@ -467,11 +471,16 @@ export function CollapsibleCartPanel() {
                 {totalItems}
               </Badge>
             </div>
-            <div className="text-left">
+            <div className="text-left max-sm:hidden">
+              {" "}
+              {/* Hide text on small screens */}
               <div className="text-sm font-bold">Cart</div>
               <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
             </div>
-            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+            <ChevronRight
+              className={cn("h-4 w-4 transition-transform duration-200 max-sm:hidden", isExpanded && "rotate-90")}
+            />{" "}
+            {/* Hide chevron on small screens */}
           </div>
         </motion.button>
 

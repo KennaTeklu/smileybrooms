@@ -32,7 +32,6 @@ export function CollapsibleSettingsPanel() {
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
@@ -42,8 +41,7 @@ export function CollapsibleSettingsPanel() {
   const { registerPanel, unregisterPanel, setActivePanel, activePanel } = usePanelManager() // Use panel manager
 
   // Define configurable scroll range values
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
+  const basePanelOffset = 100 // Base distance from the top of the viewport for settings/share
   const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   // Handle mounting for SSR
@@ -79,18 +77,15 @@ export function CollapsibleSettingsPanel() {
     if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
 
     const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
       if (panelRef.current) {
         setPanelHeight(panelRef.current.offsetHeight)
       }
     }
 
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
     window.addEventListener("resize", updatePositionAndHeight, { passive: true })
     updatePositionAndHeight() // Initial call
 
     return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
       window.removeEventListener("resize", updatePositionAndHeight)
     }
   }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
@@ -125,10 +120,8 @@ export function CollapsibleSettingsPanel() {
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
+  // Use the current scroll position for panel's top
+  const panelTopPosition = `${Math.max(basePanelOffset, Math.min(window.scrollY + basePanelOffset, maxPanelTop))}px`
 
   return (
     <div ref={panelRef} className="fixed left-0 z-[995]" style={{ top: panelTopPosition }}>
@@ -159,7 +152,7 @@ export function CollapsibleSettingsPanel() {
                 aria-label="Collapse settings panel"
                 className="text-white hover:bg-white/20 rounded-full h-8 w-8"
               >
-                <X className="h-4 w-4" /> {/* Changed to X for consistency */}
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
@@ -395,15 +388,17 @@ export function CollapsibleSettingsPanel() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
             className={cn(
-              "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white", // Changed to blue gradient
-              "rounded-r-xl shadow-lg hover:from-blue-700 hover:to-blue-800", // Adjusted rounded-r-xl
+              "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+              "rounded-r-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
               "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
               "border border-blue-500/20 backdrop-blur-sm relative",
+              "sm:p-4 sm:rounded-r-xl", // Larger padding for larger screens
+              "max-sm:p-2 max-sm:rounded-r-lg max-sm:w-10 max-sm:h-10 max-sm:overflow-hidden", // Smaller for small screens, icon only
             )}
             aria-label="Open settings"
           >
             <Settings className="h-5 w-5" />
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 max-sm:hidden" /> {/* Hide chevron on small screens */}
           </motion.button>
         )}
       </AnimatePresence>
