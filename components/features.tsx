@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 "use client"
 
 import { Sparkles, Clock, Shield, Users, Leaf, Calendar, CreditCard, Star } from "lucide-react"

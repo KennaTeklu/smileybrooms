@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 "use client"
 
 import { useState } from "react"
@@ -59,7 +60,7 @@ export function CleaningTeamSelector({ onTeamSelect, selectedTeam }: CleaningTea
       experience: "7+ years",
       specialties: ["Commercial", "Residential"],
       nextAvailable: "In 2 days",
-      image: "/placeholder.svg?height=80&width=80&query=professional cleaners",
+      image: "/placeholder.svg?height=80&width=80",
     },
   ]
 
