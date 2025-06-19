@@ -10,7 +10,7 @@
  */
 import MinimalHero from "@/components/minimal-hero"
 import ErrorBoundary from "@/components/error-boundary"
-import SettingsPage from "../settings/page" // Import SettingsPage
+import SettingsPage from "./settings/page" // Import SettingsPage
 import SharePanel from "@/components/share-panel" // Import SharePanel
 
 export default function Home() {
