@@ -1,5 +1,6 @@
 "use client"
 
+/* Don't modify beyond what is requested ever. */
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ArrowDown } from "lucide-react"

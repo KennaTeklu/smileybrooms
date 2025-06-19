@@ -1,3 +1,4 @@
+/* Don't modify beyond what is requested ever. */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/utils"

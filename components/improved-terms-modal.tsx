@@ -1,5 +1,6 @@
 "use client"
 
+/* Don't modify beyond what is requested ever. */
 import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"

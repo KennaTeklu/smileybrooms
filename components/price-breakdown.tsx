@@ -1,5 +1,6 @@
 "use client"
 
+/* Don't modify beyond what is requested ever. */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"

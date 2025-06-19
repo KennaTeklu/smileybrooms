@@ -1,5 +1,6 @@
 "use client"
 
+/* Don't modify beyond what is requested ever. */
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
