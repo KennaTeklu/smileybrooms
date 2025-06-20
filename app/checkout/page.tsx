@@ -50,7 +50,7 @@ type CheckoutStep = "contact" | "address" | "payment" | "review"
 
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyD6-06eF-9sbElj_WBJSPyAHSScbLkr-5Q",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // Use environment variable
   authDomain: "authentication-1affb.firebaseapp.com",
   projectId: "authentication-1affb",
   storageBucket: "authentication-1affb.firebasestorage.app",
@@ -301,7 +301,9 @@ export default function CheckoutPage() {
         title: "Phone Number Verified!",
         description: "Your phone number has been successfully verified.",
       })
-      setIsGoogleAuthenticated(false) // Reset Google auth if phone verification succeeds
+      setIsGoogleAuthenticated(false) // Reset Google auth if Google auth succeeds
+      setShowOtpInput(false) // Hide OTP input
+      setOtp("") // Clear OTP
     } catch (error: any) {
       console.error("Error verifying OTP:", error)
       toast({
