@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Phone, ChevronUp, Sparkles, ChevronDown } from "lucide-react"
 import Logo from "@/components/logo"
 import Link from "next/link"
@@ -22,6 +22,33 @@ const socialLinks = [{ icon: Phone, href: "tel:6028000605", label: "Call Us" }]
 export default function SemicircleFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
   const currentYear = new Date().getFullYear()
+  const [lastScrollY, setLastScrollY] = useState(0)
+
+  // Scroll-up hiding logic
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      // Hide if scrolling up significantly and footer is expanded
+      if (
+        isExpanded &&
+        currentScrollY < lastScrollY &&
+        currentScrollY < document.documentElement.scrollHeight - window.innerHeight - 100
+      ) {
+        setIsExpanded(false)
+      }
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [isExpanded, lastScrollY])
+
+  // Constants for arc positioning of links
+  const ARC_RADIUS = 180 // Radius of the arc for links
+  const ARC_CENTER_Y_OFFSET = 100 // Y-position of the arc's center relative to the footer's top
+  const ARC_START_ANGLE = -Math.PI / 2.5 // Start angle (e.g., -72 degrees from vertical)
+  const ARC_END_ANGLE = Math.PI / 2.5 // End angle (e.g., +72 degrees from vertical)
+  const totalAngleSpan = ARC_END_ANGLE - ARC_START_ANGLE
 
   return (
     <footer
@@ -33,7 +60,8 @@ export default function SemicircleFooter() {
         "flex flex-col items-center justify-end",
       )}
       style={{
-        clipPath: "ellipse(50% 100% at 50% 100%)", // Makes the entire footer a top-half semicircle
+        // Makes the top of the footer a semicircle (arch from left to right)
+        clipPath: "ellipse(50% 100% at 50% 0%)",
       }}
     >
       {/* Content for Expanded State */}
@@ -48,31 +76,47 @@ export default function SemicircleFooter() {
             <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
 
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 w-full max-w-2xl">
-            {footerLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center"
-                onClick={() => setIsExpanded(false)}
-              >
-                <span className="text-xl">{link.icon}</span>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                  {link.label}
-                </span>
-              </Link>
-            ))}
+          {/* Links arranged in a curved row */}
+          <div className="relative w-full h-[200px] flex justify-center items-center">
+            {footerLinks.map((link, index) => {
+              // Calculate angle for each link
+              const angle = ARC_START_ANGLE + (index / (footerLinks.length - 1)) * totalAngleSpan
+              // Calculate x and y coordinates on the arc
+              const x = ARC_RADIUS * Math.sin(angle)
+              const y = ARC_RADIUS * Math.cos(angle)
+
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="absolute flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center min-w-[80px]"
+                  onClick={() => setIsExpanded(false)}
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `${ARC_CENTER_Y_OFFSET - y}px`, // Position relative to the top of the footer, inverted Y for top arc
+                    transform: `translateX(-50%) rotate(${angle * (180 / Math.PI)}deg)`, // Rotate item to follow curve
+                    transformOrigin: "center center", // Rotate around its own center
+                  }}
+                >
+                  <span className="text-xl">{link.icon}</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    {link.label}
+                  </span>
+                </Link>
+              )
+            })}
           </div>
 
           {/* Logo and Copyright */}
-          <div className="flex flex-col items-center gap-2 mt-8">
-            <Logo className="h-8 w-auto" iconOnly={false} />
-            <div className="text-xs text-gray-500 dark:text-gray-400">&copy; {currentYear} Smiley Brooms</div>
+          <div className="flex flex-col items-center gap-2 mt-auto mb-4">
+            {" "}
+            {/* Use mt-auto to push to bottom */}
+            <Logo className="h-8 w-auto" />
+            <div className="text-xs text-gray-500 dark:text-gray-400">{"2025 smileybrooms All rights reserved."}</div>
           </div>
 
           {/* Social Links / Phone */}
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mb-4">
             {socialLinks.map((social) => (
               <a
                 key={social.label}
