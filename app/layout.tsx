@@ -1,36 +1,84 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import { CartPanelVisibilityProvider } from "@/contexts/cart-panel-visibility-context"
-import { ThemeProvider } from "@/components/theme-provider"
-import { CartProvider } from "@/contexts/shopping-cart-context"
-import { QueryClientProvider } from "@/components/query-client-provider"
-import { AnalyticsTracker } from "@/components/analytics-tracker"
+import "./device-themes.css"
+import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
 import { Toaster } from "@/components/ui/toaster"
-import { ProductionCartSystem } from "@/components/production-cart-system"
+import { CartProvider } from "@/lib/cart-context" // Corrected import path
+import { RoomProvider } from "@/lib/room-context"
+import { AccessibilityProvider } from "@/lib/accessibility-context"
+import { TourProvider } from "@/contexts/tour-context"
+import { QueryClientProvider } from "@/components/providers/query-client-provider"
+import Header from "@/components/header"
+import { EnhancedFooter } from "@/components/enhanced-footer"
+import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
+import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
+import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
+import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { AnalyticsTracker } from "@/components/analytics-tracker"
+import { Suspense } from "react"
+import { CartPanelVisibilityProvider } from "@/contexts/cart-panel-visibility-context" // Ensure this is imported
+import { Inter } from "next/font/google"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
+  title: "smileybrooms - Professional Cleaning Services",
+  description: "Professional cleaning services that bring joy to your home",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
   generator: "v0.dev",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <CartProvider>
-            <QueryClientProvider>
-              <AnalyticsTracker />
-              <CartPanelVisibilityProvider>
-                <ProductionCartSystem />
-                {children}
-              </CartPanelVisibilityProvider>
-              <Toaster />
-            </QueryClientProvider>
-          </CartProvider>
-        </ThemeProvider>
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+      </head>
+      <body className={inter.className}>
+        <QueryClientProvider>
+          <ThemeProviderEnhanced>
+            <AccessibilityProvider>
+              <CartProvider>
+                <RoomProvider>
+                  <TourProvider>
+                    <AbandonmentProvider>
+                      <TooltipProvider>
+                        <CartPanelVisibilityProvider>
+                          {" "}
+                          {/* Wrap with the new provider */}
+                          <div className="relative flex min-h-screen flex-col">
+                            <Header />
+                            <Suspense>
+                              <main className="flex-1">{children}</main>
+                            </Suspense>
+                            <EnhancedFooter />
+                          </div>
+                          <CollapsibleSettingsPanel />
+                          <CollapsibleSharePanel />
+                          <CollapsibleAddAllPanel />
+                          <CollapsibleCartPanel />
+                          <Toaster />
+                          <AnalyticsTracker />
+                        </CartPanelVisibilityProvider>
+                      </TooltipProvider>
+                    </AbandonmentProvider>
+                  </TourProvider>
+                </RoomProvider>
+              </CartProvider>
+            </AccessibilityProvider>
+          </ThemeProviderEnhanced>
+        </QueryClientProvider>
       </body>
     </html>
   )

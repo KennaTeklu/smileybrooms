@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react"
 
-type CartPanelVisibilityContextType = {
+interface CartPanelVisibilityContextType {
   isCartPanelOpen: boolean
   openCartPanel: () => void
   closeCartPanel: () => void
@@ -23,7 +23,7 @@ export function CartPanelVisibilityProvider({ children }: { children: ReactNode 
   )
 }
 
-export const useCartPanelVisibility = () => {
+export function useCartPanelVisibility() {
   const context = useContext(CartPanelVisibilityContext)
   if (context === undefined) {
     throw new Error("useCartPanelVisibility must be used within a CartPanelVisibilityProvider")
