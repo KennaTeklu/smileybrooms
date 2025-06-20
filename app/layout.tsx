@@ -16,11 +16,11 @@ import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-pane
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
+import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
-// Removed: import { CartPanelVisibilityProvider } from "@/contexts/cart-panel-visibility-context" // No longer needed
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -54,7 +54,6 @@ export default function RootLayout({
                   <TourProvider>
                     <AbandonmentProvider>
                       <TooltipProvider>
-                        {/* Removed CartPanelVisibilityProvider */}
                         <div className="relative flex min-h-screen flex-col">
                           <Header />
                           <Suspense>
@@ -62,6 +61,7 @@ export default function RootLayout({
                           </Suspense>
                           <EnhancedFooter />
                         </div>
+                        <CollapsibleChatbotPanel />
                         <CollapsibleSettingsPanel />
                         <CollapsibleSharePanel />
                         <CollapsibleAddAllPanel />
