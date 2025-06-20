@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { US_STATES } from "@/lib/location-data"
 
 export interface AddressFormData {
-  fullName: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
   address: string
@@ -27,40 +28,24 @@ export interface AddressFormData {
 }
 
 interface InlineAddressFormProps {
-  onSubmit: (data: AddressFormData) => void
-  calculatedPrice: number
-  serviceDetails: {
-    roomName: string
-    roomCount: number
-    selectedTier: string
-    selectedAddOns: string[]
-    selectedReductions: string[]
-    frequency: string
-  }
+  formData: AddressFormData
+  onFormChange: (data: AddressFormData) => void
+  onSubmit: () => void // Simplified onSubmit, as price calculation is external
+  isSubmitting: boolean
+  isSaved: boolean
 }
 
-export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }: InlineAddressFormProps) {
-  const [formData, setFormData] = useState<AddressFormData>({
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    specialInstructions: "",
-    allowVideoRecording: false,
-  })
-
+export function InlineAddressForm({ formData, onFormChange, onSubmit, isSubmitting, isSaved }: InlineAddressFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
+
+  useEffect(() => {
+    // Clear errors when form data changes externally (e.g., from parent)
+    setErrors({})
+  }, [formData])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setIsSaved(false)
-
+    onFormChange({ ...formData, [name]: value })
     // Clear error when field is edited
     if (errors[name]) {
       setErrors((prev) => {
@@ -72,9 +57,7 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setIsSaved(false)
-
+    onFormChange({ ...formData, [name]: value })
     // Clear error when field is edited
     if (errors[name]) {
       setErrors((prev) => {
@@ -86,14 +69,14 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
   }
 
   const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, allowVideoRecording: checked }))
-    setIsSaved(false)
+    onFormChange({ ...formData, allowVideoRecording: checked })
   }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.fullName.trim()) newErrors.fullName = "Name is required"
+    if (!formData.firstName.trim()) newErrors.firstName = "First Name is required"
+    if (!formData.lastName.trim()) newErrors.lastName = "Last Name is required"
     if (!formData.email.trim()) newErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid"
 
@@ -109,37 +92,10 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!validateForm()) return
-
-    setIsSubmitting(true)
-
-    try {
-      const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
-      const finalPrice = calculatedPrice - videoRecordingDiscount
-
-      // Create complete service data
-      const serviceData = {
-        ...formData,
-        serviceDetails,
-        pricing: {
-          basePrice: calculatedPrice,
-          videoRecordingDiscount,
-          finalPrice,
-        },
-      }
-
-      // Call the onSubmit callback
-      onSubmit(serviceData)
-      setIsSaved(true)
-    } catch (error) {
-      console.error("Error submitting form:", error)
-    } finally {
-      setIsSubmitting(false)
+    if (validateForm()) {
+      onSubmit()
     }
   }
-
-  const finalPrice = calculatedPrice - (formData.allowVideoRecording ? 25 : 0)
 
   return (
     <Card className="w-full">
@@ -154,47 +110,59 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Contact Information</h4>
 
-            <div>
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                className={errors.fullName ? "border-red-500" : ""}
-                placeholder="Enter your full name"
-              />
-              {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
                   onChange={handleChange}
-                  className={errors.email ? "border-red-500" : ""}
-                  placeholder="your@email.com"
+                  className={errors.firstName ? "border-red-500" : ""}
+                  placeholder="Enter your first name"
                 />
-                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
               </div>
-
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="lastName">Last Name</Label>
                 <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
                   onChange={handleChange}
-                  className={errors.phone ? "border-red-500" : ""}
-                  placeholder="(555) 123-4567"
+                  className={errors.lastName ? "border-red-500" : ""}
+                  placeholder="Enter your last name"
                 />
-                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className={errors.email ? "border-red-500" : ""}
+                placeholder="your@email.com"
+              />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                className={errors.phone ? "border-red-500" : ""}
+                placeholder="(555) 123-4567"
+              />
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
           </div>
 
@@ -304,36 +272,18 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
             </div>
           </div>
 
-          {/* Price Preview */}
-          <div className="bg-gray-50 dark:bg-gray-800/20 p-4 rounded-lg mt-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Service Price:</span>
-                <span>${calculatedPrice.toFixed(2)}</span>
-              </div>
-              {formData.allowVideoRecording && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Video Recording Discount:</span>
-                  <span>-$25.00</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
-                <span>Estimated Total:</span>
-                <span>${finalPrice.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
+          {/* Price Preview removed from here */}
 
           {/* Save Button */}
           <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
             <Save className="h-4 w-4" />
-            {isSubmitting ? "Saving..." : isSaved ? "Saved!" : "Save Address Information"}
+            {isSubmitting ? "Saving..." : isSaved ? "Saved!" : "Save Information"}
           </Button>
 
           <p className="text-xs text-gray-500 text-center">
             {isSaved
-              ? "Address information saved. Click Next to continue to review."
-              : "Save your address information to continue to the final review step."}
+              ? "Information saved. Click Next to continue."
+              : "Save your information to continue to the next step."}
           </p>
         </form>
       </CardContent>

@@ -1,167 +1,179 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import {
-  Phone,
-  ChevronUp,
-  Sparkles,
-  ChevronDown,
-  BookOpen,
-  Briefcase,
-  ClipboardList,
-  DollarSign,
-  Settings,
-  Download,
-  Calculator,
-} from "lucide-react"
-import Logo from "@/components/logo"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { ChevronUp, ChevronDown, Phone, Mail, MapPin, Facebook, Instagram, Twitter } from "lucide-react"
+import { SmileyBroomsLogo } from "./smiley-brooms-logo"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
 
-const footerLinks = [
-  { label: "About", href: "/about", icon: BookOpen },
-  { label: "Careers", href: "/careers", icon: Briefcase },
-  { label: "Contact", href: "/contact", icon: Phone },
-  { label: "Terms", href: "/terms", icon: ClipboardList },
-  { label: "Pricing", href: "/pricing", icon: DollarSign },
-  { label: "Calculator", href: "/calculator", icon: Calculator },
-  { label: "Tech Stack", href: "/tech-stack", icon: Settings },
-  { label: "Download", href: "/download", icon: Download },
-]
-
-const companyPhoneNumber = "6028000605"
-const socialLinks = [{ icon: Phone, href: `tel:${companyPhoneNumber}`, label: "Call Us" }]
-
-export default function SemicircleFooter() {
+export function SemicircleFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [lastScrollY, setLastScrollY] = useState(0)
-  const currentYear = new Date().getFullYear()
+  const [isHidden, setIsHidden] = useState(false)
+  const lastScrollY = useRef(0)
+  const footerRef = useRef<HTMLDivElement>(null)
 
-  // Handle scroll to hide footer
-  useEffect(() => {
-    const handleScroll = () => {
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded)
+    setIsHidden(false) // Always show when toggling manually
+  }
+
+  const handleScroll = useCallback(() => {
+    if (isExpanded) {
       const currentScrollY = window.scrollY
-      // Only collapse if scrolling up significantly and not at the very bottom
-      if (
-        isExpanded &&
-        currentScrollY < lastScrollY &&
-        currentScrollY < document.documentElement.scrollHeight - window.innerHeight - 100
-      ) {
-        setIsExpanded(false)
+      if (currentScrollY < lastScrollY.current && currentScrollY > 0) {
+        // Scrolling up
+        setIsHidden(true)
+      } else {
+        setIsHidden(false)
       }
-      setLastScrollY(currentScrollY)
+      lastScrollY.current = currentScrollY
     }
+  }, [isExpanded])
 
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [isExpanded, lastScrollY])
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [handleScroll])
 
-  // Parameters for the curved link arrangement
-  // These radii define the ellipse path for the links
-  const linkArcHorizontalRadius = 100 // Controls how wide the link arc is
-  const linkArcVerticalRadius = 200 // Controls how tall the link arc is
-  const linkArcBaseOffset = 50 // Distance from the left edge of the footer to the leftmost point of the link arc
+  // Define the properties for the horizontal arch
+  const footerWidth = isExpanded ? 400 : 100 // Expanded width vs collapsed width
+  const footerHeight = isExpanded ? 600 : 100 // Expanded height vs collapsed height
+  const clipPathValue = `ellipse(50% 100% at 0% 50%)` // Left-side vertical arch
+
+  // Calculate positions for content within the arch
+  // These values will need careful tuning based on desired visual
+  const linkArcHorizontalRadius = 150 // Controls how wide the arc for links is
+  const linkArcVerticalRadius = 250 // Controls how tall the arc for links is
+  const linkArcBaseOffset = 100 // Base offset from the left edge of the footer
+
+  const getLinkPosition = (index: number, totalLinks: number) => {
+    const angleStep = Math.PI / (totalLinks + 1) // Angle between links
+    const angle = angleStep * (index + 1) - Math.PI / 2 // Start from bottom-left of arc
+
+    const x = linkArcBaseOffset + linkArcHorizontalRadius * Math.cos(angle)
+    const y = footerHeight / 2 + linkArcVerticalRadius * Math.sin(angle)
+
+    return { left: `${x}px`, top: `${y}px`, transform: "translate(-50%, -50%)" }
+  }
+
+  const links = [
+    { name: "Services", href: "/pricing" },
+    { name: "About Us", href: "/about" },
+    { name: "Careers", href: "/careers" },
+    { name: "Contact", href: "/contact" },
+    { name: "Terms", href: "/terms" },
+    { name: "Privacy", href: "/privacy" },
+  ]
+
+  const socialLinks = [
+    { icon: <Facebook className="h-5 w-5" />, href: "https://facebook.com/smileybrooms" },
+    { icon: <Instagram className="h-5 w-5" />, href: "https://instagram.com/smileybrooms" },
+    { icon: <Twitter className="h-5 w-5" />, href: "https://twitter.com/smileybrooms" },
+  ]
 
   return (
     <footer
-      className={cn(
-        "fixed bottom-0 left-0 w-[100px] h-full overflow-hidden", // Fixed position, narrow width, full height
-        "bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800", // Gradient from left to right
-        "transition-all duration-500 ease-in-out",
-        isExpanded ? "w-[400px]" : "w-[100px]", // Adjust width based on expanded state
-        "flex flex-col items-center justify-center", // Center content vertically
-      )}
-      style={{
-        // Makes the entire footer a left-to-right arch (right-half ellipse)
-        clipPath: "ellipse(50% 100% at 0% 50%)", // Center at left edge, middle height
-      }}
-      role="contentinfo"
+      ref={footerRef}
+      className={`fixed bottom-0 left-0 bg-blue-600 text-white shadow-lg transition-all duration-500 ease-in-out z-[1000]
+        ${isExpanded ? "w-[400px] h-[600px]" : "w-[100px] h-[100px]"}
+        ${isHidden ? "translate-x-[-100%]" : "translate-x-0"}
+        flex flex-col justify-between items-center p-4`}
+      style={{ clipPath: clipPathValue }}
     >
-      {/* Content for Expanded State */}
+      {/* Collapsed State */}
+      {!isExpanded && (
+        <Button
+          onClick={toggleExpanded}
+          className="absolute bottom-4 right-4 rounded-full w-16 h-16 flex items-center justify-center bg-white text-blue-600 shadow-md hover:bg-gray-100"
+          aria-label="Expand Footer"
+        >
+          <ChevronUp className="h-8 w-8" />
+        </Button>
+      )}
+
+      {/* Expanded State */}
       {isExpanded && (
-        <div className="absolute inset-0 flex flex-col items-center justify-start pt-8 pb-4 px-4 w-full h-full">
-          {/* Collapse Button */}
-          <button
-            onClick={() => setIsExpanded(false)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-110"
-            aria-label="Collapse footer"
+        <>
+          <Button
+            onClick={toggleExpanded}
+            className="absolute top-4 right-4 rounded-full w-10 h-10 flex items-center justify-center bg-white text-blue-600 shadow-md hover:bg-gray-100"
+            aria-label="Collapse Footer"
           >
-            <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400 rotate-90" />{" "}
-            {/* Rotate for horizontal collapse */}
-          </button>
+            <ChevronDown className="h-6 w-6" />
+          </Button>
 
-          {/* Links in a curved row following the semicircle */}
-          <div className="relative h-full w-[200px] flex justify-center items-center mt-8">
-            {footerLinks.map((link, index) => {
-              // Distribute links from -Math.PI/2 to Math.PI/2 (a full right-half ellipse arc)
-              const angle = (index / (footerLinks.length - 1)) * Math.PI - Math.PI / 2
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
+            {/* Logo */}
+            <div className="absolute top-10 left-1/2 -translate-x-1/2">
+              <SmileyBroomsLogo className="h-20 w-20 text-white" />
+            </div>
 
-              // Calculate x and y positions on the ellipse arc
-              const xOffset = linkArcHorizontalRadius * Math.cos(angle)
-              const yOffset = linkArcVerticalRadius * Math.sin(angle)
+            {/* Navigation Links */}
+            <nav className="absolute" style={{ top: "200px", left: "50%", transform: "translateX(-50%)" }}>
+              <ul
+                className="relative"
+                style={{ width: `${linkArcHorizontalRadius * 2}px`, height: `${linkArcVerticalRadius * 2}px` }}
+              >
+                {links.map((link, index) => (
+                  <li
+                    key={link.name}
+                    className="absolute text-center"
+                    style={{
+                      ...getLinkPosition(index, links.length),
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Link href={link.href} className="text-white hover:underline text-lg font-medium">
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
 
-              return (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="absolute flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center"
-                  onClick={() => setIsExpanded(false)}
-                  style={{
-                    left: `${linkArcBaseOffset + xOffset}px`, // Position relative to the left of the footer
-                    top: `calc(50% + ${yOffset}px)`, // Center vertically
-                    transform: "translate(-50%, -50%)", // Center the element on its calculated point
-                  }}
+            {/* Contact Info */}
+            <div className="absolute bottom-40 left-1/2 -translate-x-1/2 text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Phone className="h-5 w-5" />
+                <a href="tel:6028000605" className="hover:underline">
+                  (602) 800-0605
+                </a>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Mail className="h-5 w-5" />
+                <a href="mailto:info@smileybrooms.com" className="hover:underline">
+                  info@smileybrooms.com
+                </a>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <MapPin className="h-5 w-5" />
+                <span>Phoenix, AZ</span>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex space-x-4">
+              {socialLinks.map((social, index) => (
+                <a
+                  key={index}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80"
                 >
-                  <link.icon className="h-5 w-5 text-primary" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                    {link.label}
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
+                  {social.icon}
+                </a>
+              ))}
+            </div>
 
-          {/* Logo and Copyright */}
-          <div className="flex flex-col items-center gap-2 mt-auto mb-4">
-            <Logo className="h-8 w-auto" iconOnly={false} />
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; {currentYear} smileybrooms.com All rights reserved.
+            {/* Copyright */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-gray-200">
+              &copy; 2025 smileybrooms.com All rights reserved.
             </div>
           </div>
-
-          {/* Social Links / Phone */}
-          <div className="flex gap-3 mb-4">
-            {socialLinks.map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                className="p-3 rounded-full bg-primary/20 hover:bg-primary/30 transition-all duration-300 hover:scale-110"
-                aria-label={social.label}
-              >
-                <social.icon className="h-5 w-5 text-primary" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Content for Collapsed State (always visible at the bottom of the semicircle) */}
-      {!isExpanded && (
-        <div className="absolute top-1/2 -translate-y-1/2 left-0 pl-4">
-          {" "}
-          {/* Position for collapsed button */}
-          <button
-            onClick={() => setIsExpanded(true)}
-            className="group relative flex flex-col items-center gap-2 px-3 py-6 bg-primary/10 hover:bg-primary/20 rounded-full border-2 border-primary/30 hover:border-primary/50 transition-all duration-300 hover:scale-105"
-            aria-label="Expand footer"
-          >
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary [writing-mode:vertical-lr] rotate-180">Explore More</span>{" "}
-            {/* Vertical text */}
-            <ChevronUp className="h-4 w-4 text-primary group-hover:animate-bounce rotate-90" />{" "}
-            {/* Rotate for horizontal expansion */}
-          </button>
-        </div>
+        </>
       )}
     </footer>
   )

@@ -1,50 +1,46 @@
 "use client"
 
-import { useRef, useLayoutEffect } from "react"
+import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { ChatbotManager } from "@/components/chatbot-manager"
+import { X, MessageSquare } from "lucide-react"
+import { ChatbotManager } from "./chatbot-manager" // Assuming ChatbotManager exists
 
 interface CollapsibleChatbotPanelProps {
-  isExpanded: boolean
-  setIsExpanded: (expanded: boolean) => void
-  setPanelHeight: (height: number) => void
-  dynamicBottom: number
+  isOpen: boolean
+  onClose: () => void
+  dynamicTop: number // New prop for dynamic positioning
+  setPanelHeight: (height: number) => void // Callback to report height
 }
 
-export function CollapsibleChatbotPanel({
-  isExpanded,
-  setIsExpanded,
-  setPanelHeight,
-  dynamicBottom,
-}: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel({ isOpen, onClose, dynamicTop, setPanelHeight }: CollapsibleChatbotPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (panelRef.current) {
       setPanelHeight(panelRef.current.offsetHeight)
     }
-  }, [isExpanded, setPanelHeight])
+  }, [isOpen, setPanelHeight]) // Recalculate height when open state changes
+
+  if (!isOpen) return null
 
   return (
     <div
       ref={panelRef}
-      className={cn(
-        "fixed right-4 z-[999] transition-all duration-300 ease-in-out",
-        isExpanded ? "translate-x-0 opacity-100 visible" : "translate-x-full opacity-0 invisible",
-      )}
-      style={{ bottom: `${dynamicBottom}px` }}
+      className="fixed right-4 z-[999] transition-all duration-300 ease-in-out"
+      style={{ top: `${dynamicTop}px` }}
     >
-      <Card className="w-80 h-[400px] flex flex-col shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-          <CardTitle className="text-lg font-semibold">Chat with us</CardTitle>
-          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} aria-label="Close chatbot">
-            <X className="h-5 w-5" />
+      <Card className="w-80 shadow-lg h-[500px] flex flex-col">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" /> AI Assistant
+          </CardTitle>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
           </Button>
         </CardHeader>
-        <CardContent className="flex-1 p-4 pt-2 overflow-hidden">
+        <CardContent className="flex-1 p-0">
           <ChatbotManager />
         </CardContent>
       </Card>

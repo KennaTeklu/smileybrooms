@@ -1,11 +1,20 @@
 import type React from "react"
 import type { Metadata } from "next"
-import ClientLayout from "./ClientLayout"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+import { CartProvider } from "@/lib/cart-context"
+import { PricingProvider } from "@/contexts/pricing-context"
+import { AnalyticsTracker } from "@/components/analytics-tracker"
+import ClientLayout from "./ClientLayout" // Import the new ClientLayout
+import { Suspense } from "react"
 
-// Metadata is not used in client components, but kept for consistency if this were a server component
+const inter = Inter({ subsets: ["latin"] })
+
 export const metadata: Metadata = {
-  title: "Smiley Brooms",
-  description: "Professional cleaning services for your home and office.",
+  title: "SmileyBrooms - Professional Cleaning Services",
+  description: "Your trusted partner for a sparkling clean home or office.",
     generator: 'v0.dev'
 }
 
@@ -14,8 +23,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return <ClientLayout>{children}</ClientLayout>
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <PricingProvider>
+            <CartProvider>
+              <Suspense>
+                <ClientLayout>{children}</ClientLayout>
+              </Suspense>
+            </CartProvider>
+          </PricingProvider>
+          <Toaster />
+          <AnalyticsTracker />
+        </ThemeProvider>
+      </body>
+    </html>
+  )
 }
-
-
-import './globals.css'
