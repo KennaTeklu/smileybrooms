@@ -1,27 +1,64 @@
 "use client"
 
-import { useState } from "react"
-import { Phone, ChevronUp, Sparkles, ChevronDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import {
+  Phone,
+  ChevronUp,
+  Sparkles,
+  ChevronDown,
+  BookOpen,
+  Briefcase,
+  ClipboardList,
+  DollarSign,
+  Settings,
+  Download,
+} from "lucide-react"
 import Logo from "@/components/logo"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 const footerLinks = [
-  { label: "About", href: "/about", icon: "📖" },
-  { label: "Careers", href: "/careers", icon: "💼" },
-  { label: "Contact", href: "/contact", icon: "📞" },
-  { label: "Terms", href: "/terms", icon: "📋" },
-  { label: "Pricing", href: "/pricing", icon: "💰" },
-  { label: "Calculator", href: "/calculator", icon: "🧮" },
-  { label: "Tech Stack", href: "/tech-stack", icon: "⚙️" },
-  { label: "Download", href: "/download", icon: "📱" },
+  { label: "About", href: "/about", icon: BookOpen },
+  { label: "Careers", href: "/careers", icon: Briefcase },
+  { label: "Contact", href: "/contact", icon: Phone },
+  { label: "Terms", href: "/terms", icon: ClipboardList },
+  { label: "Pricing", href: "/pricing", icon: DollarSign },
+  { label: "Calculator", href: "/calculator", icon: Settings }, // Using Settings for Calculator as it's a tool
+  { label: "Tech Stack", href: "/tech-stack", icon: Settings },
+  { label: "Download", href: "/download", icon: Download },
 ]
 
 const socialLinks = [{ icon: Phone, href: "tel:6028000605", label: "Call Us" }]
 
 export default function SemicircleFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [lastScrollY, setLastScrollY] = useState(0)
   const currentYear = new Date().getFullYear()
+
+  // Handle scroll to hide footer
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      if (
+        isExpanded &&
+        currentScrollY < lastScrollY &&
+        currentScrollY < document.documentElement.scrollHeight - window.innerHeight - 100
+      ) {
+        // Only collapse if scrolling up significantly and not at the very bottom
+        setIsExpanded(false)
+      }
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [isExpanded, lastScrollY])
+
+  // Calculate positions for curved links
+  const radius = 180 // Radius of the semicircle for links
+  const startAngle = -135 // Start angle in degrees (e.g., -135 for bottom-left)
+  const endAngle = 135 // End angle in degrees (e.g., 135 for bottom-right)
+  const angleRange = endAngle - startAngle
 
   return (
     <footer
@@ -35,6 +72,7 @@ export default function SemicircleFooter() {
       style={{
         clipPath: "ellipse(50% 100% at 50% 100%)", // Makes the entire footer a top-half semicircle
       }}
+      role="contentinfo"
     >
       {/* Content for Expanded State */}
       {isExpanded && (
@@ -48,31 +86,47 @@ export default function SemicircleFooter() {
             <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
 
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 w-full max-w-2xl">
-            {footerLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center"
-                onClick={() => setIsExpanded(false)}
-              >
-                <span className="text-xl">{link.icon}</span>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                  {link.label}
-                </span>
-              </Link>
-            ))}
+          {/* Links in a curved row */}
+          <div className="relative w-full h-[200px] flex justify-center items-center mt-8">
+            {footerLinks.map((link, index) => {
+              const angle = startAngle + (index / (footerLinks.length - 1)) * angleRange
+              const angleRad = angle * (Math.PI / 180)
+              const x = radius * Math.cos(angleRad)
+              const y = radius * Math.sin(angleRad)
+
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="absolute flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center"
+                  onClick={() => setIsExpanded(false)}
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    bottom: `calc(50% + ${y}px)`,
+                    transform: "translate(-50%, 50%)", // Adjust to center the element on its calculated point
+                  }}
+                >
+                  <link.icon className="h-5 w-5 text-primary" />
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    {link.label}
+                  </span>
+                </Link>
+              )
+            })}
           </div>
 
           {/* Logo and Copyright */}
-          <div className="flex flex-col items-center gap-2 mt-8">
+          <div className="flex flex-col items-center gap-2 mt-auto mb-4">
+            {" "}
+            {/* Push to bottom */}
             <Logo className="h-8 w-auto" iconOnly={false} />
-            <div className="text-xs text-gray-500 dark:text-gray-400">&copy; {currentYear} Smiley Brooms</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              &copy; {currentYear} smileybrooms.com All rights reserved.
+            </div>
           </div>
 
           {/* Social Links / Phone */}
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mb-4">
             {socialLinks.map((social) => (
               <a
                 key={social.label}
