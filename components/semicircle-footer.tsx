@@ -1,20 +1,32 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Phone, ChevronUp, Sparkles, ChevronDown } from "lucide-react"
+import {
+  Phone,
+  ChevronUp,
+  Sparkles,
+  ChevronDown,
+  Book,
+  Briefcase,
+  ClipboardList,
+  DollarSign,
+  Calculator,
+  Settings,
+  Download,
+} from "lucide-react"
 import Logo from "@/components/logo"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 const footerLinks = [
-  { label: "About", href: "/about", icon: "📖" },
-  { label: "Careers", href: "/careers", icon: "💼" },
-  { label: "Contact", href: "/contact", icon: "📞" },
-  { label: "Terms", href: "/terms", icon: "📋" },
-  { label: "Pricing", href: "/pricing", icon: "💰" },
-  { label: "Calculator", href: "/calculator", icon: "🧮" },
-  { label: "Tech Stack", href: "/tech-stack", icon: "⚙️" },
-  { label: "Download", href: "/download", icon: "📱" },
+  { label: "About", href: "/about", icon: Book },
+  { label: "Careers", href: "/careers", icon: Briefcase },
+  { label: "Contact", href: "/contact", icon: Phone }, // Using Phone icon for Contact
+  { label: "Terms", href: "/terms", icon: ClipboardList },
+  { label: "Pricing", href: "/pricing", icon: DollarSign },
+  { label: "Calculator", href: "/calculator", icon: Calculator },
+  { label: "Tech Stack", href: "/tech-stack", icon: Settings },
+  { label: "Download", href: "/download", icon: Download },
 ]
 
 const socialLinks = [{ icon: Phone, href: "tel:6028000605", label: "Call Us" }]
@@ -42,9 +54,9 @@ export default function SemicircleFooter() {
   }, [handleScroll])
 
   // Constants for positioning links on the arc
-  const ARC_RADIUS = 150 // Radius of the arc for links
-  const START_ANGLE = 160 // Start angle in degrees (left side of the arch)
-  const END_ANGLE = 20 // End angle in degrees (right side of the arch)
+  const ARC_RADIUS = 250 // Increased radius for a wider arch
+  const START_ANGLE = 170 // Start angle in degrees (closer to 180 for wider spread)
+  const END_ANGLE = 10 // End angle in degrees (closer to 0 for wider spread)
   const ANGLE_RANGE = START_ANGLE - END_ANGLE // Total angle range
 
   return (
@@ -79,6 +91,7 @@ export default function SemicircleFooter() {
               const angleRad = angle * (Math.PI / 180)
               const x = ARC_RADIUS * Math.cos(angleRad)
               const y = ARC_RADIUS * Math.sin(angleRad)
+              const Icon = link.icon // Get the Lucide React icon component
 
               return (
                 <Link
@@ -92,7 +105,7 @@ export default function SemicircleFooter() {
                   }}
                   onClick={() => setIsExpanded(false)}
                 >
-                  <span className="text-xl">{link.icon}</span>
+                  <Icon className="h-5 w-5 text-gray-700 dark:text-gray-300" /> {/* Render the icon */}
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                     {link.label}
                   </span>
@@ -110,16 +123,19 @@ export default function SemicircleFooter() {
 
             {/* Social Links / Phone */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  className="p-3 rounded-full bg-primary/20 hover:bg-primary/30 transition-all duration-300 hover:scale-110"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-5 w-5 text-primary" />
-                </a>
-              ))}
+              {socialLinks.map((social) => {
+                const SocialIcon = social.icon
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    className="p-3 rounded-full bg-primary/20 hover:bg-primary/30 transition-all duration-300 hover:scale-110"
+                    aria-label={social.label}
+                  >
+                    <SocialIcon className="h-5 w-5 text-primary" />
+                  </a>
+                )
+              })}
             </div>
           </div>
         </div>
