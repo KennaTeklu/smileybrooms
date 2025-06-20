@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Phone, ChevronUp, Sparkles, ChevronDown } from "lucide-react"
 import Logo from "@/components/logo"
 import Link from "next/link"
@@ -18,50 +18,46 @@ const footerLinks = [
 ]
 
 const socialLinks = [{ icon: Phone, href: "tel:6028000605", label: "Call Us" }]
+const PHONE_NUMBER = "(602) 800-0605"
 
 export default function SemicircleFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
   const currentYear = new Date().getFullYear()
-  const [lastScrollY, setLastScrollY] = useState(0)
+  const lastScrollY = useRef(0)
 
-  // Scroll-up hiding logic
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      // Hide if scrolling up significantly and footer is expanded
-      if (
-        isExpanded &&
-        currentScrollY < lastScrollY &&
-        currentScrollY < document.documentElement.scrollHeight - window.innerHeight - 100
-      ) {
-        setIsExpanded(false)
-      }
-      setLastScrollY(currentScrollY)
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY
+    // Only collapse if scrolling up and footer is expanded
+    if (currentScrollY < lastScrollY.current && isExpanded) {
+      setIsExpanded(false)
     }
+    lastScrollY.current = currentScrollY
+  }, [isExpanded])
 
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [isExpanded, lastScrollY])
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [handleScroll])
 
-  // Constants for arc positioning of links
-  const ARC_RADIUS = 180 // Radius of the arc for links
-  const ARC_CENTER_Y_OFFSET = 100 // Y-position of the arc's center relative to the footer's top
-  const ARC_START_ANGLE = -Math.PI / 2.5 // Start angle (e.g., -72 degrees from vertical)
-  const ARC_END_ANGLE = Math.PI / 2.5 // End angle (e.g., +72 degrees from vertical)
-  const totalAngleSpan = ARC_END_ANGLE - ARC_START_ANGLE
+  // Constants for positioning links on the arc
+  const ARC_RADIUS = 150 // Radius of the arc for links
+  const START_ANGLE = 160 // Start angle in degrees (left side of the arch)
+  const END_ANGLE = 20 // End angle in degrees (right side of the arch)
+  const ANGLE_RANGE = START_ANGLE - END_ANGLE // Total angle range
 
   return (
     <footer
       className={cn(
         "relative w-full overflow-hidden",
         "bg-gradient-to-t from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800",
-        "transition-all duration-500 ease-in-out",
+        "transition-all duration-300 ease-in-out", // Faster transition for hiding
         isExpanded ? "h-[400px]" : "h-[100px]", // Adjust height based on expanded state
         "flex flex-col items-center justify-end",
       )}
       style={{
-        // Makes the top of the footer a semicircle (arch from left to right)
-        clipPath: "ellipse(50% 100% at 50% 0%)",
+        clipPath: "ellipse(50% 100% at 50% 100%)", // Makes the entire footer a top-half semicircle
       }}
     >
       {/* Content for Expanded State */}
@@ -76,27 +72,25 @@ export default function SemicircleFooter() {
             <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </button>
 
-          {/* Links arranged in a curved row */}
-          <div className="relative w-full h-[200px] flex justify-center items-center">
+          {/* Curved Row of Links */}
+          <div className="relative w-full h-full flex items-end justify-center">
             {footerLinks.map((link, index) => {
-              // Calculate angle for each link
-              const angle = ARC_START_ANGLE + (index / (footerLinks.length - 1)) * totalAngleSpan
-              // Calculate x and y coordinates on the arc
-              const x = ARC_RADIUS * Math.sin(angle)
-              const y = ARC_RADIUS * Math.cos(angle)
+              const angle = START_ANGLE - (index / (footerLinks.length - 1)) * ANGLE_RANGE // Distribute links evenly
+              const angleRad = angle * (Math.PI / 180)
+              const x = ARC_RADIUS * Math.cos(angleRad)
+              const y = ARC_RADIUS * Math.sin(angleRad)
 
               return (
                 <Link
                   key={link.label}
                   href={link.href}
                   className="absolute flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center min-w-[80px]"
-                  onClick={() => setIsExpanded(false)}
                   style={{
                     left: `calc(50% + ${x}px)`,
-                    top: `${ARC_CENTER_Y_OFFSET - y}px`, // Position relative to the top of the footer, inverted Y for top arc
-                    transform: `translateX(-50%) rotate(${angle * (180 / Math.PI)}deg)`, // Rotate item to follow curve
-                    transformOrigin: "center center", // Rotate around its own center
+                    bottom: `${y + 20}px`, // Adjust Y to lift it slightly from the very bottom of the arc
+                    transform: "translateX(-50%)",
                   }}
+                  onClick={() => setIsExpanded(false)}
                 >
                   <span className="text-xl">{link.icon}</span>
                   <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -105,28 +99,28 @@ export default function SemicircleFooter() {
                 </Link>
               )
             })}
-          </div>
 
-          {/* Logo and Copyright */}
-          <div className="flex flex-col items-center gap-2 mt-auto mb-4">
-            {" "}
-            {/* Use mt-auto to push to bottom */}
-            <Logo className="h-8 w-auto" />
-            <div className="text-xs text-gray-500 dark:text-gray-400">{"2025 smileybrooms All rights reserved."}</div>
-          </div>
+            {/* Center Logo and Copyright */}
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
+              <Logo className="h-8 w-auto" iconOnly={false} />
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                &copy; {currentYear} smileybrooms All rights reserved.
+              </div>
+            </div>
 
-          {/* Social Links / Phone */}
-          <div className="flex gap-3 mb-4">
-            {socialLinks.map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                className="p-3 rounded-full bg-primary/20 hover:bg-primary/30 transition-all duration-300 hover:scale-110"
-                aria-label={social.label}
-              >
-                <social.icon className="h-5 w-5 text-primary" />
-              </a>
-            ))}
+            {/* Social Links / Phone */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-3">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  className="p-3 rounded-full bg-primary/20 hover:bg-primary/30 transition-all duration-300 hover:scale-110"
+                  aria-label={social.label}
+                >
+                  <social.icon className="h-5 w-5 text-primary" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       )}

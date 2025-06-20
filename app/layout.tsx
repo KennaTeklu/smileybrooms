@@ -21,7 +21,6 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
-import { FloatingPanelsWrapper } from "@/components/floating-panels-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -64,13 +63,11 @@ export default function RootLayout({
                           <SemicircleFooter />
                         </div>
                         {/* Floating panels */}
-                        <FloatingPanelsWrapper>
-                          <CollapsibleChatbotPanel id="chatbot" />
-                          <CollapsibleSettingsPanel id="settings" />
-                          <CollapsibleSharePanel id="share" />
-                          <CollapsibleAddAllPanel id="addAll" />
-                          <CollapsibleCartPanel id="cart" />
-                        </FloatingPanelsWrapper>
+                        <CollapsibleChatbotPanel />
+                        <CollapsibleSettingsPanel />
+                        <CollapsibleSharePanel />
+                        <CollapsibleAddAllPanel />
+                        <CollapsibleCartPanel />
                         <Toaster />
                         <AnalyticsTracker />
                       </TooltipProvider>
