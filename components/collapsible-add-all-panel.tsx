@@ -534,21 +534,19 @@ export function CollapsibleAddAllPanel() {
             {/* Fullscreen Header */}
             <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
               <div className="container mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBackToPanel}
-                    className="text-white hover:bg-white/20 rounded-full h-10 w-10"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  <div>
-                    <h2 className="text-xl font-bold">Review Your Selections</h2>
-                    <p className="text-blue-100 text-sm">
-                      {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                    </p>
-                  </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBackToPanel}
+                  className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h2 className="text-xl font-bold">Review Your Selections</h2>
+                  <p className="text-blue-100 text-sm">
+                    {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
+                  </p>
                 </div>
                 <Button
                   variant="ghost"

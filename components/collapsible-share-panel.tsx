@@ -190,7 +190,7 @@ export function CollapsibleSharePanel() {
   const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
