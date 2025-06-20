@@ -6,17 +6,23 @@ export const SERVICE_TIERS = {
 
 export const CLEANLINESS_DIFFICULTY = {
   LIGHT: { level: 1, name: "Light", multipliers: { standard: 1.0, premium: 1.0, elite: 1.0 } },
-  MEDIUM: { level: 2, name: "Medium", multipliers: { standard: 2.0, premium: 2.5, elite: 3.0 } },
-  HEAVY: { level: 3, name: "Heavy", multipliers: { standard: 3.0, premium: 4.0, elite: 6.0 } },
-  BIOHAZARD: { level: 4, name: "Biohazard", multipliers: { standard: 4.0, premium: 8.0, elite: 12.0 } },
+  MEDIUM: { level: 2, name: "Medium", multipliers: { standard: 2.5, premium: 3.0, elite: 4.0 } }, // Adjusted multipliers for new tiers
+  HEAVY: { level: 3, name: "Heavy", multipliers: { standard: 4.0, premium: 5.0, elite: 8.0 } }, // Adjusted multipliers for new tiers
+  BIOHAZARD: { level: 4, name: "Biohazard", multipliers: { standard: 6.0, premium: 10.0, elite: 15.0 } }, // Adjusted multipliers for new tiers
 }
 
 export const BASE_ROOM_RATES = {
-  bedroom: { standard: 40, premium: 120, elite: 200 },
-  bathroom: { standard: 60, premium: 180, elite: 300 },
-  kitchen: { standard: 100, premium: 300, elite: 500 },
-  livingRoom: { standard: 80, premium: 240, elite: 400 },
-  homeOffice: { standard: 70, premium: 210, elite: 350 },
+  bedroom: { standard: 50, premium: 150, elite: 250 },
+  bathroom: { standard: 75, premium: 225, elite: 375 },
+  kitchen: { standard: 125, premium: 375, elite: 625 },
+  livingRoom: { standard: 80, premium: 240, elite: 400 }, // Keeping existing for now, will update if needed
+  diningRoom: { standard: 70, premium: 210, elite: 350 }, // Keeping existing for now, will update if needed
+  homeOffice: { standard: 70, premium: 210, elite: 350 }, // Keeping existing for now, will update if needed
+  laundryRoom: { standard: 60, premium: 180, elite: 300 }, // Keeping existing for now, will update if needed
+  entryway: { standard: 50, premium: 150, elite: 250 }, // Keeping existing for now, will update if needed
+  hallway: { standard: 50, premium: 150, elite: 250 }, // Keeping existing for now, will update if needed
+  stairs: { standard: 60, premium: 180, elite: 300 }, // Keeping existing for now, will will update if needed
+  default: { standard: 50, premium: 150, elite: 250 }, // Keeping existing for now, will update if needed
 }
 
 export const STRATEGIC_ADDONS = [
@@ -76,4 +82,10 @@ export const MINIMUM_JOB_VALUES = {
   studio: { standard: 200, premium: 600, elite: 1000 },
   "3br_home": { standard: 500, premium: 1500, elite: 2500 },
   "5br_mansion": { standard: 900, premium: 2700, elite: 4500 },
+}
+
+export const BUNDLE_NAMING = {
+  STANDARD: "Essentials",
+  PREMIUM: "Complete Care",
+  ELITE: "Concierge Deep Clean",
 }
