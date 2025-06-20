@@ -5,8 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import SemicircleFooter from "@/components/semicircle-footer"
-import { QueryClientProvider } from "@/components/providers/query-client-provider"
-import { ClientOnlyWrapper } from "@/components/client-only-wrapper"
+import ClientOnlyWrapper from "@/components/client-only-wrapper" // Corrected to default import
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
@@ -14,6 +13,7 @@ import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { useState, useCallback } from "react"
 import type React from "react"
 import { Suspense } from "react"
+import { QueryClientProvider } from "@/components/providers/query-client-provider" // Ensure QueryClientProvider is imported
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -22,44 +22,38 @@ export default function ClientLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const [isSharePanelOpen, setIsSharePanelOpen] = useState(false)
-  const [isAddAllPanelOpen, setIsAddAllPanelOpen] = useState(false)
-  const [isChatbotPanelOpen, setIsChatbotPanelOpen] = useState(false)
+  const [isChatbotExpanded, setIsChatbotExpanded] = useState(false)
+  const [isShareExpanded, setIsShareExpanded] = useState(false)
+  const [isAddAllExpanded, setIsAddAllExpanded] = useState(false)
 
-  const [sharePanelHeight, setSharePanelHeight] = useState(0)
-  const [addAllPanelHeight, setAddAllPanelHeight] = useState(0)
-  const [chatbotPanelHeight, setChatbotPanelHeight] = useState(0)
+  const [chatbotHeight, setChatbotHeight] = useState(0)
+  const [shareHeight, setShareHeight] = useState(0)
+  const [addAllHeight, setAddAllHeight] = useState(0)
 
   const calculateDynamicTop = useCallback(
-    (panelName: "share" | "addAll" | "chatbot") => {
-      let topOffset = 20 // Base offset from the top
+    (panelType: "chatbot" | "share" | "addAll") => {
+      let offset = 20 // Base offset from the bottom
 
-      if (panelName === "share") {
-        // Share panel is always at the top if open
-        return topOffset
-      }
-
-      if (panelName === "addAll") {
-        if (isSharePanelOpen) {
-          topOffset += sharePanelHeight + 10 // Add share panel height + margin
+      // Chatbot is always at the bottom, so its offset is fixed
+      // Share panel is above chatbot
+      if (panelType === "share") {
+        if (isChatbotExpanded) {
+          offset += chatbotHeight + 10 // Add chatbot height + margin
         }
-        return topOffset
       }
-
-      if (panelName === "chatbot") {
-        if (isSharePanelOpen) {
-          topOffset += sharePanelHeight + 10
+      // AddAll panel is above share panel
+      if (panelType === "addAll") {
+        if (isChatbotExpanded) {
+          offset += chatbotHeight + 10
         }
-        if (isAddAllPanelOpen) {
-          topOffset += addAllPanelHeight + 10
+        if (isShareExpanded) {
+          offset += shareHeight + 10
         }
-        return topOffset
       }
-
-      return topOffset
+      return offset
     },
-    [isSharePanelOpen, isAddAllPanelOpen, sharePanelHeight, addAllPanelHeight, chatbotPanelHeight],
-  ) // Include all heights in dependency array
+    [isChatbotExpanded, isShareExpanded, chatbotHeight, shareHeight],
+  )
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -71,28 +65,24 @@ export default function ClientLayout({
               <Toaster />
               <SemicircleFooter />
 
+              {/* Collapsible Panels */}
+              <CollapsibleChatbotPanel
+                isExpanded={isChatbotExpanded}
+                setIsExpanded={setIsChatbotExpanded}
+                setPanelHeight={setChatbotHeight}
+                dynamicBottom={calculateDynamicTop("chatbot")}
+              />
               <CollapsibleSharePanel
-                isOpen={isSharePanelOpen}
-                onClose={() => setIsSharePanelOpen(false)}
-                shareUrl={typeof window !== "undefined" ? window.location.href : ""}
-                shareText="Check out this awesome cleaning service!"
-                dynamicTop={calculateDynamicTop("share")}
-                setPanelHeight={setSharePanelHeight}
+                isExpanded={isShareExpanded}
+                setIsExpanded={setIsShareExpanded}
+                setPanelHeight={setShareHeight}
+                dynamicBottom={calculateDynamicTop("share")}
               />
               <CollapsibleAddAllPanel
-                isOpen={isAddAllPanelOpen}
-                onClose={() => setIsAddAllPanelOpen(false)}
-                onAddAll={() => console.log("Add all clicked")} // Placeholder, actual logic in PriceCalculator
-                totalRooms={0} // Placeholder
-                totalPrice={0} // Placeholder
-                dynamicTop={calculateDynamicTop("addAll")}
-                setPanelHeight={setAddAllPanelHeight}
-              />
-              <CollapsibleChatbotPanel
-                isOpen={isChatbotPanelOpen}
-                onClose={() => setIsChatbotPanelOpen(false)}
-                dynamicTop={calculateDynamicTop("chatbot")}
-                setPanelHeight={setChatbotPanelHeight}
+                isExpanded={isAddAllExpanded}
+                setIsExpanded={setIsAddAllExpanded}
+                setPanelHeight={setAddAllHeight}
+                dynamicBottom={calculateDynamicTop("addAll")}
               />
             </ClientOnlyWrapper>
           </QueryClientProvider>

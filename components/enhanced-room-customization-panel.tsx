@@ -5,30 +5,25 @@ import { AdvancedSidePanel } from "./sidepanel/advanced-sidepanel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Star, Zap, Shield, Clock, Undo2, Redo2, X } from "lucide-react"
-import { getRoomTiers } from "@/lib/room-tiers" // Removed getRoomAddOns
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { BUNDLE_NAMING } from "@/lib/pricing-config"
-import { Progress } from "@/components/ui/progress"
+import { BUNDLE_NAMING } from "@/lib/pricing-config" // Import BUNDLE_NAMING
+import { Progress } from "@/components/ui/progress" // Import Progress component
 
 interface RoomConfig {
   roomName: string
-  roomType: string
-  roomIcon: string
-  count: number
   selectedTier: string
-  selectedAddOns: string[] // Still part of config, but not managed by this panel
-  selectedReductions: string[] // Still part of config, but not managed by this panel
-  cleanlinessLevel: string
+  selectedAddOns: string[]
   basePrice: number
   tierUpgradePrice: number
-  addOnsPrice: number // Still part of config, but not managed by this panel
-  reductionsPrice: number // Still part of config, but not managed by this panel
+  addOnsPrice: number
   totalPrice: number
 }
 
@@ -74,7 +69,7 @@ export function EnhancedRoomCustomizationPanel({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   const tiers = getRoomTiers(roomType)
-  // Add-ons are no longer managed here
+  const addOns = getRoomAddOns(roomType)
 
   useEffect(() => {
     setLocalConfig(config)
@@ -88,15 +83,15 @@ export function EnhancedRoomCustomizationPanel({
       if (eliteTier) {
         // Simple placeholder for discount calculation.
         // In a real scenario, this would compare total price of current config vs. Elite bundle.
-        // const potentialSavings = eliteTier.price * roomCount - localConfig.totalPrice * roomCount // Removed as add-ons are not here
+        const potentialSavings = eliteTier.price * roomCount - localConfig.totalPrice * roomCount
         toast({
           title: "Consider our Elite Tier!",
-          description: `For ${roomCount} ${roomName}s, upgrading to Elite could provide comprehensive cleaning.`,
+          description: `For ${roomCount} ${roomName}s, upgrading to Elite could save you money and provide comprehensive cleaning.`,
           duration: 5000,
         })
       }
     }
-  }, [roomCount, localConfig.selectedTier, roomName, tiers, toast])
+  }, [roomCount, localConfig.selectedTier, localConfig.totalPrice, roomName, tiers, toast])
 
   const addToHistory = (newConfig: RoomConfig) => {
     setHistory((prev) => {
@@ -136,21 +131,21 @@ export function EnhancedRoomCustomizationPanel({
     const updatedConfig = { ...localConfig, ...newConfig }
 
     const selectedTier = tiers.find((tier) => tier.name === updatedConfig.selectedTier)
-    const basePrice = tiers[0].price // Assuming the first tier is the base
+    const basePrice = tiers[0].price
     const tierUpgradePrice = selectedTier ? selectedTier.price - basePrice : 0
 
-    // Add-ons and reductions are no longer calculated here
-    const addOnsPrice = 0
-    const reductionsPrice = 0
+    const addOnsPrice = updatedConfig.selectedAddOns.reduce((total, addOnId) => {
+      const addOn = addOns.find((a) => a.id === addOnId)
+      return total + (addOn?.price || 0)
+    }, 0)
 
-    const totalPrice = basePrice + tierUpgradePrice
+    const totalPrice = basePrice + tierUpgradePrice + addOnsPrice
 
     return {
       ...updatedConfig,
       basePrice,
       tierUpgradePrice,
-      addOnsPrice, // Set to 0 as not managed here
-      reductionsPrice, // Set to 0 as not managed here
+      addOnsPrice,
       totalPrice: Math.max(0, totalPrice),
     }
   }
@@ -162,7 +157,16 @@ export function EnhancedRoomCustomizationPanel({
     setHasUnsavedChanges(true)
   }
 
-  // handleAddOnToggle removed as add-ons are no longer managed here
+  const handleAddOnToggle = (addOnId: string, checked: boolean) => {
+    const newAddOns = checked
+      ? [...localConfig.selectedAddOns, addOnId]
+      : localConfig.selectedAddOns.filter((id) => id !== addOnId)
+
+    const newConfig = calculatePricing({ selectedAddOns: newAddOns })
+    setLocalConfig(newConfig)
+    addToHistory(newConfig)
+    setHasUnsavedChanges(true)
+  }
 
   const handleSave = () => {
     onConfigChange(localConfig)
@@ -185,10 +189,10 @@ export function EnhancedRoomCustomizationPanel({
   }
 
   const calculateProgress = () => {
-    // Progress now only reflects tier selection
     let progress = 0
-    if (localConfig.selectedTier !== tiers[0].name) progress = 100 // Simple: either base or upgraded
-    return progress
+    if (localConfig.selectedTier !== tiers[0].name) progress += 50
+    if (localConfig.selectedAddOns.length > 0) progress += 50
+    return Math.min(progress, 100)
   }
 
   const getTierIcon = (tierName: string) => {
@@ -260,10 +264,9 @@ export function EnhancedRoomCustomizationPanel({
         </Card>
 
         <Tabs defaultValue="tiers" className="w-full">
-          <TabsList className="grid w-full grid-cols-1">
-            {" "}
-            {/* Only one tab now */}
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="tiers">Service Tiers</TabsTrigger>
+            <TabsTrigger value="addons">Add-ons</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tiers" className="space-y-4">
@@ -377,12 +380,49 @@ export function EnhancedRoomCustomizationPanel({
             </RadioGroup>
           </TabsContent>
 
-          {/* Add-ons tab removed */}
+          <TabsContent value="addons" className="space-y-4">
+            {addOns.length > 0 ? (
+              <div className="space-y-3">
+                {addOns.map((addOn) => (
+                  <Card key={addOn.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id={addOn.id}
+                          checked={localConfig.selectedAddOns.includes(addOn.id)}
+                          onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked as boolean)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <Label htmlFor={addOn.id} className="cursor-pointer">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{addOn.name}</span>
+                              <Badge variant="outline" className="bg-black text-white">
+                                +${addOn.price}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
+                          </Label>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500">No add-ons available for this room type</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Price Breakdown (Per Room)</CardTitle>
+            <CardTitle className="text-lg">Price Breakdown</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
@@ -395,10 +435,15 @@ export function EnhancedRoomCustomizationPanel({
                 <span>+${localConfig.tierUpgradePrice.toFixed(2)}</span>
               </div>
             )}
-            {/* Add-ons and Reductions removed from this breakdown */}
+            {localConfig.addOnsPrice > 0 && (
+              <div className="flex justify-between">
+                <span>Add-ons</span>
+                <span>+${localConfig.addOnsPrice.toFixed(2)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between font-medium">
-              <span>Per Room Total</span>
+              <span>Per Room</span>
               <span>${localConfig.totalPrice.toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg">

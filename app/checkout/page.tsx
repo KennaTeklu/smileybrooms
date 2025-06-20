@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, ArrowRight, CreditCard, Shield, Truck, Clock, MapPin, Check, Package, Calendar } from "lucide-react"
+import { ArrowLeft, ArrowRight, CreditCard, Shield, Truck, Clock, MapPin, User, Check, Package } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
@@ -28,14 +28,25 @@ import {
   type ConfirmationResult,
 } from "firebase/auth"
 import { initializeApp, getApps, getApp } from "firebase/app"
-import { FrequencySelector } from "@/components/frequency-selector"
-import { InlineAddressForm, type AddressFormData } from "@/components/inline-address-form"
-import { usePricingContext } from "@/contexts/pricing-context"
-import { STRATEGIC_ADDONS, PREMIUM_EXCLUSIVE_SERVICES } from "@/lib/pricing-config"
+
+type CustomerData = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  address: {
+    line1: string
+    line2?: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+  }
+}
 
 type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
-type CheckoutStep = "service_config" | "contact_address" | "payment" | "review"
+type CheckoutStep = "contact" | "address" | "payment" | "review"
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -59,8 +70,8 @@ const auth = getAuth(app)
 const googleProvider = new GoogleAuthProvider()
 
 const steps = [
-  { id: "service_config", title: "Service Details", icon: Calendar },
-  { id: "contact_address", title: "Contact & Address", icon: MapPin },
+  { id: "contact", title: "Contact Info", icon: User },
+  { id: "address", title: "Service Address", icon: MapPin },
   { id: "payment", title: "Payment", icon: CreditCard },
   { id: "review", title: "Review Order", icon: Package },
 ]
@@ -69,27 +80,28 @@ export default function CheckoutPage() {
   const { cart, clearCart } = useCart()
   const router = useRouter()
   const { toast } = useToast()
-  const { selectedFrequency, setSelectedFrequency, roomConfigs } = usePricingContext()
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>("service_config")
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>("contact")
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([])
 
-  const [customerFormData, setCustomerFormData] = useState<AddressFormData>({
+  const [customerData, setCustomerData] = useState<CustomerData>({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    specialInstructions: "",
-    allowVideoRecording: false,
+    address: {
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "US",
+    },
   })
-  const [isCustomerDataSaved, setIsCustomerDataSaved] = useState(false)
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
   const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showOtpInput, setShowOtpInput] = useState(false)
@@ -108,68 +120,48 @@ export default function CheckoutPage() {
     }
   }, [cart.items.length, router])
 
-  // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => {
-    let itemPrice = item.price * item.quantity
-    // Apply add-on prices if they are part of the item's metadata
-    if (item.metadata?.selectedAddOns && Array.isArray(item.metadata.selectedAddOns)) {
-      item.metadata.selectedAddOns.forEach((addOnId: string) => {
-        const addOn =
-          STRATEGIC_ADDONS.find((a) => a.id === addOnId) || PREMIUM_EXCLUSIVE_SERVICES.find((a) => a.id === addOnId)
-        if (addOn) {
-          // Assuming add-on price is fixed or based on standard tier if not specified
-          const addOnPrice = addOn.prices ? addOn.prices.standard : addOn.price
-          itemPrice += addOnPrice * item.quantity // Apply add-on price per quantity of the room
-        }
-      })
-    }
-    return sum + itemPrice
-  }, 0)
-
-  const frequencyDiscountRate = selectedFrequency
-    ? selectedFrequency === "one_time"
-      ? 0
-      : selectedFrequency === "weekly"
-        ? 0.15
-        : selectedFrequency === "biweekly"
-          ? 0.1
-          : 0.05
-    : 0
-  const frequencyDiscountAmount = subtotal * frequencyDiscountRate
-
-  const videoDiscountAmount = customerFormData.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const tax = (subtotal - frequencyDiscountAmount - videoDiscountAmount) * 0.08 // 8% tax
-  const total = subtotal - frequencyDiscountAmount - videoDiscountAmount + tax
+  // Calculate totals (these will be passed to server action for final calculation)
+  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const videoDiscountAmount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+  const tax = (subtotal - videoDiscountAmount) * 0.08 // 8% tax
+  const total = subtotal - videoDiscountAmount + tax
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
   const progress = ((currentStepIndex + 1) / steps.length) * 100
 
-  const handleCustomerFormChange = useCallback((data: AddressFormData) => {
-    setCustomerFormData(data)
-    setIsCustomerDataSaved(false)
-  }, [])
-
-  const handleCustomerFormSubmit = useCallback(() => {
-    setIsCustomerDataSaved(true)
-    toast({
-      title: "Information Saved",
-      description: "Your contact and address details have been saved.",
-      duration: 3000,
-    })
-  }, [toast])
+  const handleInputChange = (field: string, value: string) => {
+    if (field.startsWith("address.")) {
+      const addressField = field.split(".")[1]
+      setCustomerData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          [addressField]: value,
+        },
+      }))
+    } else {
+      setCustomerData((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+    }
+  }
 
   const validateStep = (step: CheckoutStep): boolean => {
     switch (step) {
-      case "service_config":
-        return !!selectedFrequency
-      case "contact_address":
-        // Validate using InlineAddressForm's internal validation logic
-        // For simplicity here, we'll just check if it's marked as saved
-        return isCustomerDataSaved
+      case "contact":
+        return !!(customerData.firstName && customerData.lastName && customerData.email && customerData.phone)
+      case "address":
+        return !!(
+          customerData.address.line1 &&
+          customerData.address.city &&
+          customerData.address.state &&
+          customerData.address.postalCode
+        )
       case "payment":
         return !!paymentMethod
       case "review":
-        return agreeToTerms && (isPhoneVerified || isGoogleAuthenticated)
+        return agreeToTerms
       default:
         return false
     }
@@ -241,7 +233,7 @@ export default function CheckoutPage() {
   }, [currentStep, isPhoneVerified, isGoogleAuthenticated, auth, toast])
 
   const handleSendOtp = async () => {
-    if (!customerFormData.phone) {
+    if (!customerData.phone) {
       toast({
         title: "Phone Number Required",
         description: "Please enter your phone number to verify.",
@@ -253,9 +245,10 @@ export default function CheckoutPage() {
     setIsPhoneVerifying(true)
     try {
       // Firebase expects phone numbers in E.164 format (e.g., +15551234567)
-      const phoneNumber = customerFormData.phone.startsWith("+")
-        ? customerFormData.phone
-        : `+1${customerFormData.phone.replace(/\D/g, "")}` // Assuming US numbers, adjust as needed
+      // You might need to add a country code prefix if not already present in customerData.phone
+      const phoneNumber = customerData.phone.startsWith("+")
+        ? customerData.phone
+        : `+1${customerData.phone.replace(/\D/g, "")}` // Assuming US numbers, adjust as needed
 
       const appVerifier = window.recaptchaVerifier
 
@@ -309,8 +302,6 @@ export default function CheckoutPage() {
         description: "Your phone number has been successfully verified.",
       })
       setIsGoogleAuthenticated(false) // Reset Google auth if phone verification succeeds
-      setShowOtpInput(false) // Hide OTP input
-      setOtp("") // Clear OTP
     } catch (error: any) {
       console.error("Error verifying OTP:", error)
       toast({
@@ -332,7 +323,7 @@ export default function CheckoutPage() {
       // Auto-fill customer data from Google profile if available
       if (user.displayName) {
         const nameParts = user.displayName.split(" ")
-        setCustomerFormData((prev) => ({
+        setCustomerData((prev) => ({
           ...prev,
           firstName: nameParts[0] || "",
           lastName: nameParts.slice(1).join(" ") || "",
@@ -385,24 +376,14 @@ export default function CheckoutPage() {
       // Prepare line items from cart
       const customLineItems = cart.items.map((item) => ({
         name: item.name,
-        amount: item.price, // Base price per unit
+        amount: item.price,
         quantity: item.quantity,
         description: item.sourceSection,
         metadata: item.metadata,
       }))
 
-      // Add frequency discount as a line item if applicable
-      if (frequencyDiscountAmount > 0) {
-        customLineItems.push({
-          name: `${selectedFrequency.replace("_", " ")} Discount`,
-          amount: -frequencyDiscountAmount, // Negative amount for discount
-          quantity: 1,
-          description: `Discount for ${selectedFrequency.replace("_", " ")} service frequency`,
-        })
-      }
-
       // Add video recording discount as a line item if applicable
-      if (customerFormData.allowVideoRecording && videoDiscountAmount > 0) {
+      if (videoDiscountAmount > 0) {
         customLineItems.push({
           name: "Video Recording Discount",
           amount: -videoDiscountAmount, // Negative amount for discount
@@ -415,17 +396,18 @@ export default function CheckoutPage() {
         customLineItems: customLineItems,
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: customerFormData.email,
+        customerEmail: customerData.email,
         customerData: {
-          name: `${customerFormData.firstName} ${customerFormData.lastName}`,
-          email: customerFormData.email,
-          phone: customerFormData.phone,
+          name: `${customerData.firstName} ${customerData.lastName}`,
+          email: customerData.email,
+          phone: customerData.phone,
           address: {
-            line1: customerFormData.address,
-            city: customerFormData.city,
-            state: customerFormData.state,
-            postal_code: customerFormData.zipCode,
-            country: "US", // Assuming US, adjust if country selection is added
+            line1: customerData.address.line1,
+            line2: customerData.address.line2,
+            city: customerData.address.city,
+            state: customerData.address.state,
+            postal_code: customerData.address.postalCode,
+            country: customerData.address.country,
           },
         },
         paymentMethodTypes: [paymentMethod],
@@ -457,7 +439,7 @@ export default function CheckoutPage() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case "service_config":
+      case "contact":
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -466,47 +448,77 @@ export default function CheckoutPage() {
             className="space-y-8"
           >
             <div className="text-center mb-8">
-              <Calendar className="mx-auto h-16 w-16 text-blue-600 mb-4" />
-              <h2 className="text-3xl font-bold mb-2">Service Configuration</h2>
+              <User className="mx-auto h-16 w-16 text-blue-600 mb-4" />
+              <h2 className="text-3xl font-bold mb-2">Contact Information</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Choose your preferred cleaning frequency and review your selected services.
+                We'll use this information to contact you about your cleaning service
               </p>
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
-              <FrequencySelector
-                onFrequencyChange={(freq, discount) => setSelectedFrequency(freq)}
-                selectedFrequency={selectedFrequency}
-              />
-              {/* You can add a summary of selected rooms here if desired */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selected Rooms Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {roomConfigs.filter((r) => r.count > 0).length === 0 ? (
-                    <p className="text-gray-500">No rooms selected yet. Please go back to pricing to select rooms.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {roomConfigs
-                        .filter((r) => r.count > 0)
-                        .map((room) => (
-                          <li key={room.roomType} className="flex justify-between items-center">
-                            <span className="font-medium">
-                              {room.roomName} ({room.count})
-                            </span>
-                            <span className="text-sm text-gray-600">{room.selectedTier} Tier</span>
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName" className="text-base font-medium">
+                    First Name
+                  </Label>
+                  <Input
+                    id="firstName"
+                    value={customerData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    className="mt-2 h-12"
+                    placeholder="John"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" className="text-base font-medium">
+                    Last Name
+                  </Label>
+                  <Input
+                    id="lastName"
+                    value={customerData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    className="mt-2 h-12"
+                    placeholder="Doe"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="email" className="text-base font-medium">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={customerData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="mt-2 h-12"
+                  placeholder="john.doe@example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone" className="text-base font-medium">
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={customerData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  className="mt-2 h-12"
+                  placeholder="(555) 123-4567"
+                  required
+                />
+              </div>
             </div>
           </motion.div>
         )
 
-      case "contact_address":
+      case "address":
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -516,18 +528,80 @@ export default function CheckoutPage() {
           >
             <div className="text-center mb-8">
               <MapPin className="mx-auto h-16 w-16 text-blue-600 mb-4" />
-              <h2 className="text-3xl font-bold mb-2">Contact & Service Address</h2>
-              <p className="text-gray-600 dark:text-gray-400">Tell us where to clean and how to reach you.</p>
+              <h2 className="text-3xl font-bold mb-2">Service Address</h2>
+              <p className="text-gray-600 dark:text-gray-400">Where should we provide the cleaning service?</p>
             </div>
 
-            <div className="max-w-md mx-auto">
-              <InlineAddressForm
-                formData={customerFormData}
-                onFormChange={handleCustomerFormChange}
-                onSubmit={handleCustomerFormSubmit}
-                isSubmitting={false} // Managed by parent now
-                isSaved={isCustomerDataSaved} // Managed by parent now
-              />
+            <div className="max-w-md mx-auto space-y-6">
+              <div>
+                <Label htmlFor="address1" className="text-base font-medium">
+                  Street Address
+                </Label>
+                <Input
+                  id="address1"
+                  value={customerData.address.line1}
+                  onChange={(e) => handleInputChange("address.line1", e.target.value)}
+                  className="mt-2 h-12"
+                  placeholder="123 Main Street"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="address2" className="text-base font-medium">
+                  Apartment, suite, etc. (optional)
+                </Label>
+                <Input
+                  id="address2"
+                  value={customerData.address.line2}
+                  onChange={(e) => handleInputChange("address.line2", e.target.value)}
+                  className="mt-2 h-12"
+                  placeholder="Apt 4B"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city" className="text-base font-medium">
+                    City
+                  </Label>
+                  <Input
+                    id="city"
+                    value={customerData.address.city}
+                    onChange={(e) => handleInputChange("address.city", e.target.value)}
+                    className="mt-2 h-12"
+                    placeholder="New York"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state" className="text-base font-medium">
+                    State
+                  </Label>
+                  <Input
+                    id="state"
+                    value={customerData.address.state}
+                    onChange={(e) => handleInputChange("address.state", e.target.value)}
+                    className="mt-2 h-12"
+                    placeholder="NY"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="postalCode" className="text-base font-medium">
+                  ZIP Code
+                </Label>
+                <Input
+                  id="postalCode"
+                  value={customerData.address.postalCode}
+                  onChange={(e) => handleInputChange("address.postalCode", e.target.value)}
+                  className="mt-2 h-12"
+                  placeholder="10001"
+                  required
+                />
+              </div>
             </div>
           </motion.div>
         )
@@ -655,19 +729,6 @@ export default function CheckoutPage() {
                             {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
                             {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
                             <p>Quantity: {item.quantity}</p>
-                            {item.metadata?.selectedAddOns && item.metadata.selectedAddOns.length > 0 && (
-                              <p>
-                                Add-ons:{" "}
-                                {item.metadata.selectedAddOns
-                                  .map((id: string) => {
-                                    const addOn =
-                                      STRATEGIC_ADDONS.find((a) => a.id === id) ||
-                                      PREMIUM_EXCLUSIVE_SERVICES.find((a) => a.id === id)
-                                    return addOn ? addOn.name : id
-                                  })
-                                  .join(", ")}
-                              </p>
-                            )}
                           </div>
                         </div>
                         <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
@@ -686,26 +747,19 @@ export default function CheckoutPage() {
                   <div>
                     <h4 className="font-medium mb-2">Contact Information</h4>
                     <p className="text-gray-600">
-                      {customerFormData.firstName} {customerFormData.lastName}
+                      {customerData.firstName} {customerData.lastName}
                     </p>
-                    <p className="text-gray-600">{customerFormData.email}</p>
-                    <p className="text-gray-600">{customerFormData.phone}</p>
+                    <p className="text-gray-600">{customerData.email}</p>
+                    <p className="text-gray-600">{customerData.phone}</p>
                   </div>
                   <Separator />
                   <div>
                     <h4 className="font-medium mb-2">Service Address</h4>
-                    <p className="text-gray-600">{customerFormData.address}</p>
+                    <p className="text-gray-600">{customerData.address.line1}</p>
+                    {customerData.address.line2 && <p className="text-gray-600">{customerData.address.line2}</p>}
                     <p className="text-gray-600">
-                      {customerFormData.city}, {customerFormData.state} {customerFormData.zipCode}
+                      {customerData.address.city}, {customerData.address.state} {customerData.address.postalCode}
                     </p>
-                    {customerFormData.specialInstructions && (
-                      <p className="text-gray-600 mt-2">Instructions: {customerFormData.specialInstructions}</p>
-                    )}
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-2">Service Frequency</h4>
-                    <p className="text-gray-600">{selectedFrequency.replace(/_/g, " ")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -735,11 +789,11 @@ export default function CheckoutPage() {
                       <Separator />
                       {/* Phone Verification */}
                       <div className="space-y-3">
-                        <h4 className="font-medium">Verify Phone Number ({customerFormData.phone})</h4>
+                        <h4 className="font-medium">Verify Phone Number ({customerData.phone})</h4>
                         {!showOtpInput ? (
                           <Button
                             onClick={handleSendOtp}
-                            disabled={isPhoneVerifying || !customerFormData.phone}
+                            disabled={isPhoneVerifying || !customerData.phone}
                             className="w-full"
                           >
                             {isPhoneVerifying ? "Sending Code..." : "Send Verification Code"}
@@ -812,10 +866,8 @@ export default function CheckoutPage() {
                   <div className="flex items-center space-x-3">
                     <Checkbox
                       id="videoRecording"
-                      checked={customerFormData.allowVideoRecording}
-                      onCheckedChange={(checked) =>
-                        handleCustomerFormChange({ ...customerFormData, allowVideoRecording: checked as boolean })
-                      }
+                      checked={allowVideoRecording}
+                      onCheckedChange={setAllowVideoRecording}
                     />
                     <Label htmlFor="videoRecording" className="text-base">
                       Allow video recording for quality assurance and social media use
@@ -849,12 +901,6 @@ export default function CheckoutPage() {
                       <span>Subtotal</span>
                       <span>{formatCurrency(subtotal)}</span>
                     </div>
-                    {frequencyDiscountAmount > 0 && (
-                      <div className="flex justify-between text-lg text-green-600">
-                        <span>{selectedFrequency.replace("_", " ")} Discount</span>
-                        <span>-{formatCurrency(frequencyDiscountAmount)}</span>
-                      </div>
-                    )}
                     {videoDiscountAmount > 0 && (
                       <div className="flex justify-between text-lg text-green-600">
                         <span>Video Recording Discount</span>

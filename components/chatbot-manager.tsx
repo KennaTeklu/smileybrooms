@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import SuperChatbot from "./super-chatbot"
 
-export default function ChatbotManager() {
+export function ChatbotManager() {
   const [isVisible, setIsVisible] = useState(false)
   const pathname = usePathname()
 
@@ -33,3 +33,5 @@ export default function ChatbotManager() {
   // SuperChatbot now handles its own positioning and expansion
   return <SuperChatbot />
 }
+
+export default ChatbotManager
