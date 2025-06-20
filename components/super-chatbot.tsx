@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send, Loader2, Mic, MicOff, MapPin, Star, MessageSquare, TrendingUp, Bot } from "lucide-react"
+import { Send, Loader2, Mic, MicOff, MapPin, Star, MessageSquare, TrendingUp, ChevronLeft, Bot } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
@@ -15,6 +15,8 @@ import { useTour } from "@/hooks/use-tour"
 import { usePathname } from "next/navigation"
 import { processFormSubmission } from "@/lib/form-utils"
 import { useToast } from "@/hooks/use-toast"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 interface ChatMessage {
   id: string
@@ -25,12 +27,7 @@ interface ChatMessage {
   metadata?: any
 }
 
-interface SuperChatbotProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export default function SuperChatbot({ isOpen, onClose }: SuperChatbotProps) {
+export default function SuperChatbot() {
   const { theme } = useTheme()
   const { preferences } = useAccessibility()
   const { trackEvent } = useAnalytics()
@@ -38,8 +35,13 @@ export default function SuperChatbot({ isOpen, onClose }: SuperChatbotProps) {
   const pathname = usePathname()
   const { toast } = useToast()
 
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [activeTab, setActiveTab] = useState("chat")
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [isMounted, setIsMounted] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
+  const [isScrollPaused, setIsScrollPaused] = useState(false)
   const [jotformLoaded, setJotformLoaded] = useState(false)
   const [userContext, setUserContext] = useState({
     currentPage: pathname,
@@ -48,9 +50,16 @@ export default function SuperChatbot({ isOpen, onClose }: SuperChatbotProps) {
     cartItems: 0,
   })
 
+  const panelRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const jotformIframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Define configurable scroll range values
+  const minTopOffset = 20 // Minimum distance from the top of the viewport
+  // Adjusted initialScrollOffset to be 50px below the share panel (which is around 100px from top)
+  const initialScrollOffset = 150 // This positions it roughly 50px below the share panel
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
@@ -69,6 +78,51 @@ export default function SuperChatbot({ isOpen, onClose }: SuperChatbotProps) {
       })
     },
   })
+
+  // Handle mounting for SSR
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Pause panel's scroll-following when expanded
+  useEffect(() => {
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
+
+  // Track scroll position and panel height after mounting
+  useEffect(() => {
+    if (!isMounted || isScrollPaused) return
+
+    const updatePositionAndHeight = () => {
+      setScrollPosition(window.scrollY)
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight)
+      }
+    }
+
+    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
+    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
+    updatePositionAndHeight() // Initial call
+
+    return () => {
+      window.removeEventListener("scroll", updatePositionAndHeight)
+      window.removeEventListener("resize", updatePositionAndHeight)
+    }
+  }, [isMounted, isScrollPaused])
+
+  // Handle click outside to collapse panel
+  useEffect(() => {
+    if (!isMounted) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
+        setIsExpanded(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isExpanded, isMounted])
 
   // Initialize speech recognition
   useEffect(() => {
@@ -138,6 +192,20 @@ export default function SuperChatbot({ isOpen, onClose }: SuperChatbotProps) {
       })
     }
   }, [messages.length, pathname, trackEvent])
+
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
+  }
+
+  // Calculate panel position based on scroll and document height
+  const documentHeight = document.documentElement.scrollHeight
+  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+
+  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
+  const panelTopPosition = isScrollPaused
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   const handleVoiceInput = () => {
     if (!recognitionRef.current) {
@@ -250,215 +318,272 @@ What would you like to know?`
   ]
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="bg-primary text-primary-foreground p-3 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+    <div ref={panelRef} className="fixed right-0 z-40 flex" style={{ top: panelTopPosition }}>
+      <AnimatePresence initial={false}>
+        {isExpanded ? (
+          <motion.div
+            key="expanded"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "min(100vw, 400px)", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
+          >
+            <div className="bg-primary text-primary-foreground p-3 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  <span className="font-semibold">AI Assistant</span>
+                  {isScrollPaused && (
+                    <Badge variant="secondary" className="text-xs">
+                      Fixed
+                    </Badge>
+                  )}
+                  {(preferences.screenReader || preferences.highContrast || preferences.largeText) && (
+                    <Badge variant="secondary" className="text-xs">
+                      Accessible
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-primary-foreground hover:bg-primary-foreground/20"
+                  onClick={() => setIsExpanded(false)}
+                  aria-label="Collapse chatbot"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="h-[500px] flex flex-col">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                <TabsList className="grid w-full grid-cols-4 m-2">
+                  <TabsTrigger value="chat">Chat</TabsTrigger>
+                  <TabsTrigger value="actions">Actions</TabsTrigger>
+                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                  <TabsTrigger value="live-agent">Live Agent</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="chat" className="flex-1 flex flex-col m-0">
+                  <div className="flex-1 p-3 overflow-hidden flex flex-col">
+                    <ScrollArea className="flex-1 pr-2">
+                      <div className="space-y-3">
+                        {messages.length === 0 && (
+                          <div className="text-sm mt-4 p-3 bg-muted/50 rounded-lg">{getContextualWelcome()}</div>
+                        )}
+                        {messages.map((m) => (
+                          <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div
+                              className={`max-w-[85%] p-3 rounded-lg ${
+                                m.role === "user"
+                                  ? "bg-blue-500 text-white"
+                                  : m.role === "system"
+                                    ? "bg-green-100 text-green-800 border border-green-200"
+                                    : preferences.highContrast
+                                      ? "bg-black text-white border border-white"
+                                      : "bg-gray-200 text-gray-800"
+                              } ${preferences.largeText ? "text-base" : "text-sm"}`}
+                            >
+                              {m.content}
+                              {m.type && (
+                                <Badge variant="outline" className="mt-2 text-xs">
+                                  {m.type}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {isLoading && (
+                          <div className="flex justify-start">
+                            <div
+                              className={`max-w-[85%] p-3 rounded-lg flex items-center ${
+                                preferences.highContrast
+                                  ? "bg-black text-white border border-white"
+                                  : "bg-gray-200 text-gray-800"
+                              }`}
+                            >
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              {preferences.screenReader ? "Processing your request..." : "Thinking..."}
+                            </div>
+                          </div>
+                        )}
+                        {error && (
+                          <div className="text-red-500 text-sm text-center mt-2 p-2 bg-red-50 rounded-lg">
+                            <strong>Error:</strong> {error.message}
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    </ScrollArea>
+                  </div>
+                  <form onSubmit={handleSubmit} className="p-3 border-t flex gap-2">
+                    <Input
+                      className={`flex-1 ${preferences.largeText ? "text-base" : ""}`}
+                      value={input}
+                      placeholder={preferences.screenReader ? "Type your message here" : "Ask me anything..."}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      aria-label="Chat message input"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={handleVoiceInput}
+                      disabled={isLoading}
+                      className={isListening ? "bg-red-100 border-red-300" : ""}
+                      aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                    >
+                      {isListening ? <MicOff className="h-4 w-4 text-red-600" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      disabled={isLoading || !input.trim()}
+                      aria-label={isLoading ? "Sending message" : "Send message"}
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="actions" className="flex-1 flex flex-col m-0">
+                  <div className="p-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      {quickActions.map((action, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          className="h-20 flex flex-col gap-1"
+                          onClick={action.action}
+                        >
+                          <action.icon className="h-5 w-5" />
+                          <span className="text-xs">{action.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <h4 className="font-semibold text-sm mb-2">Current Context</h4>
+                      <div className="text-xs space-y-1">
+                        <div>Page: {pathname}</div>
+                        <div>Messages: {messages.length}</div>
+                        <div>Theme: {theme}</div>
+                        {isTourActive && <div className="text-green-600">🎯 Tour Active</div>}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="feedback" className="flex-1 flex flex-col m-0">
+                  <div className="p-3">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium">Quick Feedback</label>
+                        <div className="flex gap-2 mt-1">
+                          {["😍", "😊", "😐", "😕", "😞"].map((emoji, index) => (
+                            <Button
+                              key={index}
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleFormSubmission({
+                                  type: "quick_feedback",
+                                  rating: 5 - index,
+                                  emoji,
+                                  page: pathname,
+                                })
+                              }
+                            >
+                              {emoji}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Detailed Feedback</label>
+                        <textarea
+                          className="w-full mt-1 p-2 border rounded-md text-sm"
+                          rows={3}
+                          placeholder="Tell us what you think..."
+                          onBlur={(e) => {
+                            if (e.target.value.trim()) {
+                              handleFormSubmission({
+                                type: "detailed_feedback",
+                                message: e.target.value,
+                                page: pathname,
+                              })
+                              e.target.value = ""
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Live Agent Tab with JotForm Embed */}
+                <TabsContent value="live-agent" className="flex-1 flex flex-col m-0 p-0">
+                  <div className="flex-1 w-full h-full overflow-hidden">
+                    <iframe
+                      id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                      ref={jotformIframeRef}
+                      title="smileybrooms.com: Customer Support Representative"
+                      onLoad={() => {
+                        if (jotformIframeRef.current) {
+                          if (jotformLoaded) {
+                            ;(window as any).jotformEmbedHandler(
+                              `iframe[id='${jotformIframeRef.current.id}']`,
+                              "https://www.jotform.com",
+                            )
+                          }
+                        }
+                      }}
+                      allowTransparency={true}
+                      allow="geolocation; microphone; camera; fullscreen"
+                      src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                      frameBorder="0"
+                      style={{
+                        minWidth: "100%",
+                        maxWidth: "100%",
+                        height: "100%",
+                        border: "none",
+                        width: "100%",
+                      }}
+                      scrolling="no"
+                    ></iframe>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsExpanded(true)}
+            className={cn(
+              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
+              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border-l border-t border-b border-gray-200 dark:border-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
+            aria-label="Open AI Assistant"
+          >
             <Bot className="h-5 w-5" />
-            <span className="font-semibold">AI Assistant</span>
-            {(preferences.screenReader || preferences.highContrast || preferences.largeText) && (
-              <Badge variant="secondary" className="text-xs">
-                Accessible
+            <span className="text-sm font-medium">AI</span>
+            {messages.length > 0 && (
+              <Badge className="ml-1 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
+                {messages.length}
               </Badge>
             )}
-          </div>
-          {/* Close button handled by AdvancedSidePanel */}
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-4 m-2">
-          <TabsTrigger value="chat">Chat</TabsTrigger>
-          <TabsTrigger value="actions">Actions</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback</TabsTrigger>
-          <TabsTrigger value="live-agent">Live Agent</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="chat" className="flex-1 flex flex-col m-0">
-          <div className="flex-1 p-3 overflow-hidden flex flex-col">
-            <ScrollArea className="flex-1 pr-2">
-              <div className="space-y-3">
-                {messages.length === 0 && (
-                  <div className="text-sm mt-4 p-3 bg-muted/50 rounded-lg">{getContextualWelcome()}</div>
-                )}
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[85%] p-3 rounded-lg ${
-                        m.role === "user"
-                          ? "bg-blue-500 text-white"
-                          : m.role === "system"
-                            ? "bg-green-100 text-green-800 border border-green-200"
-                            : preferences.highContrast
-                              ? "bg-black text-white border border-white"
-                              : "bg-gray-200 text-gray-800"
-                      } ${preferences.largeText ? "text-base" : "text-sm"}`}
-                    >
-                      {m.content}
-                      {m.type && (
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          {m.type}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div
-                      className={`max-w-[85%] p-3 rounded-lg flex items-center ${
-                        preferences.highContrast
-                          ? "bg-black text-white border border-white"
-                          : "bg-gray-200 text-gray-800"
-                      }`}
-                    >
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      {preferences.screenReader ? "Processing your request..." : "Thinking..."}
-                    </div>
-                  </div>
-                )}
-                {error && (
-                  <div className="text-red-500 text-sm text-center mt-2 p-2 bg-red-50 rounded-lg">
-                    <strong>Error:</strong> {error.message}
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-          </div>
-          <form onSubmit={handleSubmit} className="p-3 border-t flex gap-2">
-            <Input
-              className={`flex-1 ${preferences.largeText ? "text-base" : ""}`}
-              value={input}
-              placeholder={preferences.screenReader ? "Type your message here" : "Ask me anything..."}
-              onChange={handleInputChange}
-              disabled={isLoading}
-              aria-label="Chat message input"
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={handleVoiceInput}
-              disabled={isLoading}
-              className={isListening ? "bg-red-100 border-red-300" : ""}
-              aria-label={isListening ? "Stop voice input" : "Start voice input"}
-            >
-              {isListening ? <MicOff className="h-4 w-4 text-red-600" /> : <Mic className="h-4 w-4" />}
-            </Button>
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isLoading || !input.trim()}
-              aria-label={isLoading ? "Sending message" : "Send message"}
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </form>
-        </TabsContent>
-
-        <TabsContent value="actions" className="flex-1 flex flex-col m-0">
-          <div className="p-3">
-            <div className="grid grid-cols-2 gap-2">
-              {quickActions.map((action, index) => (
-                <Button key={index} variant="outline" className="h-20 flex flex-col gap-1" onClick={action.action}>
-                  <action.icon className="h-5 w-5" />
-                  <span className="text-xs">{action.label}</span>
-                </Button>
-              ))}
-            </div>
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-              <h4 className="font-semibold text-sm mb-2">Current Context</h4>
-              <div className="text-xs space-y-1">
-                <div>Page: {pathname}</div>
-                <div>Messages: {messages.length}</div>
-                <div>Theme: {theme}</div>
-                {isTourActive && <div className="text-green-600">🎯 Tour Active</div>}
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="feedback" className="flex-1 flex flex-col m-0">
-          <div className="p-3">
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Quick Feedback</label>
-                <div className="flex gap-2 mt-1">
-                  {["😍", "😊", "😐", "😕", "😞"].map((emoji, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        handleFormSubmission({
-                          type: "quick_feedback",
-                          rating: 5 - index,
-                          emoji,
-                          page: pathname,
-                        })
-                      }
-                    >
-                      {emoji}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Detailed Feedback</label>
-                <textarea
-                  className="w-full mt-1 p-2 border rounded-md text-sm"
-                  rows={3}
-                  placeholder="Tell us what you think..."
-                  onBlur={(e) => {
-                    if (e.target.value.trim()) {
-                      handleFormSubmission({
-                        type: "detailed_feedback",
-                        message: e.target.value,
-                        page: pathname,
-                      })
-                      e.target.value = ""
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Live Agent Tab with JotForm Embed */}
-        <TabsContent value="live-agent" className="flex-1 flex flex-col m-0 p-0">
-          <div className="flex-1 w-full h-full overflow-hidden">
-            <iframe
-              id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
-              ref={jotformIframeRef}
-              title="smileybrooms.com: Customer Support Representative"
-              onLoad={() => {
-                if (jotformIframeRef.current) {
-                  if (jotformLoaded) {
-                    ;(window as any).jotformEmbedHandler(
-                      `iframe[id='${jotformIframeRef.current.id}']`,
-                      "https://www.jotform.com",
-                    )
-                  }
-                }
-              }}
-              allowTransparency={true}
-              allow="geolocation; microphone; camera; fullscreen"
-              src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
-              frameBorder="0"
-              style={{
-                minWidth: "100%",
-                maxWidth: "100%",
-                height: "100%",
-                border: "none",
-                width: "100%",
-              }}
-              scrolling="no"
-            ></iframe>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
