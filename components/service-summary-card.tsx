@@ -5,9 +5,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
-import { ShoppingCart, Plus } from "lucide-react"
+import { ShoppingCart, Plus, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { BUNDLE_NAMING } from "@/lib/pricing-config" // Import bundle naming
+import { Badge } from "@/components/ui/badge" // Import Badge for task count
 
 interface TierUpgrade {
   roomName: string
@@ -40,6 +42,28 @@ interface ServiceSummaryCardProps {
   hasItems: boolean
   serviceName?: string
   frequency?: string
+  serviceTier?: "standard" | "premium" | "elite" // Add service tier
+}
+
+// Define task counts for each tier
+const TIER_TASK_COUNTS = {
+  standard: 3,
+  premium: 7,
+  elite: 11,
+}
+
+// Define time estimates for each tier
+const TIER_TIME_ESTIMATES = {
+  standard: "15-20 min",
+  premium: "45-60 min",
+  elite: "90-120 min",
+}
+
+// Define guarantees for each tier
+const TIER_GUARANTEES = {
+  standard: "7-day",
+  premium: "30-day",
+  elite: "1-year",
 }
 
 export function ServiceSummaryCard({
@@ -54,6 +78,7 @@ export function ServiceSummaryCard({
   hasItems = false,
   serviceName = "Cleaning Service",
   frequency = "one_time",
+  serviceTier = "standard", // Default to standard
 }: ServiceSummaryCardProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -68,6 +93,15 @@ export function ServiceSummaryCard({
 
   // Calculate discount amount
   const discountAmount = subtotal * ((frequencyDiscount || 0) / 100)
+
+  // Get bundle name based on service tier
+  const bundleName = serviceTier ? BUNDLE_NAMING[serviceTier.toUpperCase() as keyof typeof BUNDLE_NAMING] : ""
+
+  // Get task count based on service tier
+  const taskCount = serviceTier ? TIER_TASK_COUNTS[serviceTier] : 3
+
+  // Get guarantee based on service tier
+  const guarantee = serviceTier ? TIER_GUARANTEES[serviceTier] : "7-day"
 
   const handleAddToCart = () => {
     if (!hasItems) {
@@ -89,14 +123,49 @@ export function ServiceSummaryCard({
 
   return (
     <Card className="shadow-md">
-      <CardHeader className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30">
-        <CardTitle>Service Summary</CardTitle>
+      <CardHeader
+        className={`${
+          serviceTier === "standard"
+            ? "bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30"
+            : serviceTier === "premium"
+              ? "bg-purple-50 dark:bg-purple-900/20 border-b border-purple-100 dark:border-purple-800/30"
+              : "bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30"
+        }`}
+      >
+        <CardTitle className="flex items-center justify-between">
+          <span>Service Summary</span>
+          {serviceTier === "premium" && <Badge className="bg-green-500">Most Popular</Badge>}
+        </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
+        {/* Service Tier Information */}
+        <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-medium">
+              {serviceTier && serviceTier.charAt(0).toUpperCase() + serviceTier.slice(1)} Cleaning
+            </span>
+            <span className="text-sm text-gray-600">{bundleName}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600 mb-1">
+            <Check className="h-4 w-4 mr-1 text-green-500" />
+            <span>{taskCount} expert-level tasks per room</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600 mb-1">
+            <Check className="h-4 w-4 mr-1 text-green-500" />
+            <span>{TIER_TIME_ESTIMATES[serviceTier as keyof typeof TIER_TIME_ESTIMATES]} per room</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <Check className="h-4 w-4 mr-1 text-green-500" />
+            <span>{guarantee} guarantee</span>
+          </div>
+        </div>
+
         <div className="space-y-2">
           {basePrice > 0 && (
             <div className="flex justify-between">
-              <span>Base Price (Essential Clean)</span>
+              <span>
+                Base Price ({serviceTier && serviceTier.charAt(0).toUpperCase() + serviceTier.slice(1)} Clean)
+              </span>
               <span>{formatCurrency(basePrice)}</span>
             </div>
           )}
@@ -168,7 +237,13 @@ export function ServiceSummaryCard({
       </CardContent>
       <CardFooter className="flex flex-col space-y-2">
         <Button
-          className="w-full py-6 text-lg"
+          className={`w-full py-6 text-lg ${
+            serviceTier === "standard"
+              ? "bg-blue-600 hover:bg-blue-700"
+              : serviceTier === "premium"
+                ? "bg-purple-600 hover:bg-purple-700"
+                : "bg-green-600 hover:bg-green-700"
+          }`}
           size="lg"
           onClick={handleAddToCart}
           disabled={isLoading || !hasItems}
