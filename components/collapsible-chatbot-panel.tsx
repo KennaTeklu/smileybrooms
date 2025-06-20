@@ -15,10 +15,12 @@ declare global {
 }
 
 interface CollapsibleChatbotPanelProps {
-  sharePanelInfo: { expanded: boolean; height: number }
+  sharePanelInfo?: { expanded: boolean; height: number }
 }
 
-export function CollapsibleChatbotPanel({ sharePanelInfo }: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel({
+  sharePanelInfo = { expanded: false, height: 0 },
+}: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
