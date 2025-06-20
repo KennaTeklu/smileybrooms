@@ -14,6 +14,7 @@ import { Check, Star, Zap, Shield, Clock, Undo2, Redo2, X } from "lucide-react"
 import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { BUNDLE_NAMING } from "@/lib/pricing-config" // Import BUNDLE_NAMING
 
 interface RoomConfig {
   roomName: string
@@ -66,6 +67,23 @@ export function EnhancedRoomCustomizationPanel({
     setLocalConfig(config)
     setHasUnsavedChanges(false)
   }, [config])
+
+  // Upsell Logic: Trigger toast if roomCount > 3 and not already Elite
+  useEffect(() => {
+    if (roomCount > 3 && localConfig.selectedTier !== BUNDLE_NAMING.ELITE) {
+      const eliteTier = tiers.find((tier) => tier.name === BUNDLE_NAMING.ELITE)
+      if (eliteTier) {
+        // Simple placeholder for discount calculation.
+        // In a real scenario, this would compare total price of current config vs. Elite bundle.
+        const potentialSavings = eliteTier.price * roomCount - localConfig.totalPrice * roomCount
+        toast({
+          title: "Consider our Elite Tier!",
+          description: `For ${roomCount} ${roomName}s, upgrading to Elite could save you money and provide comprehensive cleaning.`,
+          duration: 5000,
+        })
+      }
+    }
+  }, [roomCount, localConfig.selectedTier, localConfig.totalPrice, roomName, tiers, toast])
 
   const addToHistory = (newConfig: RoomConfig) => {
     setHistory((prev) => {
@@ -255,6 +273,9 @@ export function EnhancedRoomCustomizationPanel({
                           <div className="flex items-center gap-2 mb-2">
                             {getTierIcon(tier.name)}
                             <span className="font-medium">{tier.name}</span>
+                            {tier.name === BUNDLE_NAMING.PREMIUM && (
+                              <Badge className="bg-yellow-500 text-white">Most Popular</Badge>
+                            )}
                             <Badge variant="secondary">${tier.price}</Badge>
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">{tier.description}</p>
@@ -343,7 +364,9 @@ export function EnhancedRoomCustomizationPanel({
                           <Label htmlFor={addOn.id} className="cursor-pointer">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-medium">{addOn.name}</span>
-                              <Badge variant="outline">+${addOn.price}</Badge>
+                              <Badge variant="outline" className="bg-black text-white">
+                                +${addOn.price}
+                              </Badge>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{addOn.description}</p>
                           </Label>
