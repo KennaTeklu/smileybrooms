@@ -239,18 +239,3 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
     <>
       <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
         <TooltipProvider>
-          
-        </TooltipProvider>
-      </ScrollAwareWrapper>
-
-      {/* Subtitle display */}
-      {showSubtitles && isReading && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center z-50">
-          {subtitle || "..."}
-        </div>
-      )}
-    </>
-  )
-})
-
-export default AccessibilityToolbar
