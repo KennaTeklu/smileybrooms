@@ -9,6 +9,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { RoomProvider } from "@/lib/room-context"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
+import { PanelCollisionProvider } from "@/contexts/panel-collision-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import Header from "@/components/header"
 import SemicircleFooter from "@/components/semicircle-footer"
@@ -53,24 +54,26 @@ export default function RootLayout({
                 <RoomProvider>
                   <TourProvider>
                     <AbandonmentProvider>
-                      <TooltipProvider>
-                        {/* Main layout container */}
-                        <div className="relative flex min-h-screen flex-col">
-                          <Header />
-                          <Suspense>
-                            <main className="flex-1">{children}</main>
-                          </Suspense>
-                          <SemicircleFooter />
-                        </div>
-                        {/* Floating panels */}
-                        <CollapsibleChatbotPanel />
-                        <CollapsibleSettingsPanel />
-                        <CollapsibleSharePanel />
-                        <CollapsibleAddAllPanel />
-                        <CollapsibleCartPanel />
-                        <Toaster />
-                        <AnalyticsTracker />
-                      </TooltipProvider>
+                      <PanelCollisionProvider>
+                        <TooltipProvider>
+                          {/* Main layout container */}
+                          <div className="relative flex min-h-screen flex-col">
+                            <Header />
+                            <Suspense>
+                              <main className="flex-1">{children}</main>
+                            </Suspense>
+                            <SemicircleFooter />
+                          </div>
+                          {/* Floating panels */}
+                          <CollapsibleChatbotPanel />
+                          <CollapsibleSettingsPanel />
+                          <CollapsibleSharePanel />
+                          <CollapsibleAddAllPanel />
+                          <CollapsibleCartPanel />
+                          <Toaster />
+                          <AnalyticsTracker />
+                        </TooltipProvider>
+                      </PanelCollisionProvider>
                     </AbandonmentProvider>
                   </TourProvider>
                 </RoomProvider>

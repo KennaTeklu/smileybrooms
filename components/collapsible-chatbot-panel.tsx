@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { usePathname } from "next/navigation"
+import { usePanelCollision } from "@/contexts/panel-collision-context"
 
-// Extend Window interface for JotForm
 declare global {
   interface Window {
     jotformEmbedHandler?: (selector: string, url: string) => void
@@ -21,19 +20,33 @@ export function CollapsibleChatbotPanel() {
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
+  const { registerPanel, updatePanel, getAdjustedPosition } = usePanelCollision()
 
   const minTopOffset = 20
-  const initialScrollOffset = 50
+  const initialScrollOffset = 100
   const bottomPageMargin = 20
+  const panelId = "chatbot"
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    // Register this panel
+    registerPanel(panelId, {
+      isExpanded: false,
+      position: { top: 100, right: 0 },
+      width: isExpanded ? 400 : 120,
+      height: isExpanded ? 750 : 60,
+    })
+  }, [registerPanel])
 
   useEffect(() => {
     setIsScrollPaused(isExpanded)
-  }, [isExpanded])
+    // Update panel state
+    updatePanel(panelId, {
+      isExpanded,
+      width: isExpanded ? 400 : 120,
+      height: isExpanded ? 750 : 60,
+    })
+  }, [isExpanded, updatePanel])
 
   useEffect(() => {
     if (!isMounted || isScrollPaused) return
@@ -70,11 +83,9 @@ export function CollapsibleChatbotPanel() {
 
   useEffect(() => {
     if (isExpanded && isMounted) {
-      // Load JotForm embed handler script
       const script = document.createElement("script")
       script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
       script.onload = () => {
-        // Initialize JotForm embed handler
         try {
           if (window.jotformEmbedHandler) {
             window.jotformEmbedHandler(
@@ -89,7 +100,6 @@ export function CollapsibleChatbotPanel() {
       document.head.appendChild(script)
 
       return () => {
-        // Cleanup script when component unmounts or panel closes
         const existingScript = document.querySelector(
           'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
         )
@@ -100,16 +110,34 @@ export function CollapsibleChatbotPanel() {
     }
   }, [isExpanded, isMounted])
 
-  if (!isMounted) return null
-
   const documentHeight = document.documentElement.scrollHeight
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + 50, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + 50, maxPanelTop))}px`
+  const basePosition = useMemo(
+    () => ({
+      top: isScrollPaused
+        ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
+        : Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop)),
+      right: 0,
+    }),
+    [isScrollPaused, scrollPosition, maxPanelTop],
+  )
+
+  // Get adjusted position to avoid collisions
+  const adjustedPosition = getAdjustedPosition(panelId, basePosition)
+
+  // Update panel position in context
+  useEffect(() => {
+    updatePanel(panelId, { position: adjustedPosition })
+  }, [adjustedPosition, updatePanel])
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>
+    <motion.div
+      ref={panelRef}
+      className="fixed right-0 z-[999] flex"
+      style={{ top: `${adjustedPosition.top}px` }}
+      animate={{ top: adjustedPosition.top }}
+      transition={{ type: "spring", damping: 20, stiffness: 300 }}
+    >
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -181,6 +209,6 @@ export function CollapsibleChatbotPanel() {
           </motion.button>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }
