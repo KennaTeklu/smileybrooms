@@ -103,9 +103,7 @@ export function EnhancedHeader() {
           <Button variant="outline" size="icon" aria-label="Open cart">
             <ShoppingCart className="h-5 w-5" />
             {hasItems && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                {cart.items?.length}
-              </span>
+              
             )}
           </Button>
 
