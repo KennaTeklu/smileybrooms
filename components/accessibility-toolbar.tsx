@@ -4,8 +4,8 @@ import React from "react"
 
 import { useState, useEffect, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
-import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { VolumeIcon as VolumeUp, Volume2, VolumeX, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
+import { TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Drawer,
   DrawerClose,
@@ -239,3 +239,180 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
     <>
       <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
         <TooltipProvider>
+          <div className="flex flex-col gap-2">
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={readPage}>
+                {isReading ? <VolumeX className="h-5 w-5" /> : <VolumeUp className="h-5 w-5" />}
+                <span className="sr-only">{isReading ? "Stop Read Aloud" : "Read Aloud"}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{isReading ? "Stop Read Aloud" : "Read Aloud"}</TooltipContent>
+
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleMute}>
+                {isMuted ? (
+                  <VolumeX className="h-5 w-5" />
+                ) : volume > 0.5 ? (
+                  <Volume2 className="h-5 w-5" />
+                ) : (
+                  <VolumeX className="h-5 w-5" />
+                )}
+                <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={increaseFontSize}>
+                <Maximize2 className="h-5 w-5" />
+                <span className="sr-only">Increase Font Size</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Increase Font Size</TooltipContent>
+
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={decreaseFontSize}>
+                <Minimize2 className="h-5 w-5" />
+                <span className="sr-only">Decrease Font Size</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Decrease Font Size</TooltipContent>
+
+            <TooltipTrigger asChild>
+              <DrawerTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                  <span className="sr-only">Settings</span>
+                </Button>
+              </DrawerTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">Settings</TooltipContent>
+
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setShowSharePanel(true)}>
+                <Share2 className="h-5 w-5" />
+                <span className="sr-only">Share</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Share</TooltipContent>
+          </div>
+        </TooltipProvider>
+      </ScrollAwareWrapper>
+
+      <div className="fixed bottom-0 left-0 w-full bg-background/50 backdrop-blur-md p-4 text-center text-sm text-muted-foreground">
+        {subtitle}
+      </div>
+
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Accessibility Settings</DrawerTitle>
+            <DrawerDescription>Customize the accessibility features to fit your needs.</DrawerDescription>
+          </DrawerHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="font-size" className="text-right">
+                Font Size
+              </Label>
+              <Slider
+                id="font-size"
+                defaultValue={[fontSize]}
+                min={0.8}
+                max={1.5}
+                step={0.1}
+                onValueChange={(value) => setFontSize(value[0])}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reading-speed" className="text-right">
+                Reading Speed
+              </Label>
+              <Slider
+                id="reading-speed"
+                defaultValue={[readingSpeed]}
+                min={0.5}
+                max={1.5}
+                step={0.1}
+                onValueChange={handleReadingSpeedChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reading-pitch" className="text-right">
+                Reading Pitch
+              </Label>
+              <Slider
+                id="reading-pitch"
+                defaultValue={[readingPitch]}
+                min={0.5}
+                max={1.5}
+                step={0.1}
+                onValueChange={handlePitchChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="volume" className="text-right">
+                Volume
+              </Label>
+              <Slider
+                id="volume"
+                defaultValue={[volume]}
+                min={0}
+                max={1}
+                step={0.1}
+                onValueChange={handleVolumeChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="show-subtitles" checked={showSubtitles} onCheckedChange={setShowSubtitles} />
+              <Label htmlFor="show-subtitles">Show Subtitles</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+              <Label htmlFor="high-contrast">High Contrast</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="theme">Theme</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTheme(theme === "light" ? "dark" : "light")
+                }}
+              >
+                {theme === "light" ? "Dark" : "Light"}
+              </Button>
+            </div>
+          </div>
+          <DrawerFooter>
+            <DrawerClose>Close</DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {showSharePanel && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-background/80 backdrop-blur-sm">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="relative w-full max-w-md p-6 bg-card rounded-xl shadow-lg">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Share this page</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Share this page with your friends, family, or colleagues.
+              </p>
+              <div className="flex justify-end mt-6">
+                <Button variant="ghost" onClick={() => setShowSharePanel(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleShare}>Share</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+})
+
+export default AccessibilityToolbar
