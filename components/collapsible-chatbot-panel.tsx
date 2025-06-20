@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { usePathname } from "next/navigation"
 
 export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -13,6 +14,7 @@ export function CollapsibleChatbotPanel() {
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
+  const pathname = usePathname()
 
   const minTopOffset = 20
   const initialScrollOffset = 50
@@ -59,6 +61,34 @@ export function CollapsibleChatbotPanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
+  useEffect(() => {
+    if (isExpanded && isMounted) {
+      // Load JotForm embed handler script
+      const script = document.createElement("script")
+      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
+      script.onload = () => {
+        // Initialize JotForm embed handler
+        if (window.jotformEmbedHandler) {
+          window.jotformEmbedHandler(
+            "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
+            "https://www.jotform.com",
+          )
+        }
+      }
+      document.head.appendChild(script)
+
+      return () => {
+        // Cleanup script when component unmounts or panel closes
+        const existingScript = document.querySelector(
+          'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
+        )
+        if (existingScript) {
+          document.head.removeChild(existingScript)
+        }
+      }
+    }
+  }, [isExpanded, isMounted])
+
   if (!isMounted) return null
 
   const documentHeight = document.documentElement.scrollHeight
@@ -74,7 +104,7 @@ export function CollapsibleChatbotPanel() {
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "320px", opacity: 1 }}
+            animate={{ width: "400px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
@@ -82,7 +112,7 @@ export function CollapsibleChatbotPanel() {
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Bot className="h-5 w-5" />
-                AI Assistant
+                Customer Support
                 {isScrollPaused && (
                   <Badge variant="secondary" className="text-xs">
                     Fixed
@@ -99,12 +129,23 @@ export function CollapsibleChatbotPanel() {
               </Button>
             </div>
 
-            <div className="h-[400px] flex flex-col items-center justify-center">
-              <div className="text-center p-8">
-                <Bot className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">AI Assistant</h3>
-                <p className="text-sm text-gray-500">Coming soon...</p>
-              </div>
+            <div className="h-[688px] w-full">
+              <iframe
+                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                title="smileybrooms.com: Customer Support Representative"
+                onLoad={() => window.parent.scrollTo(0, 0)}
+                allowTransparency="true"
+                allow="geolocation; microphone; camera; fullscreen"
+                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                style={{
+                  minWidth: "100%",
+                  maxWidth: "100%",
+                  height: "688px",
+                  border: "none",
+                  width: "100%",
+                }}
+                scrolling="no"
+              />
             </div>
           </motion.div>
         ) : (
@@ -116,10 +157,10 @@ export function CollapsibleChatbotPanel() {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
             className="flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900 rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-l border-t border-b border-gray-200 dark:border-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Open AI Assistant"
+            aria-label="Open Customer Support"
           >
             <Bot className="h-5 w-5" />
-            <span className="text-sm font-medium">AI</span>
+            <span className="text-sm font-medium">Support</span>
           </motion.button>
         )}
       </AnimatePresence>
