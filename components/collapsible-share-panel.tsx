@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { QRCodeSVG } from "qrcode.react"
-import { usePanelCollision } from "@/contexts/panel-collision-context"
+import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
+import { usePanelContext } from "@/contexts/panel-context"
 
 type SharePlatform = {
   id: string
@@ -21,6 +21,14 @@ type SharePlatform = {
 }
 
 const sharePlatforms: SharePlatform[] = [
+  {
+    id: "twitter",
+    name: "Twitter",
+    url: "https://twitter.com/intent/tweet?url=",
+    icon: <Share2 />,
+    color: "bg-blue-500",
+    category: "social",
+  },
   {
     id: "facebook",
     name: "Facebook",
@@ -89,57 +97,61 @@ export function CollapsibleSharePanel() {
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
   const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false)
+  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
+
+  const { registerPanel, updatePanel, getDisplacement } = usePanelContext()
+  const panelId = "share-panel"
+
   const panelRef = useRef<HTMLDivElement>(null)
-  const { registerPanel, updatePanel, getAdjustedPosition } = usePanelCollision()
 
-  const minTopOffset = 20
-  const initialScrollOffset = 50
-  const bottomPageMargin = 20
-  const panelId = "share"
+  // Define configurable scroll range values
+  const minTopOffset = 20 // Minimum distance from the top of the viewport
+  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
+  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
-    setCurrentUrl(typeof window !== "undefined" ? window.location.href : "")
-    // Register this panel
-    registerPanel(panelId, {
-      isExpanded: false,
-      position: { top: 50, right: 0 },
-      width: isExpanded ? 320 : 48,
-      height: isExpanded ? 600 : 48,
-    })
-  }, [registerPanel])
-
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-    // Update panel state
-    updatePanel(panelId, {
-      isExpanded,
-      width: isExpanded ? 320 : 48,
-      height: isExpanded ? 600 : 48,
-    })
-  }, [isExpanded, updatePanel])
-
-  const updatePositionAndHeight = useCallback(() => {
-    setScrollPosition(typeof window !== "undefined" ? window.scrollY : 0)
-    if (panelRef.current) {
-      setPanelHeight(panelRef.current.offsetHeight)
-    }
+    setCurrentUrl(window.location.href)
   }, [])
 
+  // Pause panel's scroll-following when expanded
   useEffect(() => {
-    if (!isMounted || isScrollPaused) return
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
+
+  // Track scroll position and panel height after mounting
+  useEffect(() => {
+    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
+
+    const updatePositionAndHeight = () => {
+      setScrollPosition(window.scrollY)
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight)
+      }
+    }
 
     window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
     window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight()
+    updatePositionAndHeight() // Initial call
 
     return () => {
       window.removeEventListener("scroll", updatePositionAndHeight)
       window.removeEventListener("resize", updatePositionAndHeight)
     }
-  }, [isMounted, isScrollPaused, updatePositionAndHeight])
+  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
+  useEffect(() => {
+    if (isMounted) {
+      registerPanel(panelId, 1) // Position 1 for share panel
+    }
+  }, [isMounted, registerPanel])
+
+  useEffect(() => {
+    updatePanel(panelId, isExpanded, isExpanded ? 320 : 48)
+  }, [isExpanded, updatePanel])
+
+  // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
 
@@ -153,25 +165,19 @@ export function CollapsibleSharePanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
-  const documentHeight = typeof window !== "undefined" ? document.documentElement.scrollHeight : 0
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-  const basePosition = {
-    top: isScrollPaused
-      ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
-      : Math.max(
-          minTopOffset,
-          Math.min((typeof window !== "undefined" ? window.scrollY : 0) + initialScrollOffset, maxPanelTop),
-        ),
-    right: 0,
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
   }
 
-  // Get adjusted position to avoid collisions
-  const adjustedPosition = getAdjustedPosition(panelId, basePosition)
+  // Calculate panel position based on scroll and document height
+  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
+  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  // Update panel position in context
-  useEffect(() => {
-    updatePanel(panelId, { position: adjustedPosition })
-  }, [adjustedPosition, updatePanel])
+  const displacement = getDisplacement(panelId, 1)
+  const panelTopPosition = isScrollPaused
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   const copyToClipboard = async () => {
     try {
@@ -190,25 +196,22 @@ export function CollapsibleSharePanel() {
   )
 
   const shareOnPlatform = (platform: SharePlatform) => {
-    if (platform.id === "copy") {
-      copyToClipboard()
-      return
-    }
     const shareUrl = platform.url + encodeURIComponent(currentUrl)
     window.open(shareUrl, "_blank", "width=600,height=400")
   }
 
-  const qrCodeSize = 200
-  const logoSize = qrCodeSize * 0.2
-  const logoPosition = (qrCodeSize - logoSize) / 2
+  const qrCodeSize = 256
+  const logoSize = qrCodeSize * 0.2 // Reduced to 20% of QR code size
+  const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
-  return isMounted ? (
-    <motion.div
+  return (
+    <div
       ref={panelRef}
-      className="fixed right-0 z-[998] flex"
-      style={{ top: `${adjustedPosition.top}px` }}
-      animate={{ top: adjustedPosition.top }}
-      transition={{ type: "spring", damping: 20, stiffness: 300 }}
+      className="fixed right-0 z-[998] flex transition-transform duration-300 ease-out"
+      style={{
+        top: panelTopPosition,
+        transform: `translateX(-${displacement}px)`,
+      }}
     >
       <AnimatePresence initial={false}>
         {isExpanded ? (
@@ -240,6 +243,7 @@ export function CollapsibleSharePanel() {
               </Button>
             </div>
 
+            {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
@@ -258,20 +262,21 @@ export function CollapsibleSharePanel() {
                   exit={{ opacity: 0, height: 0 }}
                   className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
                 >
+                  {/* Render the QR code here with image settings */}
                   <QRCodeSVG
                     value={currentUrl}
                     size={qrCodeSize}
                     level="H"
-                    bgColor="transparent"
-                    fgColor="currentColor"
-                    className="text-gray-900 dark:text-gray-50"
+                    bgColor="transparent" // Make background transparent to use parent's background
+                    fgColor="currentColor" // Use current text color for QR code
+                    className="text-gray-900 dark:text-gray-50" // Apply text color for dark/light mode
                     imageSettings={{
-                      src: "/favicon.png",
+                      src: "/favicon.png", // Path to your logo
                       x: logoPosition,
                       y: logoPosition,
                       height: logoSize,
                       width: logoSize,
-                      excavate: true,
+                      excavate: true, // Create a transparent hole for the image
                     }}
                   />
                 </motion.div>
@@ -287,6 +292,7 @@ export function CollapsibleSharePanel() {
               </TabsList>
 
               <div className="p-4">
+                {/* Search */}
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -297,7 +303,9 @@ export function CollapsibleSharePanel() {
                   />
                 </div>
 
+                {/* Platform Grid */}
                 <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
+                  {/* Content inside this div is scrollable */}
                   {filteredPlatforms.map((platform) => (
                     <motion.button
                       key={platform.id}
@@ -312,7 +320,7 @@ export function CollapsibleSharePanel() {
                     >
                       <div className={cn("p-2 rounded text-white", platform.color)}>{platform.icon}</div>
                       <span className="text-sm font-medium">{platform.name}</span>
-                      {platform.id !== "copy" && <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />}
+                      <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
                     </motion.button>
                   ))}
                 </div>
@@ -341,6 +349,6 @@ export function CollapsibleSharePanel() {
           </motion.button>
         )}
       </AnimatePresence>
-    </motion.div>
-  ) : null
+    </div>
+  )
 }

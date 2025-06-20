@@ -42,6 +42,7 @@ import Image from "next/image"
 import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { usePanelContext } from "@/contexts/panel-context"
 
 export function CollapsibleAddAllPanel() {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
@@ -60,6 +61,9 @@ export function CollapsibleAddAllPanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
+
+  const { registerPanel, updatePanel, getDisplacement } = usePanelContext()
+  const panelId = "add-all-panel"
 
   // Scroll enhancements states and refs
   const scrollViewportRef = useRef<HTMLDivElement>(null) // Ref for the ScrollArea's viewport
@@ -100,6 +104,16 @@ export function CollapsibleAddAllPanel() {
   useEffect(() => {
     setIsScrollPaused(isExpanded || isFullscreen)
   }, [isExpanded, isFullscreen])
+
+  useEffect(() => {
+    if (isVisible) {
+      registerPanel(panelId, 3) // Position 3 for add-all panel
+    }
+  }, [isVisible, registerPanel])
+
+  useEffect(() => {
+    updatePanel(panelId, isExpanded, isExpanded ? 384 : 48)
+  }, [isExpanded, updatePanel])
 
   // Immediate visibility control - show panel as soon as requirements are met
   useEffect(() => {
@@ -682,16 +696,19 @@ export function CollapsibleAddAllPanel() {
     )
   }
 
+  const displacement = getDisplacement(panelId, 3)
+
   return (
     <TooltipProvider>
       <SuccessNotification />
       <motion.div
         ref={panelRef}
-        className="fixed z-[997]"
+        className="fixed z-[997] transition-transform duration-300 ease-out"
         style={{
           top: panelTopPosition,
           right: "clamp(1rem, 3vw, 2rem)",
           width: "fit-content",
+          transform: `translateX(-${displacement}px)`,
         }}
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
