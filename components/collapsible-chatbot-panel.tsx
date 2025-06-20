@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from "next/navigation"
 
+// Extend Window interface for JotForm
+declare global {
+  interface Window {
+    jotformEmbedHandler?: (selector: string, url: string) => void
+  }
+}
+
 export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
@@ -68,11 +75,15 @@ export function CollapsibleChatbotPanel() {
       script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
       script.onload = () => {
         // Initialize JotForm embed handler
-        if (window.jotformEmbedHandler) {
-          window.jotformEmbedHandler(
-            "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
-            "https://www.jotform.com",
-          )
+        try {
+          if (window.jotformEmbedHandler) {
+            window.jotformEmbedHandler(
+              "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
+              "https://www.jotform.com",
+            )
+          }
+        } catch (error) {
+          console.log("JotForm embed handler initialization skipped")
         }
       }
       document.head.appendChild(script)
@@ -133,8 +144,14 @@ export function CollapsibleChatbotPanel() {
               <iframe
                 id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
                 title="smileybrooms.com: Customer Support Representative"
-                onLoad={() => window.parent.scrollTo(0, 0)}
-                allowTransparency="true"
+                onLoad={() => {
+                  try {
+                    window.parent.scrollTo(0, 0)
+                  } catch (error) {
+                    // Ignore cross-origin errors
+                  }
+                }}
+                allowTransparency={true}
                 allow="geolocation; microphone; camera; fullscreen"
                 src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
                 style={{

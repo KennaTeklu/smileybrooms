@@ -6,11 +6,18 @@ import { useAnalytics } from "@/hooks/use-analytics"
 
 export function AnalyticsTracker() {
   const pathname = usePathname()
-  const { trackPageView } = useAnalytics()
+  const { trackEvent } = useAnalytics()
 
   useEffect(() => {
-    trackPageView(pathname)
-  }, [pathname, trackPageView])
+    // Track page view
+    trackEvent("page_view", {
+      page: pathname,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+    })
+  }, [pathname, trackEvent])
 
-  return null // This component doesn't render anything
+  return null
 }
