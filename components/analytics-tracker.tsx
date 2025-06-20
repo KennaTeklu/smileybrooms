@@ -1,23 +1,26 @@
 "use client"
 
 import { useEffect } from "react"
-import { usePathname } from "next/navigation"
-import { useAnalytics } from "@/hooks/use-analytics"
+import { usePathname, useSearchParams } from "next/navigation"
 
 export function AnalyticsTracker() {
   const pathname = usePathname()
-  const { trackEvent } = useAnalytics()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Track page view
-    trackEvent("page_view", {
-      page: pathname,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      screenWidth: screen.width,
-      screenHeight: screen.height,
-    })
-  }, [pathname, trackEvent])
+    // Only track if NEXT_PUBLIC_ENABLE_ANALYTICS is explicitly set to 'true'
+    if (process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true") {
+      const url = `${pathname}?${searchParams.toString()}`
+      // In a real application, you would send this data to an analytics service
+      // For demonstration, we'll log it to the console.
+      console.log("[CLIENT ANALYTICS] Page view:", {
+        page: url,
+        timestamp: new Date().toISOString(),
+        // userAgent and screen dimensions would typically be collected client-side
+        // For this example, we'll omit them or get them from browser APIs if needed.
+      })
+    }
+  }, [pathname, searchParams])
 
-  return null
+  return null // This component does not render any UI
 }
