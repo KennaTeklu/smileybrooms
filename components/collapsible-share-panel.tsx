@@ -100,7 +100,7 @@ export function CollapsibleSharePanel() {
 
   useEffect(() => {
     setIsMounted(true)
-    setCurrentUrl(window.location.href)
+    setCurrentUrl(typeof window !== "undefined" ? window.location.href : "")
     // Register this panel
     registerPanel(panelId, {
       isExpanded: false,
@@ -121,7 +121,7 @@ export function CollapsibleSharePanel() {
   }, [isExpanded, updatePanel])
 
   const updatePositionAndHeight = useCallback(() => {
-    setScrollPosition(window.scrollY)
+    setScrollPosition(typeof window !== "undefined" ? window.scrollY : 0)
     if (panelRef.current) {
       setPanelHeight(panelRef.current.offsetHeight)
     }
@@ -153,14 +153,15 @@ export function CollapsibleSharePanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
-  if (!isMounted) return null
-
-  const documentHeight = document.documentElement.scrollHeight
+  const documentHeight = typeof window !== "undefined" ? document.documentElement.scrollHeight : 0
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
   const basePosition = {
     top: isScrollPaused
       ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
-      : Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop)),
+      : Math.max(
+          minTopOffset,
+          Math.min((typeof window !== "undefined" ? window.scrollY : 0) + initialScrollOffset, maxPanelTop),
+        ),
     right: 0,
   }
 
@@ -201,7 +202,7 @@ export function CollapsibleSharePanel() {
   const logoSize = qrCodeSize * 0.2
   const logoPosition = (qrCodeSize - logoSize) / 2
 
-  return (
+  return isMounted ? (
     <motion.div
       ref={panelRef}
       className="fixed right-0 z-[998] flex"
@@ -341,5 +342,5 @@ export function CollapsibleSharePanel() {
         )}
       </AnimatePresence>
     </motion.div>
-  )
+  ) : null
 }

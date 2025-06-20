@@ -110,13 +110,16 @@ export function CollapsibleChatbotPanel() {
     }
   }, [isExpanded, isMounted])
 
-  const documentHeight = document.documentElement.scrollHeight
+  const documentHeight = typeof window !== "undefined" ? document.documentElement.scrollHeight : 0
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
   const basePosition = useMemo(
     () => ({
       top: isScrollPaused
         ? Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))
-        : Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop)),
+        : Math.max(
+            minTopOffset,
+            Math.min(typeof window !== "undefined" ? window.scrollY : 0 + initialScrollOffset, maxPanelTop),
+          ),
       right: 0,
     }),
     [isScrollPaused, scrollPosition, maxPanelTop],
@@ -130,7 +133,7 @@ export function CollapsibleChatbotPanel() {
     updatePanel(panelId, { position: adjustedPosition })
   }, [adjustedPosition, updatePanel])
 
-  return (
+  return isMounted ? (
     <motion.div
       ref={panelRef}
       className="fixed right-0 z-[999] flex"
@@ -210,5 +213,5 @@ export function CollapsibleChatbotPanel() {
         )}
       </AnimatePresence>
     </motion.div>
-  )
+  ) : null
 }
