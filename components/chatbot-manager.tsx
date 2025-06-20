@@ -2,27 +2,33 @@
 
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import AiChatbot from "./ai-chatbot" // Import the new AI chatbot component
+import SuperChatbot from "./super-chatbot"
 
 export default function ChatbotManager() {
   const [isVisible, setIsVisible] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
-    // Simple visibility logic
+    // Enhanced visibility logic with page-specific timing
+    const getDelay = () => {
+      switch (pathname) {
+        case "/checkout":
+          return 5000 // Longer delay on checkout to avoid interruption
+        case "/":
+          return 3000 // Medium delay on homepage
+        default:
+          return 2000 // Quick appearance on other pages
+      }
+    }
+
     const timer = setTimeout(() => {
       setIsVisible(true)
-    }, 2000)
+    }, getDelay())
 
     return () => clearTimeout(timer)
   }, [pathname])
 
   if (!isVisible) return null
 
-  // Render the AI Chatbot
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <AiChatbot />
-    </div>
-  )
+  return <SuperChatbot />
 }
