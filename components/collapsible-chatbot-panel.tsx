@@ -75,11 +75,11 @@ export function CollapsibleChatbotPanel() {
   const documentHeight = document.documentElement.scrollHeight
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
   const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + 50, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + 50, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed left-0 z-[999] flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -88,7 +88,7 @@ export function CollapsibleChatbotPanel() {
             animate={{ width: "320px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-r-lg shadow-lg overflow-hidden border-r border-t border-b border-gray-200 dark:border-gray-800"
+            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
           >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -166,7 +166,7 @@ export function CollapsibleChatbotPanel() {
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900 rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-r border-t border-b border-gray-200 dark:border-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900 rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-l border-t border-b border-gray-200 dark:border-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Open AI Assistant"
           >
             <Bot className="h-5 w-5" />
