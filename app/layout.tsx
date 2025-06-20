@@ -10,7 +10,7 @@ import { RoomProvider } from "@/lib/room-context"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
-import { EnhancedHeader } from "@/components/enhanced-header"
+import Header from "@/components/header"
 import { EnhancedFooter } from "@/components/enhanced-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
@@ -57,7 +57,7 @@ export default function RootLayout({
                       <TooltipProvider>
                         {/* Main layout container */}
                         <div className="relative flex min-h-screen flex-col">
-                          <EnhancedHeader />
+                          <Header />
                           <Suspense>
                             <main className="flex-1">{children}</main>
                           </Suspense>

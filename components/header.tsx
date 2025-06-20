@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
+import { Menu, X, Download, Calculator, Users, Mail, Accessibility, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
 import { useCart } from "@/lib/cart-context"
 
 const navigationLinks = [
+  { href: "/", label: "Home", icon: Home },
   { href: "/pricing", label: "Pricing", icon: Calculator },
   { href: "/about", label: "About", icon: Users },
   { href: "/contact", label: "Contact", icon: Mail },
@@ -22,12 +23,8 @@ export default function Header() {
   const pathname = usePathname()
   const { cart } = useCart()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [shouldRender, setShouldRender] = useState(pathname !== "/")
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [hasItems, setHasItems] = useState(false)
-
-  useEffect(() => {
-    setShouldRender(pathname !== "/")
-  }, [pathname])
 
   useEffect(() => {
     setHasItems(cart.items && cart.items.length > 0)
@@ -35,25 +32,22 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrolled = window.scrollY > 10
-      setIsScrolled(scrolled)
+      setIsScrolled(window.scrollY > 10)
     }
 
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Close menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false)
   }, [pathname])
 
-  const getVisibleLinks = () => {
-    const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
-    return filteredLinks.slice(0, 4)
-  }
-
-  const visibleLinks = getVisibleLinks()
-
-  // Homepage with items - minimal header with ID for positioning
+  // Homepage with items - minimal header
   if (pathname === "/" && hasItems) {
     return (
-      <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }}>
+      <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }} role="banner">
         <div className="flex justify-end">
           <CartButton showLabel={false} variant="default" size="lg" />
         </div>
@@ -61,13 +55,13 @@ export default function Header() {
     )
   }
 
-  // Don't show header on homepage without items
+  // Hidden header for homepage without items
   if (pathname === "/" && !hasItems) {
-    return (
-      // Hidden header with ID for positioning calculations
-      <header id="main-header" className="hidden" style={{ height: "0px" }} aria-hidden="true" />
-    )
+    return <header id="main-header" className="hidden" style={{ height: "0px" }} aria-hidden="true" />
   }
+
+  // Filter navigation links (exclude current page)
+  const availableLinks = navigationLinks.filter((link) => link.href !== pathname)
 
   // Main header for all other pages
   return (
@@ -79,26 +73,26 @@ export default function Header() {
         isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm" : "bg-background/90 backdrop-blur-sm",
       )}
       style={{ height: "64px" }}
+      role="banner"
     >
-      {/* Main container with proper spacing grid */}
       <div className="container mx-auto">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo section - consistent spacing */}
+          {/* Logo Section */}
           <div className="flex items-center">
             <Link
               href="/"
-              className="flex items-center space-x-2 transition-opacity hover:opacity-80"
+              className="flex items-center space-x-2 transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md"
               aria-label="SmileyBrooms Home"
             >
               <Logo className="h-8 w-auto" />
             </Link>
           </div>
 
-          {/* Navigation and actions - proper spacing hierarchy */}
+          {/* Desktop Navigation & Actions */}
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
-            {/* Desktop navigation - consistent spacing */}
-            <nav className="hidden lg:flex items-center space-x-1" role="navigation">
-              {visibleLinks.map((link) => {
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
+              {availableLinks.slice(0, 4).map((link) => {
                 const IconComponent = link.icon
                 return (
                   <Link
@@ -111,73 +105,91 @@ export default function Header() {
                       "hover:bg-accent/50",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                     )}
+                    aria-label={`Go to ${link.label}`}
                   >
-                    <IconComponent className="h-4 w-4" />
+                    <IconComponent className="h-4 w-4" aria-hidden="true" />
                     <span>{link.label}</span>
                   </Link>
                 )
               })}
             </nav>
 
-            {/* Action buttons - consistent sizing and spacing */}
+            {/* Action Buttons */}
             <div className="flex items-center space-x-2">
-              {/* Cart button - proper touch target */}
-              <div className="flex items-center">
-                <CartButton showLabel={false} size="default" />
-              </div>
+              {/* Cart Button */}
+              <CartButton showLabel={false} size="default" />
 
-              {/* Download button - desktop only */}
-              <div className="hidden md:flex">
-                <Button variant="outline" size="sm" asChild className="h-9 px-3">
-                  <Link href="/download" className="flex items-center space-x-2">
-                    <Download className="h-4 w-4" />
-                    <span className="hidden lg:inline">Download</span>
-                  </Link>
-                </Button>
-              </div>
+              {/* Download Button - Desktop Only */}
+              <Button variant="outline" size="sm" asChild className="hidden md:flex h-9 px-3">
+                <Link href="/download" className="flex items-center space-x-2" aria-label="Download our app">
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden lg:inline">Download</span>
+                </Link>
+              </Button>
 
-              {/* Mobile menu trigger - proper touch target */}
+              {/* Mobile Menu */}
               <div className="lg:hidden">
-                <Sheet>
+                <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0" aria-label="Open navigation menu">
-                      <Menu className="h-5 w-5" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                      aria-expanded={isMenuOpen}
+                      aria-controls="mobile-menu"
+                    >
+                      {isMenuOpen ? (
+                        <X className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <Menu className="h-5 w-5" aria-hidden="true" />
+                      )}
                     </Button>
                   </SheetTrigger>
 
-                  <SheetContent side="right" className="w-80 sm:w-96">
-                    {/* Mobile menu content with proper spacing */}
-                    <div className="flex flex-col space-y-4 mt-8">
-                      {/* Mobile navigation links */}
-                      <nav className="flex flex-col space-y-2" role="navigation">
-                        {navigationLinks
-                          .filter((link) => link.href !== pathname)
-                          .map((link) => {
-                            const IconComponent = link.icon
-                            return (
-                              <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                  "flex items-center space-x-3 px-4 py-3 rounded-lg",
-                                  "text-base font-medium transition-colors duration-200",
-                                  "text-foreground hover:bg-accent",
-                                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                                )}
-                              >
-                                <IconComponent className="h-5 w-5" />
-                                <span>{link.label}</span>
-                              </Link>
-                            )
-                          })}
+                  <SheetContent
+                    side="right"
+                    className="w-80 sm:w-96"
+                    id="mobile-menu"
+                    aria-labelledby="mobile-menu-title"
+                  >
+                    <SheetHeader className="text-left">
+                      <SheetTitle id="mobile-menu-title" className="text-lg font-semibold">
+                        Navigation Menu
+                      </SheetTitle>
+                    </SheetHeader>
+
+                    <div className="flex flex-col space-y-6 mt-8">
+                      {/* Mobile Navigation Links */}
+                      <nav className="flex flex-col space-y-1" role="navigation" aria-label="Mobile navigation">
+                        {availableLinks.map((link) => {
+                          const IconComponent = link.icon
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              className={cn(
+                                "flex items-center space-x-3 px-4 py-3 rounded-lg",
+                                "text-base font-medium transition-colors duration-200",
+                                "text-foreground hover:bg-accent",
+                                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                              )}
+                              onClick={() => setIsMenuOpen(false)}
+                              aria-label={`Go to ${link.label}`}
+                            >
+                              <IconComponent className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                              <span>{link.label}</span>
+                            </Link>
+                          )
+                        })}
                       </nav>
 
                       {/* Divider */}
-                      <div className="border-t border-border" />
+                      <div className="border-t border-border" role="separator" />
 
-                      {/* Mobile action buttons */}
+                      {/* Mobile Action Buttons */}
                       <div className="flex flex-col space-y-3 px-4">
-                        {/* Cart button - full width for mobile */}
+                        {/* Cart Button - Full Width */}
                         <CartButton
                           showLabel={true}
                           variant="default"
@@ -185,10 +197,15 @@ export default function Header() {
                           className="w-full justify-start h-11"
                         />
 
-                        {/* Download button - full width for mobile */}
+                        {/* Download Button - Full Width */}
                         <Button variant="outline" size="default" asChild className="w-full justify-start h-11">
-                          <Link href="/download" className="flex items-center space-x-3">
-                            <Download className="h-5 w-5" />
+                          <Link
+                            href="/download"
+                            className="flex items-center space-x-3"
+                            onClick={() => setIsMenuOpen(false)}
+                            aria-label="Download our mobile app"
+                          >
+                            <Download className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
                             <span>Download App</span>
                           </Link>
                         </Button>
