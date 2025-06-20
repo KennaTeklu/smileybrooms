@@ -1,300 +1,130 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useRef, useLayoutEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRef, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { QRCodeSVG } from "qrcode.react"
-
-type SharePlatform = {
-  id: string
-  name: string
-  url: string
-  icon: React.ReactNode
-  color: string
-  category: string
-}
-
-const sharePlatforms: SharePlatform[] = [
-  {
-    id: "twitter",
-    name: "Twitter",
-    url: "https://twitter.com/intent/tweet?url=",
-    icon: <Share2 />,
-    color: "bg-blue-500",
-    category: "social",
-  },
-  {
-    id: "facebook",
-    name: "Facebook",
-    url: "https://www.facebook.com/sharer/sharer.php?u=",
-    icon: <Share2 />,
-    color: "bg-blue-700",
-    category: "social",
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    url: "https://www.linkedin.com/shareArticle?url=",
-    icon: <Share2 />,
-    color: "bg-blue-800",
-    category: "work",
-  },
-  {
-    id: "reddit",
-    name: "Reddit",
-    url: "https://www.reddit.com/submit?url=",
-    icon: <Share2 />,
-    color: "bg-orange-500",
-    category: "social",
-  },
-  {
-    id: "email",
-    name: "Email",
-    url: "mailto:?body=",
-    icon: <Share2 />,
-    color: "bg-gray-500",
-    category: "more",
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    url: "https://api.whatsapp.com/send?text=",
-    icon: <Share2 />,
-    color: "bg-green-500",
-    category: "chat",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    url: "https://telegram.me/share/url?url=",
-    icon: <Share2 />,
-    color: "bg-blue-400",
-    category: "chat",
-  },
-  {
-    id: "copy",
-    name: "Copy Link",
-    url: "",
-    icon: <Share2 />,
-    color: "bg-gray-500",
-    category: "more",
-  },
-]
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Share2, X, Copy, Printer, Download, Mail, MessageSquare } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
 
 interface CollapsibleSharePanelProps {
   isExpanded: boolean
   setIsExpanded: (expanded: boolean) => void
   setPanelHeight: (height: number) => void
-  dynamicTop: number
+  dynamicBottom: number
 }
 
 export function CollapsibleSharePanel({
   isExpanded,
   setIsExpanded,
   setPanelHeight,
-  dynamicTop,
+  dynamicBottom,
 }: CollapsibleSharePanelProps) {
-  const [activeTab, setActiveTab] = useState("social")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [copied, setCopied] = useState(false)
-  const [showQR, setShowQR] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const [currentUrl, setCurrentUrl] = useState("")
+  const { toast } = useToast()
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Handle mounting for SSR
-  useEffect(() => {
-    setIsMounted(true)
-    setCurrentUrl(window.location.href)
-  }, [])
-
-  // Report panel height to parent
   useLayoutEffect(() => {
     if (panelRef.current) {
       setPanelHeight(panelRef.current.offsetHeight)
     }
-  }, [isExpanded, setPanelHeight]) // Recalculate height when expanded state changes
+  }, [isExpanded, setPanelHeight])
 
-  // Handle click outside to collapse panel
-  useEffect(() => {
-    if (!isMounted) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
-        setIsExpanded(false)
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Smiley Brooms Cleaning Service",
+          text: "Check out Smiley Brooms for professional cleaning services!",
+          url: window.location.href,
+        })
+        toast({
+          title: "Shared successfully!",
+          description: "The content has been shared.",
+        })
+      } catch (error) {
+        console.error("Error sharing:", error)
+        toast({
+          title: "Sharing failed",
+          description: "Could not share the content.",
+          variant: "destructive",
+        })
       }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted, setIsExpanded])
-
-  // Don't render until mounted to prevent SSR issues
-  if (!isMounted) {
-    return null
-  }
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy:", err)
+    } else {
+      toast({
+        title: "Web Share API not supported",
+        description: "Please use the copy link option instead.",
+        variant: "destructive",
+      })
     }
   }
 
-  const filteredPlatforms = sharePlatforms.filter(
-    (platform) =>
-      platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (activeTab === "all" || platform.category === activeTab),
-  )
-
-  const shareOnPlatform = (platform: SharePlatform) => {
-    const shareUrl = platform.url + encodeURIComponent(currentUrl)
-    window.open(shareUrl, "_blank", "width=600,height=400")
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    toast({
+      title: "Link copied!",
+      description: "The page link has been copied to your clipboard.",
+    })
   }
 
-  const qrCodeSize = 256
-  const logoSize = qrCodeSize * 0.2 // Reduced to 20% of QR code size
-  const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleDownload = () => {
+    // This is a placeholder. Actual download logic depends on content type.
+    toast({
+      title: "Download initiated",
+      description: "Simulating content download.",
+    })
+    // Example: Create a dummy blob and download
+    const blob = new Blob(["This is your downloaded content."], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "smileybrooms-content.txt"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: dynamicTop }}>
-      <AnimatePresence initial={false}>
-        {isExpanded ? (
-          <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "320px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
-          >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Share2 className="h-5 w-5" />
-                Share
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsExpanded(false)}
-                aria-label="Collapse share panel"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
-                  {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                  {copied ? "Copied!" : "Copy Link"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowQR(!showQR)}>
-                  <QrCode className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {showQR && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
-                >
-                  <QRCodeSVG
-                    value={currentUrl}
-                    size={qrCodeSize}
-                    level="H"
-                    bgColor="transparent"
-                    fgColor="currentColor"
-                    className="text-gray-900 dark:text-gray-50"
-                    imageSettings={{
-                      src: "/favicon.png",
-                      x: logoPosition,
-                      y: logoPosition,
-                      height: logoSize,
-                      width: logoSize,
-                      excavate: true,
-                    }}
-                  />
-                </motion.div>
-              )}
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-4 p-2">
-                <TabsTrigger value="social">Social</TabsTrigger>
-                <TabsTrigger value="chat">Chat</TabsTrigger>
-                <TabsTrigger value="work">Work</TabsTrigger>
-                <TabsTrigger value="more">More</TabsTrigger>
-              </TabsList>
-
-              <div className="p-4">
-                {/* Search */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search platforms..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                {/* Platform Grid */}
-                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
-                  {filteredPlatforms.map((platform) => (
-                    <motion.button
-                      key={platform.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => shareOnPlatform(platform)}
-                      className={cn(
-                        "flex items-center gap-2 p-3 rounded-lg border text-left",
-                        "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
-                        "focus:outline-none focus:ring-2 focus:ring-primary",
-                      )}
-                    >
-                      <div className={cn("p-2 rounded text-white", platform.color)}>{platform.icon}</div>
-                      <span className="text-sm font-medium">{platform.name}</span>
-                      <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
-                    </motion.button>
-                  ))}
-                </div>
-
-                {filteredPlatforms.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    No platforms found.
-                  </div>
-                )}
-              </div>
-            </Tabs>
-          </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "48px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-primary rounded-l-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-200 flex items-center justify-center h-12 w-12"
-            onClick={() => setIsExpanded(true)}
-            aria-label="Expand share panel"
-          >
-            <Share2 className="h-5 w-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+    <div
+      ref={panelRef}
+      className={cn(
+        "fixed right-4 z-[998] transition-all duration-300 ease-in-out",
+        isExpanded ? "translate-x-0 opacity-100 visible" : "translate-x-full opacity-0 invisible",
+      )}
+      style={{ bottom: `${dynamicBottom}px` }}
+    >
+      <Card className="w-72 shadow-lg">
+        <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+          <CardTitle className="text-lg font-semibold">Share Options</CardTitle>
+          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} aria-label="Close share panel">
+            <X className="h-5 w-5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="p-4 pt-2 grid gap-2">
+          <Button variant="outline" className="w-full justify-start" onClick={handleShare}>
+            <Share2 className="mr-2 h-4 w-4" /> Share via Web Share
+          </Button>
+          <Button variant="outline" className="w-full justify-start" onClick={handleCopyLink}>
+            <Copy className="mr-2 h-4 w-4" /> Copy Link
+          </Button>
+          <Button variant="outline" className="w-full justify-start" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" /> Print Page
+          </Button>
+          <Button variant="outline" className="w-full justify-start" onClick={handleDownload}>
+            <Download className="mr-2 h-4 w-4" /> Download Content
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            <Mail className="mr-2 h-4 w-4" /> Email
+          </Button>
+          <Button variant="outline" className="w-full justify-start">
+            <MessageSquare className="mr-2 h-4 w-4" /> SMS
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -57,20 +57,23 @@ export default function SemicircleFooter() {
   }, [isExpanded, lastScrollY])
 
   // Parameters for the curved link arrangement
-  const arcRadius = 150 // Radius of the arc on which links will be placed
-  const arcBottomOffset = 80 // Distance from the very bottom of the footer to the center of the arc
+  // These radii define the ellipse path for the links
+  const linkArcHorizontalRadius = 100 // Controls how wide the link arc is
+  const linkArcVerticalRadius = 200 // Controls how tall the link arc is
+  const linkArcBaseOffset = 50 // Distance from the left edge of the footer to the leftmost point of the link arc
 
   return (
     <footer
       className={cn(
-        "relative w-full overflow-hidden",
-        "bg-gradient-to-t from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800",
+        "fixed bottom-0 left-0 w-[100px] h-full overflow-hidden", // Fixed position, narrow width, full height
+        "bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-800", // Gradient from left to right
         "transition-all duration-500 ease-in-out",
-        isExpanded ? "h-[400px]" : "h-[100px]", // Adjust height based on expanded state
-        "flex flex-col items-center justify-end",
+        isExpanded ? "w-[400px]" : "w-[100px]", // Adjust width based on expanded state
+        "flex flex-col items-center justify-center", // Center content vertically
       )}
       style={{
-        clipPath: "ellipse(50% 100% at 50% 100%)", // Makes the entire footer a top-half semicircle
+        // Makes the entire footer a left-to-right arch (right-half ellipse)
+        clipPath: "ellipse(50% 100% at 0% 50%)", // Center at left edge, middle height
       }}
       role="contentinfo"
     >
@@ -83,19 +86,19 @@ export default function SemicircleFooter() {
             className="absolute top-4 right-4 p-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-110"
             aria-label="Collapse footer"
           >
-            <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400 rotate-90" />{" "}
+            {/* Rotate for horizontal collapse */}
           </button>
 
-          {/* Links in a curved row */}
-          <div className="relative w-full h-[200px] flex justify-center items-center mt-8">
+          {/* Links in a curved row following the semicircle */}
+          <div className="relative h-full w-[200px] flex justify-center items-center mt-8">
             {footerLinks.map((link, index) => {
-              // Distribute links from -90 to 90 degrees (a full semicircle arc)
-              const angle = (index / (footerLinks.length - 1)) * 180 - 90
-              const angleRad = angle * (Math.PI / 180)
+              // Distribute links from -Math.PI/2 to Math.PI/2 (a full right-half ellipse arc)
+              const angle = (index / (footerLinks.length - 1)) * Math.PI - Math.PI / 2
 
-              // Calculate x and y positions on the arc
-              const xOffset = arcRadius * Math.cos(angleRad)
-              const yOffset = arcRadius * Math.sin(angleRad)
+              // Calculate x and y positions on the ellipse arc
+              const xOffset = linkArcHorizontalRadius * Math.cos(angle)
+              const yOffset = linkArcVerticalRadius * Math.sin(angle)
 
               return (
                 <Link
@@ -104,9 +107,9 @@ export default function SemicircleFooter() {
                   className="absolute flex flex-col items-center gap-1 p-2 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105 shadow-md text-center"
                   onClick={() => setIsExpanded(false)}
                   style={{
-                    left: `calc(50% + ${xOffset}px)`,
-                    bottom: `${arcBottomOffset + yOffset}px`, // Position relative to the bottom of the footer
-                    transform: "translate(-50%, 50%)", // Center the element on its calculated point
+                    left: `${linkArcBaseOffset + xOffset}px`, // Position relative to the left of the footer
+                    top: `calc(50% + ${yOffset}px)`, // Center vertically
+                    transform: "translate(-50%, -50%)", // Center the element on its calculated point
                   }}
                 >
                   <link.icon className="h-5 w-5 text-primary" />
@@ -144,15 +147,19 @@ export default function SemicircleFooter() {
 
       {/* Content for Collapsed State (always visible at the bottom of the semicircle) */}
       {!isExpanded && (
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-4">
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 pl-4">
+          {" "}
+          {/* Position for collapsed button */}
           <button
             onClick={() => setIsExpanded(true)}
-            className="group relative flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 rounded-full border-2 border-primary/30 hover:border-primary/50 transition-all duration-300 hover:scale-105"
+            className="group relative flex flex-col items-center gap-2 px-3 py-6 bg-primary/10 hover:bg-primary/20 rounded-full border-2 border-primary/30 hover:border-primary/50 transition-all duration-300 hover:scale-105"
             aria-label="Expand footer"
           >
             <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary">Explore More</span>
-            <ChevronUp className="h-4 w-4 text-primary group-hover:animate-bounce" />
+            <span className="text-sm font-medium text-primary [writing-mode:vertical-lr] rotate-180">Explore More</span>{" "}
+            {/* Vertical text */}
+            <ChevronUp className="h-4 w-4 text-primary group-hover:animate-bounce rotate-90" />{" "}
+            {/* Rotate for horizontal expansion */}
           </button>
         </div>
       )}

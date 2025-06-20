@@ -161,9 +161,6 @@ importers:
       next-themes:
         specifier: latest
         version: 0.4.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      qrcode.react:
-        specifier: latest
-        version: 4.2.0(react@19.0.0)
       react:
         specifier: ^19
         version: 19.0.0
@@ -2385,11 +2382,6 @@ packages:
   protobufjs@7.5.3:
     resolution: {integrity: sha512-sildjKwVqOI2kmFDiXQ6aEB0fjYTafpEvIBs8tOR8qI4spuL9OPROLVu2qZqi/xgCfsHIwVqlaF8JBjWFHnKbw==}
     engines: {node: '>=12.0.0'}
-
-  qrcode.react@4.2.0:
-    resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
@@ -5044,10 +5036,6 @@ snapshots:
       '@protobufjs/utf8': 1.1.0
       '@types/node': 22.0.0
       long: 5.3.2
-
-  qrcode.react@4.2.0(react@19.0.0):
-    dependencies:
-      react: 19.0.0
 
   qs@6.14.0:
     dependencies:
