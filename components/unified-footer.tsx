@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown, Phone } from "lucide-react"
 import Logo from "@/components/logo" // Ensure this imports the updated Logo
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 type FooterSection = {
   title: string
@@ -48,6 +49,12 @@ export default function UnifiedFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [flashEffect, setFlashEffect] = useState(false)
   const currentYear = new Date().getFullYear()
+  const pathname = usePathname() // Get current pathname
+
+  // Collapse footer on route change
+  useEffect(() => {
+    setIsExpanded(false)
+  }, [pathname])
 
   const handleToggle = () => {
     if (isExpanded) {

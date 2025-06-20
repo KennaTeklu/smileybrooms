@@ -27,11 +27,7 @@ interface ChatMessage {
   metadata?: any
 }
 
-interface SuperChatbotProps {
-  isUnifiedPanel?: boolean // New prop
-}
-
-export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotProps) {
+export default function SuperChatbot() {
   const { theme } = useTheme()
   const { preferences } = useAccessibility()
   const { trackEvent } = useAnalytics()
@@ -39,9 +35,13 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
   const pathname = usePathname()
   const { toast } = useToast()
 
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [activeTab, setActiveTab] = useState("chat")
+  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
+  const [panelHeight, setPanelHeight] = useState(0)
+  const [isScrollPaused, setIsScrollPaused] = useState(false)
   const [jotformLoaded, setJotformLoaded] = useState(false)
   const [userContext, setUserContext] = useState({
     currentPage: pathname,
@@ -50,9 +50,16 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     cartItems: 0,
   })
 
+  const panelRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const jotformIframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Define configurable scroll range values
+  const minTopOffset = 20 // Minimum distance from the top of the viewport
+  // Adjusted initialScrollOffset to be 50px below the share panel (which is around 100px from top)
+  const initialScrollOffset = 150 // This positions it roughly 50px below the share panel
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
@@ -72,10 +79,52 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     },
   })
 
+  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
+  // Pause panel's scroll-following when expanded
+  useEffect(() => {
+    setIsScrollPaused(isExpanded)
+  }, [isExpanded])
+
+  // Track scroll position and panel height after mounting
+  useEffect(() => {
+    if (!isMounted || isScrollPaused) return
+
+    const updatePositionAndHeight = () => {
+      setScrollPosition(window.scrollY)
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight)
+      }
+    }
+
+    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
+    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
+    updatePositionAndHeight() // Initial call
+
+    return () => {
+      window.removeEventListener("scroll", updatePositionAndHeight)
+      window.removeEventListener("resize", updatePositionAndHeight)
+    }
+  }, [isMounted, isScrollPaused])
+
+  // Handle click outside to collapse panel
+  useEffect(() => {
+    if (!isMounted) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
+        setIsExpanded(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isExpanded, isMounted])
+
+  // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition
@@ -101,6 +150,7 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     }
   }, [handleInputChange, toast])
 
+  // Load JotForm script when "Live Agent" tab is active
   useEffect(() => {
     if (activeTab === "live-agent" && !jotformLoaded) {
       const script = document.createElement("script")
@@ -119,6 +169,7 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     }
   }, [activeTab, jotformLoaded])
 
+  // Track user context
   useEffect(() => {
     setUserContext((prev) => ({
       ...prev,
@@ -127,10 +178,12 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     }))
   }, [pathname, messages.length])
 
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  // Track chatbot interactions
   useEffect(() => {
     if (messages.length > 0) {
       trackEvent("chatbot_interaction", {
@@ -140,9 +193,19 @@ export default function SuperChatbot({ isUnifiedPanel = false }: SuperChatbotPro
     }
   }, [messages.length, pathname, trackEvent])
 
+  // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
+
+  // Calculate panel position based on scroll and document height
+  const documentHeight = document.documentElement.scrollHeight
+  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+
+  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
+  const panelTopPosition = isScrollPaused
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   const handleVoiceInput = () => {
     if (!recognitionRef.current) {
@@ -255,23 +318,27 @@ What would you like to know?`
   ]
 
   return (
-    <div className={cn(!isUnifiedPanel && "fixed right-0 z-40 flex")} style={!isUnifiedPanel ? { top: "50px" } : {}}>
+    <div ref={panelRef} className="fixed right-0 z-40 flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
-        {isUnifiedPanel || ( // Render content directly if part of unified panel, otherwise use old logic
+        {isExpanded ? (
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "min(100vw, 400px)", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800 flex flex-col"
+            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
           >
             <div className="bg-primary text-primary-foreground p-3 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Bot className="h-5 w-5" />
                   <span className="font-semibold">AI Assistant</span>
-                  {/* Removed isScrollPaused badge */}
+                  {isScrollPaused && (
+                    <Badge variant="secondary" className="text-xs">
+                      Fixed
+                    </Badge>
+                  )}
                   {(preferences.screenReader || preferences.highContrast || preferences.largeText) && (
                     <Badge variant="secondary" className="text-xs">
                       Accessible
@@ -282,7 +349,7 @@ What would you like to know?`
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 text-primary-foreground hover:bg-primary-foreground/20"
-                  onClick={() => { /* No-op or handle collapse in parent */ }}
+                  onClick={() => setIsExpanded(false)}
                   aria-label="Collapse chatbot"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -453,8 +520,10 @@ What would you like to know?`
                         />
                       </div>
                     </div>
-                  </TabsContent>
+                  </div>
+                </TabsContent>
 
+                {/* Live Agent Tab with JotForm Embed */}
                 <TabsContent value="live-agent" className="flex-1 flex flex-col m-0 p-0">
                   <div className="flex-1 w-full h-full overflow-hidden">
                     <iframe
@@ -489,8 +558,32 @@ What would you like to know?`
               </Tabs>
             </div>
           </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: "auto", opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsExpanded(true)}
+            className={cn(
+              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
+              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border-l border-t border-b border-gray-200 dark:border-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
+            aria-label="Open AI Assistant"
+          >
+            <Bot className="h-5 w-5" />
+            <span className="text-sm font-medium">AI</span>
+            {messages.length > 0 && (
+              <Badge className="ml-1 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
+                {messages.length}
+              </Badge>
+            )}
+          </motion.button>
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

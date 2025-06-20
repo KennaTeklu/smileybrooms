@@ -13,8 +13,7 @@ const PersistentBookNowButton = dynamic(() => import("./persistent-book-now-butt
   loading: () => null,
 })
 
-// Import the new unified side panel
-const UnifiedSidePanel = dynamic(() => import("./unified-side-panel"), {
+const AccessibilityToolbar = dynamic(() => import("./accessibility-toolbar"), {
   ssr: false,
   loading: () => null,
 })
@@ -24,8 +23,7 @@ export default function UnifiedFloatingWrapper() {
     <Suspense fallback={null}>
       <FloatingCartButton />
       <PersistentBookNowButton />
-      {/* Render the new unified side panel */}
-      <UnifiedSidePanel />
+      <AccessibilityToolbar />
     </Suspense>
   )
 }
