@@ -5,7 +5,7 @@ import React from "react"
 import { useState, useEffect, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { VolumeIcon as VolumeUp, Volume2, VolumeX, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
-import { TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Drawer,
   DrawerClose,
@@ -240,61 +240,73 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
       <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
         <TooltipProvider>
           <div className="flex flex-col gap-2">
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={readPage}>
-                {isReading ? <VolumeX className="h-5 w-5" /> : <VolumeUp className="h-5 w-5" />}
-                <span className="sr-only">{isReading ? "Stop Read Aloud" : "Read Aloud"}</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{isReading ? "Stop Read Aloud" : "Read Aloud"}</TooltipContent>
-
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleMute}>
-                {isMuted ? (
-                  <VolumeX className="h-5 w-5" />
-                ) : volume > 0.5 ? (
-                  <Volume2 className="h-5 w-5" />
-                ) : (
-                  <VolumeX className="h-5 w-5" />
-                )}
-                <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={increaseFontSize}>
-                <Maximize2 className="h-5 w-5" />
-                <span className="sr-only">Increase Font Size</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Increase Font Size</TooltipContent>
-
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={decreaseFontSize}>
-                <Minimize2 className="h-5 w-5" />
-                <span className="sr-only">Decrease Font Size</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Decrease Font Size</TooltipContent>
-
-            <TooltipTrigger asChild>
-              <DrawerTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                  <span className="sr-only">Settings</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={readPage}>
+                  {isReading ? <VolumeX className="h-5 w-5" /> : <VolumeUp className="h-5 w-5" />}
+                  <span className="sr-only">{isReading ? "Stop Read Aloud" : "Read Aloud"}</span>
                 </Button>
-              </DrawerTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
+              </TooltipTrigger>
+              <TooltipContent side="right">{isReading ? "Stop Read Aloud" : "Read Aloud"}</TooltipContent>
+            </Tooltip>
 
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => setShowSharePanel(true)}>
-                <Share2 className="h-5 w-5" />
-                <span className="sr-only">Share</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Share</TooltipContent>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={toggleMute}>
+                  {isMuted ? (
+                    <VolumeX className="h-5 w-5" />
+                  ) : volume > 0.5 ? (
+                    <Volume2 className="h-5 w-5" />
+                  ) : (
+                    <VolumeX className="h-5 w-5" />
+                  )}
+                  <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={increaseFontSize}>
+                  <Maximize2 className="h-5 w-5" />
+                  <span className="sr-only">Increase Font Size</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Increase Font Size</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={decreaseFontSize}>
+                  <Minimize2 className="h-5 w-5" />
+                  <span className="sr-only">Decrease Font Size</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Decrease Font Size</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DrawerTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Settings className="h-5 w-5" />
+                    <span className="sr-only">Settings</span>
+                  </Button>
+                </DrawerTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right">Settings</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={() => setShowSharePanel(true)}>
+                  <Share2 className="h-5 w-5" />
+                  <span className="sr-only">Share</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Share</TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </ScrollAwareWrapper>
