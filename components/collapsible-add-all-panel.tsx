@@ -123,9 +123,9 @@ export function CollapsibleAddAllPanel() {
       controls.start({
         scale: [1, 1.08, 1],
         boxShadow: [
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
-          "0 12px 50px rgba(59, 130, 246, 0.8)",
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
+          "0 4px 20px rgba(14, 165, 233, 0.3)",
+          "0 12px 50px rgba(14, 165, 233, 0.5)",
+          "0 4px 20px rgba(14, 165, 233, 0.3)",
         ],
         transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
       })
@@ -373,7 +373,7 @@ export function CollapsibleAddAllPanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           className={cn(
-            "flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600",
+            "flex flex-col gap-3 p-4 bg-gradient-to-r from-professional-50 to-professional-100 dark:from-professional-800 dark:to-professional-700 rounded-xl group hover:from-trust-50 hover:to-trust-100 dark:hover:from-trust-900/20 dark:hover:to-trust-800/20 transition-all duration-300 border border-professional-200 dark:border-professional-600",
             isFullscreen && "hover:shadow-lg",
             "snap-start", // Scroll-snapping
           )}
@@ -397,13 +397,13 @@ export function CollapsibleAddAllPanel() {
             <div className="flex-1 min-w-0">
               <h4
                 className={cn(
-                  "font-bold text-base text-gray-900 dark:text-gray-100 truncate",
+                  "font-bold text-base text-professional-900 dark:text-professional-100 truncate",
                   isFullscreen && "text-lg",
                 )}
               >
                 {roomDisplayNames[roomType] || roomType}
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+              <p className="text-sm text-professional-600 dark:text-professional-400 truncate">
                 {config?.selectedTier || "Essential Clean"}
               </p>
               <div className="flex items-center gap-2 mt-2">
@@ -417,7 +417,7 @@ export function CollapsibleAddAllPanel() {
             </div>
 
             <div className="text-right flex-shrink-0">
-              <div className={cn("font-bold text-lg text-blue-600 dark:text-blue-400", isFullscreen && "text-xl")}>
+              <div className={cn("font-bold text-lg text-trust-600 dark:text-trust-400", isFullscreen && "text-xl")}>
                 {formatCurrency(roomTotal)}
               </div>
               <Tooltip>
@@ -426,7 +426,7 @@ export function CollapsibleAddAllPanel() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemoveRoom(roomType)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
+                    className="text-error-500 hover:text-error-700 hover:bg-error-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -439,16 +439,16 @@ export function CollapsibleAddAllPanel() {
           {/* Detailed Breakdown */}
           <Accordion type="single" collapsible className="w-full mt-2">
             <AccordionItem value="details">
-              <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
+              <AccordionTrigger className="text-sm font-medium text-professional-700 dark:text-professional-300 hover:no-underline">
                 View Details
               </AccordionTrigger>
               <AccordionContent className="pt-2 space-y-3">
                 {config?.detailedTasks && config.detailedTasks.length > 0 && (
                   <div>
-                    <h5 className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400 mb-1">
+                    <h5 className="flex items-center gap-1 text-sm font-semibold text-success-700 dark:text-success-400 mb-1">
                       <ListChecks className="h-4 w-4" /> Included Tasks:
                     </h5>
-                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                    <ul className="list-disc list-inside text-xs text-professional-600 dark:text-professional-400 space-y-0.5">
                       {config.detailedTasks.map((task, i) => (
                         <li key={i}>{task}</li>
                       ))}
@@ -458,10 +458,10 @@ export function CollapsibleAddAllPanel() {
 
                 {config?.notIncludedTasks && config.notIncludedTasks.length > 0 && (
                   <div>
-                    <h5 className="flex items-center gap-1 text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
+                    <h5 className="flex items-center gap-1 text-sm font-semibold text-error-700 dark:text-error-400 mb-1">
                       <ListX className="h-4 w-4" /> Not Included:
                     </h5>
-                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                    <ul className="list-disc list-inside text-xs text-professional-600 dark:text-professional-400 space-y-0.5">
                       {config.notIncludedTasks.map((task, i) => (
                         <li key={i}>{task}</li>
                       ))}
@@ -470,9 +470,9 @@ export function CollapsibleAddAllPanel() {
                 )}
 
                 {config?.upsellMessage && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-md flex items-start gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-800 dark:text-yellow-300">{config.upsellMessage}</p>
+                  <div className="bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 p-3 rounded-md flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-warning-600 dark:text-warning-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-warning-800 dark:text-warning-300">{config.upsellMessage}</p>
                   </div>
                 )}
               </AccordionContent>
@@ -496,7 +496,7 @@ export function CollapsibleAddAllPanel() {
           initial={{ opacity: 0, scale: 0.8, y: 50 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: 50 }}
-          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
+          className="fixed top-4 right-4 z-[1000] bg-success-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-success-400"
         >
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
@@ -529,10 +529,10 @@ export function CollapsibleAddAllPanel() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white dark:bg-gray-900 z-[999] overflow-hidden flex flex-col"
+            className="fixed inset-0 bg-white dark:bg-professional-900 z-[999] overflow-hidden flex flex-col"
           >
             {/* Fullscreen Header */}
-            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
+            <div className="bg-gradient-to-r from-trust-600 via-trust-700 to-trust-800 text-white p-4 shadow-lg">
               <div className="container mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
@@ -545,7 +545,7 @@ export function CollapsibleAddAllPanel() {
                   </Button>
                   <div>
                     <h2 className="text-xl font-bold">Review Your Selections</h2>
-                    <p className="text-blue-100 text-sm">
+                    <p className="text-trust-100 text-sm">
                       {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
                     </p>
                   </div>
@@ -571,11 +571,11 @@ export function CollapsibleAddAllPanel() {
                     exit={{ opacity: 0, x: 20 }}
                   >
                     <div className="grid gap-6 mb-8">
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-3">
-                        <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="bg-trust-50 dark:bg-trust-900/20 p-4 rounded-lg border border-trust-200 dark:border-trust-800 flex items-start gap-3">
+                        <Info className="h-5 w-5 text-trust-600 dark:text-trust-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <h3 className="font-medium text-blue-800 dark:text-blue-300">Review Your Selections</h3>
-                          <p className="text-sm text-blue-700 dark:text-blue-400">
+                          <h3 className="font-medium text-trust-800 dark:text-trust-300">Review Your Selections</h3>
+                          <p className="text-sm text-trust-700 dark:text-trust-400">
                             Please review your selected rooms before adding them to your cart. You can adjust quantities
                             or remove items as needed.
                           </p>
@@ -592,25 +592,27 @@ export function CollapsibleAddAllPanel() {
                     exit={{ opacity: 0, x: -20 }}
                     className="max-w-2xl mx-auto"
                   >
-                    <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800 mb-8 text-center">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-800/30 rounded-full mb-4">
-                        <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <div className="bg-success-50 dark:bg-success-900/20 p-6 rounded-xl border border-success-200 dark:border-success-800 mb-8 text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-success-100 dark:bg-success-800/30 rounded-full mb-4">
+                        <Check className="h-8 w-8 text-success-600 dark:text-success-400" />
                       </div>
-                      <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-2">
+                      <h3 className="text-xl font-bold text-success-800 dark:text-success-300 mb-2">
                         Ready to Add to Cart
                       </h3>
-                      <p className="text-green-700 dark:text-green-400 mb-4">
+                      <p className="text-success-700 dark:text-success-400 mb-4">
                         You're about to add {selectedRoomTypes.length} room type
                         {selectedRoomTypes.length !== 1 ? "s" : ""} to your cart for a total of{" "}
                         {formatCurrency(totalPrice)}.
                       </p>
-                      <div className="text-sm text-green-600 dark:text-green-500">
+                      <div className="text-sm text-success-600 dark:text-success-500">
                         Click "Add All to Cart" below to continue.
                       </div>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-                      <h4 className="font-bold text-lg mb-3 text-gray-900 dark:text-gray-100">Order Summary</h4>
+                    <div className="bg-white dark:bg-professional-800 rounded-xl border border-professional-200 dark:border-professional-700 p-4 shadow-sm">
+                      <h4 className="font-bold text-lg mb-3 text-professional-900 dark:text-professional-100">
+                        Order Summary
+                      </h4>
                       <div className="space-y-2 mb-4">
                         {selectedRoomTypes.map((roomType) => {
                           const config = roomConfigs[roomType]
@@ -619,7 +621,7 @@ export function CollapsibleAddAllPanel() {
 
                           return (
                             <div key={roomType} className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">
+                              <span className="text-professional-600 dark:text-professional-400">
                                 {roomDisplayNames[roomType] || roomType} (x{count})
                               </span>
                               <span className="font-medium">{formatCurrency(roomTotal)}</span>
@@ -627,10 +629,10 @@ export function CollapsibleAddAllPanel() {
                           )
                         })}
                       </div>
-                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                      <div className="border-t border-professional-200 dark:border-professional-700 pt-3 mt-3">
                         <div className="flex justify-between font-bold">
                           <span>Total</span>
-                          <span className="text-blue-600 dark:text-blue-400">{formatCurrency(totalPrice)}</span>
+                          <span className="text-trust-600 dark:text-trust-400">{formatCurrency(totalPrice)}</span>
                         </div>
                       </div>
                     </div>
@@ -640,9 +642,9 @@ export function CollapsibleAddAllPanel() {
             </div>
 
             {/* Fullscreen Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4 shadow-lg">
+            <div className="border-t border-professional-200 dark:border-professional-800 bg-professional-50 dark:bg-professional-900 p-4 shadow-lg">
               <div className="container mx-auto flex items-center justify-between">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-sm text-professional-500 dark:text-professional-400">
                   {reviewStep === 0 ? "Step 1 of 2: Review Items" : "Step 2 of 2: Confirm"}
                 </div>
                 <div className="flex gap-3">
@@ -655,7 +657,7 @@ export function CollapsibleAddAllPanel() {
                       <Button
                         onClick={handleAddAllToCart}
                         disabled={!isOnline}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                        className="bg-gradient-to-r from-trust-600 to-trust-700 hover:from-trust-700 hover:to-trust-800 text-white"
                       >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         Add All to Cart
@@ -668,7 +670,7 @@ export function CollapsibleAddAllPanel() {
                       </Button>
                       <Button
                         onClick={handleNextStep}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                        className="bg-gradient-to-r from-trust-600 to-trust-700 hover:from-trust-700 hover:to-trust-800 text-white"
                       >
                         Continue
                         <ArrowRight className="h-4 w-4 ml-2" />
@@ -707,17 +709,17 @@ export function CollapsibleAddAllPanel() {
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
-            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-            "border border-blue-500/20 backdrop-blur-sm relative",
+            "flex items-center justify-center p-3 bg-gradient-to-r from-trust-600 to-trust-700 text-white",
+            "rounded-xl shadow-lg hover:from-trust-700 hover:to-trust-800",
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-trust-500/50",
+            "border border-trust-500/20 backdrop-blur-sm relative",
           )}
           aria-label="Toggle add to cart panel"
         >
           <div className="flex items-center gap-2">
             <div className="relative">
               <Plus className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-error-500 text-white text-xs font-bold border-2 border-white">
                 {selectedRoomTypes.length}
               </Badge>
             </div>
@@ -738,7 +740,7 @@ export function CollapsibleAddAllPanel() {
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800",
+                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-professional-900 shadow-2xl rounded-xl overflow-hidden border-2 border-trust-200 dark:border-trust-800",
                 "relative flex flex-col", // Added flex flex-col
                 showTopShadow && "before:shadow-top-gradient",
                 showBottomShadow && "after:shadow-bottom-gradient",
@@ -746,7 +748,7 @@ export function CollapsibleAddAllPanel() {
               style={{ maxHeight: "70vh" }}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
+              <div className="bg-gradient-to-r from-trust-600 via-trust-700 to-trust-800 text-white p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
@@ -754,7 +756,7 @@ export function CollapsibleAddAllPanel() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold">Ready to Add</h3>
-                      <p className="text-blue-100 text-sm">
+                      <p className="text-trust-100 text-sm">
                         {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
                       </p>
                     </div>
@@ -782,7 +784,7 @@ export function CollapsibleAddAllPanel() {
               </div>
 
               {/* Scroll Customization Option */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="p-4 border-b border-professional-200 dark:border-professional-700 flex items-center justify-between">
                 <Label htmlFor="momentum-scroll" className="text-sm font-medium">
                   Enable Momentum Scroll
                 </Label>
@@ -833,15 +835,15 @@ export function CollapsibleAddAllPanel() {
               </AnimatePresence>
 
               {/* Footer */}
-              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+              <div className="border-t border-professional-200 dark:border-professional-700 p-4 bg-professional-50 dark:bg-professional-800/50">
                 <div className="space-y-3">
                   <Button
                     onClick={handleAddAllToCart} // Direct add to cart button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                    className="w-full bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
                     disabled={!isOnline}
                   >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-success-400 to-success-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="relative flex items-center justify-center">
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       Add All to Cart
@@ -850,9 +852,9 @@ export function CollapsibleAddAllPanel() {
                   <Button
                     onClick={handleReviewClick}
                     size="lg"
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
+                    className="w-full bg-gradient-to-r from-trust-600 to-trust-700 hover:from-trust-700 hover:to-trust-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
                   >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-trust-500 to-trust-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <span className="relative flex items-center justify-center">
                       <Maximize2 className="h-4 w-4 mr-2" />
                       Review in Fullscreen
