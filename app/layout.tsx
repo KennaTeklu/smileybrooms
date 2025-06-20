@@ -1,10 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import "./device-themes.css"
 import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
 import { Toaster } from "@/components/ui/toaster"
-import { CartProvider } from "@/lib/cart-context" // Corrected import path
+import { CartProvider } from "@/lib/cart-context"
 import { RoomProvider } from "@/lib/room-context"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
@@ -19,8 +20,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
 import { Suspense } from "react"
-import { CartPanelVisibilityProvider } from "@/contexts/cart-panel-visibility-context" // Ensure this is imported
-import { Inter } from "next/font/google"
+// Removed: import { CartPanelVisibilityProvider } from "@/contexts/cart-panel-visibility-context" // No longer needed
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -54,23 +54,20 @@ export default function RootLayout({
                   <TourProvider>
                     <AbandonmentProvider>
                       <TooltipProvider>
-                        <CartPanelVisibilityProvider>
-                          {" "}
-                          {/* Wrap with the new provider */}
-                          <div className="relative flex min-h-screen flex-col">
-                            <Header />
-                            <Suspense>
-                              <main className="flex-1">{children}</main>
-                            </Suspense>
-                            <EnhancedFooter />
-                          </div>
-                          <CollapsibleSettingsPanel />
-                          <CollapsibleSharePanel />
-                          <CollapsibleAddAllPanel />
-                          <CollapsibleCartPanel />
-                          <Toaster />
-                          <AnalyticsTracker />
-                        </CartPanelVisibilityProvider>
+                        {/* Removed CartPanelVisibilityProvider */}
+                        <div className="relative flex min-h-screen flex-col">
+                          <Header />
+                          <Suspense>
+                            <main className="flex-1">{children}</main>
+                          </Suspense>
+                          <EnhancedFooter />
+                        </div>
+                        <CollapsibleSettingsPanel />
+                        <CollapsibleSharePanel />
+                        <CollapsibleAddAllPanel />
+                        <CollapsibleCartPanel />
+                        <Toaster />
+                        <AnalyticsTracker />
                       </TooltipProvider>
                     </AbandonmentProvider>
                   </TourProvider>
