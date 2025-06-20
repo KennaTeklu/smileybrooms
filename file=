@@ -1,0 +1,4 @@
+SmileyBroomsWindows/Installer/setup.iss""[Setup]
+AppName=My Application
+AppVersion=1.0
+DefaultDirName=C:\{#MyAppName}

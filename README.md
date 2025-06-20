@@ -1,4 +1,3 @@
-<!-- Don't modify beyond what is requested ever. -->
 # Smiley Brooms Windows Application
 
 A professional Windows desktop application for booking cleaning services.
