@@ -13,7 +13,7 @@ import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
 import { useAnalytics } from "@/hooks/use-analytics"
-import { useTour } from "@/hooks/use-tour"
+import { useTour } from "@/contexts/tour-context"
 import { useToast } from "@/hooks/use-toast"
 import { processFormSubmission } from "@/lib/form-utils"
 
@@ -51,7 +51,8 @@ export function CollapsibleChatbotPanel() {
   const { theme } = useTheme()
   const { preferences } = useAccessibility()
   const { trackEvent } = useAnalytics()
-  const { startTour, isActive: isTourActive } = useTour()
+  const { startTour, tourState } = useTour()
+  const isTourActive = tourState.isActive
   const { toast } = useToast()
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
