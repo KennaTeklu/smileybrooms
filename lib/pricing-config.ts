@@ -89,6 +89,3 @@ export const BUNDLE_NAMING = {
   PREMIUM: "Complete Care",
   ELITE: "Concierge Deep Clean",
 }
-
-// Unified list used by UI components expecting `ADDON_CONFIG`
-export const ADDON_CONFIG = [...STRATEGIC_ADDONS, ...PREMIUM_EXCLUSIVE_SERVICES]

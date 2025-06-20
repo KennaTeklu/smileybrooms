@@ -25,3 +25,7 @@ export const ROOM_CONFIG = {
   },
   serviceFee: 50,
 }
+
+export const COMPANY_PHONE_NUMBER = "602-XXX-XXXX"
+export const COMPANY_NAME = "smileybrooms"
+export const COMPANY_COPYRIGHT_YEAR = "2025"

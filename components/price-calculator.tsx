@@ -1,324 +1,849 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type React from "react"
+
+import { useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import {
-  SERVICE_TIERS,
-  CLEANLINESS_DIFFICULTY, // Corrected export name
+  Home,
+  Calendar,
+  Sparkles,
+  AlertCircle,
+  PlusCircle,
+  Diamond,
+  DollarSign,
+  Check,
+  Star,
+  Zap,
+  Shield,
+} from "lucide-react" // Added Check, Star, Zap, Shield
+import { roomConfig } from "@/lib/room-config"
+import { cn } from "@/lib/utils"
+import { Minus, Plus } from "lucide-react"
+import { usePricing } from "@/contexts/pricing-context" // Import the context
+import {
   BASE_ROOM_RATES,
+  SERVICE_TIERS,
+  CLEANLINESS_DIFFICULTY,
   STRATEGIC_ADDONS,
   PREMIUM_EXCLUSIVE_SERVICES,
-  BUNDLE_NAMING,
-} from "@/lib/pricing-config"
-import { calculatePrice } from "@/lib/use-price-worker" // Assuming this is where the calculation logic resides
-import type { RoomConfig } from "@/lib/room-config"
-import { RoomCategory } from "./room-category"
-import { ServiceSummaryCard } from "./service-summary-card"
-import { PriceBreakdownDetailed } from "./price-breakdown-detailed"
-import { Badge } from "./ui/badge"
-import { AlertCircle, Info } from "lucide-react" // Using Lucide React icons
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip"
+  BUNDLE_NAMING, // Import the new bundle naming
+} from "@/lib/pricing-config" // Import pricing data
+import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
+import { PriceBreakdownDetailed } from "@/components/price-breakdown-detailed" // Import PriceBreakdownDetailed
+import { Badge } from "@/components/ui/badge" // Import Badge for "Most Popular"
+import { Progress } from "@/components/ui/progress" // Import Progress component
 
-export default function PriceCalculator() {
-  const [roomConfig, setRoomConfig] = useState<RoomConfig>({
-    bedroom: 1,
-    bathroom: 1,
-    kitchen: 1,
-    livingRoom: 0,
-    diningRoom: 0,
-    homeOffice: 0,
-    laundryRoom: 0,
-    entryway: 0,
-    hallway: 0,
-    stairs: 0,
-  })
-  const [serviceTier, setServiceTier] = useState<keyof typeof SERVICE_TIERS>("STANDARD")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState<keyof typeof CLEANLINESS_DIFFICULTY>("LIGHT")
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([])
-  const [squareFootage, setSquareFootage] = useState<number>(1500)
-  const [isRentalProperty, setIsRentalProperty] = useState<boolean>(false)
-  const [hasPets, setHasPets] = useState<boolean>(false)
-  const [isPostRenovation, setIsPostRenovation] = useState<boolean>(false)
-  const [hasMoldWaterDamage, setHasMoldWaterDamage] = useState<boolean>(false)
-  const [hasBiohazard, setHasBiohazard] = useState<boolean>(false)
+// Define the types for the calculator props
+interface PriceCalculatorProps {
+  onCalculationComplete?: (data: {
+    rooms: Record<string, number>
+    frequency: string
+    firstServicePrice: number
+    recurringServicePrice: number
+    serviceType: ServiceTierId // Changed type
+    cleanlinessLevel: CleanlinessLevelId // Changed type
+    priceMultiplier: number
+    isServiceAvailable: boolean
+    addressId: string
+    paymentFrequency: "per_service" | "monthly" | "yearly"
+    isRecurring: boolean
+    recurringInterval: "week" | "month" | "year"
+  }) => void
+  onAddToCart?: () => void
+}
 
-  const handleRoomChange = useCallback((room: keyof RoomConfig, value: number) => {
-    setRoomConfig((prev) => ({ ...prev, [room]: value }))
-  }, [])
+// Define the room types (simplified as prices come from pricing-config)
+const roomTypes = roomConfig.roomTypes
 
-  const handleAddonToggle = useCallback((addonId: string) => {
-    setSelectedAddons((prev) => (prev.includes(addonId) ? prev.filter((id) => id !== addonId) : [...prev, addonId]))
-  }, [])
+// Define the frequency options and their discounts (kept local for now as per plan)
+const frequencyOptions = [
+  { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
+  { id: "weekly", label: "Weekly", discount: 0.15, isRecurring: true, recurringInterval: "week" },
+  { id: "biweekly", label: "Biweekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
+  { id: "monthly", label: "Monthly", discount: 0.05, isRecurring: true, recurringInterval: "month" },
+  { id: "semi_annual", label: "Semi-Annual", discount: 0.02, isRecurring: true, recurringInterval: "month" },
+  { id: "annually", label: "Annual", discount: 0.01, isRecurring: true, recurringInterval: "year" },
+  { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
+]
 
-  const allAddons = useMemo(() => [...STRATEGIC_ADDONS, ...PREMIUM_EXCLUSIVE_SERVICES], [])
+// Define the payment frequency options (kept local for now as per plan)
+const paymentFrequencyOptions = [
+  { id: "per_service", label: "Pay Per Service" },
+  { id: "monthly", label: "Monthly Subscription" },
+  { id: "yearly", label: "Annual Subscription (Save 10%)" },
+]
 
-  const { totalPrice, breakdown, appliedUpgrades, warnings, recommendedTier } = useMemo(() => {
-    const result = calculatePrice({
-      roomConfig,
-      serviceTier,
-      cleanlinessLevel,
-      selectedAddons,
-      squareFootage,
-      isRentalProperty,
-      hasPets,
-      isPostRenovation,
-      hasMoldWaterDamage,
-      hasBiohazard,
-    })
+// Define task counts for each tier
+const TIER_TASK_COUNTS = {
+  standard: 20, // Example: 20+ point checklist
+  premium: 70, // Example: 70+ point checklist
+  elite: 120, // Example: 120+ point checklist
+}
 
-    // If a higher tier is recommended, update the serviceTier state
-    if (
-      result.recommendedTier &&
-      SERVICE_TIERS[result.recommendedTier].multiplier > SERVICE_TIERS[serviceTier].multiplier
-    ) {
-      setServiceTier(result.recommendedTier)
+// Define time estimates for each tier
+const TIER_TIME_ESTIMATES = {
+  standard: "15-20 min",
+  premium: "45-60 min",
+  elite: "90-120 min",
+}
+
+// Define guarantees for each tier
+const TIER_GUARANTEES = {
+  standard: "7-day",
+  premium: "30-day",
+  elite: "1-year",
+}
+
+interface RoomConfiguratorProps {
+  selectedRooms: Record<string, number>
+  serviceTier: ServiceTierId // Changed to serviceTier
+  dispatch: ReturnType<typeof usePricing>["dispatch"] // Pass dispatch from context
+}
+
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, serviceTier, dispatch }) => {
+  const incrementRoom = (roomId: string) => {
+    dispatch({ type: "SET_ROOM_COUNT", payload: { roomId, count: (selectedRooms[roomId] || 0) + 1 } })
+  }
+
+  const decrementRoom = (roomId: string) => {
+    if (selectedRooms[roomId] > 0) {
+      dispatch({ type: "SET_ROOM_COUNT", payload: { roomId, count: selectedRooms[roomId] - 1 } })
     }
-
-    return result
-  }, [
-    roomConfig,
-    serviceTier,
-    cleanlinessLevel,
-    selectedAddons,
-    squareFootage,
-    isRentalProperty,
-    hasPets,
-    isPostRenovation,
-    hasMoldWaterDamage,
-    hasBiohazard,
-  ])
-
-  const currentBundleName = BUNDLE_NAMING[serviceTier]
+  }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4 md:p-8">
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Configure Your Cleaning Service</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Service Tier Selection */}
-          <div>
-            <Label htmlFor="service-tier" className="text-lg font-semibold mb-2 block">
-              Service Tier
-            </Label>
-            <Select value={serviceTier} onValueChange={(value: keyof typeof SERVICE_TIERS) => setServiceTier(value)}>
-              <SelectTrigger id="service-tier">
-                <SelectValue placeholder="Select a service tier" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(SERVICE_TIERS).map(([key, tier]) => (
-                  <SelectItem key={key} value={key}>
-                    {tier.name} ({BUNDLE_NAMING[key as keyof typeof BUNDLE_NAMING]})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {recommendedTier && recommendedTier !== serviceTier && (
-              <p className="text-sm text-orange-500 mt-2 flex items-center">
-                <Info className="h-4 w-4 mr-1" /> Recommended: {SERVICE_TIERS[recommendedTier].name} tier due to your
-                selections.
-              </p>
-            )}
-          </div>
+    <>
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
+      </div>
 
-          {/* Cleanliness Level */}
-          <div>
-            <Label htmlFor="cleanliness-level" className="text-lg font-semibold mb-2 block">
-              Current Cleanliness Level
-            </Label>
-            <Select
-              value={cleanlinessLevel}
-              onValueChange={(value: keyof typeof CLEANLINESS_DIFFICULTY) => setCleanlinessLevel(value)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        {roomTypes
+          .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
             >
-              <SelectTrigger id="cleanliness-level">
-                <SelectValue placeholder="Select cleanliness level" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CLEANLINESS_DIFFICULTY).map(([key, level]) => (
-                  <SelectItem key={key} value={key}>
-                    {level.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
-          {/* Room Configuration */}
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Room Configuration</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.keys(BASE_ROOM_RATES).map((room) => {
-                if (room === "default") return null // Skip the default key
-                return (
-                  <RoomCategory
-                    key={room}
-                    roomName={room as keyof RoomConfig}
-                    count={roomConfig[room as keyof RoomConfig]}
-                    onCountChange={handleRoomChange}
-                  />
-                )
-              })}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Add-ons */}
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Strategic Add-ons</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allAddons.map((addon) => (
-                <div key={addon.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={addon.id}
-                    checked={selectedAddons.includes(addon.id)}
-                    onCheckedChange={() => handleAddonToggle(addon.id)}
-                    disabled={addon.includedInElite && serviceTier === "ELITE"}
-                  />
-                  <Label htmlFor={addon.id} className="flex-1 cursor-pointer">
-                    {addon.name}
-                    {addon.unit && <span className="text-gray-500 text-sm"> {addon.unit}</span>}
-                    {addon.includedInElite && serviceTier === "ELITE" && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge variant="outline" className="ml-2 bg-green-100 text-green-800">
-                              Included in Elite
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            This add-on is automatically included with the Elite service tier.
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
                     )}
-                  </Label>
-                  <span className="font-medium">
-                    {addon.prices[serviceTier.toLowerCase() as keyof typeof addon.prices] > 0
-                      ? `$${addon.prices[serviceTier.toLowerCase() as keyof typeof addon.prices]}`
-                      : "Included"}
-                  </span>
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {/* Dynamically fetch price based on serviceTier */}$
+                {BASE_ROOM_RATES[room.id as keyof typeof BASE_ROOM_RATES][serviceTier]} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="border-b pb-2 mb-4">
+        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {roomTypes
+          .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
+          .map((room) => (
+            <div
+              key={room.id}
+              className={cn(
+                "border rounded-lg p-3 transition-all",
+                selectedRooms[room.id] > 0
+                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-800",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div
+                    className={cn(
+                      "p-2 rounded-full mr-2",
+                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                    )}
+                  >
+                    {room.icon}
+                  </div>
+                  <p className="font-medium">{room.name}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {/* Dynamically fetch price based on serviceTier */}$
+                {BASE_ROOM_RATES[room.id as keyof typeof BASE_ROOM_RATES][serviceTier]} per room
+              </p>
+            </div>
+          ))}
+      </div>
+
+      <div className="mt-4 pt-4 border-t">
+        <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+          <Plus className="h-4 w-4" /> Request Custom Space
+        </Button>
+      </div>
+    </>
+  )
+}
+
+export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
+  const { state, dispatch, isCalculating } = usePricing() // Destructure isCalculating
+  const {
+    serviceTier,
+    selectedRooms,
+    cleanlinessLevel,
+    frequency,
+    paymentFrequency,
+    calculatedPrice,
+    enforcedTierReason,
+    selectedAddons,
+    selectedExclusiveServices,
+  } = state
+
+  // Media query for responsive design (kept for potential future use, though not directly used in this phase's logic)
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
+  // Effect to call onCalculationComplete when relevant state changes
+  useEffect(() => {
+    if (onCalculationComplete && calculatedPrice) {
+      const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
+      onCalculationComplete({
+        rooms: selectedRooms,
+        frequency,
+        firstServicePrice: calculatedPrice.firstServicePrice,
+        recurringServicePrice: calculatedPrice.recurringServicePrice,
+        serviceType: serviceTier,
+        cleanlinessLevel: cleanlinessLevel,
+        priceMultiplier: CLEANLINESS_DIFFICULTY[cleanlinessLevel].multipliers[serviceTier],
+        isServiceAvailable: true, // Worker will determine availability, for now assume true if no error
+        addressId: "custom", // This would be replaced with actual address ID in a real implementation
+        paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
+        isRecurring: selectedFrequencyOption?.isRecurring || false,
+        recurringInterval: selectedFrequencyOption?.recurringInterval as "week" | "month" | "year",
+      })
+    }
+  }, [
+    selectedRooms,
+    frequency,
+    paymentFrequency,
+    serviceTier,
+    cleanlinessLevel,
+    calculatedPrice,
+    onCalculationComplete,
+  ])
+
+  // Function to check if any rooms are selected
+  const hasSelectedRooms = () => {
+    return Object.values(selectedRooms).some((count) => count > 0)
+  }
+
+  // Get cleanliness level options from pricing-config
+  const cleanlinessOptions = Object.values(CLEANLINESS_DIFFICULTY).map((level) => ({
+    id: level.level,
+    label: level.name,
+    multiplier: level.multipliers[serviceTier],
+  }))
+
+  // Calculate total rooms selected
+  const totalRoomsSelected = Object.values(selectedRooms).reduce((sum, count) => sum + count, 0)
+
+  // Function to render tier comparison table
+  const renderTierComparisonTable = () => {
+    const getTierIcon = (tierId: ServiceTierId) => {
+      if (tierId === "standard") return <Shield className="h-4 w-4 text-blue-600" />
+      if (tierId === "premium") return <Star className="h-4 w-4 text-purple-600" />
+      if (tierId === "elite") return <Zap className="h-4 w-4 text-green-600" />
+      return null
+    }
+
+    return (
+      <div className="overflow-x-auto mt-4">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2"></th>
+              {Object.values(SERVICE_TIERS).map((tier) => (
+                <th key={tier.id} className="text-center py-2">
+                  <div className="flex items-center justify-center gap-1">
+                    {getTierIcon(tier.id as ServiceTierId)}
+                    <span>{tier.name}</span>
+                    {tier.id === "premium" && <Badge className="ml-1 bg-green-500">Popular</Badge>}
+                  </div>
+                </th>
               ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b">
+              <td className="py-2 font-medium">Tasks/Room</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.standard}+</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.premium}+</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.elite}+</td>
+            </tr>
+            <tr className="border-b">
+              <td className="py-2 font-medium">Time/Room</td>
+              <td className="text-center py-2">{TIER_TIME_ESTIMATES.standard}</td>
+              <td className="text-center py-2">{TIER_TIME_ESTIMATES.premium}</td>
+              <td className="text-center py-2">{TIER_TIME_ESTIMATES.elite}</td>
+            </tr>
+            <tr>
+              <td className="py-2 font-medium">Guarantee</td>
+              <td className="text-center py-2">{TIER_GUARANTEES.standard}</td>
+              <td className="text-center py-2">{TIER_GUARANTEES.premium}</td>
+              <td className="text-center py-2">{TIER_GUARANTEES.elite}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full max-w-4xl mx-auto">
+      <Tabs
+        value={serviceTier}
+        onValueChange={(value) => dispatch({ type: "SET_SERVICE_TIER", payload: value as ServiceTierId })}
+      >
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          {Object.values(SERVICE_TIERS).map((tier) => (
+            <TabsTrigger key={tier.id} value={tier.id} className="text-sm md:text-base">
+              {tier.id === "premium" ? (
+                <div className="flex flex-col items-center">
+                  <span>{tier.name} Cleaning</span>
+                  <Badge className="mt-1 bg-green-500">Most Popular</Badge>
+                </div>
+              ) : (
+                <span>{tier.name} Cleaning</span>
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {Object.values(SERVICE_TIERS).map((tier) => (
+          <TabsContent key={tier.id} value={tier.id} className="space-y-6">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-medium">
+                {tier.name} Cleaning Service - {BUNDLE_NAMING[tier.name.toUpperCase() as keyof typeof BUNDLE_NAMING]}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {tier.id === "standard" && (
+                  <>
+                    <span className="font-medium">For: Basic maintenance</span>
+                    <br />
+                    Our standard cleaning covers all the basics with {TIER_TASK_COUNTS.standard}+ tasks per room.
+                  </>
+                )}
+                {tier.id === "premium" && (
+                  <>
+                    <span className="font-medium">For: Health-conscious families</span>
+                    <br />
+                    Our premium service includes {TIER_TASK_COUNTS.premium}+ tasks per room with hospital-grade
+                    disinfectants.
+                  </>
+                )}
+                {tier.id === "elite" && (
+                  <>
+                    <span className="font-medium">For: Luxury homes/Airbnb Superhosts</span>
+                    <br />
+                    Our white-glove service offers {TIER_TASK_COUNTS.elite}+ tasks per room with unparalleled attention
+                    to detail.
+                  </>
+                )}
+              </p>
             </div>
-          </div>
 
-          <Separator />
+            {/* Tier Comparison Table */}
+            {renderTierComparisonTable()}
 
-          {/* Property Details */}
+            {/* Room Selection - Always visible */}
+            <Card
+              className={cn(
+                "border-2",
+                tier.id === "standard" && "border-blue-100 dark:border-blue-900",
+                tier.id === "premium" && "border-purple-100 dark:border-purple-900",
+                tier.id === "elite" && "border-green-100 dark:border-green-900",
+              )}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center mb-4">
+                  <Home
+                    className={cn(
+                      "h-5 w-5 mr-2",
+                      tier.id === "standard" && "text-blue-600",
+                      tier.id === "premium" && "text-purple-600",
+                      tier.id === "elite" && "text-green-600",
+                    )}
+                  />
+                  <h3 className="text-lg font-medium">Select Rooms</h3>
+                </div>
+
+                <RoomConfigurator selectedRooms={selectedRooms} serviceTier={serviceTier} dispatch={dispatch} />
+              </CardContent>
+            </Card>
+
+            {/* Task Count Display with Progress Bar */}
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Check className="h-5 w-5 mr-2 text-green-500" />
+                <h3 className="text-lg font-medium">{TIER_TASK_COUNTS[serviceTier]}+ expert-level tasks per room</h3>
+              </div>
+              <div className="ml-7">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {serviceTier === "premium" && "2.3X deeper cleaning than standard"}
+                  {serviceTier === "elite" && "3.6X deeper cleaning than standard"}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {serviceTier === "standard" && "20+ point checklist"}
+                  {serviceTier === "premium" && "70+ point checklist"}
+                  {serviceTier === "elite" && "120+ point checklist"}
+                </p>
+                {serviceTier !== "elite" && (
+                  <div className="mt-3">
+                    <Label className="text-sm text-gray-600 dark:text-gray-400">
+                      Progress towards Elite:{" "}
+                      {Math.round((TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100)}%
+                    </Label>
+                    <Progress
+                      value={(TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100}
+                      className="w-full mt-1"
+                      indicatorColor={serviceTier === "standard" ? "bg-blue-500" : "bg-purple-500"}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Collapsible Sections */}
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {/* Frequency Selection */}
+              <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Cleaning Frequency</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <RadioGroup
+                    value={frequency}
+                    onValueChange={(value) => dispatch({ type: "SET_FREQUENCY", payload: value })}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                  >
+                    {frequencyOptions.map((option) => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
+                        <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
+                          {option.label}
+                          {option.discount > 0 && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              Save {option.discount * 100}%
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+
+                  {frequency !== "one_time" && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
+                      <RadioGroup
+                        value={paymentFrequency}
+                        onValueChange={(value) => dispatch({ type: "SET_PAYMENT_FREQUENCY", payload: value })}
+                        className="grid grid-cols-1 gap-2"
+                      >
+                        {paymentFrequencyOptions.map((option) => (
+                          <div key={option.id} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
+                            <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Cleanliness Level */}
+              <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Cleanliness Level</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
+                    <RadioGroup
+                      value={cleanlinessLevel.toString()}
+                      onValueChange={(value) =>
+                        dispatch({
+                          type: "SET_CLEANLINESS_LEVEL",
+                          payload: Number.parseInt(value) as CleanlinessLevelId,
+                        })
+                      }
+                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    >
+                      {cleanlinessOptions.map((option) => (
+                        <div key={option.id} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option.id.toString()} id={`cleanliness-${option.id}`} />
+                          <Label htmlFor={`cleanliness-${option.id}`} className="flex items-center">
+                            {option.label}
+                            <span className="ml-2 text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full">
+                              {option.multiplier}x
+                            </span>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    <div className="text-center">
+                      <p className="font-medium">{cleanlinessOptions.find((c) => c.id === cleanlinessLevel)?.label}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Price multiplier: {cleanlinessOptions.find((c) => c.id === cleanlinessLevel)?.multiplier}x
+                      </p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Property Details */}
+              <AccordionItem value="property-details" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <Home className="h-5 w-5 mr-2 text-blue-600" />{" "}
+                    <h3 className="text-lg font-medium">Property Details</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-4">
+                  <div>
+                    <Label htmlFor="sq-ft">Total Square Footage</Label>
+                    <Input
+                      id="sq-ft"
+                      type="number"
+                      placeholder="e.g., 1500"
+                      value={state.squareFootage || ""}
+                      onChange={(e) =>
+                        dispatch({ type: "SET_PROPERTY_SIZE_SQ_FT", payload: Number(e.target.value) || 0 })
+                      }
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Property Type</h4>
+                    <RadioGroup
+                      value={state.propertyType || ""}
+                      onValueChange={(value) =>
+                        dispatch({ type: "SET_PROPERTY_TYPE", payload: value as "studio" | "3br_home" | "5br_mansion" })
+                      }
+                      className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="studio" id="property-studio" />
+                        <Label htmlFor="property-studio">Studio / Small Apartment</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="3br_home" id="property-3br" />
+                        <Label htmlFor="property-3br">3+ Bedroom Home</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="5br_mansion" id="property-5br" />
+                        <Label htmlFor="property-5br">5+ Bedroom / Mansion</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is-rental">Is this a rental property?</Label>
+                      <Switch
+                        id="is-rental"
+                        checked={state.isRentalProperty}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_IS_RENTAL_PROPERTY", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="has-pets">Do you have pets?</Label>
+                      <Switch
+                        id="has-pets"
+                        checked={state.hasPets}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_HAS_PETS", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is-post-renovation">Is this a post-renovation clean?</Label>
+                      <Switch
+                        id="is-post-renovation"
+                        checked={state.isPostRenovation}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_IS_POST_RENOVATION", payload: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="has-mold-water-damage">Is there mold or water damage?</Label>
+                      <Switch
+                        id="has-mold-water-damage"
+                        checked={state.hasMoldWaterDamage}
+                        onCheckedChange={(checked) => dispatch({ type: "SET_HAS_MOLD_WATER_DAMAGE", payload: checked })}
+                      />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Strategic Add-Ons */}
+              <AccordionItem value="strategic-addons" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <PlusCircle className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Strategic Add-Ons</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4 space-y-3">
+                  {STRATEGIC_ADDONS.map((addon) => (
+                    <div key={addon.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`addon-${addon.id}`}
+                          checked={selectedAddons.some((a) => a.id === addon.id)}
+                          onCheckedChange={(checked) =>
+                            dispatch({ type: "TOGGLE_ADDON", payload: { addonId: addon.id, quantity: 1 } })
+                          }
+                        />
+                        <Label htmlFor={`addon-${addon.id}`}>{addon.name}</Label>
+                      </div>
+                      <div className="text-right">
+                        {addon.includedInElite && serviceTier === SERVICE_TIERS.ELITE.id ? (
+                          <span className="text-sm text-green-600 dark:text-green-400">Included</span>
+                        ) : (
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            +${addon.prices[serviceTier]}
+                            {addon.unit}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Premium-Exclusive Services */}
+              {serviceTier === SERVICE_TIERS.ELITE.id && (
+                <AccordionItem value="exclusive-services" className="border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center">
+                      <Diamond className="h-5 w-5 mr-2 text-green-600" />
+                      <h3 className="text-lg font-medium">Elite-Exclusive Services</h3>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 space-y-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      These specialized services are available only with the Elite tier.
+                    </p>
+                    {PREMIUM_EXCLUSIVE_SERVICES.map((service) => (
+                      <div key={service.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`exclusive-service-${service.id}`}
+                            checked={selectedExclusiveServices.includes(service.id)}
+                            onCheckedChange={(checked) =>
+                              dispatch({ type: "TOGGLE_EXCLUSIVE_SERVICE", payload: service.id })
+                            }
+                          />
+                          <Label htmlFor={`exclusive-service-${service.id}`}>{service.name}</Label>
+                        </div>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          +${service.price}
+                          {service.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Detailed Price Breakdown */}
+              <AccordionItem value="price-breakdown" className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex items-center">
+                    <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                    <h3 className="text-lg font-medium">Detailed Price Breakdown</h3>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <PriceBreakdownDetailed priceResult={calculatedPrice} isCalculating={isCalculating} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* Price Summary */}
+      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="flex justify-between items-center">
           <div>
-            <Label className="text-lg font-semibold mb-4 block">Property Details</Label>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="square-footage" className="block mb-2">
-                  Square Footage: {squareFootage} sq ft
-                </Label>
-                <Slider
-                  id="square-footage"
-                  min={500}
-                  max={5000}
-                  step={100}
-                  value={[squareFootage]}
-                  onValueChange={(val) => setSquareFootage(val[0])}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rental-property"
-                  checked={isRentalProperty}
-                  onCheckedChange={(checked) => setIsRentalProperty(!!checked)}
-                />
-                <Label htmlFor="rental-property">Rental Property</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="has-pets" checked={hasPets} onCheckedChange={(checked) => setHasPets(!!checked)} />
-                <Label htmlFor="has-pets">Pets Present</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="post-renovation"
-                  checked={isPostRenovation}
-                  onCheckedChange={(checked) => setIsPostRenovation(!!checked)}
-                />
-                <Label htmlFor="post-renovation">Post-Renovation Cleaning</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="mold-water-damage"
-                  checked={hasMoldWaterDamage}
-                  onCheckedChange={(checked) => setHasMoldWaterDamage(!!checked)}
-                />
-                <Label htmlFor="mold-water-damage">Mold/Water Damage Present</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="biohazard"
-                  checked={hasBiohazard}
-                  onCheckedChange={(checked) => setHasBiohazard(!!checked)}
-                />
-                <Label htmlFor="biohazard">Biohazard Situation</Label>
-              </div>
+            <h3 className="text-lg font-medium">
+              {frequency !== "one_time" ? "First Service Price" : "Estimated Price"}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {SERVICE_TIERS[serviceTier].name} Cleaning (
+              {BUNDLE_NAMING[SERVICE_TIERS[serviceTier].name.toUpperCase() as keyof typeof BUNDLE_NAMING]})
+              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+              {hasSelectedRooms() && ` • ${TIER_TASK_COUNTS[serviceTier]}+ tasks per room`}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold">
+              ${calculatedPrice ? calculatedPrice.firstServicePrice.toFixed(2) : "0.00"}
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {frequency !== "one_time" ? "One-time charge" : "One-time service"}
+            </p>
+          </div>
+        </div>
+
+        {frequency !== "one_time" && calculatedPrice && calculatedPrice.recurringServicePrice > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div>
+              <h4 className="text-base font-medium">Subsequent Services</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {frequencyOptions.find((f) => f.id === frequency)?.label}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-bold">${calculatedPrice.recurringServicePrice.toFixed(2)}</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {paymentFrequency === "per_service" ? "per service" : `per ${paymentFrequency.replace("ly", "")}`}
+              </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="lg:col-span-1 space-y-8">
-        <ServiceSummaryCard
-          totalPrice={totalPrice}
-          serviceTier={SERVICE_TIERS[serviceTier].name}
-          bundleName={currentBundleName}
-          cleanlinessLevel={CLEANLINESS_DIFFICULTY[cleanlinessLevel].name}
-          roomCount={Object.values(roomConfig).reduce((sum, count) => sum + count, 0)}
-          addonCount={selectedAddons.length}
-        />
-
-        <PriceBreakdownDetailed breakdown={breakdown} />
-
-        {appliedUpgrades.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-orange-600">
-                <AlertCircle className="h-5 w-5 mr-2" /> Important Service Upgrades
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-1">
-                {appliedUpgrades.map((upgrade, index) => (
-                  <li key={index} className="text-sm">
-                    {upgrade.message}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         )}
 
-        {warnings.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-red-600">
-                <AlertCircle className="h-5 w-5 mr-2" /> Warnings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-1">
-                {warnings.map((warning, index) => (
-                  <li key={index} className="text-sm">
-                    {warning}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+        {calculatedPrice && calculatedPrice.estimatedDuration > 0 && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm text-muted-foreground">
+            <span>Estimated Cleaning Time:</span>
+            <span>
+              {Math.floor(calculatedPrice.estimatedDuration / 60)} hours {calculatedPrice.estimatedDuration % 60}{" "}
+              minutes
+            </span>
+          </div>
+        )}
+
+        {state.enforcedTierReason && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Tier Upgrade Required!</AlertTitle>
+            <AlertDescription>{state.enforcedTierReason}</AlertDescription>
+          </Alert>
+        )}
+
+        {state.cleanlinessLevel === 4 && ( // Biohazard is level 4
+          <Alert className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 text-yellow-800 dark:text-yellow-300">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Biohazard Situation Detected</AlertTitle>
+            <AlertDescription>
+              For biohazard situations, Elite service is required. A waiver must be signed before service.
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="biohazard-waiver"
+                  checked={state.waiverSigned}
+                  onCheckedChange={(checked) => dispatch({ type: "SET_WAIVER_SIGNED", payload: checked })}
+                />
+                <Label htmlFor="biohazard-waiver">I agree to the Biohazard Waiver terms.</Label>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Elite tier upsell for multiple rooms */}
+        {totalRoomsSelected > 3 && serviceTier !== "elite" && (
+          <Alert className="mt-4 bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-800 dark:text-blue-300">
+            <Sparkles className="h-4 w-4" />
+            <AlertTitle>Upgrade Recommendation</AlertTitle>
+            <AlertDescription>
+              For {totalRoomsSelected} rooms, our Elite tier offers the best value with a bundle discount of
+              approximately ${(totalRoomsSelected * 50).toFixed(2)}.
+              <div className="mt-2">
+                <Button
+                  size="sm"
+                  onClick={() => dispatch({ type: "SET_SERVICE_TIER", payload: "elite" })}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Upgrade to Elite
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {onAddToCart && (
+          <div className="mt-4">
+            <Button
+              onClick={onAddToCart}
+              disabled={
+                !hasSelectedRooms() ||
+                !!state.enforcedTierReason ||
+                (state.cleanlinessLevel === 4 && !state.waiverSigned) ||
+                !calculatedPrice // Disable if price hasn't been calculated yet
+              }
+              className="w-full"
+            >
+              Add to Cart
+            </Button>
+          </div>
         )}
       </div>
     </div>
