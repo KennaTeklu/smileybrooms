@@ -101,7 +101,7 @@ export function EnhancedFooter() {
           <div>
             <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>Phone: (555) 123-4567</li>
+              <li>Phone: (602) 800-0605</li>
               <li>Email: hello@smileybrooms.com</li>
               <li>Hours: Mon-Fri 8AM-6PM</li>
             </ul>

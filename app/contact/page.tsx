@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Mail, PhoneCall, MapPin } from "lucide-react"
-import { COMPANY_PHONE_NUMBER } from "@/lib/constants" // Import constant
+import { Mail, Phone, MapPin, Clock } from "lucide-react"
 
 export default function ContactPage() {
   const [name, setName] = useState("")
@@ -214,7 +213,7 @@ export default function ContactPage() {
             </div>
 
             {/* Contact Information */}
-            {/* <div>
+            <div>
               <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
               <div className="grid gap-6">
                 <Card>
@@ -268,51 +267,6 @@ export default function ContactPage() {
                       <p className="text-gray-600 dark:text-gray-400">Saturday: 9:00 AM - 4:00 PM</p>
                       <p className="text-gray-600 dark:text-gray-400">Sunday: Closed</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div> */}
-            <div className="container mx-auto px-4 py-12 md:py-24">
-              <div className="max-w-3xl mx-auto text-center space-y-6">
-                <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Contact Us</h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                  We'd love to hear from you! Whether you have a question about our services, need support, or just want
-                  to say hello, feel free to reach out.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
-                <Card className="flex flex-col items-center text-center p-6">
-                  <CardHeader>
-                    <Mail className="h-10 w-10 text-primary mb-4" />
-                    <CardTitle>Email Us</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300">info@smileybrooms.com</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">We typically respond within 24 hours.</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="flex flex-col items-center text-center p-6">
-                  <CardHeader>
-                    <PhoneCall className="h-10 w-10 text-primary mb-4" />
-                    <CardTitle>Call Us</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300">{COMPANY_PHONE_NUMBER}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Mon-Fri, 9 AM - 5 PM MST</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="flex flex-col items-center text-center p-6">
-                  <CardHeader>
-                    <MapPin className="h-10 w-10 text-primary mb-4" />
-                    <CardTitle>Our Office</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 dark:text-gray-300">123 Clean Street, Suite 456</p>
-                    <p className="text-gray-700 dark:text-gray-300">Sparkle City, AZ 85001</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Visits by appointment only.</p>
                   </CardContent>
                 </Card>
               </div>

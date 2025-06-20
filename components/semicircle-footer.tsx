@@ -1,11 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { PhoneCall, ChevronUp, Sparkles, ChevronDown } from "lucide-react" // Changed Phone to PhoneCall
+import { Phone, ChevronUp, Sparkles, ChevronDown } from "lucide-react"
 import Logo from "@/components/logo"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { COMPANY_PHONE_NUMBER, COMPANY_NAME, COMPANY_COPYRIGHT_YEAR } from "@/lib/constants" // Import constants
 
 const footerLinks = [
   { label: "About", href: "/about", icon: "📖" },
@@ -18,11 +17,11 @@ const footerLinks = [
   { label: "Download", href: "/download", icon: "📱" },
 ]
 
-const socialLinks = [{ icon: PhoneCall, href: `tel:${COMPANY_PHONE_NUMBER}`, label: "Call Us" }] // Use PhoneCall and constant
+const socialLinks = [{ icon: Phone, href: "tel:6028000605", label: "Call Us" }]
 
 export default function SemicircleFooter() {
   const [isExpanded, setIsExpanded] = useState(false)
-  // const currentYear = new Date().getFullYear() // Removed, using constant
+  const currentYear = new Date().getFullYear()
 
   return (
     <footer
@@ -69,9 +68,7 @@ export default function SemicircleFooter() {
           {/* Logo and Copyright */}
           <div className="flex flex-col items-center gap-2 mt-8">
             <Logo className="h-8 w-auto" iconOnly={false} />
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              &copy; {COMPANY_COPYRIGHT_YEAR} {COMPANY_NAME} All rights reserved.
-            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">&copy; {currentYear} Smiley Brooms</div>
           </div>
 
           {/* Social Links / Phone */}
