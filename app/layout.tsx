@@ -54,7 +54,15 @@ export default function RootLayout({
                   <TourProvider>
                     <AbandonmentProvider>
                       <TooltipProvider>
-                        
+                        {/* Main layout container */}
+                        <div className="relative flex min-h-screen flex-col">
+                          <Header />
+                          <Suspense>
+                            <main className="flex-1">{children}</main>
+                          </Suspense>
+                          <EnhancedFooter />
+                        </div>
+                        {/* Floating panels */}
                         <CollapsibleChatbotPanel />
                         <CollapsibleSettingsPanel />
                         <CollapsibleSharePanel />
