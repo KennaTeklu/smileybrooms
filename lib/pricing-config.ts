@@ -89,3 +89,11 @@ export const BUNDLE_NAMING = {
   PREMIUM: "Complete Care",
   ELITE: "Concierge Deep Clean",
 }
+
+// Placeholder exports for pricing configuration
+export const ROOM_CONFIG = {}
+export const ADDON_CONFIG = {}
+export const EXCLUSIVE_SERVICE_CONFIG = {}
+export const CLEANLINESS_LEVELS = []
+export const FREQUENCY_OPTIONS = []
+export const PROPERTY_TYPES = []
