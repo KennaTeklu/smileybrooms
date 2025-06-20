@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useTheme } from "next-themes"
 import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import Dialog components
 
 interface AccessibilityToolbarProps {
   className?: string
@@ -39,7 +40,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
   const [volume, setVolume] = useState(1)
   const [prevVolume, setPrevVolume] = useState(1)
   const [highContrast, setHighContrast] = useState(false)
-  const [showSharePanel, setShowSharePanel] = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false) // This state controls the custom share dialog
   const { theme, setTheme } = useTheme()
 
   // Memoized scroll config to prevent re-renders
@@ -298,15 +299,34 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
               <TooltipContent side="right">Settings</TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => setShowSharePanel(true)}>
-                  <Share2 className="h-5 w-5" />
-                  <span className="sr-only">Share</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Share</TooltipContent>
-            </Tooltip>
+            {/* Wrap the Share button in a Dialog */}
+            <Dialog open={showSharePanel} onOpenChange={setShowSharePanel}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    {" "}
+                    {/* No onClick here, DialogTrigger handles it */}
+                    <Share2 className="h-5 w-5" />
+                    <span className="sr-only">Share</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Share</TooltipContent>
+              </Tooltip>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Share this page</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Share this page with your friends, family, or colleagues.
+                </p>
+                <div className="flex justify-end mt-6">
+                  <Button variant="ghost" onClick={() => setShowSharePanel(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleShare}>Share</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </TooltipProvider>
       </ScrollAwareWrapper>
@@ -404,25 +424,6 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
-      {showSharePanel && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-background/80 backdrop-blur-sm">
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="relative w-full max-w-md p-6 bg-card rounded-xl shadow-lg">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Share this page</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Share this page with your friends, family, or colleagues.
-              </p>
-              <div className="flex justify-end mt-6">
-                <Button variant="ghost" onClick={() => setShowSharePanel(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleShare}>Share</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 })
