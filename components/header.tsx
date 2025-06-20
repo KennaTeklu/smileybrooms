@@ -10,6 +10,7 @@ import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
 import { useCart } from "@/lib/cart-context"
+import { useCartPanelVisibility } from "@/contexts/cart-panel-visibility-context" // New import
 
 const navigationLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -25,6 +26,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [hasItems, setHasItems] = useState(false)
+  const { openCartPanel } = useCartPanelVisibility() // Use the new hook
 
   useEffect(() => {
     setHasItems(cart.items && cart.items.length > 0)
@@ -49,7 +51,7 @@ export default function Header() {
     return (
       <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }} role="banner">
         <div className="flex justify-end">
-          <CartButton showLabel={false} variant="default" size="lg" />
+          <CartButton showLabel={false} variant="default" size="lg" onClick={openCartPanel} />
         </div>
       </header>
     )
@@ -117,8 +119,7 @@ export default function Header() {
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
               {/* Cart Button */}
-              <CartButton showLabel={false} size="default" />
-
+              <CartButton onClick={openCartPanel} showLabel={false} size="default" /> {/* Added onClick */}
               {/* Download Button - Desktop Only */}
               <Button variant="outline" size="sm" asChild className="hidden md:flex h-9 px-3">
                 <Link href="/download" className="flex items-center space-x-2" aria-label="Download our app">
@@ -126,7 +127,6 @@ export default function Header() {
                   <span className="hidden lg:inline">Download</span>
                 </Link>
               </Button>
-
               {/* Mobile Menu */}
               <div className="lg:hidden">
                 <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -191,6 +191,7 @@ export default function Header() {
                       <div className="flex flex-col space-y-3 px-4">
                         {/* Cart Button - Full Width */}
                         <CartButton
+                          onClick={openCartPanel} // Added onClick
                           showLabel={true}
                           variant="default"
                           size="default"
