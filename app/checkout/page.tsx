@@ -48,14 +48,15 @@ type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
 type CheckoutStep = "contact" | "address" | "payment" | "review"
 
-// Firebase configuration (replace with your actual config from Firebase project settings)
+// Your Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyD6-06eF-9sbElj_WBJSPyAHSScbLkr-5Q",
+  authDomain: "authentication-1affb.firebaseapp.com",
+  projectId: "authentication-1affb",
+  storageBucket: "authentication-1affb.firebasestorage.app",
+  messagingSenderId: "990305079253",
+  appId: "1:990305079253:web:419522b1045262f0e3b75c",
+  measurementId: "G-N4F17SYW6G",
 }
 
 // Initialize Firebase
@@ -109,7 +110,7 @@ export default function CheckoutPage() {
   const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false) // New state for Google Auth
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false)
   const recaptchaRef = useRef<HTMLDivElement>(null)
 
   // Redirect if cart is empty
@@ -299,7 +300,6 @@ export default function CheckoutPage() {
       toast({
         title: "Phone Number Verified!",
         description: "Your phone number has been successfully verified.",
-        variant: "success",
       })
       setIsGoogleAuthenticated(false) // Reset Google auth if phone verification succeeds
     } catch (error: any) {
@@ -317,12 +317,24 @@ export default function CheckoutPage() {
   const handleGoogleSignIn = async () => {
     setIsGoogleAuthenticating(true)
     try {
-      await signInWithPopup(auth, googleProvider)
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+
+      // Auto-fill customer data from Google profile if available
+      if (user.displayName) {
+        const nameParts = user.displayName.split(" ")
+        setCustomerData((prev) => ({
+          ...prev,
+          firstName: nameParts[0] || "",
+          lastName: nameParts.slice(1).join(" ") || "",
+          email: user.email || prev.email,
+        }))
+      }
+
       setIsGoogleAuthenticated(true)
       toast({
         title: "Signed in with Google!",
-        description: "Your Google account has been linked.",
-        variant: "success",
+        description: "Your Google account has been linked successfully.",
       })
       setIsPhoneVerified(false) // Reset phone verification if Google auth succeeds
       setShowOtpInput(false) // Hide OTP input
@@ -1000,7 +1012,7 @@ export default function CheckoutPage() {
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={isProcessing || !agreeToTerms || (!isPhoneVerified && !isGoogleAuthenticated)} // Updated condition
+              disabled={isProcessing || !agreeToTerms || (!isPhoneVerified && !isGoogleAuthenticated)}
               className="px-8 bg-green-600 hover:bg-green-700"
             >
               {isProcessing ? (
