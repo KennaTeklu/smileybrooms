@@ -6,7 +6,18 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send, Loader2, Mic, MicOff, MapPin, Star, MessageSquare, TrendingUp, ChevronLeft, Bot } from "lucide-react"
+import {
+  Send,
+  Loader2,
+  Mic,
+  MicOff,
+  Compass,
+  DollarSign,
+  CalendarCheck,
+  MessageSquareText,
+  ChevronLeft,
+  Bot,
+} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
@@ -238,7 +249,7 @@ export default function SuperChatbot() {
       const systemMessage: ChatMessage = {
         id: Date.now().toString(),
         role: "system",
-        content: "✅ Your feedback has been submitted successfully!",
+        content: "Your feedback has been submitted successfully!",
         timestamp: new Date(),
         type: "form",
       }
@@ -259,7 +270,7 @@ export default function SuperChatbot() {
     const systemMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "system",
-      content: "🎯 Starting the website tour! I'll guide you through the key features.",
+      content: "Starting the website tour! I'll guide you through the key features.",
       timestamp: new Date(),
       type: "tour",
     }
@@ -290,12 +301,12 @@ export default function SuperChatbot() {
     }
 
     welcome += `\n\nI can help you with:
-• 🧹 Cleaning service questions
-• 📋 Booking and scheduling
-• 💰 Pricing information
-• 🎯 Website tour and navigation
-• 📝 Feedback and suggestions
-• 🎤 Voice commands (click the mic!)
+• Cleaning service questions
+• Booking and scheduling
+• Pricing information
+• Website tour and navigation
+• Feedback and suggestions
+• Voice commands (click the mic!)
 
 What would you like to know?`
 
@@ -303,18 +314,18 @@ What would you like to know?`
   }
 
   const quickActions = [
-    { label: "Start Tour", icon: MapPin, action: handleTourRequest },
+    { label: "Start Tour", icon: Compass, action: handleTourRequest },
     {
       label: "Get Pricing",
-      icon: TrendingUp,
+      icon: DollarSign,
       action: () => handleInputChange({ target: { value: "What are your cleaning service prices?" } } as any),
     },
     {
       label: "Book Service",
-      icon: Star,
+      icon: CalendarCheck,
       action: () => handleInputChange({ target: { value: "How do I book a cleaning service?" } } as any),
     },
-    { label: "Give Feedback", icon: MessageSquare, action: () => setActiveTab("feedback") },
+    { label: "Give Feedback", icon: MessageSquareText, action: () => setActiveTab("feedback") },
   ]
 
   return (
@@ -482,7 +493,7 @@ What would you like to know?`
                       <div>
                         <label className="text-sm font-medium">Quick Feedback</label>
                         <div className="flex gap-2 mt-1">
-                          {["😍", "😊", "😐", "😕", "😞"].map((emoji, index) => (
+                          {["Excellent", "Good", "Neutral", "Poor", "Very Poor"].map((label, index) => (
                             <Button
                               key={index}
                               variant="outline"
@@ -491,12 +502,11 @@ What would you like to know?`
                                 handleFormSubmission({
                                   type: "quick_feedback",
                                   rating: 5 - index,
-                                  emoji,
                                   page: pathname,
                                 })
                               }
                             >
-                              {emoji}
+                              {label}
                             </Button>
                           ))}
                         </div>
