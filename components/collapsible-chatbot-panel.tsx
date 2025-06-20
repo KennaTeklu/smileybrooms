@@ -18,7 +18,7 @@ interface CollapsibleChatbotPanelProps {
   sharePanelInfo: { expanded: boolean; height: number }
 }
 
-export default function CollapsibleChatbotPanel({ sharePanelInfo }: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel({ sharePanelInfo }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
@@ -193,3 +193,5 @@ export default function CollapsibleChatbotPanel({ sharePanelInfo }: CollapsibleC
     </div>
   )
 }
+
+export default CollapsibleChatbotPanel

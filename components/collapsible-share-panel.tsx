@@ -90,7 +90,7 @@ interface CollapsibleSharePanelProps {
   onPanelStateChange: (info: { expanded: boolean; height: number }) => void
 }
 
-export default function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePanelProps) {
+export function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -341,3 +341,5 @@ export default function CollapsibleSharePanel({ onPanelStateChange }: Collapsibl
     </div>
   )
 }
+
+export default CollapsibleSharePanel
