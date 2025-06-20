@@ -19,7 +19,14 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth"
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  GoogleAuthProvider,
+  signInWithPopup,
+  type ConfirmationResult,
+} from "firebase/auth"
 import { initializeApp, getApps, getApp } from "firebase/app"
 
 type CustomerData = {
@@ -59,6 +66,7 @@ if (!getApps().length) {
   app = getApp()
 }
 const auth = getAuth(app)
+const googleProvider = new GoogleAuthProvider()
 
 const steps = [
   { id: "contact", title: "Contact Info", icon: User },
@@ -100,6 +108,8 @@ export default function CheckoutPage() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false) // New state for Google Auth
   const recaptchaRef = useRef<HTMLDivElement>(null)
 
   // Redirect if cart is empty
@@ -193,7 +203,7 @@ export default function CheckoutPage() {
   }
 
   useEffect(() => {
-    if (currentStep === "review" && !isPhoneVerified) {
+    if (currentStep === "review" && !isPhoneVerified && !isGoogleAuthenticated) {
       if (recaptchaRef.current && !window.recaptchaVerifier) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
           size: "invisible",
@@ -219,7 +229,7 @@ export default function CheckoutPage() {
         })
       }
     }
-  }, [currentStep, isPhoneVerified, auth, toast])
+  }, [currentStep, isPhoneVerified, isGoogleAuthenticated, auth, toast])
 
   const handleSendOtp = async () => {
     if (!customerData.phone) {
@@ -248,6 +258,7 @@ export default function CheckoutPage() {
         title: "Verification Code Sent",
         description: `A 6-digit code has been sent to ${phoneNumber}.`,
       })
+      setIsGoogleAuthenticated(false) // Reset Google auth if phone verification is initiated
     } catch (error: any) {
       console.error("Error sending OTP:", error)
       toast({
@@ -290,6 +301,7 @@ export default function CheckoutPage() {
         description: "Your phone number has been successfully verified.",
         variant: "success",
       })
+      setIsGoogleAuthenticated(false) // Reset Google auth if phone verification succeeds
     } catch (error: any) {
       console.error("Error verifying OTP:", error)
       toast({
@@ -302,6 +314,31 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleAuthenticating(true)
+    try {
+      await signInWithPopup(auth, googleProvider)
+      setIsGoogleAuthenticated(true)
+      toast({
+        title: "Signed in with Google!",
+        description: "Your Google account has been linked.",
+        variant: "success",
+      })
+      setIsPhoneVerified(false) // Reset phone verification if Google auth succeeds
+      setShowOtpInput(false) // Hide OTP input
+      setOtp("") // Clear OTP
+    } catch (error: any) {
+      console.error("Error signing in with Google:", error)
+      toast({
+        title: "Google Sign-In Failed",
+        description: error.message || "Could not sign in with Google. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGoogleAuthenticating(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!agreeToTerms) {
       toast({
@@ -311,11 +348,11 @@ export default function CheckoutPage() {
       })
       return
     }
-    // Add this check for phone verification
-    if (!isPhoneVerified) {
+    // Check if either phone is verified OR Google is authenticated
+    if (!isPhoneVerified && !isGoogleAuthenticated) {
       toast({
-        title: "Phone Verification Required",
-        description: "Please verify your phone number before completing the order.",
+        title: "Authentication Required",
+        description: "Please verify your phone number or sign in with Google before completing the order.",
         variant: "destructive",
       })
       return
@@ -715,10 +752,10 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Phone Verification */}
+              {/* Authentication Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Phone Verification</CardTitle>
+                  <CardTitle>Authentication Required</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {isPhoneVerified ? (
@@ -726,60 +763,83 @@ export default function CheckoutPage() {
                       <Check className="h-5 w-5 mr-2" />
                       Phone number verified!
                     </div>
+                  ) : isGoogleAuthenticated ? (
+                    <div className="flex items-center text-green-600 font-medium">
+                      <Check className="h-5 w-5 mr-2" />
+                      Signed in with Google!
+                    </div>
                   ) : (
                     <>
                       <p className="text-gray-600">
-                        Please verify your phone number ({customerData.phone}) to proceed with the booking.
+                        Please verify your identity to proceed with the booking. You can either verify your phone number
+                        or sign in with Google.
                       </p>
-                      {!showOtpInput ? (
-                        <Button
-                          onClick={handleSendOtp}
-                          disabled={isPhoneVerifying || !customerData.phone}
-                          className="w-full"
-                        >
-                          {isPhoneVerifying ? "Sending Code..." : "Send Verification Code"}
-                        </Button>
-                      ) : (
-                        <div className="space-y-3">
-                          <div>
-                            <Label htmlFor="otp" className="text-base font-medium">
-                              Enter 6-digit code
-                            </Label>
-                            <Input
-                              id="otp"
-                              type="text"
-                              value={otp}
-                              onChange={(e) => setOtp(e.target.value)}
-                              className="mt-2 h-12"
-                              placeholder="XXXXXX"
-                              maxLength={6}
-                              required
-                            />
+                      <Separator />
+                      {/* Phone Verification */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Verify Phone Number ({customerData.phone})</h4>
+                        {!showOtpInput ? (
+                          <Button
+                            onClick={handleSendOtp}
+                            disabled={isPhoneVerifying || !customerData.phone}
+                            className="w-full"
+                          >
+                            {isPhoneVerifying ? "Sending Code..." : "Send Verification Code"}
+                          </Button>
+                        ) : (
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="otp" className="text-base font-medium">
+                                Enter 6-digit code
+                              </Label>
+                              <Input
+                                id="otp"
+                                type="text"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                className="mt-2 h-12"
+                                placeholder="XXXXXX"
+                                maxLength={6}
+                                required
+                              />
+                            </div>
+                            <Button
+                              onClick={handleVerifyOtp}
+                              disabled={isPhoneVerifying || otp.length !== 6}
+                              className="w-full"
+                            >
+                              {isPhoneVerifying ? "Verifying..." : "Verify Code"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowOtpInput(false)
+                                setOtp("")
+                                if (window.grecaptcha && window.recaptchaVerifier) {
+                                  window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
+                                }
+                              }}
+                              className="w-full"
+                            >
+                              Resend Code
+                            </Button>
                           </div>
-                          <Button
-                            onClick={handleVerifyOtp}
-                            disabled={isPhoneVerifying || otp.length !== 6}
-                            className="w-full"
-                          >
-                            {isPhoneVerifying ? "Verifying..." : "Verify Code"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setShowOtpInput(false)
-                              setOtp("")
-                              if (window.grecaptcha && window.recaptchaVerifier) {
-                                window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
-                              }
-                            }}
-                            className="w-full"
-                          >
-                            Resend Code
-                          </Button>
-                        </div>
-                      )}
-                      {/* This div is where reCAPTCHA will render invisibly */}
-                      <div ref={recaptchaRef} id="recaptcha-container" className="hidden"></div>
+                        )}
+                        {/* This div is where reCAPTCHA will render invisibly */}
+                        <div ref={recaptchaRef} id="recaptcha-container" className="hidden"></div>
+                      </div>
+                      <Separator />
+                      {/* Google Sign-In */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Or Sign in with Google</h4>
+                        <Button
+                          onClick={handleGoogleSignIn}
+                          disabled={isGoogleAuthenticating}
+                          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          {isGoogleAuthenticating ? "Signing in..." : "Sign in with Google"}
+                        </Button>
+                      </div>
                     </>
                   )}
                 </CardContent>
@@ -940,7 +1000,7 @@ export default function CheckoutPage() {
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={isProcessing || !agreeToTerms || !isPhoneVerified} // Added !isPhoneVerified
+              disabled={isProcessing || !agreeToTerms || (!isPhoneVerified && !isGoogleAuthenticated)} // Updated condition
               className="px-8 bg-green-600 hover:bg-green-700"
             >
               {isProcessing ? (
