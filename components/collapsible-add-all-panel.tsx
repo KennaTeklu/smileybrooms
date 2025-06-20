@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from "react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import {
   ShoppingCart,
@@ -43,18 +43,28 @@ import { useMomentumScroll } from "@/hooks/use-momentum-scroll"
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
-export function CollapsibleAddAllPanel() {
+interface CollapsibleAddAllPanelProps {
+  isExpanded: boolean
+  setIsExpanded: (expanded: boolean) => void
+  setPanelHeight: (height: number) => void
+  dynamicTop: number
+}
+
+export function CollapsibleAddAllPanel({
+  isExpanded,
+  setIsExpanded,
+  setPanelHeight,
+  dynamicTop,
+}: CollapsibleAddAllPanelProps) {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
-  const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
   const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [addedItemsCount, setAddedItemsCount] = useState(0)
   const [isVisible, setIsVisible] = useState(false) // Control panel visibility
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // New state for scroll pause
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
@@ -82,9 +92,6 @@ export function CollapsibleAddAllPanel() {
     { root: scrollViewportRef.current, threshold: 0.1 },
   )
 
-  // State for dynamic positioning - start with fixed position, then adjust
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
-
   const selectedRoomTypes = getSelectedRoomTypes()
   const totalPrice = getTotalPrice()
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
@@ -96,28 +103,17 @@ export function CollapsibleAddAllPanel() {
     setIsMounted(true)
   }, [])
 
-  // Pause scroll tracking when panel is expanded or in fullscreen
-  useEffect(() => {
-    setIsScrollPaused(isExpanded || isFullscreen)
-  }, [isExpanded, isFullscreen])
+  // Report panel height to parent
+  useLayoutEffect(() => {
+    if (panelRef.current) {
+      setPanelHeight(panelRef.current.offsetHeight)
+    }
+  }, [isExpanded, isFullscreen, setPanelHeight]) // Recalculate height when expanded state or fullscreen changes
 
   // Immediate visibility control - show panel as soon as requirements are met
   useEffect(() => {
     if (selectionRequirementsMet) {
       setIsVisible(true)
-
-      // Force immediate positioning calculation
-      const calculateInitialPosition = () => {
-        const viewportHeight = window.innerHeight
-        const scrollY = window.scrollY
-
-        // Always start at 150px from current viewport top
-        const initialTop = scrollY + 150
-        setPanelTopPosition(`${initialTop}px`)
-      }
-
-      // Calculate position immediately
-      calculateInitialPosition()
 
       // Enhanced pulse animation for visibility when first appearing
       controls.start({
@@ -134,57 +130,11 @@ export function CollapsibleAddAllPanel() {
       vibrate(150)
     } else {
       setIsVisible(false)
-      setIsExpanded(false)
+      setIsExpanded(false) // Collapse when requirements are not met
       setIsFullscreen(false)
       controls.stop()
     }
-  }, [selectionRequirementsMet, controls, vibrate])
-
-  // Calculate panel position based on scroll and viewport (only after initial show)
-  const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current || isFullscreen || !isVisible || isScrollPaused) return
-
-    const panelHeight = panelRef.current.offsetHeight || 200 // fallback height
-    const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
-    const documentHeight = document.documentElement.scrollHeight
-
-    // Start position: 150px from top of viewport (below share panel)
-    const initialViewportTopOffset = 150
-    const bottomPadding = 20 // Distance from bottom of document
-
-    // Calculate desired top position
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
-
-    // Use the minimum to ensure it doesn't go past the document bottom
-    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
-
-    setPanelTopPosition(`${finalTop}px`)
-  }, [isFullscreen, isVisible, isScrollPaused])
-
-  useEffect(() => {
-    // Only set up scroll listeners after panel is visible and not paused
-    if (!isVisible || isScrollPaused) return
-
-    const handleScrollAndResize = () => {
-      if (!isFullscreen) {
-        calculatePanelPosition()
-      }
-    }
-
-    // Add listeners immediately
-    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-    window.addEventListener("resize", handleScrollAndResize, { passive: true })
-
-    // Initial calculation after listeners are set
-    calculatePanelPosition()
-
-    return () => {
-      window.removeEventListener("scroll", handleScrollAndResize)
-      window.removeEventListener("resize", handleScrollAndResize)
-    }
-  }, [calculatePanelPosition, isVisible, isScrollPaused])
+  }, [selectionRequirementsMet, controls, vibrate, setIsExpanded])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -313,7 +263,7 @@ export function CollapsibleAddAllPanel() {
         duration: 3000,
       })
     }
-  }, [selectedRoomTypes, roomCounts, roomConfigs, addItem, updateRoomCount, vibrate])
+  }, [selectedRoomTypes, roomCounts, roomConfigs, addItem, updateRoomCount, vibrate, setIsExpanded])
 
   const handleRemoveRoom = useCallback(
     (roomType: string) => {
@@ -687,10 +637,9 @@ export function CollapsibleAddAllPanel() {
       <SuccessNotification />
       <motion.div
         ref={panelRef}
-        className="fixed z-[997]"
+        className="fixed right-0 z-[997]"
         style={{
-          top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
+          top: dynamicTop,
           width: "fit-content",
         }}
         initial={{ x: "150%" }}

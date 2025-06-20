@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
+import { QRCodeSVG } from "qrcode.react"
 
 type SharePlatform = {
   id: string
@@ -86,23 +86,26 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-export function CollapsibleSharePanel() {
-  const [isExpanded, setIsExpanded] = useState(false)
+interface CollapsibleSharePanelProps {
+  isExpanded: boolean
+  setIsExpanded: (expanded: boolean) => void
+  setPanelHeight: (height: number) => void
+  dynamicTop: number
+}
+
+export function CollapsibleSharePanel({
+  isExpanded,
+  setIsExpanded,
+  setPanelHeight,
+  dynamicTop,
+}: CollapsibleSharePanelProps) {
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const panelRef = useRef<HTMLDivElement>(null)
-
-  // Define configurable scroll range values
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   // Handle mounting for SSR
   useEffect(() => {
@@ -110,31 +113,12 @@ export function CollapsibleSharePanel() {
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Pause panel's scroll-following when expanded
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-  }, [isExpanded])
-
-  // Track scroll position and panel height after mounting
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
+  // Report panel height to parent
+  useLayoutEffect(() => {
+    if (panelRef.current) {
+      setPanelHeight(panelRef.current.offsetHeight)
     }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
+  }, [isExpanded, setPanelHeight]) // Recalculate height when expanded state changes
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -148,21 +132,12 @@ export function CollapsibleSharePanel() {
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
+  }, [isExpanded, isMounted, setIsExpanded])
 
   // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
-
-  // Calculate panel position based on scroll and document height
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   const copyToClipboard = async () => {
     try {
@@ -190,7 +165,7 @@ export function CollapsibleSharePanel() {
   const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: dynamicTop }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -205,11 +180,6 @@ export function CollapsibleSharePanel() {
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Share
-                {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
-                    Scroll Fixed
-                  </span>
-                )}
               </h2>
               <Button
                 variant="ghost"
@@ -240,21 +210,20 @@ export function CollapsibleSharePanel() {
                   exit={{ opacity: 0, height: 0 }}
                   className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
                 >
-                  {/* Render the QR code here with image settings */}
                   <QRCodeSVG
                     value={currentUrl}
                     size={qrCodeSize}
                     level="H"
-                    bgColor="transparent" // Make background transparent to use parent's background
-                    fgColor="currentColor" // Use current text color for QR code
-                    className="text-gray-900 dark:text-gray-50" // Apply text color for dark/light mode
+                    bgColor="transparent"
+                    fgColor="currentColor"
+                    className="text-gray-900 dark:text-gray-50"
                     imageSettings={{
-                      src: "/favicon.png", // Path to your logo
+                      src: "/favicon.png",
                       x: logoPosition,
                       y: logoPosition,
                       height: logoSize,
                       width: logoSize,
-                      excavate: true, // Create a transparent hole for the image
+                      excavate: true,
                     }}
                   />
                 </motion.div>
@@ -283,7 +252,6 @@ export function CollapsibleSharePanel() {
 
                 {/* Platform Grid */}
                 <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
-                  {/* Content inside this div is scrollable */}
                   {filteredPlatforms.map((platform) => (
                     <motion.button
                       key={platform.id}

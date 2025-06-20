@@ -1,11 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { usePathname } from "next/navigation"
 
 // Extend Window interface for JotForm
 declare global {
@@ -14,46 +12,32 @@ declare global {
   }
 }
 
-export function CollapsibleChatbotPanel() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
-  const [isMounted, setIsMounted] = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
+interface CollapsibleChatbotPanelProps {
+  isExpanded: boolean
+  setIsExpanded: (expanded: boolean) => void
+  setPanelHeight: (height: number) => void
+  dynamicTop: number
+}
 
-  const minTopOffset = 20
-  const initialScrollOffset = 50
-  const bottomPageMargin = 20
+export function CollapsibleChatbotPanel({
+  isExpanded,
+  setIsExpanded,
+  setPanelHeight,
+  dynamicTop,
+}: CollapsibleChatbotPanelProps) {
+  const [isMounted, setIsMounted] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-  }, [isExpanded])
-
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
+  // Report panel height to parent
+  useLayoutEffect(() => {
+    if (panelRef.current) {
+      setPanelHeight(panelRef.current.offsetHeight)
     }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight()
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused])
+  }, [isExpanded, setPanelHeight]) // Recalculate height when expanded state changes
 
   useEffect(() => {
     if (!isMounted) return
@@ -66,7 +50,7 @@ export function CollapsibleChatbotPanel() {
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
+  }, [isExpanded, isMounted, setIsExpanded])
 
   useEffect(() => {
     if (isExpanded && isMounted) {
@@ -102,14 +86,8 @@ export function CollapsibleChatbotPanel() {
 
   if (!isMounted) return null
 
-  const documentHeight = document.documentElement.scrollHeight
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + 50, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + 50, maxPanelTop))}px`
-
   return (
-    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: dynamicTop }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -124,11 +102,6 @@ export function CollapsibleChatbotPanel() {
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Bot className="h-5 w-5" />
                 Customer Support
-                {isScrollPaused && (
-                  <Badge variant="secondary" className="text-xs">
-                    Fixed
-                  </Badge>
-                )}
               </h2>
               <Button
                 variant="ghost"
