@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { FileText, Download, PrinterIcon as Print, Share2 } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { cn } from "@/lib/utils"
 
 interface TermsPageProps {
   searchParams: {
@@ -26,6 +28,8 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
 
   const sections = generateTOS(config)
   const generatedDate = new Date().toLocaleDateString()
+
+  const [expandedPanel, setExpandedPanel] = useState<string | null>(null)
 
   const handlePrint = () => {
     window.print()
@@ -91,25 +95,47 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
         </div>
 
         <div className="space-y-6">
-          {sections.map((section, index) => (
-            <Card key={section.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  {index + 1}. {section.title}
-                  {section.required && (
-                    <Badge variant="destructive" className="ml-auto">
-                      Required
-                    </Badge>
-                  )}
-                  {section.jurisdiction && <Badge variant="secondary">{section.jurisdiction}</Badge>}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="whitespace-pre-line text-sm leading-relaxed">{section.content}</div>
-              </CardContent>
-            </Card>
-          ))}
+          {sections.map((section, index) => {
+            const isExpanded = expandedPanel === section.id
+            const isDisplaced = expandedPanel && expandedPanel !== section.id
+
+            return (
+              <Card
+                key={section.id}
+                className={cn(
+                  "transition-all duration-500 ease-in-out cursor-pointer",
+                  isExpanded ? "scale-105 z-10 shadow-2xl" : "",
+                  isDisplaced ? "scale-95 opacity-70 translate-y-2" : "",
+                  "hover:shadow-lg",
+                )}
+                onClick={() => setExpandedPanel(isExpanded ? null : section.id)}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {index + 1}. {section.title}
+                    {section.required && (
+                      <Badge variant="destructive" className="ml-auto">
+                        Required
+                      </Badge>
+                    )}
+                    {section.jurisdiction && <Badge variant="secondary">{section.jurisdiction}</Badge>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={cn(
+                      "transition-all duration-300 overflow-hidden",
+                      isExpanded ? "max-h-96 opacity-100" : "max-h-20 opacity-75",
+                    )}
+                  >
+                    <div className="whitespace-pre-line text-sm leading-relaxed">{section.content}</div>
+                  </div>
+                  {!isExpanded && <div className="mt-2 text-xs text-muted-foreground">Click to expand...</div>}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         <div className="mt-8 p-6 bg-muted rounded-lg">

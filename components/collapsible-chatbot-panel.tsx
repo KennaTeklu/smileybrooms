@@ -6,7 +6,6 @@ import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from "next/navigation"
-import { usePanelContext } from "@/contexts/panel-context"
 
 // Extend Window interface for JotForm
 declare global {
@@ -24,9 +23,6 @@ export function CollapsibleChatbotPanel() {
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
-  const { registerPanel, updatePanel, getDisplacement } = usePanelContext()
-  const panelId = "chatbot-panel"
-
   const minTopOffset = 20
   const initialScrollOffset = 50
   const bottomPageMargin = 20
@@ -34,16 +30,6 @@ export function CollapsibleChatbotPanel() {
   useEffect(() => {
     setIsMounted(true)
   }, [])
-
-  useEffect(() => {
-    if (isMounted) {
-      registerPanel(panelId, 2) // Position 2 for chatbot panel
-    }
-  }, [isMounted, registerPanel])
-
-  useEffect(() => {
-    updatePanel(panelId, isExpanded, isExpanded ? 400 : 48)
-  }, [isExpanded, updatePanel])
 
   useEffect(() => {
     setIsScrollPaused(isExpanded)
@@ -122,17 +108,8 @@ export function CollapsibleChatbotPanel() {
     ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + 50, maxPanelTop))}px`
     : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + 50, maxPanelTop))}px`
 
-  const displacement = getDisplacement(panelId, 2)
-
   return (
-    <div
-      ref={panelRef}
-      className="fixed right-0 z-[999] flex transition-transform duration-300 ease-out"
-      style={{
-        top: panelTopPosition,
-        transform: `translateX(-${displacement}px)`,
-      }}
-    >
+    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div

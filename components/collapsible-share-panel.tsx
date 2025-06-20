@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
-import { usePanelContext } from "@/contexts/panel-context"
 
 type SharePlatform = {
   id: string
@@ -98,10 +97,6 @@ export function CollapsibleSharePanel() {
   const [currentUrl, setCurrentUrl] = useState("")
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
-
-  const { registerPanel, updatePanel, getDisplacement } = usePanelContext()
-  const panelId = "share-panel"
-
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Define configurable scroll range values
@@ -141,16 +136,6 @@ export function CollapsibleSharePanel() {
     }
   }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
-  useEffect(() => {
-    if (isMounted) {
-      registerPanel(panelId, 1) // Position 1 for share panel
-    }
-  }, [isMounted, registerPanel])
-
-  useEffect(() => {
-    updatePanel(panelId, isExpanded, isExpanded ? 320 : 48)
-  }, [isExpanded, updatePanel])
-
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
@@ -174,7 +159,7 @@ export function CollapsibleSharePanel() {
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
-  const displacement = getDisplacement(panelId, 1)
+  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
   const panelTopPosition = isScrollPaused
     ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
     : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
@@ -205,14 +190,7 @@ export function CollapsibleSharePanel() {
   const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
   return (
-    <div
-      ref={panelRef}
-      className="fixed right-0 z-[998] flex transition-transform duration-300 ease-out"
-      style={{
-        top: panelTopPosition,
-        transform: `translateX(-${displacement}px)`,
-      }}
-    >
+    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
