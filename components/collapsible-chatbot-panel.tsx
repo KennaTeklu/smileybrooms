@@ -14,7 +14,11 @@ declare global {
   }
 }
 
-export function CollapsibleChatbotPanel() {
+interface CollapsibleChatbotPanelProps {
+  sharePanelInfo: { expanded: boolean; height: number }
+}
+
+export default function CollapsibleChatbotPanel({ sharePanelInfo }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
@@ -24,8 +28,9 @@ export function CollapsibleChatbotPanel() {
   const pathname = usePathname()
 
   const minTopOffset = 20
-  const initialScrollOffset = 50
+  const initialScrollOffset = 50 // Base offset for both panels
   const bottomPageMargin = 20
+  const SHARE_PANEL_MARGIN_BOTTOM = 20 // Margin between share panel and chatbot panel
 
   useEffect(() => {
     setIsMounted(true)
@@ -103,10 +108,14 @@ export function CollapsibleChatbotPanel() {
   if (!isMounted) return null
 
   const documentHeight = document.documentElement.scrollHeight
+
+  // Calculate dynamic offset based on share panel's state and height
+  const dynamicOffset = sharePanelInfo.expanded ? sharePanelInfo.height + SHARE_PANEL_MARGIN_BOTTOM : 0
+
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
   const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + 50, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + 50, maxPanelTop))}px`
+    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + dynamicOffset, maxPanelTop))}px`
+    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + dynamicOffset, maxPanelTop))}px`
 
   return (
     <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>

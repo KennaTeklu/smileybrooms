@@ -86,7 +86,11 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-export function CollapsibleSharePanel() {
+interface CollapsibleSharePanelProps {
+  onPanelStateChange: (info: { expanded: boolean; height: number }) => void
+}
+
+export default function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -135,6 +139,13 @@ export function CollapsibleSharePanel() {
       window.removeEventListener("resize", updatePositionAndHeight)
     }
   }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
+
+  // Report panel state and height to parent
+  useEffect(() => {
+    if (isMounted && panelRef.current) {
+      onPanelStateChange({ expanded: isExpanded, height: panelRef.current.offsetHeight })
+    }
+  }, [isExpanded, isMounted, onPanelStateChange, panelHeight])
 
   // Handle click outside to collapse panel
   useEffect(() => {
