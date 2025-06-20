@@ -2,28 +2,17 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, Send, Mic, MicOff, Bot } from "lucide-react"
+import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { useChat } from "ai/react"
-import { usePathname } from "next/navigation"
 
 export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isListening, setIsListening] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat",
-    body: { currentPage: pathname },
-  })
 
   const minTopOffset = 20
   const initialScrollOffset = 50
@@ -110,52 +99,12 @@ export function CollapsibleChatbotPanel() {
               </Button>
             </div>
 
-            <div className="h-[400px] flex flex-col">
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-3">
-                  {messages.length === 0 && (
-                    <div className="text-sm p-3 bg-muted/50 rounded-lg">
-                      Hi! I'm your SmileyBrooms AI assistant. How can I help you today?
-                    </div>
-                  )}
-                  {messages.map((m) => (
-                    <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[85%] p-3 rounded-lg text-sm ${
-                          m.role === "user"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                        }`}
-                      >
-                        {m.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-
-              <form onSubmit={handleSubmit} className="p-3 border-t flex gap-2">
-                <Input
-                  className="flex-1"
-                  value={input}
-                  placeholder="Ask me anything..."
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setIsListening(!isListening)}
-                  disabled={isLoading}
-                  className={isListening ? "bg-red-100 border-red-300" : ""}
-                >
-                  {isListening ? <MicOff className="h-4 w-4 text-red-600" /> : <Mic className="h-4 w-4" />}
-                </Button>
-                <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
+            <div className="h-[400px] flex flex-col items-center justify-center">
+              <div className="text-center p-8">
+                <Bot className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">AI Assistant</h3>
+                <p className="text-sm text-gray-500">Coming soon...</p>
+              </div>
             </div>
           </motion.div>
         ) : (
@@ -171,11 +120,6 @@ export function CollapsibleChatbotPanel() {
           >
             <Bot className="h-5 w-5" />
             <span className="text-sm font-medium">AI</span>
-            {messages.length > 0 && (
-              <Badge className="ml-1 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
-                {messages.length}
-              </Badge>
-            )}
           </motion.button>
         )}
       </AnimatePresence>
