@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Settings,
-  ChevronRight,
   Sun,
   Moon,
   Eye,
@@ -26,94 +25,36 @@ import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-export function CollapsibleSettingsPanel() {
-  const [isExpanded, setIsExpanded] = useState(false)
+interface CollapsibleSettingsPanelProps {
+  isUnifiedPanel?: boolean // New prop
+}
+
+export function CollapsibleSettingsPanel({ isUnifiedPanel = false }: CollapsibleSettingsPanelProps) {
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
-  const panelRef = useRef<HTMLDivElement>(null)
 
-  // Define configurable scroll range values
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
-
-  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  // Pause panel's scroll-following when expanded
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-  }, [isExpanded])
-
-  // Track scroll position and panel height after mounting
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
-    }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
-
-  // Handle click outside to collapse panel
-  useEffect(() => {
-    if (!isMounted) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
-        setIsExpanded(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
-
-  // Apply font size changes
   useEffect(() => {
     if (!isMounted) return
 
     document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
   }, [fontSize, isMounted])
 
-  // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
 
-  // Calculate panel position based on scroll and document height
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
-
   return (
-    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div className={cn(!isUnifiedPanel && "fixed left-0 z-50 flex")} style={!isUnifiedPanel ? { top: "50px" } : {}}>
       <AnimatePresence initial={false}>
-        {isExpanded ? (
+        {isUnifiedPanel || ( // Render content directly if part of unified panel, otherwise use old logic
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
@@ -126,16 +67,14 @@ export function CollapsibleSettingsPanel() {
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 Settings
-                {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
-                    Scroll Fixed
-                  </span>
-                )}
+                {/* Removed isScrollPaused badge */}
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsExpanded(false)}
+                onClick={() => {
+                  /* No-op or handle collapse in parent */
+                }}
                 aria-label="Collapse settings panel"
               >
                 <PanelLeft className="h-4 w-4" />
@@ -365,25 +304,6 @@ export function CollapsibleSettingsPanel() {
               </Button>
             </div>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-r border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-            )}
-            aria-label="Open settings"
-          >
-            <Settings className="h-5 w-5" />
-            <ChevronRight className="h-4 w-4" />
-          </motion.button>
         )}
       </AnimatePresence>
     </div>
