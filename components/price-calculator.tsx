@@ -10,7 +10,19 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles, AlertCircle, PlusCircle, Diamond, DollarSign, Check } from "lucide-react" // Added Check and X
+import {
+  Home,
+  Calendar,
+  Sparkles,
+  AlertCircle,
+  PlusCircle,
+  Diamond,
+  DollarSign,
+  Check,
+  Star,
+  Zap,
+  Shield,
+} from "lucide-react" // Added Check, Star, Zap, Shield
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
@@ -30,6 +42,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PriceBreakdownDetailed } from "@/components/price-breakdown-detailed" // Import PriceBreakdownDetailed
 import { Badge } from "@/components/ui/badge" // Import Badge for "Most Popular"
+import { Progress } from "@/components/ui/progress" // Import Progress component
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -73,9 +86,9 @@ const paymentFrequencyOptions = [
 
 // Define task counts for each tier
 const TIER_TASK_COUNTS = {
-  standard: 3,
-  premium: 7,
-  elite: 11,
+  standard: 20, // Example: 20+ point checklist
+  premium: 70, // Example: 70+ point checklist
+  elite: 120, // Example: 120+ point checklist
 }
 
 // Define time estimates for each tier
@@ -289,26 +302,36 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
   // Function to render tier comparison table
   const renderTierComparisonTable = () => {
+    const getTierIcon = (tierId: ServiceTierId) => {
+      if (tierId === "standard") return <Shield className="h-4 w-4 text-blue-600" />
+      if (tierId === "premium") return <Star className="h-4 w-4 text-purple-600" />
+      if (tierId === "elite") return <Zap className="h-4 w-4 text-green-600" />
+      return null
+    }
+
     return (
       <div className="overflow-x-auto mt-4">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
               <th className="text-left py-2"></th>
-              <th className="text-center py-2">Standard</th>
-              <th className="text-center py-2">
-                Premium
-                <Badge className="ml-1 bg-green-500">Most Popular</Badge>
-              </th>
-              <th className="text-center py-2">Elite</th>
+              {Object.values(SERVICE_TIERS).map((tier) => (
+                <th key={tier.id} className="text-center py-2">
+                  <div className="flex items-center justify-center gap-1">
+                    {getTierIcon(tier.id as ServiceTierId)}
+                    <span>{tier.name}</span>
+                    {tier.id === "premium" && <Badge className="ml-1 bg-green-500">Popular</Badge>}
+                  </div>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             <tr className="border-b">
               <td className="py-2 font-medium">Tasks/Room</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.standard}</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.premium}</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.elite}</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.standard}+</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.premium}+</td>
+              <td className="text-center py-2">{TIER_TASK_COUNTS.elite}+</td>
             </tr>
             <tr className="border-b">
               <td className="py-2 font-medium">Time/Room</td>
@@ -337,7 +360,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         <TabsList className="grid w-full grid-cols-3 mb-6">
           {Object.values(SERVICE_TIERS).map((tier) => (
             <TabsTrigger key={tier.id} value={tier.id} className="text-sm md:text-base">
-              {tier.name === "Premium" ? (
+              {tier.id === "premium" ? (
                 <div className="flex flex-col items-center">
                   <span>{tier.name} Cleaning</span>
                   <Badge className="mt-1 bg-green-500">Most Popular</Badge>
@@ -360,14 +383,14 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   <>
                     <span className="font-medium">For: Basic maintenance</span>
                     <br />
-                    Our standard cleaning covers all the basics with {TIER_TASK_COUNTS.standard} tasks per room.
+                    Our standard cleaning covers all the basics with {TIER_TASK_COUNTS.standard}+ tasks per room.
                   </>
                 )}
                 {tier.id === "premium" && (
                   <>
                     <span className="font-medium">For: Health-conscious families</span>
                     <br />
-                    Our premium service includes {TIER_TASK_COUNTS.premium} tasks per room with hospital-grade
+                    Our premium service includes {TIER_TASK_COUNTS.premium}+ tasks per room with hospital-grade
                     disinfectants.
                   </>
                 )}
@@ -375,7 +398,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   <>
                     <span className="font-medium">For: Luxury homes/Airbnb Superhosts</span>
                     <br />
-                    Our white-glove service offers {TIER_TASK_COUNTS.elite} tasks per room with unparalleled attention
+                    Our white-glove service offers {TIER_TASK_COUNTS.elite}+ tasks per room with unparalleled attention
                     to detail.
                   </>
                 )}
@@ -411,26 +434,35 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </CardContent>
             </Card>
 
-            {/* Task Count Display */}
+            {/* Task Count Display with Progress Bar */}
             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               <div className="flex items-center mb-2">
                 <Check className="h-5 w-5 mr-2 text-green-500" />
-                <h3 className="text-lg font-medium">
-                  {tier.id === "standard" && `${TIER_TASK_COUNTS.standard} expert-level tasks per room`}
-                  {tier.id === "premium" && `${TIER_TASK_COUNTS.premium} expert-level tasks per room`}
-                  {tier.id === "elite" && `${TIER_TASK_COUNTS.elite} expert-level tasks per room`}
-                </h3>
+                <h3 className="text-lg font-medium">{TIER_TASK_COUNTS[serviceTier]}+ expert-level tasks per room</h3>
               </div>
               <div className="ml-7">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {tier.id === "premium" && "2.3X deeper cleaning than standard"}
-                  {tier.id === "elite" && "3.6X deeper cleaning than standard"}
+                  {serviceTier === "premium" && "2.3X deeper cleaning than standard"}
+                  {serviceTier === "elite" && "3.6X deeper cleaning than standard"}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {tier.id === "standard" && "20+ point checklist"}
-                  {tier.id === "premium" && "70+ point checklist"}
-                  {tier.id === "elite" && "120+ point checklist"}
+                  {serviceTier === "standard" && "20+ point checklist"}
+                  {serviceTier === "premium" && "70+ point checklist"}
+                  {serviceTier === "elite" && "120+ point checklist"}
                 </p>
+                {serviceTier !== "elite" && (
+                  <div className="mt-3">
+                    <Label className="text-sm text-gray-600 dark:text-gray-400">
+                      Progress towards Elite:{" "}
+                      {Math.round((TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100)}%
+                    </Label>
+                    <Progress
+                      value={(TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100}
+                      className="w-full mt-1"
+                      indicatorColor={serviceTier === "standard" ? "bg-blue-500" : "bg-purple-500"}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -710,7 +742,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               {SERVICE_TIERS[serviceTier].name} Cleaning (
               {BUNDLE_NAMING[SERVICE_TIERS[serviceTier].name.toUpperCase() as keyof typeof BUNDLE_NAMING]})
               {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
-              {hasSelectedRooms() && ` • ${TIER_TASK_COUNTS[serviceTier]} tasks per room`}
+              {hasSelectedRooms() && ` • ${TIER_TASK_COUNTS[serviceTier]}+ tasks per room`}
             </p>
           </div>
           <div className="text-right">
