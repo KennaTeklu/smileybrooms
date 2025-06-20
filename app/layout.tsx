@@ -11,7 +11,7 @@ import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
 import { QueryClientProvider } from "@/components/providers/query-client-provider"
 import Header from "@/components/header"
-import { EnhancedFooter } from "@/components/enhanced-footer"
+import SemicircleFooter from "@/components/semicircle-footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
@@ -60,7 +60,7 @@ export default function RootLayout({
                           <Suspense>
                             <main className="flex-1">{children}</main>
                           </Suspense>
-                          <EnhancedFooter />
+                          <SemicircleFooter />
                         </div>
                         {/* Floating panels */}
                         <CollapsibleChatbotPanel />
