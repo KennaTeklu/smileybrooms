@@ -30,7 +30,7 @@ export function CollapsibleChatbotPanel({
   const pathname = usePathname()
 
   const minTopOffset = 20
-  const initialScrollOffset = 90 // Base offset for both panels
+  const initialScrollOffset = 190 // Base offset for both panels, now 190px from top
   const bottomPageMargin = 20
   const SHARE_PANEL_MARGIN_BOTTOM = 20 // Margin between share panel and chatbot panel
 
