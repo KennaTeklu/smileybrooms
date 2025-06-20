@@ -30,5 +30,6 @@ export default function ChatbotManager() {
 
   if (!isVisible) return null
 
+  // No wrapper div needed - SuperChatbot handles its own positioning
   return <SuperChatbot />
 }
