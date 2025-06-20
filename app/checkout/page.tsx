@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,9 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
+
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth"
+import { initializeApp, getApps, getApp } from "firebase/app"
 
 type CustomerData = {
   firstName: string
@@ -37,6 +40,25 @@ type CustomerData = {
 type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
 type CheckoutStep = "contact" | "address" | "payment" | "review"
+
+// Firebase configuration (replace with your actual config from Firebase project settings)
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+}
+
+// Initialize Firebase
+let app
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig)
+} else {
+  app = getApp()
+}
+const auth = getAuth(app)
 
 const steps = [
   { id: "contact", title: "Contact Info", icon: User },
@@ -72,6 +94,13 @@ export default function CheckoutPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  const recaptchaRef = useRef<HTMLDivElement>(null)
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -163,11 +192,130 @@ export default function CheckoutPage() {
     }
   }
 
+  useEffect(() => {
+    if (currentStep === "review" && !isPhoneVerified) {
+      if (recaptchaRef.current && !window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
+          size: "invisible",
+          callback: (response: any) => {
+            // reCAPTCHA solved, this callback is fired.
+            console.log("Recaptcha solved!")
+          },
+          "expired-callback": () => {
+            console.log("Recaptcha expired!")
+            toast({
+              title: "Verification Expired",
+              description: "Please re-verify your phone number.",
+              variant: "destructive",
+            })
+            if (window.grecaptcha) {
+              window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
+            }
+          },
+        })
+        window.recaptchaVerifier.render().then((widgetId: number) => {
+          // Store widget ID if needed for manual reset
+          window.recaptchaVerifier.widgetId = widgetId
+        })
+      }
+    }
+  }, [currentStep, isPhoneVerified, auth, toast])
+
+  const handleSendOtp = async () => {
+    if (!customerData.phone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number to verify.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsPhoneVerifying(true)
+    try {
+      // Firebase expects phone numbers in E.164 format (e.g., +15551234567)
+      // You might need to add a country code prefix if not already present in customerData.phone
+      const phoneNumber = customerData.phone.startsWith("+")
+        ? customerData.phone
+        : `+1${customerData.phone.replace(/\D/g, "")}` // Assuming US numbers, adjust as needed
+
+      const appVerifier = window.recaptchaVerifier
+
+      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier)
+      setConfirmationResult(result)
+      setShowOtpInput(true)
+      toast({
+        title: "Verification Code Sent",
+        description: `A 6-digit code has been sent to ${phoneNumber}.`,
+      })
+    } catch (error: any) {
+      console.error("Error sending OTP:", error)
+      toast({
+        title: "Failed to Send Code",
+        description: error.message || "Please check your phone number and try again.",
+        variant: "destructive",
+      })
+      if (window.grecaptcha && window.recaptchaVerifier) {
+        window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
+      }
+    } finally {
+      setIsPhoneVerifying(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    if (!otp) {
+      toast({
+        title: "OTP Required",
+        description: "Please enter the verification code.",
+        variant: "destructive",
+      })
+      return
+    }
+    if (!confirmationResult) {
+      toast({
+        title: "Error",
+        description: "No verification request found. Please send code again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsPhoneVerifying(true)
+    try {
+      await confirmationResult.confirm(otp)
+      setIsPhoneVerified(true)
+      toast({
+        title: "Phone Number Verified!",
+        description: "Your phone number has been successfully verified.",
+        variant: "success",
+      })
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error)
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Invalid code. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsPhoneVerifying(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!agreeToTerms) {
       toast({
         title: "Terms Required",
         description: "Please agree to the terms and conditions to continue.",
+        variant: "destructive",
+      })
+      return
+    }
+    // Add this check for phone verification
+    if (!isPhoneVerified) {
+      toast({
+        title: "Phone Verification Required",
+        description: "Please verify your phone number before completing the order.",
         variant: "destructive",
       })
       return
@@ -567,6 +715,76 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
+              {/* Phone Verification */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Phone Verification</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isPhoneVerified ? (
+                    <div className="flex items-center text-green-600 font-medium">
+                      <Check className="h-5 w-5 mr-2" />
+                      Phone number verified!
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-gray-600">
+                        Please verify your phone number ({customerData.phone}) to proceed with the booking.
+                      </p>
+                      {!showOtpInput ? (
+                        <Button
+                          onClick={handleSendOtp}
+                          disabled={isPhoneVerifying || !customerData.phone}
+                          className="w-full"
+                        >
+                          {isPhoneVerifying ? "Sending Code..." : "Send Verification Code"}
+                        </Button>
+                      ) : (
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="otp" className="text-base font-medium">
+                              Enter 6-digit code
+                            </Label>
+                            <Input
+                              id="otp"
+                              type="text"
+                              value={otp}
+                              onChange={(e) => setOtp(e.target.value)}
+                              className="mt-2 h-12"
+                              placeholder="XXXXXX"
+                              maxLength={6}
+                              required
+                            />
+                          </div>
+                          <Button
+                            onClick={handleVerifyOtp}
+                            disabled={isPhoneVerifying || otp.length !== 6}
+                            className="w-full"
+                          >
+                            {isPhoneVerifying ? "Verifying..." : "Verify Code"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowOtpInput(false)
+                              setOtp("")
+                              if (window.grecaptcha && window.recaptchaVerifier) {
+                                window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
+                              }
+                            }}
+                            className="w-full"
+                          >
+                            Resend Code
+                          </Button>
+                        </div>
+                      )}
+                      {/* This div is where reCAPTCHA will render invisibly */}
+                      <div ref={recaptchaRef} id="recaptcha-container" className="hidden"></div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Special Options */}
               <Card>
                 <CardHeader>
@@ -722,7 +940,7 @@ export default function CheckoutPage() {
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={isProcessing || !agreeToTerms}
+              disabled={isProcessing || !agreeToTerms || !isPhoneVerified} // Added !isPhoneVerified
               className="px-8 bg-green-600 hover:bg-green-700"
             >
               {isProcessing ? (
