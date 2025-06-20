@@ -299,14 +299,14 @@ What would you like to know?`
     <div ref={panelRef} className="fixed right-0 z-40 flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
-          <motion.div
+          (
+            <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "400px", opacity: 1 }}
+            animate={{ width: "min(100vw, 400px)", opacity: 1 }} {/* Responsive width */}\
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
-          >
+            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800">
             <div className="bg-primary text-primary-foreground p-3 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -502,6 +502,7 @@ What would you like to know?`
               </Tabs>
             </div>
           </motion.div>
+          )
         ) : (
           <motion.button
             key="collapsed"
