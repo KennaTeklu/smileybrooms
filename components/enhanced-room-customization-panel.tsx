@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Star, Zap, Shield, Clock, Undo2, Redo2 } from "lucide-react"
+import { Check, Star, Zap, Shield, Clock, Undo2, Redo2, X } from "lucide-react"
 import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface RoomConfig {
   roomName: string
@@ -266,6 +267,55 @@ export function EnhancedRoomCustomizationPanel({
                                 </li>
                               ))}
                             </ul>
+                          )}
+                          <div className="mt-2 text-sm space-y-1 text-gray-600 dark:text-gray-400">
+                            {tier.timeEstimate && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-gray-500" />
+                                <span>{tier.timeEstimate} per room</span>
+                              </div>
+                            )}
+                            {tier.guarantee && (
+                              <div className="flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-gray-500" />
+                                <span>{tier.guarantee} Guarantee</span>
+                              </div>
+                            )}
+                          </div>
+                          {tier.detailedTasks && tier.detailedTasks.length > 0 && (
+                            <div className="mt-3 text-sm">
+                              <p className="font-semibold">Total Tasks: {tier.detailedTasks.length}</p>
+                              <Accordion type="single" collapsible className="w-full mt-2">
+                                <AccordionItem value="tasks">
+                                  <AccordionTrigger className="py-2 text-sm">View Detailed Tasks</AccordionTrigger>
+                                  <AccordionContent>
+                                    <h4 className="font-medium mb-1">Included Tasks:</h4>
+                                    <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                                      {tier.detailedTasks.map((task, idx) => (
+                                        <li key={idx} className="flex items-center gap-2">
+                                          <Check className="h-3 w-3 text-green-500" /> {task}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    {tier.notIncludedTasks && tier.notIncludedTasks.length > 0 && (
+                                      <>
+                                        <h4 className="font-medium mt-3 mb-1">Not Included (Upgrade for these):</h4>
+                                        <ul className="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                                          {tier.notIncludedTasks.map((task, idx) => (
+                                            <li
+                                              key={idx}
+                                              className="flex items-center gap-2 line-through text-gray-400"
+                                            >
+                                              <X className="h-3 w-3 text-red-500" /> {task}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </>
+                                    )}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              </Accordion>
+                            </div>
                           )}
                         </Label>
                       </div>
