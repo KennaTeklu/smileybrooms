@@ -118,8 +118,9 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
-        // Immediately inform parent that panel is no longer expanded
-        onPanelStateChange({ expanded: false, height: panelRef.current.offsetHeight || 0 })
+        const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
+        console.log("📤 Share panel closing via outside click, calling onPanelStateChange with:", newState)
+        onPanelStateChange(newState)
       }
     }
 
@@ -189,8 +190,9 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
                 size="icon"
                 onClick={() => {
                   setIsExpanded(false)
-                  // Immediately inform parent that panel is no longer expanded
-                  onPanelStateChange({ expanded: false, height: panelRef.current?.offsetHeight || 0 })
+                  const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
+                  console.log("📤 Share panel closing via button, calling onPanelStateChange with:", newState)
+                  onPanelStateChange(newState)
                 }}
                 aria-label="Collapse share panel"
               >
@@ -299,8 +301,9 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-primary rounded-l-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-200 flex items-center justify-center h-12 w-12"
             onClick={() => {
               setIsExpanded(true)
-              // Immediately inform parent that panel is expanded
-              onPanelStateChange({ expanded: true, height: panelRef.current?.offsetHeight || 0 })
+              const newState = { expanded: true, height: panelRef.current?.offsetHeight || 0 }
+              console.log("📤 Share panel expanding, calling onPanelStateChange with:", newState)
+              onPanelStateChange(newState)
             }}
             aria-label="Expand share panel"
           >
