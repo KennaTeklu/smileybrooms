@@ -81,3 +81,4 @@ const CollapsibleChatbotPanel: React.FC<CollapsibleChatbotPanelProps> = ({
 }
 
 export default CollapsibleChatbotPanel
+export { CollapsibleChatbotPanel }
