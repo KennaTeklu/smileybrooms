@@ -1,14 +1,11 @@
-import MinimalHero from "@/components/minimal-hero"
-import ErrorBoundary from "@/components/error-boundary"
+import Image from "next/image"
 
 export default function Home() {
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen">
-        <div className="container mx-auto">
-          <MinimalHero />
-        </div>
+    <main>
+      <div>
+        <Image src="/images/optimized-hero.png" alt="Optimized Hero Background" width={1920} height={1080} priority />
       </div>
-    </ErrorBoundary>
+    </main>
   )
 }
