@@ -1,9 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Search } from "lucide-react"
 
 const gamifiedMessages = [
   "You've stumbled into the cleaning dimension! This page is sparkling clean... as in, it's not here.",
@@ -30,24 +35,79 @@ const gamifiedMessages = [
 
 export default function NotFoundContent() {
   const [message, setMessage] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * gamifiedMessages.length)
     setMessage(gamifiedMessages[randomIndex])
   }, [])
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchTerm.trim()) {
+      // In a real application, you would redirect to a search results page
+      // For now, we'll just log it or simulate a redirect
+      console.log(`Searching for: ${searchTerm}`)
+      window.location.href = `/search?q=${encodeURIComponent(searchTerm)}`
+    }
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center bg-background px-4 py-12 text-center">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-6xl font-bold text-primary">404</CardTitle>
-          <CardDescription className="text-lg text-muted-foreground">Page Not Found</CardDescription>
+      <Card className="w-full max-w-lg md:max-w-xl lg:max-w-2xl">
+        <CardHeader className="space-y-4">
+          <CardTitle className="text-7xl font-extrabold text-primary md:text-8xl">404</CardTitle>
+          <CardDescription className="text-xl text-muted-foreground md:text-2xl">Page Not Found</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-xl font-medium text-foreground">{message}</p>
-          <Link href="/" passHref>
-            <Button className="w-full bg-black text-white hover:bg-gray-800">Go Home</Button>
-          </Link>
+        <CardContent className="space-y-8 p-6 md:p-8">
+          <p className="text-2xl font-semibold text-foreground md:text-3xl">{message}</p>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-foreground">What can you do next?</h3>
+            <form onSubmit={handleSearch} className="relative flex w-full max-w-md mx-auto">
+              <Input
+                type="text"
+                placeholder="Try searching for something..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10"
+                aria-label="Search input"
+              />
+              <Button type="submit" size="icon" className="absolute right-0 top-0 h-full rounded-l-none">
+                <Search className="h-5 w-5" />
+                <span className="sr-only">Search</span>
+              </Button>
+            </form>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-foreground">Quick Links:</h3>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link href="/" passHref>
+                <Button variant="outline">Go Home</Button>
+              </Link>
+              <Link href="/pricing" passHref>
+                <Button variant="outline">View Pricing</Button>
+              </Link>
+              <Link href="/about" passHref>
+                <Button variant="outline">About Us</Button>
+              </Link>
+              <Link href="/contact" passHref>
+                <Button variant="outline">Contact Support</Button>
+              </Link>
+            </div>
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-2">
+            <p className="text-muted-foreground">If you believe this is an error, please let us know:</p>
+            <Link href="/contact?subject=404_Error" passHref>
+              <Button variant="secondary">Report an Issue</Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
