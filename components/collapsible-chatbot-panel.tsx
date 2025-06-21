@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { usePathname } from "next/navigation"
 
 // Extend Window interface for JotForm
@@ -18,19 +17,23 @@ interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
 }
 
+// Define approximate heights for consistent clamping
+// Adjust these values if your collapsed button or expanded iframe height changes significantly
+const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
+const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (688px iframe + padding/border)
+
 export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
+  // Stores the scroll position when the panel was expanded, to keep it fixed relative to that point.
+  const [scrollPositionAtExpand, setScrollPositionAtExpand] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
   const minTopOffset = 20
-  const initialScrollOffset = 450 // Base offset for both panels, now 450px from top
+  const initialScrollOffset = 450 // Base offset for the collapsed panel, 450px lower from top of viewport
   const bottomPageMargin = 20
   const SHARE_PANEL_MARGIN_BOTTOM = 20 // Margin between share panel and chatbot panel
 
@@ -38,30 +41,14 @@ export function CollapsibleChatbotPanel({
     setIsMounted(true)
   }, [])
 
+  // Capture current scroll position when the panel expands
   useEffect(() => {
-    setIsScrollPaused(isExpanded)
+    if (isExpanded) {
+      setScrollPositionAtExpand(window.scrollY)
+    }
   }, [isExpanded])
 
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
-    }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight()
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused])
-
+  // Handle clicks outside the panel to collapse it
   useEffect(() => {
     if (!isMounted) return
 
@@ -75,13 +62,12 @@ export function CollapsibleChatbotPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
+  // Load JotForm embed handler script when panel expands
   useEffect(() => {
     if (isExpanded && isMounted) {
-      // Load JotForm embed handler script
       const script = document.createElement("script")
       script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
       script.onload = () => {
-        // Initialize JotForm embed handler
         try {
           if (window.jotformEmbedHandler) {
             window.jotformEmbedHandler(
@@ -96,7 +82,6 @@ export function CollapsibleChatbotPanel({
       document.head.appendChild(script)
 
       return () => {
-        // Cleanup script when component unmounts or panel closes
         const existingScript = document.querySelector(
           'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
         )
@@ -114,23 +99,28 @@ export function CollapsibleChatbotPanel({
   // Calculate dynamic offset based on share panel's state and height
   const dynamicOffset = sharePanelInfo.expanded ? sharePanelInfo.height + SHARE_PANEL_MARGIN_BOTTOM : 0
 
-  // Add 440px offset reduction when panel is expanded - applies immediately on click
-  const expansionOffset = isExpanded ? -440 : 0
+  // Determine the current panel height for consistent clamping of its top position
+  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
+  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
 
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+  // Calculate the desired top position based on expansion state and current/captured scroll
+  let desiredTop: number
+  if (isExpanded) {
+    // When expanded, fix its position relative to where the scroll was when it opened,
+    // and move it up by 440px.
+    desiredTop = scrollPositionAtExpand + initialScrollOffset + dynamicOffset - 440
+  } else {
+    // When collapsed, make it follow the current scroll position, maintaining the initial offset.
+    desiredTop = window.scrollY + initialScrollOffset + dynamicOffset
+  }
 
-  // Calculate base position
-  const basePosition = isScrollPaused ? scrollPosition + initialScrollOffset : window.scrollY + initialScrollOffset
-
-  // Apply all offsets
-  const calculatedTop = basePosition + dynamicOffset + expansionOffset
-
-  const panelTopPosition = `${Math.max(minTopOffset, Math.min(calculatedTop, maxPanelTop))}px`
+  // Clamp the desiredTop within the visible document boundaries
+  const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
 
   return (
     <div
       ref={panelRef}
-      // Always apply transition-all to ensure smooth movement for 'top' property
+      // Always apply transition-all to ensure smooth movement for the 'top' property
       className="fixed right-0 z-[999] flex transition-all duration-300 ease-in-out"
       style={{ top: panelTopPosition }}
     >
@@ -148,11 +138,6 @@ export function CollapsibleChatbotPanel({
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Bot className="h-5 w-5" />
                 Customer Support
-                {isScrollPaused && (
-                  <Badge variant="secondary" className="text-xs">
-                    Fixed
-                  </Badge>
-                )}
               </h2>
               <Button
                 variant="ghost"
