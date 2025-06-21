@@ -130,7 +130,7 @@ export function CollapsibleChatbotPanel({
   return (
     <div
       ref={panelRef}
-      className="fixed right-0 z-[999] flex transition-all duration-300 ease-in-out"
+      className={`fixed right-0 z-[999] flex ${isExpanded ? "transition-all duration-300 ease-in-out" : ""}`}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
