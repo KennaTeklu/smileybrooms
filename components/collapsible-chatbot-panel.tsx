@@ -17,8 +17,12 @@ interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
 }
 
+// Define fixed top offsets for different states
+const DEFAULT_COLLAPSED_TOP_OFFSET = 300 // Chatbot collapsed, Share panel collapsed
+const EXPANDED_CHATBOT_TOP_OFFSET = 0 // Chatbot expanded
+const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 480 // Share panel expanded (overrides other states for chatbot position)
+
 // Define approximate heights for consistent clamping
-// Adjust these values if your collapsed button or expanded iframe height changes significantly
 const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
 const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (688px iframe + padding/border)
 
@@ -26,27 +30,16 @@ export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  // Stores the scroll position when the panel was expanded, to keep it fixed relative to that point.
-  const [scrollPositionAtExpand, setScrollPositionAtExpand] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
-  const minTopOffset = 20
-  const initialScrollOffset = 490 // Base offset for the collapsed panel, 490px lower from top of viewport
-  const bottomPageMargin = 20
-  const SHARE_PANEL_MARGIN_BOTTOM = 20 // Margin between share panel and chatbot panel
+  const minTopOffset = 20 // Minimum distance from the top of the viewport
+  const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
-
-  // Capture current scroll position when the panel expands
-  useEffect(() => {
-    if (isExpanded) {
-      setScrollPositionAtExpand(window.scrollY)
-    }
-  }, [isExpanded])
 
   // Handle clicks outside the panel to collapse it
   useEffect(() => {
@@ -96,23 +89,22 @@ export function CollapsibleChatbotPanel({
 
   const documentHeight = document.documentElement.scrollHeight
 
-  // Calculate dynamic offset based on share panel's state and height
-  const dynamicOffset = sharePanelInfo.expanded ? sharePanelInfo.height + SHARE_PANEL_MARGIN_BOTTOM : 0
+  let desiredTop: number
+
+  if (sharePanelInfo.expanded) {
+    // If share panel is expanded, chatbot always goes to 480px from top
+    desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
+  } else if (isExpanded) {
+    // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
+    desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
+  } else {
+    // If chatbot is collapsed and share panel is not, chatbot goes to 300px from top
+    desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
+  }
 
   // Determine the current panel height for consistent clamping of its top position
   const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
   const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
-
-  // Calculate the desired top position based on expansion state and current/captured scroll
-  let desiredTop: number
-  if (isExpanded) {
-    // When expanded, fix its position relative to where the scroll was when it opened,
-    // and move it up by 480px.
-    desiredTop = scrollPositionAtExpand + initialScrollOffset + dynamicOffset - 480
-  } else {
-    // When collapsed, make it follow the current scroll position, maintaining the initial offset.
-    desiredTop = window.scrollY + initialScrollOffset + dynamicOffset
-  }
 
   // Clamp the desiredTop within the visible document boundaries
   const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
