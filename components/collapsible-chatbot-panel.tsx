@@ -33,7 +33,7 @@ export function CollapsibleChatbotPanel({
   const pathname = usePathname()
 
   const minTopOffset = 20
-  const initialScrollOffset = 450 // Base offset for the collapsed panel, 450px lower from top of viewport
+  const initialScrollOffset = 490 // Base offset for the collapsed panel, 490px lower from top of viewport
   const bottomPageMargin = 20
   const SHARE_PANEL_MARGIN_BOTTOM = 20 // Margin between share panel and chatbot panel
 
@@ -107,8 +107,8 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
   if (isExpanded) {
     // When expanded, fix its position relative to where the scroll was when it opened,
-    // and move it up by 440px.
-    desiredTop = scrollPositionAtExpand + initialScrollOffset + dynamicOffset - 440
+    // and move it up by 480px.
+    desiredTop = scrollPositionAtExpand + initialScrollOffset + dynamicOffset - 480
   } else {
     // When collapsed, make it follow the current scroll position, maintaining the initial offset.
     desiredTop = window.scrollY + initialScrollOffset + dynamicOffset
