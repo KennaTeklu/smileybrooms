@@ -1,11 +1,10 @@
-"use client" // Keep this here as a best practice for the page itself
+"use client" // This page itself needs to be a client component to use `dynamic`
 
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 
 // Dynamically import NotFoundContent with SSR disabled.
-// This ensures that any client-side hooks (like useSearchParams,
-// even if implicitly used by Next.js's internal 404 handling)
+// This ensures that any client-side hooks (like useSearchParams)
 // within NotFoundContent or its children are never executed
 // during the server-side prerendering phase.
 const DynamicNotFoundContent = dynamic(() => import("@/components/not-found-content"), {
