@@ -31,8 +31,6 @@ export function CollapsibleChatbotPanel({
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  // State to control transition duration: "duration-0" for immediate, "duration-300" for smooth
-  const [topTransitionDuration, setTopTransitionDuration] = useState("duration-300")
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
@@ -87,17 +85,6 @@ export function CollapsibleChatbotPanel({
     }
   }, [isExpanded, isMounted])
 
-  // Effect to control the 'top' transition duration based on share panel state
-  useEffect(() => {
-    if (sharePanelInfo.expanded) {
-      // If share panel is expanded, make the top transition immediate
-      setTopTransitionDuration("duration-0")
-    } else {
-      // Otherwise, use the smooth transition for all other movements
-      setTopTransitionDuration("duration-300")
-    }
-  }, [sharePanelInfo.expanded]) // Only re-run when sharePanelInfo.expanded changes
-
   if (!isMounted) return null
 
   const documentHeight = document.documentElement.scrollHeight
@@ -105,7 +92,7 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
 
   if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 500px from top
+    // If share panel is expanded, chatbot always goes to 500px from top immediately
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
   } else if (isExpanded) {
     // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
@@ -122,11 +109,15 @@ export function CollapsibleChatbotPanel({
   // Clamp the desiredTop within the visible document boundaries
   const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
 
+  // Determine the transition duration based on share panel state
+  // It's immediate (duration-0) when share panel is expanded, smooth (duration-300) otherwise.
+  const topTransitionClass = sharePanelInfo.expanded ? "duration-0" : "duration-300"
+
   return (
     <div
       ref={panelRef}
-      // Conditionally apply transition duration based on state
-      className={`fixed right-0 z-[999] flex transition-all ${topTransitionDuration} ease-in-out`}
+      // Apply transition-all and the dynamic duration class
+      className={`fixed right-0 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
