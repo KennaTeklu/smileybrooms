@@ -158,3 +158,5 @@ export default function SemicircleFooter() {
     </footer>
   )
 }
+
+export { SemicircleFooter }
