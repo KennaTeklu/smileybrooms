@@ -4,10 +4,11 @@ import { generateTOS, type TOSConfig } from "@/lib/legal/tos-generator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { FileText, Download, PrinterIcon as Print, Share2 } from "lucide-react"
+import { FileText, Download, PrinterIcon as Print, Share2, Clipboard } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast" // Add this line
 
 interface TermsPageProps {
   searchParams: {
@@ -30,6 +31,7 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
   const generatedDate = new Date().toLocaleDateString()
 
   const [expandedPanel, setExpandedPanel] = useState<string | null>(null)
+  const { toast } = useToast() // Add this line
 
   const handlePrint = () => {
     window.print()
@@ -59,6 +61,27 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
     }
   }
 
+  const handleCopy = async () => {
+    // Add this function
+    const content = sections
+      .map((section) => `${section.title}\n${"=".repeat(section.title.length)}\n\n${section.content}\n\n`)
+      .join("")
+    try {
+      await navigator.clipboard.writeText(content)
+      toast({
+        title: "Copied!",
+        description: "Terms of Service copied to clipboard.",
+      })
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy terms to clipboard.",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -77,6 +100,12 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
               <Button variant="outline" size="sm" onClick={handleShare}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopy}>
+                {" "}
+                {/* Add this button */}
+                <Clipboard className="h-4 w-4 mr-2" />
+                Copy
               </Button>
             </div>
           </div>
