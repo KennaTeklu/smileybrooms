@@ -95,7 +95,7 @@ export function CollapsibleChatbotPanel({
       console.log("🎨 Chatbot Current top value (computed):", computedStyle.top)
       console.log("⏱️ Chatbot Current transition-duration (computed):", computedStyle.transitionDuration)
     }
-  }, [sharePanelInfo.expanded]) // Re-run when sharePanelInfo.expanded changes
+  }, [sharePanelInfo, sharePanelInfo.expanded]) // Re-run when sharePanelInfo.expanded changes
 
   if (!isMounted) return null
 
