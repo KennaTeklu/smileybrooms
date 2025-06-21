@@ -119,7 +119,6 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
         const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
-        console.log("📤 Share panel closing via outside click, calling onPanelStateChange with:", newState)
         onPanelStateChange(newState)
       }
     }
@@ -191,7 +190,6 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
                 onClick={() => {
                   setIsExpanded(false)
                   const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
-                  console.log("📤 Share panel closing via button, calling onPanelStateChange with:", newState)
                   onPanelStateChange(newState)
                 }}
                 aria-label="Collapse share panel"
@@ -302,7 +300,6 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             onClick={() => {
               setIsExpanded(true)
               const newState = { expanded: true, height: panelRef.current?.offsetHeight || 0 }
-              console.log("📤 Share panel expanding, calling onPanelStateChange with:", newState)
               onPanelStateChange(newState)
             }}
             aria-label="Expand share panel"

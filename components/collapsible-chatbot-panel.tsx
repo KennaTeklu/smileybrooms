@@ -69,7 +69,7 @@ export function CollapsibleChatbotPanel({
             )
           }
         } catch (error) {
-          console.log("JotForm embed handler initialization skipped")
+          //console.log("JotForm embed handler initialization skipped")
         }
       }
       document.head.appendChild(script)
@@ -87,13 +87,13 @@ export function CollapsibleChatbotPanel({
 
   // Add this useEffect hook immediately after the existing useEffect hooks
   useEffect(() => {
-    console.log("🎯 Chatbot panel received sharePanelInfo:", sharePanelInfo)
-    console.log("📐 Calculated topTransitionClass:", sharePanelInfo.expanded ? "duration-0" : "duration-300")
+    //console.log("🎯 Chatbot panel received sharePanelInfo:", sharePanelInfo)
+    //console.log("📐 Calculated topTransitionClass:", sharePanelInfo.expanded ? "duration-0" : "duration-300")
 
     if (panelRef.current) {
       const computedStyle = window.getComputedStyle(panelRef.current)
-      console.log("🎨 Chatbot Current top value (computed):", computedStyle.top)
-      console.log("⏱️ Chatbot Current transition-duration (computed):", computedStyle.transitionDuration)
+      //console.log("🎨 Chatbot Current top value (computed):", computedStyle.top)
+      //console.log("⏱️ Chatbot Current transition-duration (computed):", computedStyle.transitionDuration)
     }
   }, [sharePanelInfo, sharePanelInfo.expanded]) // Re-run when sharePanelInfo.expanded changes
 

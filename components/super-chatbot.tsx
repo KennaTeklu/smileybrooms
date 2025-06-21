@@ -474,7 +474,6 @@ What would you like to know?`
                           <span className="text-xs">{action.label}</span>
                         </Button>
                       ))}
-                    </div>
                     <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                       <h4 className="font-semibold text-sm mb-2">Current Context</h4>
                       <div className="text-xs space-y-1">
