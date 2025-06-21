@@ -114,8 +114,8 @@ export function CollapsibleChatbotPanel({
   // Calculate dynamic offset based on share panel's state and height
   const dynamicOffset = sharePanelInfo.expanded ? sharePanelInfo.height + SHARE_PANEL_MARGIN_BOTTOM : 0
 
-  // Add 300px offset reduction when panel is expanded - applies immediately on click
-  const expansionOffset = isExpanded ? -300 : 0
+  // Add 420px offset reduction when panel is expanded - applies immediately on click
+  const expansionOffset = isExpanded ? -420 : 0
 
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
 
