@@ -96,14 +96,11 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Define configurable scroll range values
+  // Define configurable scroll range values (these are now less relevant for fixed positioning)
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const initialScrollOffset = 50 // How far down the panel starts relative to scroll
   const bottomPageMargin = 20 // Margin from the very bottom of the document
@@ -114,43 +111,6 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Pause panel's scroll-following when expanded
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-  }, [isExpanded])
-
-  // Track scroll position and panel height after mounting
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
-    }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
-
-  // Report panel state and height to parent
-  useEffect(() => {
-    if (isMounted && panelRef.current) {
-      onPanelStateChange({
-        expanded: isExpanded,
-        height: panelRef.current.offsetHeight,
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpanded, isMounted, panelHeight])
-
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
@@ -158,26 +118,29 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
+        // Immediately inform parent that panel is no longer expanded
+        onPanelStateChange({ expanded: false, height: panelRef.current.offsetHeight || 0 })
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
+  }, [isExpanded, isMounted, onPanelStateChange]) // Added onPanelStateChange to dependencies
 
   // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
 
-  // Calculate panel position based on scroll and document height
+  // Calculate panel position based on scroll and document height (this is now fixed)
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+  const COLLAPSED_PANEL_HEIGHT = 48 // Approximate height of the collapsed share button
+  const EXPANDED_PANEL_HEIGHT = 600 // Approximate height of the expanded share panel (adjust as needed)
+  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
+  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
 
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
+  // The share panel's top position is now fixed relative to the viewport
+  const panelTopPosition = `${Math.max(minTopOffset, Math.min(initialScrollOffset, maxPanelTop))}px` // Using initialScrollOffset as a fixed top for the share panel
 
   const copyToClipboard = async () => {
     try {
@@ -220,16 +183,15 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Share
-                {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
-                    Scroll Fixed
-                  </span>
-                )}
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsExpanded(false)}
+                onClick={() => {
+                  setIsExpanded(false)
+                  // Immediately inform parent that panel is no longer expanded
+                  onPanelStateChange({ expanded: false, height: panelRef.current?.offsetHeight || 0 })
+                }}
                 aria-label="Collapse share panel"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -335,7 +297,11 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-primary rounded-l-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-200 flex items-center justify-center h-12 w-12"
-            onClick={() => setIsExpanded(true)}
+            onClick={() => {
+              setIsExpanded(true)
+              // Immediately inform parent that panel is expanded
+              onPanelStateChange({ expanded: true, height: panelRef.current?.offsetHeight || 0 })
+            }}
             aria-label="Expand share panel"
           >
             <Share2 className="h-5 w-5" />
