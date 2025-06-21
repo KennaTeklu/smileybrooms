@@ -114,16 +114,25 @@ export function CollapsibleChatbotPanel({
   // Calculate dynamic offset based on share panel's state and height
   const dynamicOffset = sharePanelInfo.expanded ? sharePanelInfo.height + SHARE_PANEL_MARGIN_BOTTOM : 0
 
-  // Add 100px offset reduction when panel is expanded
+  // Add 100px offset reduction when panel is expanded - applies immediately on click
   const expansionOffset = isExpanded ? -100 : 0
 
   const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset + dynamicOffset + expansionOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset + dynamicOffset + expansionOffset, maxPanelTop))}px`
+
+  // Calculate base position
+  const basePosition = isScrollPaused ? scrollPosition + initialScrollOffset : window.scrollY + initialScrollOffset
+
+  // Apply all offsets
+  const calculatedTop = basePosition + dynamicOffset + expansionOffset
+
+  const panelTopPosition = `${Math.max(minTopOffset, Math.min(calculatedTop, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-[999] flex" style={{ top: panelTopPosition }}>
+    <div
+      ref={panelRef}
+      className="fixed right-0 z-[999] flex transition-all duration-300 ease-in-out"
+      style={{ top: panelTopPosition }}
+    >
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
