@@ -20,7 +20,7 @@ interface CollapsibleChatbotPanelProps {
 // Define fixed top offsets for different states
 const DEFAULT_COLLAPSED_TOP_OFFSET = 300 // Chatbot collapsed, Share panel collapsed
 const EXPANDED_CHATBOT_TOP_OFFSET = 0 // Chatbot expanded
-const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 480 // Share panel expanded (overrides other states for chatbot position)
+const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 500 // Share panel expanded (overrides other states for chatbot position)
 
 // Define approximate heights for consistent clamping
 const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
@@ -31,8 +31,12 @@ export function CollapsibleChatbotPanel({
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [topTransitionDuration, setTopTransitionDuration] = useState("duration-300") // State to control transition duration
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+
+  // Ref to track previous sharePanelInfo.expanded state to detect changes
+  const prevSharePanelExpandedRef = useRef(sharePanelInfo.expanded)
 
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const bottomPageMargin = 20 // Margin from the very bottom of the document
@@ -85,6 +89,22 @@ export function CollapsibleChatbotPanel({
     }
   }, [isExpanded, isMounted])
 
+  // Effect to control the 'top' transition duration based on share panel state changes
+  useEffect(() => {
+    const sharePanelExpandedChanged = sharePanelInfo.expanded !== prevSharePanelExpandedRef.current
+
+    if (sharePanelExpandedChanged && sharePanelInfo.expanded) {
+      // If share panel just became expanded, make the top transition immediate
+      setTopTransitionDuration("duration-0")
+    } else {
+      // Otherwise, use the smooth transition for all other movements
+      setTopTransitionDuration("duration-300")
+    }
+
+    // Update the ref for the next render cycle
+    prevSharePanelExpandedRef.current = sharePanelInfo.expanded
+  }, [sharePanelInfo.expanded]) // Only re-run when sharePanelInfo.expanded changes
+
   if (!isMounted) return null
 
   const documentHeight = document.documentElement.scrollHeight
@@ -92,7 +112,7 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
 
   if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 480px from top
+    // If share panel is expanded, chatbot always goes to 500px from top
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
   } else if (isExpanded) {
     // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
@@ -112,8 +132,8 @@ export function CollapsibleChatbotPanel({
   return (
     <div
       ref={panelRef}
-      // Always apply transition-all to ensure smooth movement for the 'top' property
-      className="fixed right-0 z-[999] flex transition-all duration-300 ease-in-out"
+      // Conditionally apply transition duration based on state
+      className={`fixed right-0 z-[999] flex transition-all ${topTransitionDuration} ease-in-out`}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
