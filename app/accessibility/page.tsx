@@ -1,17 +1,16 @@
 "use client"
 
-import { Suspense } from "react" // Import Suspense
+import dynamic from "next/dynamic" // Import dynamic
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
+// import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel" // No longer directly imported
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
-// A simple loading component to show as a fallback
-function AccessibilityPanelLoading() {
-  return (
-    <div className="flex items-center justify-center p-4 text-muted-foreground">Loading accessibility panel...</div>
-  )
-}
+// Dynamically import EnhancedAccessibilityPanel with SSR disabled
+const EnhancedAccessibilityPanel = dynamic(
+  () => import("@/components/enhanced-accessibility-panel").then((mod) => mod.EnhancedAccessibilityPanel),
+  { ssr: false },
+)
 
 export default function AccessibilityPage() {
   return (
@@ -100,9 +99,7 @@ export default function AccessibilityPage() {
         </div>
 
         {/* The accessibility panel is available throughout the site */}
-        <Suspense fallback={<AccessibilityPanelLoading />}>
-          <EnhancedAccessibilityPanel />
-        </Suspense>
+        <EnhancedAccessibilityPanel />
       </div>
     </AccessibilityProvider>
   )
