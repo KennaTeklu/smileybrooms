@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Package, Sparkles } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { cn } from "@/lib/utils"
 
@@ -61,7 +61,7 @@ export default function CartButton({
   }
 
   // Icon selection based on cart state
-  const CartIcon = cartMetrics.hasItems ? (cartMetrics.isHighValue ? Sparkles : Package) : ShoppingCart
+  const CartIcon = ShoppingCart
 
   // Badge styling based on cart value
   const badgeVariant = cartMetrics.isHighValue ? "default" : "destructive"
