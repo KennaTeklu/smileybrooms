@@ -1,9 +1,17 @@
 "use client"
 
+import { Suspense } from "react" // Import Suspense
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+
+// A simple loading component to show as a fallback
+function AccessibilityPanelLoading() {
+  return (
+    <div className="flex items-center justify-center p-4 text-muted-foreground">Loading accessibility panel...</div>
+  )
+}
 
 export default function AccessibilityPage() {
   return (
@@ -92,7 +100,9 @@ export default function AccessibilityPage() {
         </div>
 
         {/* The accessibility panel is available throughout the site */}
-        <EnhancedAccessibilityPanel />
+        <Suspense fallback={<AccessibilityPanelLoading />}>
+          <EnhancedAccessibilityPanel />
+        </Suspense>
       </div>
     </AccessibilityProvider>
   )
