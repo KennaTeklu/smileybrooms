@@ -1,16 +1,9 @@
 "use client"
 
-import dynamic from "next/dynamic" // Import dynamic
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-// import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel" // No longer directly imported
+import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-
-// Dynamically import EnhancedAccessibilityPanel with SSR disabled
-const EnhancedAccessibilityPanel = dynamic(
-  () => import("@/components/enhanced-accessibility-panel").then((mod) => mod.EnhancedAccessibilityPanel),
-  { ssr: false },
-)
 
 export default function AccessibilityPage() {
   return (

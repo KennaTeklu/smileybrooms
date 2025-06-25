@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { Menu, X, Download, Calculator, Users, Mail, Accessibility, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -10,6 +10,7 @@ import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
 import CartButton from "@/components/cart-button"
 import { useCart } from "@/lib/cart-context"
+import { useCartPanelVisibility } from "@/contexts/cart-panel-visibility-context" // New import
 
 const navigationLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -21,11 +22,11 @@ const navigationLinks = [
 
 export default function Header() {
   const pathname = usePathname()
-  const router = useRouter()
   const { cart } = useCart()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [hasItems, setHasItems] = useState(false)
+  const { openCartPanel } = useCartPanelVisibility() // Use the new hook
 
   useEffect(() => {
     setHasItems(cart.items && cart.items.length > 0)
@@ -45,16 +46,12 @@ export default function Header() {
     setIsMenuOpen(false)
   }, [pathname])
 
-  const handleCartButtonClick = () => {
-    router.push("/cart")
-  }
-
   // Homepage with items - minimal header
   if (pathname === "/" && hasItems) {
     return (
       <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }} role="banner">
         <div className="flex justify-end">
-          <CartButton showLabel={false} variant="default" size="lg" onClick={handleCartButtonClick} />
+          <CartButton showLabel={false} variant="default" size="lg" onClick={openCartPanel} />
         </div>
       </header>
     )
@@ -121,9 +118,8 @@ export default function Header() {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-2">
-              {/* Cart Button - Only show when there are items */}
-              {hasItems && <CartButton onClick={handleCartButtonClick} showLabel={false} size="default" />}
-
+              {/* Cart Button */}
+              <CartButton onClick={openCartPanel} showLabel={false} size="default" /> {/* Added onClick */}
               {/* Download Button - Desktop Only */}
               <Button variant="outline" size="sm" asChild className="hidden md:flex h-9 px-3">
                 <Link href="/download" className="flex items-center space-x-2" aria-label="Download our app">
@@ -131,7 +127,6 @@ export default function Header() {
                   <span className="hidden lg:inline">Download</span>
                 </Link>
               </Button>
-
               {/* Mobile Menu */}
               <div className="lg:hidden">
                 <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -194,16 +189,14 @@ export default function Header() {
 
                       {/* Mobile Action Buttons */}
                       <div className="flex flex-col space-y-3 px-4">
-                        {/* Cart Button - Only show when there are items */}
-                        {hasItems && (
-                          <CartButton
-                            onClick={handleCartButtonClick}
-                            showLabel={true}
-                            variant="default"
-                            size="default"
-                            className="w-full justify-start h-11"
-                          />
-                        )}
+                        {/* Cart Button - Full Width */}
+                        <CartButton
+                          onClick={openCartPanel} // Added onClick
+                          showLabel={true}
+                          variant="default"
+                          size="default"
+                          className="w-full justify-start h-11"
+                        />
 
                         {/* Download Button - Full Width */}
                         <Button variant="outline" size="default" asChild className="w-full justify-start h-11">
@@ -229,5 +222,3 @@ export default function Header() {
     </header>
   )
 }
-
-export { Header }

@@ -79,7 +79,7 @@ export function DeviceOptimizedContactForm() {
               <RadioGroupItem value="sms" id="sms" />
               <Label htmlFor="sms" className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                Text Message (SmileyBrooms.com: (602) 800-0605) {device.isMobile && "(Recommended)"}
+                Text Message {device.isMobile && "(Recommended)"}
               </Label>
             </div>
             <div className="flex items-center space-x-2">

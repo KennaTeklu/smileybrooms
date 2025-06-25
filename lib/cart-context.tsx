@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
+// Import the new matching utilities
 import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
 
 export type CartItem = {
@@ -49,6 +50,7 @@ const calculateCartTotals = (items: CartItem[]): { totalItems: number; totalPric
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
+      // Check if there's a similar item using advanced matching criteria
       const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
 
       let updatedItems: CartItem[]
@@ -61,6 +63,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           return item
         })
       } else {
+        // Generate a more reliable ID for the new item
         const itemSignature = getItemSignature(action.payload)
         const enhancedItem = {
           ...action.payload,
@@ -137,24 +140,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem("cart")
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart) as CartState
-        // Dispatch items one by one to ensure they go through the ADD_ITEM logic
-        // which handles existing items and generates proper IDs.
-        // Clear cart first to avoid duplicates if initial state is not empty.
-        dispatch({ type: "CLEAR_CART" })
         parsedCart.items.forEach((item) => {
           dispatch({ type: "ADD_ITEM", payload: item })
         })
       }
     } catch (error) {
       console.error("Error loading cart from localStorage:", error)
-      // Notify user of the error
-      if (toast) {
-        toast({
-          title: "Cart Load Error",
-          description: "Could not load your saved cart. It might be cleared.",
-          variant: "destructive",
-        })
-      }
       // Reset to initial state if there's an error
       dispatch({ type: "CLEAR_CART" })
     }

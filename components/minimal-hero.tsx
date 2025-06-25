@@ -105,5 +105,3 @@ export default function MinimalHero() {
     </div>
   )
 }
-
-export { MinimalHero }

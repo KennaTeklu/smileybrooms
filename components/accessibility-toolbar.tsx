@@ -4,7 +4,7 @@ import React from "react"
 
 import { useState, useEffect, useCallback, memo } from "react"
 import { Button } from "@/components/ui/button"
-import { VolumeIcon as VolumeUp, Volume2, VolumeX, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
+import { VolumeIcon as VolumeUp, Volume2, VolumeX, Type, Maximize2, Minimize2, Settings, Share2 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Drawer,
@@ -21,7 +21,6 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { useTheme } from "next-themes"
 import { ScrollAwareWrapper } from "@/components/scroll-aware-wrapper"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import Dialog components
 
 interface AccessibilityToolbarProps {
   className?: string
@@ -40,7 +39,7 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
   const [volume, setVolume] = useState(1)
   const [prevVolume, setPrevVolume] = useState(1)
   const [highContrast, setHighContrast] = useState(false)
-  const [showSharePanel, setShowSharePanel] = useState(false) // This state controls the custom share dialog
+  const [showSharePanel, setShowSharePanel] = useState(false)
   const { theme, setTheme } = useTheme()
 
   // Memoized scroll config to prevent re-renders
@@ -240,190 +239,244 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
     <>
       <ScrollAwareWrapper side="left" className={className} config={scrollConfig}>
         <TooltipProvider>
-          <div className="flex flex-col gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={readPage}>
-                  {isReading ? <VolumeX className="h-5 w-5" /> : <VolumeUp className="h-5 w-5" />}
-                  <span className="sr-only">{isReading ? "Stop Read Aloud" : "Read Aloud"}</span>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex flex-col gap-2">
+            <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{isReading ? "Stop Read Aloud" : "Read Aloud"}</TooltipContent>
-            </Tooltip>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="mx-auto w-full max-w-sm">
+                  <DrawerHeader>
+                    <DrawerTitle>Accessibility Settings</DrawerTitle>
+                    <DrawerDescription>
+                      Customize your experience to make this site more accessible for your needs.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="p-4 space-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Text Size</h3>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="icon" onClick={decreaseFontSize}>
+                          <Minimize2 className="h-4 w-4" />
+                        </Button>
+                        <Slider
+                          value={[fontSize * 100]}
+                          min={80}
+                          max={150}
+                          step={5}
+                          onValueChange={(value) => setFontSize(value[0] / 100)}
+                          className="flex-1"
+                        />
+                        <Button variant="outline" size="icon" onClick={increaseFontSize}>
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Current: {Math.round(fontSize * 100)}%</p>
+                    </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={toggleMute}>
-                  {isMuted ? (
-                    <VolumeX className="h-5 w-5" />
-                  ) : volume > 0.5 ? (
-                    <Volume2 className="h-5 w-5" />
-                  ) : (
-                    <VolumeX className="h-5 w-5" />
-                  )}
-                  <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-            </Tooltip>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Volume</h3>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="icon" onClick={toggleMute}>
+                          {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                        </Button>
+                        <Slider
+                          value={[volume]}
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          onValueChange={handleVolumeChange}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Volume: {Math.round(volume * 100)}%</p>
+                    </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={increaseFontSize}>
-                  <Maximize2 className="h-5 w-5" />
-                  <span className="sr-only">Increase Font Size</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Increase Font Size</TooltipContent>
-            </Tooltip>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Reading Speed</h3>
+                      <Slider
+                        value={[readingSpeed]}
+                        min={0.5}
+                        max={2}
+                        step={0.1}
+                        onValueChange={handleReadingSpeedChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {readingSpeed < 1 ? "Slower" : readingSpeed > 1 ? "Faster" : "Normal"} (
+                        {readingSpeed.toFixed(1)}x)
+                      </p>
+                    </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={decreaseFontSize}>
-                  <Minimize2 className="h-5 w-5" />
-                  <span className="sr-only">Decrease Font Size</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Decrease Font Size</TooltipContent>
-            </Tooltip>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Voice Pitch</h3>
+                      <Slider value={[readingPitch]} min={0.5} max={2} step={0.1} onValueChange={handlePitchChange} />
+                      <p className="text-xs text-muted-foreground">
+                        {readingPitch < 1 ? "Lower" : readingPitch > 1 ? "Higher" : "Normal"} ({readingPitch.toFixed(1)}
+                        )
+                      </p>
+                    </div>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DrawerTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Settings className="h-5 w-5" />
-                    <span className="sr-only">Settings</span>
-                  </Button>
-                </DrawerTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="right">Settings</TooltipContent>
-            </Tooltip>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="show-subtitles">Show Subtitles</Label>
+                        <p className="text-xs text-muted-foreground">Display text being read aloud</p>
+                      </div>
+                      <Switch id="show-subtitles" checked={showSubtitles} onCheckedChange={setShowSubtitles} />
+                    </div>
 
-            {/* Wrap the Share button in a Dialog */}
-            <Dialog open={showSharePanel} onOpenChange={setShowSharePanel}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    {" "}
-                    {/* No onClick here, DialogTrigger handles it */}
-                    <Share2 className="h-5 w-5" />
-                    <span className="sr-only">Share</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Share</TooltipContent>
-              </Tooltip>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Share this page</DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Share this page with your friends, family, or colleagues.
-                </p>
-                <div className="flex justify-end mt-6">
-                  <Button variant="ghost" onClick={() => setShowSharePanel(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleShare}>Share</Button>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="high-contrast">High Contrast</Label>
+                        <p className="text-xs text-muted-foreground">Increase text and background contrast</p>
+                      </div>
+                      <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="dark-mode">Dark Mode</Label>
+                        <p className="text-xs text-muted-foreground">Switch between light and dark theme</p>
+                      </div>
+                      <Switch
+                        id="dark-mode"
+                        checked={theme === "dark"}
+                        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Share</h3>
+                      <Button variant="outline" size="sm" className="w-full" onClick={handleShare}>
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share Page
+                      </Button>
+                    </div>
+                  </div>
+                  <DrawerFooter>
+                    <Button onClick={() => setIsDrawerOpen(false)}>Save Changes</Button>
+                    <DrawerClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DrawerClose>
+                  </DrawerFooter>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </DrawerContent>
+            </Drawer>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={readPage}
+                  className={isReading ? "bg-primary text-primary-foreground" : ""}
+                >
+                  {isReading ? <Volume2 className="h-4 w-4" /> : <VolumeUp className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{isReading ? "Stop Reading" : "Read Page Aloud"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={toggleMute} disabled={!isReading}>
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{isMuted ? "Unmute" : "Mute"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowSubtitles(!showSubtitles)}
+                  className={showSubtitles ? "bg-primary text-primary-foreground" : ""}
+                >
+                  <Type className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{showSubtitles ? "Hide Subtitles" : "Show Subtitles"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={increaseFontSize}>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Increase Font Size</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={decreaseFontSize}>
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Decrease Font Size</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowSharePanel(!showSharePanel)}
+                  className={showSharePanel ? "bg-primary text-primary-foreground" : ""}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Share Page</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {showSharePanel && (
+              <div className="absolute top-0 right-full mr-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg p-3 w-48">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs">Share Page</h4>
+                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleShare}>
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href)
+                      setShowSharePanel(false)
+                    }}
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </TooltipProvider>
       </ScrollAwareWrapper>
 
-      <div className="fixed bottom-0 left-0 w-full bg-background/50 backdrop-blur-md p-4 text-center text-sm text-muted-foreground">
-        {subtitle}
-      </div>
-
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Accessibility Settings</DrawerTitle>
-            <DrawerDescription>Customize the accessibility features to fit your needs.</DrawerDescription>
-          </DrawerHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="font-size" className="text-right">
-                Font Size
-              </Label>
-              <Slider
-                id="font-size"
-                defaultValue={[fontSize]}
-                min={0.8}
-                max={1.5}
-                step={0.1}
-                onValueChange={(value) => setFontSize(value[0])}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="reading-speed" className="text-right">
-                Reading Speed
-              </Label>
-              <Slider
-                id="reading-speed"
-                defaultValue={[readingSpeed]}
-                min={0.5}
-                max={1.5}
-                step={0.1}
-                onValueChange={handleReadingSpeedChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="reading-pitch" className="text-right">
-                Reading Pitch
-              </Label>
-              <Slider
-                id="reading-pitch"
-                defaultValue={[readingPitch]}
-                min={0.5}
-                max={1.5}
-                step={0.1}
-                onValueChange={handlePitchChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="volume" className="text-right">
-                Volume
-              </Label>
-              <Slider
-                id="volume"
-                defaultValue={[volume]}
-                min={0}
-                max={1}
-                step={0.1}
-                onValueChange={handleVolumeChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch id="show-subtitles" checked={showSubtitles} onCheckedChange={setShowSubtitles} />
-              <Label htmlFor="show-subtitles">Show Subtitles</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
-              <Label htmlFor="high-contrast">High Contrast</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="theme">Theme</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setTheme(theme === "light" ? "dark" : "light")
-                }}
-              >
-                {theme === "light" ? "Dark" : "Light"}
-              </Button>
-            </div>
-          </div>
-          <DrawerFooter>
-            <DrawerClose>Close</DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      {/* Subtitle display */}
+      {showSubtitles && isReading && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg text-lg max-w-2xl text-center z-50">
+          {subtitle || "..."}
+        </div>
+      )}
     </>
   )
 })

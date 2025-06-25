@@ -97,30 +97,20 @@ export default function UnifiedFooter() {
           <AnimatePresence>
             {isExpanded && (
               <motion.div
-                initial={{ height: 0, opacity: 0, scale: 0, rotate: -180 }}
-                animate={{ height: "auto", opacity: 1, scale: 1, rotate: 0 }}
-                exit={{ height: 0, opacity: 0, scale: 0, rotate: 180 }}
-                transition={{
-                  duration: 0.8,
-                  type: "spring",
-                  damping: 15,
-                  stiffness: 100,
-                }}
-                className="w-full overflow-hidden origin-center"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.7, ease: [0.04, 0.62, 0.23, 0.98] }}
+                className="w-full overflow-hidden"
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8">
                   {footerSections.map((section) => (
                     <motion.div
                       key={section.title}
-                      initial={{ opacity: 0, y: 30, scale: 0.8, rotate: -45 }}
-                      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-                      exit={{ opacity: 0, y: 30, scale: 0.8, rotate: 45 }}
-                      transition={{
-                        duration: 0.6,
-                        delay: 0.1 * footerSections.indexOf(section),
-                        type: "spring",
-                        damping: 12,
-                      }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
                     >
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{section.title}</h3>
                       <ul className="space-y-2">

@@ -25,13 +25,3 @@ export const ROOM_CONFIG = {
   },
   serviceFee: 50,
 }
-
-// Placeholder exports for constants
-export const ROOM_PRICES = {}
-export const SERVICE_TIERS = {}
-export const CLEANLINESS_LEVEL_MULTIPLIERS = {}
-export const FREQUENCY_DISCOUNTS = {}
-export const ADDON_PRICING = {}
-export const EXCLUSIVE_SERVICE_PRICING = {}
-export const WAIVER_DISCOUNT = 0
-export const MINIMUM_JOB_VALUES = {}
