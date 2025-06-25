@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink, ChevronRight } from "lucide-react"
+import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -323,7 +323,7 @@ export function CollapsibleSharePanel() {
             onClick={() => setIsExpanded(true)}
             aria-label="Expand share panel"
           >
-            <ChevronRight className="h-5 w-5" /> {/* Changed from Share2 */}
+            <ChevronLeft className="h-5 w-5" />
           </motion.button>
         )}
       </AnimatePresence>
