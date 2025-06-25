@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Package, Sparkles } from "lucide-react"
+import { ShoppingCart } from "lucide-react" // Keep ShoppingCart
 import { useCart } from "@/lib/cart-context"
 import { cn } from "@/lib/utils"
 
@@ -60,9 +60,6 @@ export default function CartButton({
     lg: variant === "floating" ? "h-16 px-8" : "h-12 px-6",
   }
 
-  // Icon selection based on cart state
-  const CartIcon = cartMetrics.hasItems ? (cartMetrics.isHighValue ? Sparkles : Package) : ShoppingCart
-
   // Badge styling based on cart value
   const badgeVariant = cartMetrics.isHighValue ? "default" : "destructive"
   const badgeClassName = cn(
@@ -88,14 +85,8 @@ export default function CartButton({
       aria-expanded={false}
       aria-haspopup="dialog"
     >
-      <CartIcon
-        className={cn(
-          "transition-all duration-200",
-          size === "sm" ? "h-4 w-4" : size === "md" ? "h-5 w-5" : "h-6 w-6",
-          cartMetrics.hasItems && "text-blue-600 dark:text-blue-400",
-          cartMetrics.isHighValue && "text-purple-600 dark:text-purple-400",
-        )}
-      />
+      {/* Replaced CartIcon with direct ShoppingCart component */}
+      <ShoppingCart className="h-5 w-5" />
 
       {showLabel && (
         <span
