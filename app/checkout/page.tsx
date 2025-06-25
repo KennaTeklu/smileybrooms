@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,15 +19,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  GoogleAuthProvider,
-  signInWithPopup,
-  type ConfirmationResult,
-} from "firebase/auth"
-import { initializeApp, getApps, getApp } from "firebase/app"
+// Removed all Firebase imports and related types
 
 type CustomerData = {
   firstName: string
@@ -48,26 +40,7 @@ type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
 type CheckoutStep = "contact" | "address" | "payment" | "review"
 
-// Your Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY, // Use environment variable
-  authDomain: "authentication-1affb.firebaseapp.com",
-  projectId: "authentication-1affb",
-  storageBucket: "authentication-1affb.firebasestorage.app",
-  messagingSenderId: "990305079253",
-  appId: "1:990305079253:web:419522b1045262f0e3b75c",
-  measurementId: "G-N4F17SYW6G",
-}
-
-// Initialize Firebase
-let app
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig)
-} else {
-  app = getApp()
-}
-const auth = getAuth(app)
-const googleProvider = new GoogleAuthProvider()
+// Removed Firebase configuration and initialization
 
 const steps = [
   { id: "contact", title: "Contact Info", icon: User },
@@ -104,14 +77,15 @@ export default function CheckoutPage() {
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const [showOtpInput, setShowOtpInput] = useState(false)
-  const [otp, setOtp] = useState("")
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
-  const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
-  const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false)
-  const recaptchaRef = useRef<HTMLDivElement>(null)
+  // Removed all Firebase-related state variables
+  // const [showOtpInput, setShowOtpInput] = useState(false)
+  // const [otp, setOtp] = useState("")
+  // const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  // const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
+  // const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  // const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
+  // const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false)
+  // const recaptchaRef = useRef<HTMLDivElement>(null)
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -161,6 +135,7 @@ export default function CheckoutPage() {
       case "payment":
         return !!paymentMethod
       case "review":
+        // Removed authentication check here
         return agreeToTerms
       default:
         return false
@@ -203,155 +178,14 @@ export default function CheckoutPage() {
     }
   }
 
-  useEffect(() => {
-    if (currentStep === "review" && !isPhoneVerified && !isGoogleAuthenticated) {
-      if (recaptchaRef.current && !window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
-          size: "invisible",
-          callback: (response: any) => {
-            // reCAPTCHA solved, this callback is fired.
-            console.log("Recaptcha solved!")
-          },
-          "expired-callback": () => {
-            console.log("Recaptcha expired!")
-            toast({
-              title: "Verification Expired",
-              description: "Please re-verify your phone number.",
-              variant: "destructive",
-            })
-            if (window.grecaptcha) {
-              window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
-            }
-          },
-        })
-        window.recaptchaVerifier.render().then((widgetId: number) => {
-          // Store widget ID if needed for manual reset
-          window.recaptchaVerifier.widgetId = widgetId
-        })
-      }
-    }
-  }, [currentStep, isPhoneVerified, isGoogleAuthenticated, auth, toast])
+  // Removed useEffect for reCAPTCHA initialization
 
-  const handleSendOtp = async () => {
-    if (!customerData.phone) {
-      toast({
-        title: "Phone Number Required",
-        description: "Please enter your phone number to verify.",
-        variant: "destructive",
-      })
-      return
-    }
+  // Removed handleSendOtp and handleVerifyOtp functions
+  // const handleSendOtp = async () => { ... }
+  // const handleVerifyOtp = async () => { ... }
 
-    setIsPhoneVerifying(true)
-    try {
-      // Firebase expects phone numbers in E.164 format (e.g., +15551234567)
-      // You might need to add a country code prefix if not already present in customerData.phone
-      const phoneNumber = customerData.phone.startsWith("+")
-        ? customerData.phone
-        : `+1${customerData.phone.replace(/\D/g, "")}` // Assuming US numbers, adjust as needed
-
-      const appVerifier = window.recaptchaVerifier
-
-      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier)
-      setConfirmationResult(result)
-      setShowOtpInput(true)
-      toast({
-        title: "Verification Code Sent",
-        description: `A 6-digit code has been sent to ${phoneNumber}.`,
-      })
-      setIsGoogleAuthenticated(false) // Reset Google auth if phone verification is initiated
-    } catch (error: any) {
-      console.error("Error sending OTP:", error)
-      toast({
-        title: "Failed to Send Code",
-        description: error.message || "Please check your phone number and try again.",
-        variant: "destructive",
-      })
-      if (window.grecaptcha && window.recaptchaVerifier) {
-        window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
-      }
-    } finally {
-      setIsPhoneVerifying(false)
-    }
-  }
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      toast({
-        title: "OTP Required",
-        description: "Please enter the verification code.",
-        variant: "destructive",
-      })
-      return
-    }
-    if (!confirmationResult) {
-      toast({
-        title: "Error",
-        description: "No verification request found. Please send code again.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsPhoneVerifying(true)
-    try {
-      await confirmationResult.confirm(otp)
-      setIsPhoneVerified(true)
-      toast({
-        title: "Phone Number Verified!",
-        description: "Your phone number has been successfully verified.",
-      })
-      setIsGoogleAuthenticated(false) // Reset Google auth if Google auth succeeds
-      setShowOtpInput(false) // Hide OTP input
-      setOtp("") // Clear OTP
-    } catch (error: any) {
-      console.error("Error verifying OTP:", error)
-      toast({
-        title: "Verification Failed",
-        description: error.message || "Invalid code. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsPhoneVerifying(false)
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleAuthenticating(true)
-    try {
-      const result = await signInWithPopup(auth, googleProvider)
-      const user = result.user
-
-      // Auto-fill customer data from Google profile if available
-      if (user.displayName) {
-        const nameParts = user.displayName.split(" ")
-        setCustomerData((prev) => ({
-          ...prev,
-          firstName: nameParts[0] || "",
-          lastName: nameParts.slice(1).join(" ") || "",
-          email: user.email || prev.email,
-        }))
-      }
-
-      setIsGoogleAuthenticated(true)
-      toast({
-        title: "Signed in with Google!",
-        description: "Your Google account has been linked successfully.",
-      })
-      setIsPhoneVerified(false) // Reset phone verification if Google auth succeeds
-      setShowOtpInput(false) // Hide OTP input
-      setOtp("") // Clear OTP
-    } catch (error: any) {
-      console.error("Error signing in with Google:", error)
-      toast({
-        title: "Google Sign-In Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsGoogleAuthenticating(false)
-    }
-  }
+  // Removed handleGoogleSignIn function
+  // const handleGoogleSignIn = async () => { ... }
 
   const handleSubmit = async () => {
     if (!agreeToTerms) {
@@ -362,15 +196,15 @@ export default function CheckoutPage() {
       })
       return
     }
-    // Check if either phone is verified OR Google is authenticated
-    if (!isPhoneVerified && !isGoogleAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please verify your phone number or sign in with Google before completing the order.",
-        variant: "destructive",
-      })
-      return
-    }
+    // Removed authentication check:
+    // if (!isPhoneVerified && !isGoogleAuthenticated) {
+    //   toast({
+    //     title: "Authentication Required",
+    //     description: "Please verify your phone number or sign in with Google before completing the order.",
+    //     variant: "destructive",
+    //   })
+    //   return
+    // }
 
     setIsProcessing(true)
 
@@ -766,8 +600,8 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Authentication Section */}
-              <Card>
+              {/* Removed Authentication Section */}
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Authentication Required</CardTitle>
                 </CardHeader>
@@ -789,7 +623,6 @@ export default function CheckoutPage() {
                         or sign in with Google.
                       </p>
                       <Separator />
-                      {/* Phone Verification */}
                       <div className="space-y-3">
                         <h4 className="font-medium">Verify Phone Number ({customerData.phone})</h4>
                         {!showOtpInput ? (
@@ -839,11 +672,9 @@ export default function CheckoutPage() {
                             </Button>
                           </div>
                         )}
-                        {/* This div is where reCAPTCHA will render invisibly */}
                         <div ref={recaptchaRef} id="recaptcha-container" className="hidden"></div>
                       </div>
                       <Separator />
-                      {/* Google Sign-In */}
                       <div className="space-y-3">
                         <h4 className="font-medium">Or Sign in with Google</h4>
                         <Button
@@ -857,7 +688,7 @@ export default function CheckoutPage() {
                     </>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Special Options */}
               <Card>
@@ -1014,7 +845,8 @@ export default function CheckoutPage() {
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={isProcessing || !agreeToTerms || (!isPhoneVerified && !isGoogleAuthenticated)}
+              // Removed authentication check from disabled prop
+              disabled={isProcessing || !agreeToTerms}
               className="px-8 bg-green-600 hover:bg-green-700"
             >
               {isProcessing ? (
