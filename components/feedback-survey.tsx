@@ -154,3 +154,5 @@ export default function FeedbackSurvey() {
     </Dialog>
   )
 }
+
+export { FeedbackSurvey }
