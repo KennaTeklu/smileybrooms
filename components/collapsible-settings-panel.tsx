@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -23,6 +25,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
+import { useScrollAwarePositioning } from "@/hooks/use-scroll-aware-positioning" // Import the hook
 
 interface CollapsibleSettingsPanelProps {
   onClose?: () => void // Added onClose prop
@@ -33,18 +36,31 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
-  const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const { theme, setTheme } = useTheme()
   const { preferences, updatePreference } = useAccessibility()
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
+  const initialScrollOffset = 50 // How far down the panel starts relative to scroll (when not paused)
   const bottomPageMargin = 20 // Margin from the very bottom of the document
+
+  // Use the scroll aware positioning hook
+  const { positionStyles: hookPositionStyles } = useScrollAwarePositioning({
+    continuousMovement: {
+      enabled: true,
+      // These percentages are relative to the viewport height.
+      // They define the range of movement for the panel when it's not paused.
+      // Using approximate values for a typical viewport height (e.g., 768px)
+      // to convert initialScrollOffset to a percentage.
+      startPosition: (initialScrollOffset / 768) * 100, // ~6.5%
+      endPosition: ((768 - bottomPageMargin) / 768) * 100, // ~97.4%
+      minDistanceFromBottom: bottomPageMargin,
+    },
+    offset: { top: minTopOffset, bottom: bottomPageMargin, left: 0 }, // Left offset is 0
+    debug: false, // Set to true for debugging if needed
+  })
 
   // Handle mounting for SSR
   useEffect(() => {
@@ -55,27 +71,6 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
   useEffect(() => {
     setIsScrollPaused(isExpanded)
   }, [isExpanded])
-
-  // Track scroll position and panel height after mounting
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
-    }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -95,7 +90,6 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
   // Apply font size changes
   useEffect(() => {
     if (!isMounted) return
-
     document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
   }, [fontSize, isMounted])
 
@@ -104,17 +98,24 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     return null
   }
 
-  // Calculate panel position based on scroll and document height
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
+  // Determine the final styles based on isScrollPaused
+  const finalPanelStyles: React.CSSProperties = {
+    ...hookPositionStyles, // Start with styles from the hook
+    left: "0px", // Ensure it's always on the left
+    zIndex: 50, // Maintain z-index
+  }
 
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
+  if (isScrollPaused) {
+    // When paused, override the top to be fixed relative to the viewport at initialScrollOffset
+    finalPanelStyles.top = `${initialScrollOffset}px`
+    finalPanelStyles.transition = "none" // No transition when snapping to fixed paused position
+  } else {
+    // When not paused, ensure transition is active for scroll-aware movement
+    finalPanelStyles.transition = "top 0.1s ease-out" // Match hook's continuous movement transition
+  }
 
   return (
-    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed left-0 z-50 flex" style={finalPanelStyles}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -343,7 +344,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
                     <p className="text-xs text-muted-foreground mb-2">
                       Our support team is available to assist you with any accessibility needs.
                     </p>
-                    <Button size="sm" variant="outline" className="w-full text-xs bg-transparent">
+                    <Button size="sm" variant="outline" className="w-full bg-transparent">
                       <HelpCircle className="h-3 w-3 mr-1" /> Contact Support
                     </Button>
                   </div>
@@ -377,5 +378,3 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     </div>
   )
 }
-
-export default CollapsibleSettingsPanel
