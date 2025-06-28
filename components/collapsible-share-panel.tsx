@@ -88,10 +88,11 @@ const sharePlatforms: SharePlatform[] = [
 
 interface CollapsibleSharePanelProps {
   onPanelStateChange?: (info: { expanded: boolean; height: number }) => void
+  onClose?: () => void // Added onClose prop
 }
 
-export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: CollapsibleSharePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }: CollapsibleSharePanelProps) {
+  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
@@ -120,12 +121,13 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
         setIsExpanded(false)
         const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
         onPanelStateChange(newState)
+        onClose?.() // Call onClose when panel closes due to outside click
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted, onPanelStateChange]) // Added onPanelStateChange to dependencies
+  }, [isExpanded, isMounted, onPanelStateChange, onClose]) // Added onClose to dependencies
 
   // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
@@ -191,6 +193,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
                   setIsExpanded(false)
                   const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
                   onPanelStateChange(newState)
+                  onClose?.() // Call onClose when panel closes via button
                 }}
                 aria-label="Collapse share panel"
               >
@@ -201,7 +204,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={copyToClipboard}>
                   {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                   {copied ? "Copied!" : "Copy Link"}
                 </Button>
@@ -289,24 +292,8 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
               </div>
             </Tabs>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "48px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-primary rounded-l-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-200 flex items-center justify-center h-12 w-12"
-            onClick={() => {
-              setIsExpanded(true)
-              const newState = { expanded: true, height: panelRef.current?.offsetHeight || 0 }
-              onPanelStateChange(newState)
-            }}
-            aria-label="Expand share panel"
-          >
-            <Share2 className="h-5 w-5" />
-          </motion.button>
-        )}
+        ) : null}{" "}
+        {/* Render null when not expanded, as parent controls visibility */}
       </AnimatePresence>
     </div>
   )

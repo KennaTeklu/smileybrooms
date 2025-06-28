@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Settings,
-  ChevronRight,
   Sun,
   Moon,
   Eye,
@@ -23,11 +22,14 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
-import { cn } from "@/lib/utils"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-export function CollapsibleSettingsPanel() {
-  const [isExpanded, setIsExpanded] = useState(false)
+interface CollapsibleSettingsPanelProps {
+  onClose?: () => void // Added onClose prop
+}
+
+export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
@@ -82,12 +84,13 @@ export function CollapsibleSettingsPanel() {
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
+        onClose?.() // Call onClose when panel closes due to outside click
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
+  }, [isExpanded, isMounted, onClose]) // Added onClose to dependencies
 
   // Apply font size changes
   useEffect(() => {
@@ -135,7 +138,10 @@ export function CollapsibleSettingsPanel() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsExpanded(false)}
+                onClick={() => {
+                  setIsExpanded(false)
+                  onClose?.() // Call onClose when panel closes via button
+                }}
                 aria-label="Collapse settings panel"
               >
                 <PanelLeft className="h-4 w-4" />
@@ -191,7 +197,7 @@ export function CollapsibleSettingsPanel() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 bg-transparent"
                           onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
                         >
                           <ZoomOut className="h-3 w-3" />
@@ -200,7 +206,7 @@ export function CollapsibleSettingsPanel() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 bg-transparent"
                           onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
                         >
                           <ZoomIn className="h-3 w-3" />
@@ -337,7 +343,7 @@ export function CollapsibleSettingsPanel() {
                     <p className="text-xs text-muted-foreground mb-2">
                       Our support team is available to assist you with any accessibility needs.
                     </p>
-                    <Button size="sm" variant="outline" className="w-full text-xs">
+                    <Button size="sm" variant="outline" className="w-full text-xs bg-transparent">
                       <HelpCircle className="h-3 w-3 mr-1" /> Contact Support
                     </Button>
                   </div>
@@ -349,7 +355,7 @@ export function CollapsibleSettingsPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full bg-transparent"
                 onClick={() => {
                   setFontSize(1)
                   setContrast(1)
@@ -365,27 +371,11 @@ export function CollapsibleSettingsPanel() {
               </Button>
             </div>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
-              "rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
-              "border-r border-t border-b border-gray-200 dark:border-gray-800",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-            )}
-            aria-label="Open settings"
-          >
-            <Settings className="h-5 w-5" />
-            <ChevronRight className="h-4 w-4" />
-          </motion.button>
-        )}
+        ) : null}{" "}
+        {/* Render null when not expanded, as parent controls visibility */}
       </AnimatePresence>
     </div>
   )
 }
+
+export default CollapsibleSettingsPanel

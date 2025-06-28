@@ -15,6 +15,7 @@ declare global {
 
 interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
+  onClose?: () => void // Added onClose prop
 }
 
 // Define fixed top offsets for different states
@@ -28,8 +29,9 @@ const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (6
 
 export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
+  onClose, // Destructure onClose
 }: CollapsibleChatbotPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
@@ -48,12 +50,13 @@ export function CollapsibleChatbotPanel({
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
+        onClose?.() // Call onClose when panel closes due to outside click
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
+  }, [isExpanded, isMounted, onClose]) // Added onClose to dependencies
 
   // Load JotForm embed handler script when panel expands
   useEffect(() => {
@@ -150,7 +153,10 @@ export function CollapsibleChatbotPanel({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsExpanded(false)}
+                onClick={() => {
+                  setIsExpanded(false)
+                  onClose?.() // Call onClose when panel closes via button
+                }}
                 aria-label="Collapse chatbot panel"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -182,21 +188,8 @@ export function CollapsibleChatbotPanel({
               />
             </div>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "auto", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900 rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-l border-t border-b border-gray-200 dark:border-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label="Open Customer Support"
-          >
-            <Bot className="h-5 w-5" />
-            <span className="text-sm font-medium">Support</span>
-          </motion.button>
-        )}
+        ) : null}{" "}
+        {/* Render null when not expanded, as parent controls visibility */}
       </AnimatePresence>
     </div>
   )
