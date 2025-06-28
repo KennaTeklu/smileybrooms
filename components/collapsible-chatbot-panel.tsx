@@ -194,3 +194,5 @@ export function CollapsibleChatbotPanel({
     </div>
   )
 }
+
+export default CollapsibleChatbotPanel

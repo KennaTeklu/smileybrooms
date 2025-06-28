@@ -298,3 +298,5 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }
     </div>
   )
 }
+
+export default CollapsibleSharePanel
