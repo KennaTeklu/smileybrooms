@@ -343,7 +343,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
                     <p className="text-xs text-muted-foreground mb-2">
                       Our support team is available to assist you with any accessibility needs.
                     </p>
-                    <Button size="sm" variant="outline" className="w-full text-xs bg-transparent">
+                    <Button size="sm" variant="outline" className="w-full bg-transparent">
                       <HelpCircle className="h-3 w-3 mr-1" /> Contact Support
                     </Button>
                   </div>
