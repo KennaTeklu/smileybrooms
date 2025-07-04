@@ -21,7 +21,7 @@ interface CollapsibleChatbotPanelProps {
 // Define fixed top offsets for different states
 const DEFAULT_COLLAPSED_TOP_OFFSET = 100 // Chatbot collapsed, Share panel collapsed
 const EXPANDED_CHATBOT_TOP_OFFSET = 100 // Chatbot expanded
-const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 400 // Chatbot moves to 400px when share panel is expanded
+const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 500 // Chatbot moves to 500px when share panel is expanded
 
 // Define approximate heights for consistent clamping
 const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
@@ -107,7 +107,7 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
 
   if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 400px from top immediately
+    // If share panel is expanded, chatbot always goes to 500px from top immediately
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
   } else if (isExpanded) {
     // If chatbot is expanded and share panel is not, chatbot goes to 100px from top

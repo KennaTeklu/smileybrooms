@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
@@ -190,70 +190,67 @@ const fallbackCalculatePrice = (config: any): any => {
 
 interface PriceCalculationResult {
   totalPrice: number
-  // Add other properties that your worker might return
+  details: Record<string, number>
 }
 
-interface PriceCalculationMessage {
-  type: "calculatePrice"
-  payload: any // Adjust this type based on what your worker expects
+interface PriceCalculatorWorker extends Worker {
+  postMessage(message: { type: "calculatePrice"; payload: any }): void
 }
 
-interface PriceCalculationResponse {
-  type: "calculationResult"
-  payload: PriceCalculationResult
-}
-
-export function usePriceWorker() {
-  const workerRef = useRef<Worker | null>(null)
+const usePriceWorker = () => {
+  const [worker, setWorker] = useState<PriceCalculatorWorker | null>(null)
   const [result, setResult] = useState<PriceCalculationResult | null>(null)
-  const [error, setError] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Ensure this runs only on the client side
-    if (typeof window !== "undefined" && !workerRef.current) {
-      try {
-        workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-          type: "module", // Crucial for ES module support in workers
-        })
+    // Check if Worker is defined (for browser environment)
+    if (typeof Worker !== "undefined") {
+      const priceWorker = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+        type: "module",
+      }) as PriceCalculatorWorker
 
-        workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResponse>) => {
-          if (event.data.type === "calculationResult") {
-            setResult(event.data.payload)
-            setIsLoading(false)
-          }
-        }
-
-        workerRef.current.onerror = (event: ErrorEvent) => {
-          console.error("Worker error:", event.error || event)
-          setError(event.error || event)
-          setIsLoading(false)
-        }
-      } catch (e) {
-        console.error("Failed to create worker:", e)
-        setError(e)
-        setIsLoading(false)
+      priceWorker.onmessage = (event: MessageEvent<PriceCalculationResult>) => {
+        setResult(event.data)
+        setLoading(false)
+        setError(null)
       }
-    }
 
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.terminate()
-        workerRef.current = null
+      priceWorker.onerror = (err) => {
+        console.error("Worker error:", err)
+        setError("Failed to calculate price. Please try again.")
+        setLoading(false)
       }
+
+      setWorker(priceWorker)
+
+      return () => {
+        priceWorker.terminate()
+      }
+    } else {
+      // Fallback for environments where Worker is not supported (e.g., SSR)
+      console.warn("Web Workers are not supported in this environment. Price calculation will not use a worker.")
+      // You might want to implement a non-worker fallback here if necessary
     }
   }, [])
 
-  const calculatePrice = (payload: any) => {
-    if (workerRef.current) {
-      setIsLoading(true)
-      setError(null)
-      workerRef.current.postMessage({ type: "calculatePrice", payload } as PriceCalculationMessage)
-    } else {
-      console.warn("Worker not initialized.")
-      setError(new Error("Worker not initialized."))
-    }
-  }
+  const calculatePrice = useCallback(
+    (data: any) => {
+      if (worker) {
+        setLoading(true)
+        setError(null)
+        worker.postMessage({ type: "calculatePrice", payload: data })
+      } else {
+        // Fallback for non-worker environments or if worker failed to initialize
+        console.warn("Worker not available. Performing price calculation on main thread (if fallback implemented).")
+        setError("Price calculation service is not available.")
+        setLoading(false)
+      }
+    },
+    [worker],
+  )
 
-  return { result, calculatePrice, isLoading, error }
+  return { calculatePrice, result, loading, error }
 }
+
+export default usePriceWorker
