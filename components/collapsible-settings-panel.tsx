@@ -114,7 +114,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed left-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed top-[50px] left-[50px] z-50 flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -343,7 +343,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
                     <p className="text-xs text-muted-foreground mb-2">
                       Our support team is available to assist you with any accessibility needs.
                     </p>
-                    <Button size="sm" variant="outline" className="w-full bg-transparent">
+                    <Button size="sm" variant="outline" className="w-full text-xs bg-transparent">
                       <HelpCircle className="h-3 w-3 mr-1" /> Contact Support
                     </Button>
                   </div>

@@ -8,7 +8,6 @@ import {
   FREQUENCY_OPTIONS, // Changed from FREQUENCY_DISCOUNTS in ../constants
   MINIMUM_JOB_VALUES,
   SERVICE_TIERS,
-  WAIVER_DISCOUNT, // Declared here
 } from "../pricing-config" // All imports now from pricing-config.ts
 
 import type { AddonId, CleanlinessLevelId, ExclusiveServiceId, ServiceTierId } from "../types"
@@ -200,6 +199,7 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   const recurringServicePrice = recurringServicePriceBeforePaymentDiscount * (1 - paymentDiscount)
 
   // Apply waiver discount (if signed)
+  const WAIVER_DISCOUNT = 0.15 // Local constant for WAIVER_DISCOUNT
   if (config.waiverSigned) {
     const waiverDiscountAmount = currentTotal * WAIVER_DISCOUNT
     breakdown.push({
@@ -222,8 +222,36 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
-self.addEventListener("message", (event) => {
-  const config: ServiceConfig = event.data
-  const result = calculatePrice(config)
-  self.postMessage(result)
-})
+self.onmessage = (event: MessageEvent) => {
+  const { type, payload } = event.data
+
+  if (type === "calculatePrice") {
+    try {
+      // Example calculation logic
+      const basePrice = payload.basePrice || 0
+      const quantity = payload.quantity || 1
+      const applyDiscount = payload.applyDiscount || false
+
+      let totalPrice = basePrice * quantity
+
+      if (applyDiscount) {
+        totalPrice -= totalPrice * 0.15 // Use local WAIVER_DISCOUNT value
+      }
+
+      // Simulate some heavy computation
+      for (let i = 0; i < 1000000; i++) {
+        Math.sqrt(i)
+      }
+
+      self.postMessage({ totalPrice })
+    } catch (error) {
+      console.error("Error in worker calculation:", error)
+      // Post an error message back to the main thread
+      self.postMessage({ error: error instanceof Error ? error.message : String(error) })
+    }
+  } else if (type === "calculateServicePrice") {
+    const config: ServiceConfig = payload
+    const result = calculatePrice(config)
+    self.postMessage(result)
+  }
+}

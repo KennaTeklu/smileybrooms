@@ -19,9 +19,9 @@ interface CollapsibleChatbotPanelProps {
 }
 
 // Define fixed top offsets for different states
-const DEFAULT_COLLAPSED_TOP_OFFSET = 300 // Chatbot collapsed, Share panel collapsed
-const EXPANDED_CHATBOT_TOP_OFFSET = 0 // Chatbot expanded
-const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 500 // Share panel expanded (overrides other states for chatbot position)
+const DEFAULT_COLLAPSED_TOP_OFFSET = 100 // Chatbot collapsed, Share panel collapsed
+const EXPANDED_CHATBOT_TOP_OFFSET = 100 // Chatbot expanded
+const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 100 // Share panel expanded (overrides other states for chatbot position)
 
 // Define approximate heights for consistent clamping
 const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
@@ -107,13 +107,13 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
 
   if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 500px from top immediately
+    // If share panel is expanded, chatbot always goes to 100px from top immediately
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
   } else if (isExpanded) {
-    // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
+    // If chatbot is expanded and share panel is not, chatbot goes to 100px from top
     desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
   } else {
-    // If chatbot is collapsed and share panel is not, chatbot goes to 300px from top
+    // If chatbot is collapsed and share panel is not, chatbot goes to 100px from top
     desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
   }
 
@@ -132,64 +132,65 @@ export function CollapsibleChatbotPanel({
     <div
       ref={panelRef}
       // Apply transition-all and the dynamic duration class
-      className={`fixed right-0 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
+      className={`fixed right-[50px] z-[999] flex transition-all ${topTransitionClass} ease-in-out`} // Fixed right position
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
-        {isExpanded ? (
-          <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "400px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
-          >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Bot className="h-5 w-5" />
-                Customer Support
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsExpanded(false)
-                  onClose?.() // Call onClose when panel closes via button
-                }}
-                aria-label="Collapse chatbot panel"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </div>
+        {
+          isExpanded ? (
+            <motion.div
+              key="expanded"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "400px", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
+            >
+              <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  Customer Support
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setIsExpanded(false)
+                    onClose?.() // Call onClose when collapsing
+                  }}
+                  aria-label="Collapse chatbot panel"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
 
-            <div className="h-[688px] w-full">
-              <iframe
-                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
-                title="smileybrooms.com: Customer Support Representative"
-                onLoad={() => {
-                  try {
-                    window.parent.scrollTo(0, 0)
-                  } catch (error) {
-                    // Ignore cross-origin errors
-                  }
-                }}
-                allowTransparency={true}
-                allow="geolocation; microphone; camera; fullscreen"
-                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
-                style={{
-                  minWidth: "100%",
-                  maxWidth: "100%",
-                  height: "688px",
-                  border: "none",
-                  width: "100%",
-                }}
-                scrolling="no"
-              />
-            </div>
-          </motion.div>
-        ) : null}{" "}
-        {/* Render null when not expanded, as parent controls visibility */}
+              <div className="h-[688px] w-full">
+                <iframe
+                  id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                  title="smileybrooms.com: Customer Support Representative"
+                  onLoad={() => {
+                    try {
+                      window.parent.scrollTo(0, 0)
+                    } catch (error) {
+                      // Ignore cross-origin errors
+                    }
+                  }}
+                  allowTransparency={true}
+                  allow="geolocation; microphone; camera; fullscreen"
+                  src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                  style={{
+                    minWidth: "100%",
+                    maxWidth: "100%",
+                    height: "688px",
+                    border: "none",
+                    width: "100%",
+                  }}
+                  scrolling="no"
+                />
+              </div>
+            </motion.div>
+          ) : null /* The button is now rendered in app/page.tsx */
+        }
       </AnimatePresence>
     </div>
   )

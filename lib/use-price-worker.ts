@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
@@ -188,45 +188,66 @@ const fallbackCalculatePrice = (config: any): any => {
   }
 }
 
+interface PriceCalculationResult {
+  totalPrice: number
+  // Add other properties that your worker might return
+}
+
+interface PriceCalculationMessage {
+  type: "calculatePrice"
+  payload: any // Adjust this type based on what your worker expects
+}
+
 export function usePriceWorker() {
-  const workerRef = useRef<any | null>(null)
-  const [result, setResult] = useState<any | null>(null)
+  const workerRef = useRef<Worker | null>(null)
+  const [result, setResult] = useState<PriceCalculationResult | null>(null)
+  const [error, setError] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Instantiate the worker as an ES module
-    workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-      type: "module", // Crucial for ES module support in workers
-    })
+    // Ensure this runs only on the client side
+    if (typeof window !== "undefined" && !workerRef.current) {
+      try {
+        workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+          type: "module", // Crucial for ES module support in workers
+        })
 
-    workerRef.current.onmessage = (event: MessageEvent<any>) => {
-      setResult(event.data)
-      setLoading(false)
-      setError(null)
-    }
+        workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResult>) => {
+          setResult(event.data)
+          setLoading(false)
+          setError(null)
+        }
 
-    workerRef.current.onerror = (err) => {
-      console.error("Worker error:", err)
-      setError("Failed to calculate price. Please try again.")
-      setLoading(false)
+        workerRef.current.onerror = (event: ErrorEvent) => {
+          console.error("Worker error:", event.error || event)
+          setError(event.error || event)
+          setLoading(false)
+        }
+      } catch (e) {
+        console.error("Failed to create worker:", e)
+        setError(e)
+        setLoading(false)
+      }
     }
 
     return () => {
-      workerRef.current?.terminate()
+      if (workerRef.current) {
+        workerRef.current.terminate()
+        workerRef.current = null
+      }
     }
   }, [])
 
-  const calculatePrice = useCallback((config: any) => {
+  const calculatePrice = (payload: any) => {
     if (workerRef.current) {
       setLoading(true)
       setError(null)
-      setResult(null)
-      workerRef.current.postMessage(config)
+      workerRef.current.postMessage({ type: "calculatePrice", payload })
     } else {
-      setError("Worker not initialized.")
+      console.warn("Worker not initialized.")
+      setError(new Error("Worker not initialized."))
     }
-  }, [])
+  }
 
-  return { result, loading, error, calculatePrice }
+  return { calculatePrice, result, loading, error }
 }
