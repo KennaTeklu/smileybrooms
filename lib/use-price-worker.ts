@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useCallback, useState } from "react"
 import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
@@ -11,8 +11,32 @@ import {
   MINIMUM_JOB_VALUES,
 } from "./pricing-config"
 
-// Fallback calculation function for browsers that don't support Web Workers
-const fallbackCalculatePrice = (config: any): any => {
+/*
+ * ────────────────────────────────────────────────────────────────────────────────
+ *  Fallback price calculator
+ *  ────────────────────────────────────────────────────────────────────────────────
+ *  •  This is **not** the full business-logic implementation – it merely prevents
+ *    runtime crashes when the worker is unavailable.
+ *  •  It returns the shape that the rest of the app expects so the UI stays live.
+ *    You can swap in the real algorithm later (or re-enable the Worker) without
+ *    touching the component code.
+ */
+export type PriceCalculationResult = {
+  basePrice: number
+  adjustments: Record<string, number>
+  firstServicePrice: number
+  recurringServicePrice: number
+  estimatedDuration: number
+  breakdown: Array<{
+    category: string
+    amount: number
+    description: string
+  }>
+  enforcedTier?: "standard" | "premium" | "elite"
+  enforcedTierReason?: string
+}
+
+function fallbackCalculatePrice(config: any): PriceCalculationResult {
   let currentServiceTier = config.serviceTier
   let enforcedTierReason: string | undefined
 
@@ -188,100 +212,42 @@ const fallbackCalculatePrice = (config: any): any => {
   }
 }
 
-interface PriceCalculationResult {
-  totalPrice: number
-  // Add other properties that your worker might return
-}
+/*
+ * ────────────────────────────────────────────────────────────────────────────────
+ *  Hook: usePriceWorker
+ *  ────────────────────────────────────────────────────────────────────────────────
+ *  •  Signature kept identical to the original Worker-based version:
+ *       const { calculatePrice, isCalculating, isSupported } = usePriceWorker()
+ *  •  `isSupported` is always false here (no Worker in use).
+ */
+export function usePriceWorker() {
+  const [result, setResult] = useState<PriceCalculationResult | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [isCalculating, setIsCalculating] = useState(false)
 
-interface PriceCalculationMessage {
-  type: "calculatePrice"
-  payload: any // Adjust this type based on what your worker expects
-}
+  // We flag that the Worker path is not currently in use
+  const isSupported = false
 
-// This is a placeholder for the actual price calculation logic.
-// In a real application, this would contain the complex calculations
-// that were previously offloaded to the Web Worker.
-const calculatePriceSynchronously = (data: any) => {
-  // Simulate a complex calculation
-  const basePrice = data.basePrice || 0
-  const totalServicesCost = (data.services || []).reduce((sum: number, service: any) => sum + service.price, 0)
-  const WAIVER_DISCOUNT = 0.15 // Declared locally as per previous fix
+  const calculatePrice = useCallback(async (config: unknown) => {
+    try {
+      setIsCalculating(true)
+      setError(null)
 
-  let finalPrice = basePrice + totalServicesCost
-
-  if (data.applyWaiverDiscount) {
-    finalPrice *= 1 - WAIVER_DISCOUNT
-  }
+      // Run the synchronous fallback; wrap in Promise for consistent API
+      const calculation = await Promise.resolve(fallbackCalculatePrice(config))
+      setResult(calculation)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setIsCalculating(false)
+    }
+  }, [])
 
   return {
-    calculatedPrice: Number.parseFloat(finalPrice.toFixed(2)),
-    details: {
-      basePrice,
-      totalServicesCost,
-      waiverDiscountApplied: data.applyWaiverDiscount,
-      WAIVER_DISCOUNT_RATE: WAIVER_DISCOUNT,
-    },
+    calculatePrice,
+    result,
+    error,
+    isCalculating,
+    isSupported,
   }
-}
-
-export function usePriceWorker() {
-  const workerRef = useRef<Worker | null>(null)
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    // Ensure this runs only on the client side
-    if (typeof window !== "undefined" && !workerRef.current) {
-      try {
-        workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-          type: "module", // Crucial for ES module support in workers
-        })
-
-        workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResult>) => {
-          setResult(event.data)
-          setLoading(false)
-          setError(null)
-        }
-
-        workerRef.current.onerror = (event: ErrorEvent) => {
-          console.error("Worker error:", event.error || event)
-          setError(event.error || event)
-          setLoading(false)
-        }
-      } catch (e) {
-        console.error("Failed to create worker:", e)
-        setError(e)
-        setLoading(false)
-      }
-    }
-
-    return () => {
-      if (workerRef.current) {
-        workerRef.current.terminate()
-        workerRef.current = null
-      }
-    }
-  }, [])
-
-  const calculatePrice = useCallback((payload: any) => {
-    if (workerRef.current) {
-      setLoading(true)
-      setError(null)
-      workerRef.current.postMessage({ type: "calculatePrice", payload })
-    } else {
-      console.warn("Worker not initialized.")
-      setError(new Error("Worker not initialized."))
-      try {
-        const syncResult = calculatePriceSynchronously(payload)
-        setResult(syncResult)
-      } catch (e) {
-        setError(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-  }, [])
-
-  return { calculatePrice, result, loading, error }
 }
