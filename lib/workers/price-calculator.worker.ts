@@ -222,35 +222,33 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
-// This file is no longer used as the price calculation is now synchronous
-// within the main thread via `lib/use-price-worker.ts`.
-// It is kept here for historical context but is effectively inert.
-
-const WAIVER_DISCOUNT = 0.15 // Declared locally as per previous fix
+const WAIVER_DISCOUNT = 0.15 // Example value, adjust as needed
 
 self.onmessage = (event: MessageEvent) => {
-  const { data } = event
+  const { type, payload } = event.data
 
-  try {
-    const basePrice = data.basePrice || 0
-    const totalServicesCost = (data.services || []).reduce((sum: number, service: any) => sum + service.price, 0)
+  if (type === "calculatePrice") {
+    try {
+      // Simulate a complex calculation
+      let totalPrice = payload.basePrice || 0
 
-    let finalPrice = basePrice + totalServicesCost
+      if (payload.services) {
+        totalPrice += payload.services.reduce((sum: number, service: { price: number }) => sum + service.price, 0)
+      }
 
-    if (data.applyWaiverDiscount) {
-      finalPrice *= 1 - WAIVER_DISCOUNT
+      if (payload.applyDiscount) {
+        totalPrice *= 1 - WAIVER_DISCOUNT
+      }
+
+      // Post the result back to the main thread
+      self.postMessage({ type: "calculationResult", payload: { totalPrice } })
+    } catch (error) {
+      console.error("Error in worker calculation:", error)
+      self.postMessage({ type: "error", payload: error instanceof Error ? error.message : String(error) })
     }
-
-    self.postMessage({
-      calculatedPrice: Number.parseFloat(finalPrice.toFixed(2)),
-      details: {
-        basePrice,
-        totalServicesCost,
-        waiverDiscountApplied: data.applyWaiverDiscount,
-        WAIVER_DISCOUNT_RATE: WAIVER_DISCOUNT,
-      },
-    })
-  } catch (e: any) {
-    self.postMessage({ error: e.message || "An unknown error occurred in the worker." })
+  } else if (type === "calculateServicePrice") {
+    const config: ServiceConfig = payload
+    const result = calculatePrice(config)
+    self.postMessage(result)
   }
 }

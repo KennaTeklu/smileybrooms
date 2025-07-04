@@ -92,7 +92,7 @@ interface CollapsibleSharePanelProps {
 }
 
 export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }: CollapsibleSharePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true) // Initial state is true as parent controls visibility
+  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
@@ -121,7 +121,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }
         setIsExpanded(false)
         const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
         onPanelStateChange(newState)
-        onClose?.() // Call onClose when collapsing
+        onClose?.() // Call onClose when panel closes due to outside click
       }
     }
 
@@ -171,6 +171,8 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }
 
   return (
     <div ref={panelRef} className="fixed top-[50px] right-[50px] z-[998] flex">
+      {" "}
+      {/* Fixed top and right position */}
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -193,7 +195,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }
                   setIsExpanded(false)
                   const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
                   onPanelStateChange(newState)
-                  onClose?.() // Call onClose when collapsing
+                  onClose?.() // Call onClose when panel closes via button
                 }}
                 aria-label="Collapse share panel"
               >
@@ -292,7 +294,8 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }
               </div>
             </Tabs>
           </motion.div>
-        ) : null}
+        ) : null}{" "}
+        {/* Render null when not expanded, as parent controls visibility */}
       </AnimatePresence>
     </div>
   )

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import type { ServiceConfig, PriceCalculationResult } from "@/lib/workers/price-calculator.worker"
+import { useState, useEffect, useRef } from "react"
 import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
@@ -12,29 +11,8 @@ import {
   MINIMUM_JOB_VALUES,
 } from "./pricing-config"
 
-/**
- * Fallback, main-thread price calculator.
- *
- * •  Keeps the same public API that the rest of the codebase expects:
- *      – calculatePrice(config)
- *      – isCalculating  (boolean)
- *      – isSupported    (boolean)
- * •  Removes the need for a Web Worker in environments where Workers
- *    are unavailable (like the preview that raised the error).
- *
- * Replace the simple algorithm below with your full logic whenever
- * you are ready to re-enable a Worker implementation.
- */
-
-// ────────────────────────────────────────────────────────────
-// Fallback price calculator
-// ────────────────────────────────────────────────────────────
-// •  This is **not** the full business-logic implementation – it merely prevents
-//    runtime crashes when the worker is unavailable.
-// •  It returns the shape that the rest of the app expects so the UI stays live.
-//    You can swap in the real algorithm later (or re-enable the Worker) without
-//    touching the component code.
-function fallbackCalculatePrice(config: ServiceConfig): PriceCalculationResult {
+// Fallback calculation function for browsers that don't support Web Workers
+const fallbackCalculatePrice = (config: any): any => {
   let currentServiceTier = config.serviceTier
   let enforcedTierReason: string | undefined
 
@@ -210,26 +188,64 @@ function fallbackCalculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
-// ────────────────────────────────────────────────────────────
-// Hook: usePriceWorker
-// ────────────────────────────────────────────────────────────
-// •  Signature kept identical to the original Worker-based version:
-//       const { calculatePrice, isCalculating, isSupported } = usePriceWorker()
-// •  `isSupported` is always false here (no Worker in use).
-export function usePriceWorker() {
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [isSupported] = useState(false) // always false for fallback
+interface PriceCalculationResult {
+  totalPrice: number
+  // Add other properties that your worker might return
+}
 
-  const calculatePrice = useCallback(async (config: ServiceConfig): Promise<PriceCalculationResult> => {
-    setIsCalculating(true)
-    try {
-      // In a real worker version this would postMessage/await.
-      const result = fallbackCalculatePrice(config)
-      return result
-    } finally {
-      setIsCalculating(false)
+interface PriceCalculationMessage {
+  type: "calculatePrice"
+  payload: any // Adjust this type based on what your worker expects
+}
+
+interface PriceCalculationResponse {
+  type: "calculationResult"
+  payload: PriceCalculationResult
+}
+
+export function usePriceWorker() {
+  const workerRef = useRef<Worker | null>(null)
+  const [result, setResult] = useState<PriceCalculationResult | null>(null)
+  const [error, setError] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    // Initialize worker only once
+    if (!workerRef.current) {
+      workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+        type: "module",
+      })
+
+      workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResponse>) => {
+        if (event.data.type === "calculationResult") {
+          setResult(event.data.payload)
+          setIsLoading(false)
+        }
+      }
+
+      workerRef.current.onerror = (e) => {
+        console.error("Worker error:", e)
+        setError(e)
+        setIsLoading(false)
+      }
+    }
+
+    return () => {
+      // Terminate worker when component unmounts
+      if (workerRef.current) {
+        workerRef.current.terminate()
+        workerRef.current = null
+      }
     }
   }, [])
 
-  return { calculatePrice, isCalculating, isSupported }
+  const calculatePrice = (data: any) => {
+    if (workerRef.current) {
+      setIsLoading(true)
+      setError(null)
+      workerRef.current.postMessage({ type: "calculatePrice", payload: data } as PriceCalculationMessage)
+    }
+  }
+
+  return { result, error, isLoading, calculatePrice }
 }
