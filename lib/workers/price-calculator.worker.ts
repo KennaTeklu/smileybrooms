@@ -222,36 +222,35 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
+// This file is no longer used as the price calculation is now synchronous
+// within the main thread via `lib/use-price-worker.ts`.
+// It is kept here for historical context but is effectively inert.
+
+const WAIVER_DISCOUNT = 0.15 // Declared locally as per previous fix
+
 self.onmessage = (event: MessageEvent) => {
-  const { type, payload } = event.data
+  const { data } = event
 
-  if (type === "calculatePrice") {
-    try {
-      // Example calculation logic
-      const basePrice = payload.basePrice || 0
-      const quantity = payload.quantity || 1
-      const applyDiscount = payload.applyDiscount || false
+  try {
+    const basePrice = data.basePrice || 0
+    const totalServicesCost = (data.services || []).reduce((sum: number, service: any) => sum + service.price, 0)
 
-      let totalPrice = basePrice * quantity
+    let finalPrice = basePrice + totalServicesCost
 
-      if (applyDiscount) {
-        totalPrice -= totalPrice * 0.15 // Use local WAIVER_DISCOUNT value
-      }
-
-      // Simulate some heavy computation
-      for (let i = 0; i < 1000000; i++) {
-        Math.sqrt(i)
-      }
-
-      self.postMessage({ totalPrice })
-    } catch (error) {
-      console.error("Error in worker calculation:", error)
-      // Post an error message back to the main thread
-      self.postMessage({ error: error instanceof Error ? error.message : String(error) })
+    if (data.applyWaiverDiscount) {
+      finalPrice *= 1 - WAIVER_DISCOUNT
     }
-  } else if (type === "calculateServicePrice") {
-    const config: ServiceConfig = payload
-    const result = calculatePrice(config)
-    self.postMessage(result)
+
+    self.postMessage({
+      calculatedPrice: Number.parseFloat(finalPrice.toFixed(2)),
+      details: {
+        basePrice,
+        totalServicesCost,
+        waiverDiscountApplied: data.applyWaiverDiscount,
+        WAIVER_DISCOUNT_RATE: WAIVER_DISCOUNT,
+      },
+    })
+  } catch (e: any) {
+    self.postMessage({ error: e.message || "An unknown error occurred in the worker." })
   }
 }

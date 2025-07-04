@@ -24,11 +24,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-interface CollapsibleSettingsPanelProps {
-  onClose?: () => void // Added onClose prop
-}
-
-export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
+export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) {
   const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
@@ -90,7 +86,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted, onClose]) // Added onClose to dependencies
+  }, [isExpanded, isMounted, onClose])
 
   // Apply font size changes
   useEffect(() => {
@@ -114,7 +110,9 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
 
   return (
-    <div ref={panelRef} className="fixed top-[50px] left-[50px] z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed top-[50px] left-[50px] z-50 flex">
+      {" "}
+      {/* Fixed top and left position */}
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -377,5 +375,3 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     </div>
   )
 }
-
-export default CollapsibleSettingsPanel
