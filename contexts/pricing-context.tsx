@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
-import { usePriceWorker } from "@/lib/use-price-worker"
+import { usePriceWorker } from "@/lib/use-price-worker" // Correct import path
 import type { ServiceConfig, PriceCalculationResult } from "@/lib/workers/price-calculator.worker"
 import {
   ROOM_CONFIG,
@@ -79,6 +79,7 @@ export function PricingProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
       try {
+        // The usePriceWorker hook now returns a Promise directly
         const result = await calculatePrice(config)
         setCalculatedPrice(result)
         setEnforcedTierReason(result.enforcedTierReason)

@@ -24,8 +24,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) {
-  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
+interface CollapsibleSettingsPanelProps {
+  onClose?: () => void // Added onClose prop
+}
+
+export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
+  const [isExpanded, setIsExpanded] = useState(true) // Initial state is true as parent controls visibility
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)
   const [contrast, setContrast] = useState(1)
@@ -80,13 +84,13 @@ export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) 
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
-        onClose?.() // Call onClose when panel closes due to outside click
+        onClose?.() // Call onClose when collapsing
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted, onClose])
+  }, [isExpanded, isMounted, onClose]) // Added onClose to dependencies
 
   // Apply font size changes
   useEffect(() => {
@@ -111,8 +115,6 @@ export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) 
 
   return (
     <div ref={panelRef} className="fixed top-[50px] left-[50px] z-50 flex">
-      {" "}
-      {/* Fixed top and left position */}
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -138,7 +140,7 @@ export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) 
                 size="icon"
                 onClick={() => {
                   setIsExpanded(false)
-                  onClose?.() // Call onClose when panel closes via button
+                  onClose?.() // Call onClose when collapsing
                 }}
                 aria-label="Collapse settings panel"
               >
@@ -369,8 +371,7 @@ export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) 
               </Button>
             </div>
           </motion.div>
-        ) : null}{" "}
-        {/* Render null when not expanded, as parent controls visibility */}
+        ) : null}
       </AnimatePresence>
     </div>
   )
