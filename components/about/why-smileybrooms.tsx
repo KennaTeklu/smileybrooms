@@ -1,49 +1,49 @@
-"use client"
-
+import { Star, ShieldCheck, Users, Leaf, Smile } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
-export function WhySmileybrooms() {
+export function WhySmileyBrooms() {
+  const reasons = [
+    {
+      icon: Star,
+      title: "Exceptional Quality",
+      description: "We go above and beyond to ensure every corner sparkles.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Trusted Professionals",
+      description: "Our team is vetted, trained, and insured for your peace of mind.",
+    },
+    {
+      icon: Users,
+      title: "Personalized Service",
+      description: "Tailored cleaning plans to meet your unique needs.",
+    },
+    {
+      icon: Leaf,
+      title: "Eco-Friendly Approach",
+      description: "Safe for your family, pets, and the planet.",
+    },
+    {
+      icon: Smile,
+      title: "100% Satisfaction",
+      description: "We're not happy until you're absolutely delighted with our service.",
+    },
+  ]
+
   return (
-    <section className="h-full flex items-center justify-center bg-gradient-to-b from-primary/5 to-transparent py-16">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">
-            Why "
-            <span className="inline-flex items-center">
-              smiley
-              <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-            </span>
-            "?
-          </h2>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-lg">
-                <p>
-                  Our name reflects our philosophy: cleaning should bring happiness. The "smiley" represents the
-                  satisfaction and joy that comes from a clean, healthy space. The "
-                  <span className="inline-flex items-center">
-                    smiley
-                    <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">
-                      brooms
-                    </span>
-                  </span>
-                  " symbolize our commitment to traditional cleaning values combined with modern techniques.
-                </p>
-                <p className="mt-4">
-                  We believe that when we leave your space spotless, it creates a ripple effect of positivity in your
-                  life. That's why we're not just cleaning—we're creating smiles, one{" "}
-                  <span className="inline-flex items-center rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">
-                    broom
-                  </span>{" "}
-                  at a time.
-                </p>
-              </div>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {reasons.map((reason, index) => {
+        const Icon = reason.icon
+        return (
+          <Card key={index} className="text-center p-6 shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center">
+              <Icon className="h-10 w-10 text-primary mb-3" />
+              <h3 className="text-xl font-semibold mb-2">{reason.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{reason.description}</p>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </section>
+        )
+      })}
+    </div>
   )
 }
-
-export default WhySmileybrooms

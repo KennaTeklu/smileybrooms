@@ -1,49 +1,60 @@
-# Smiley Brooms Windows Application
+# Stripe Checkout Example
 
-A professional Windows desktop application for booking cleaning services.
+This is a simplified example of a Stripe checkout flow, demonstrating key components and interactions.
 
 ## Features
 
-- Browse cleaning services
-- Book appointments
-- View booking history
-- Receive notifications
-- Offline support
-- Automatic updates
+- **Service Selection:** Users can select various cleaning services.
+- **Email Summary:** Displays a summary of selected services.
+- **Dynamic UI:** Collapsible panels for settings, sharing, and chatbot support.
+- **Web Worker Integration:** Price calculation offloads to a web worker for performance.
+- **Framer Motion:** Smooth animations for UI elements.
 
-## System Requirements
+## Getting Started
 
-- Windows 10 or later
-- .NET 6.0 Runtime
-- 100 MB free disk space
-- 4 GB RAM recommended
+1.  **Install Dependencies:**
+    \`\`\`bash
+    npm install
+    # or
+    yarn install
+    # or
+    pnpm install
+    \`\`\`
+2.  **Run the Development Server:**
+    \`\`\`bash
+    npm run dev
+    # or
+    yarn dev
+    # or
+    pnpm dev
+    \`\`\`
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Installation
+## Project Structure
 
-1. Download the installer from [our website](https://www.smileybrooms.com/downloads)
-2. Run the installer and follow the on-screen instructions
-3. Launch the application from the Start menu
+-   `app/`: Next.js App Router pages and API routes.
+-   `components/`: Reusable React components, including Shadcn UI components.
+-   `hooks/`: Custom React hooks for various functionalities.
+-   `lib/`: Utility functions, constants, and business logic.
+-   `public/`: Static assets like images.
+-   `styles/`: Global CSS.
 
-## Development Setup
+## Key Components
 
-### Prerequisites
+-   `app/page.tsx`: The main homepage, integrating various collapsible panels.
+-   `components/service-selections.tsx`: Component for selecting cleaning services.
+-   `app/email-summary/page.tsx`: Displays a summary of selected services.
+-   `components/collapsible-settings-panel.tsx`: Panel for application settings.
+-   `components/collapsible-share-panel.tsx`: Panel for sharing the page URL.
+-   `components/collapsible-chatbot-panel.tsx`: Panel for customer support chatbot.
+-   `lib/use-price-worker.ts`: Custom hook to interact with the price calculation web worker.
+-   `lib/workers/price-calculator.worker.ts`: Web worker for offloading heavy price calculations.
 
-- Visual Studio 2022 or later
-- .NET 6.0 SDK
-- Windows 10 SDK
-- Inno Setup 6 (for building installers)
+## Learn More
 
-### Building the Application
+To learn more about Next.js, take a look at the following resources:
 
-1. Clone the repository
-2. Open `SmileyBroomsWindows.sln` in Visual Studio
-3. Restore NuGet packages
-4. Build the solution
+-   [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+-   [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Building the Installer
-
-Run the `Build/BuildRelease.ps1` PowerShell script to create a release build and installer.
-
-## License
-
-Copyright © 2023 Smiley Brooms Cleaning Services. All rights reserved.
+You can check out [the Next.js GitHub repository](https://github.com/com/vercel/next.js/) - your feedback and contributions are welcome!

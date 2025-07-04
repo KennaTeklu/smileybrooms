@@ -1,91 +1,38 @@
-/* High contrast mode */
-html.high-contrast {
-  --background: #000000;
-  --foreground: #ffffff;
-  --muted: #333333;
-  --muted-foreground: #ffffff;
-  --border: #ffffff;
-  --input: #333333;
-  --primary: #ffff00;
-  --primary-foreground: #000000;
-  --focus: #ffff00;
-  --focus-visible-outline: 3px solid var(--focus);
+/*
+  This file is intended for accessibility-specific CSS rules.
+  It can be used to apply styles that enhance usability for
+  users with disabilities, such as high-contrast themes,
+  focus indicators, or reduced motion preferences.
+*/
+
+/* Example: High-contrast mode */
+.high-contrast {
+  background-color: black !important;
+  color: white !important;
 }
 
-/* Large text mode */
-html.large-text {
-  font-size: 125%;
+.high-contrast a {
+  color: yellow !important;
 }
 
-html.large-text button,
-html.large-text input,
-html.large-text select,
-html.large-text textarea {
-  font-size: 1rem;
+.high-contrast button {
+  background-color: white !important;
+  color: black !important;
+  border: 2px solid yellow !important;
 }
 
-/* Reduced motion */
-html.reduced-motion *,
-html.reduced-motion *::before,
-html.reduced-motion *::after {
-  animation-duration: 0.001ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.001ms !important;
-  scroll-behavior: auto !important;
-}
-
-/* Focus indicators */
-html.keyboard-only :focus {
-  outline: var(--focus-visible-outline);
+/* Example: Focus indicators */
+:focus-visible {
+  outline: 3px solid var(--ring); /* Using shadcn's ring color */
   outline-offset: 2px;
 }
 
-html.keyboard-only :focus:not(:focus-visible) {
-  outline: none;
-}
-
-html.keyboard-only :focus-visible {
-  outline: var(--focus-visible-outline);
-  outline-offset: 2px;
-}
-
-/* Skip links */
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  padding: 8px;
-  z-index: 100;
-  transition: top 0.2s;
-}
-
-.skip-link:focus {
-  top: 0;
-}
-
-/* Screen reader utilities */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.sr-only-focusable:not(:focus) {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
+/* Example: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

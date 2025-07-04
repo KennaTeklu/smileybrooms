@@ -2,24 +2,26 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Settings, ChevronLeft, Sun, Moon, Globe, Palette, Info } from "lucide-react"
+import { X, Settings, Sun, Moon, Globe } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTheme } from "next-themes"
-import { usePathname } from "next/navigation"
 
 interface CollapsibleSettingsPanelProps {
-  onClose?: () => void
+  onClose: () => void
 }
 
+const SETTINGS_PANEL_WIDTH = 350
+
 export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
-  const [isMounted, setIsMounted] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
+  const [isExpanded, setIsExpanded] = useState(true) // Always expanded when rendered by parent
   const { theme, setTheme } = useTheme()
-  const pathname = usePathname()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -32,7 +34,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
-        onClose?.() // Call onClose when panel closes due to outside click
+        onClose()
       }
     }
 
@@ -48,90 +50,66 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
         {isExpanded ? (
           <motion.div
             key="expanded"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "320px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={{ opacity: 0, x: -SETTINGS_PANEL_WIDTH }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -SETTINGS_PANEL_WIDTH }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-r-lg shadow-lg overflow-hidden border-r border-t border-b border-gray-200 dark:border-gray-800"
+            className={cn(
+              "fixed top-12 left-12 z-50",
+              `w-[${SETTINGS_PANEL_WIDTH}px] h-[500px]`,
+              "bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-800",
+            )}
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Settings
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsExpanded(false)
-                  onClose?.()
-                }}
-                aria-label="Collapse settings panel"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="p-4 space-y-6">
-              {/* Theme Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  <Label htmlFor="theme-toggle" className="text-base">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between p-4 border-b dark:border-gray-800">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Settings
+                </CardTitle>
+                <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close settings">
+                  <X className="h-5 w-5" />
+                </Button>
+              </CardHeader>
+              <CardContent className="flex-1 p-4 space-y-6">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="dark-mode" className="flex items-center gap-2 text-base">
+                    {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                     Dark Mode
                   </Label>
+                  <Switch
+                    id="dark-mode"
+                    checked={theme === "dark"}
+                    onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                    aria-label="Toggle dark mode"
+                  />
                 </div>
-                <Switch
-                  id="theme-toggle"
-                  checked={theme === "dark"}
-                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                  aria-label="Toggle dark mode"
-                />
-              </div>
 
-              <Separator />
-
-              {/* Language Selection (Placeholder) */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  <Label htmlFor="language-select" className="text-base">
+                <div className="space-y-2">
+                  <Label htmlFor="language" className="flex items-center gap-2 text-base">
+                    <Globe className="h-5 w-5" />
                     Language
                   </Label>
+                  <Select defaultValue="en" onValueChange={(value) => console.log("Language changed to:", value)}>
+                    <SelectTrigger id="language" className="w-full">
+                      <SelectValue placeholder="Select a language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button variant="outline" size="sm" className="px-3 py-1 bg-transparent">
-                  English
-                </Button>
-              </div>
 
-              <Separator />
-
-              {/* Accessibility Options (Placeholder) */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  <Label htmlFor="accessibility-options" className="text-base">
-                    Accessibility
+                {/* Add more settings options here */}
+                <div className="space-y-2">
+                  <Label htmlFor="notifications" className="flex items-center gap-2 text-base">
+                    Notifications
                   </Label>
+                  <Switch id="notifications" defaultChecked aria-label="Toggle notifications" />
                 </div>
-                <Button variant="outline" size="sm" className="px-3 py-1 bg-transparent">
-                  Customize
-                </Button>
-              </div>
-
-              <Separator />
-
-              {/* About/Version Info (Placeholder) */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Info className="h-5 w-5" />
-                  <Label htmlFor="version-info" className="text-base">
-                    Version
-                  </Label>
-                </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">1.0.0</span>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </motion.div>
         ) : null}
       </AnimatePresence>

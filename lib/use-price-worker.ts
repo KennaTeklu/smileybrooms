@@ -197,7 +197,8 @@ interface PriceCalculatorWorker extends Worker {
   postMessage(message: { type: "calculatePrice"; payload: any }): void
 }
 
-const usePriceWorker = () => {
+export function usePriceWorker() {
+  // Changed back to named export
   const [worker, setWorker] = useState<PriceCalculatorWorker | null>(null)
   const [result, setResult] = useState<PriceCalculationResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -252,5 +253,3 @@ const usePriceWorker = () => {
 
   return { calculatePrice, result, loading, error }
 }
-
-export default usePriceWorker

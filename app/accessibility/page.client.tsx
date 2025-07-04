@@ -1,114 +1,133 @@
 "use client"
 
-import { Suspense } from "react"
-import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { useAccessibility } from "@/hooks/use-accessibility"
+import { useTheme } from "next-themes"
 
-/* Fallback shown while `EnhancedAccessibilityPanel` loads */
-function AccessibilityPanelLoading() {
-  return <div className="flex items-center justify-center p-4 text-muted-foreground">Loading accessibility panel…</div>
-}
+export default function AccessibilityClientPage() {
+  const {
+    highContrast,
+    toggleHighContrast,
+    fontSize,
+    setFontSize,
+    reducedMotion,
+    toggleReducedMotion,
+    screenReaderMode,
+    toggleScreenReaderMode,
+  } = useAccessibility()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
 
-/**
- * Entire interactive page – now safely client-only.
- */
-export default function AccessibilityPageClient() {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null // Render nothing on the server
+  }
+
   return (
-    <AccessibilityProvider>
-      <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-2">Accessibility Features</h1>
-        <p className="text-muted-foreground mb-8">
-          Explore our enhanced accessibility features designed to make smileybrooms accessible to everyone.
-        </p>
+    <div className="container mx-auto py-12 px-4 md:px-6">
+      <h1 className="text-4xl font-bold text-center mb-10">Accessibility Settings</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {/* Display Preferences card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Display Preferences</CardTitle>
-              <CardDescription>Customize how content appears</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>High contrast mode</li>
-                <li>Large text option</li>
-                <li>Reduced motion settings</li>
-                <li>Screen reader optimizations</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                Open Display Settings
+      <Card className="shadow-lg max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-semibold">Adjust Your Experience</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="high-contrast" className="text-lg">
+              High Contrast Mode
+            </Label>
+            <Switch
+              id="high-contrast"
+              checked={highContrast}
+              onCheckedChange={toggleHighContrast}
+              aria-label="Toggle high contrast mode"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dark-mode" className="text-lg">
+              Dark Mode
+            </Label>
+            <Switch
+              id="dark-mode"
+              checked={theme === "dark"}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              aria-label="Toggle dark mode"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="reduced-motion" className="text-lg">
+              Reduce Animations
+            </Label>
+            <Switch
+              id="reduced-motion"
+              checked={reducedMotion}
+              onCheckedChange={toggleReducedMotion}
+              aria-label="Toggle reduced motion"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="screen-reader-mode" className="text-lg">
+              Screen Reader Mode
+            </Label>
+            <Switch
+              id="screen-reader-mode"
+              checked={screenReaderMode}
+              onCheckedChange={toggleScreenReaderMode}
+              aria-label="Toggle screen reader mode"
+            />
+          </div>
+
+          <Separator />
+
+          <div>
+            <Label htmlFor="font-size" className="text-lg block mb-2">
+              Font Size: {fontSize}px
+            </Label>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => setFontSize(Math.max(12, fontSize - 2))} aria-label="Decrease font size">
+                A-
               </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Voice Control card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Voice Control</CardTitle>
-              <CardDescription>Navigate using voice commands</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Open cart with voice</li>
-                <li>Add items to cart</li>
-                <li>Proceed to checkout</li>
-                <li>Navigate between pages</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                Try Voice Commands
+              <input
+                id="font-size"
+                type="range"
+                min="12"
+                max="24"
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="w-full accent-primary"
+                aria-valuemin={12}
+                aria-valuemax={24}
+                aria-valuenow={fontSize}
+                aria-label="Font size slider"
+              />
+              <Button onClick={() => setFontSize(Math.min(24, fontSize + 2))} aria-label="Increase font size">
+                A+
               </Button>
-            </CardFooter>
-          </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Keyboard Navigation card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Keyboard Navigation</CardTitle>
-              <CardDescription>Use keyboard shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Alt+C to open cart</li>
-                <li>Alt+A for accessibility panel</li>
-                <li>Alt+H to go to homepage</li>
-                <li>Improved focus indicators</li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                View All Shortcuts
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Commitment blurb */}
-        <div className="bg-muted p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Our Commitment to Accessibility</h2>
-          <p className="mb-4">
-            At smileybrooms, we believe that everyone should be able to access and use our services, regardless of
-            ability or circumstance. We are committed to meeting WCAG 2.2 AA standards and continuously improving our
-            accessibility features.
-          </p>
-          <p>
-            If you encounter any accessibility barriers or have suggestions for improvement, please contact us at{" "}
-            <a href="mailto:accessibility@smileybrooms.com" className="underline">
-              accessibility@smileybrooms.com
-            </a>
-          </p>
-        </div>
-
-        {/* Panel itself – wrapped in Suspense for client-only hooks */}
-        <Suspense fallback={<AccessibilityPanelLoading />}>
-          <EnhancedAccessibilityPanel />
-        </Suspense>
+      <div className="mt-10 text-center text-gray-600 dark:text-gray-400">
+        <p>These settings are saved locally in your browser.</p>
       </div>
-    </AccessibilityProvider>
+    </div>
   )
 }

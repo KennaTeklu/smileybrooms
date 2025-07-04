@@ -1,304 +1,99 @@
 "use client"
 
-import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
+import { X, Share2, Copy, Mail, Facebook, Twitter } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
-
-type SharePlatform = {
-  id: string
-  name: string
-  url: string
-  icon: React.ReactNode
-  color: string
-  category: string
-}
-
-const sharePlatforms: SharePlatform[] = [
-  {
-    id: "twitter",
-    name: "Twitter",
-    url: "https://twitter.com/intent/tweet?url=",
-    icon: <Share2 />,
-    color: "bg-blue-500",
-    category: "social",
-  },
-  {
-    id: "facebook",
-    name: "Facebook",
-    url: "https://www.facebook.com/sharer/sharer.php?u=",
-    icon: <Share2 />,
-    color: "bg-blue-700",
-    category: "social",
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    url: "https://www.linkedin.com/shareArticle?url=",
-    icon: <Share2 />,
-    color: "bg-blue-800",
-    category: "work",
-  },
-  {
-    id: "reddit",
-    name: "Reddit",
-    url: "https://www.reddit.com/submit?url=",
-    icon: <Share2 />,
-    color: "bg-orange-500",
-    category: "social",
-  },
-  {
-    id: "email",
-    name: "Email",
-    url: "mailto:?body=",
-    icon: <Share2 />,
-    color: "bg-gray-500",
-    category: "more",
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    url: "https://api.whatsapp.com/send?text=",
-    icon: <Share2 />,
-    color: "bg-green-500",
-    category: "chat",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    url: "https://telegram.me/share/url?url=",
-    icon: <Share2 />,
-    color: "bg-blue-400",
-    category: "chat",
-  },
-  {
-    id: "copy",
-    name: "Copy Link",
-    url: "",
-    icon: <Share2 />,
-    color: "bg-gray-500",
-    category: "more",
-  },
-]
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/components/ui/use-toast"
 
 interface CollapsibleSharePanelProps {
-  onPanelStateChange?: (info: { expanded: boolean; height: number }) => void
-  onClose?: () => void // Added onClose prop
+  onClose: () => void
+  onPanelStateChange: (state: { expanded: boolean; height: number }) => void
 }
 
-export function CollapsibleSharePanel({ onPanelStateChange = () => {}, onClose }: CollapsibleSharePanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
-  const [activeTab, setActiveTab] = useState("social")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [copied, setCopied] = useState(false)
-  const [showQR, setShowQR] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const [currentUrl, setCurrentUrl] = useState("")
+const SHARE_PANEL_WIDTH = 350
+
+export function CollapsibleSharePanel({ onClose, onPanelStateChange }: CollapsibleSharePanelProps) {
+  const [isExpanded, setIsExpanded] = useState(true) // Always expanded when rendered by parent
   const panelRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
-  // Define configurable scroll range values (these are now less relevant for fixed positioning)
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const initialScrollOffset = 50 // How far down the panel starts relative to scroll
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
-
-  // Handle mounting for SSR
   useEffect(() => {
-    setIsMounted(true)
-    setCurrentUrl(window.location.href)
-  }, [])
-
-  // Handle click outside to collapse panel
-  useEffect(() => {
-    if (!isMounted) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
-        setIsExpanded(false)
-        const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
-        onPanelStateChange(newState)
-        onClose?.() // Call onClose when panel closes due to outside click
-      }
+    if (panelRef.current) {
+      onPanelStateChange({ expanded: isExpanded, height: panelRef.current.offsetHeight })
     }
+  }, [isExpanded, onPanelStateChange])
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted, onPanelStateChange, onClose]) // Added onClose to dependencies
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "https://www.example.com"
 
-  // Don't render until mounted to prevent SSR issues
-  if (!isMounted) {
-    return null
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(currentUrl)
+    toast({
+      title: "Link Copied!",
+      description: "The page URL has been copied to your clipboard.",
+    })
   }
-
-  // Calculate panel position based on scroll and document height (this is now fixed)
-  const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const COLLAPSED_PANEL_HEIGHT = 48 // Approximate height of the collapsed share button
-  const EXPANDED_PANEL_HEIGHT = 600 // Approximate height of the expanded share panel (adjust as needed)
-  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
-  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
-
-  // The share panel's top position is now fixed relative to the viewport
-  const panelTopPosition = `${Math.max(minTopOffset, Math.min(initialScrollOffset, maxPanelTop))}px` // Using initialScrollOffset as a fixed top for the share panel
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy:", err)
-    }
-  }
-
-  const filteredPlatforms = sharePlatforms.filter(
-    (platform) =>
-      platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (activeTab === "all" || platform.category === activeTab),
-  )
-
-  const shareOnPlatform = (platform: SharePlatform) => {
-    const shareUrl = platform.url + encodeURIComponent(currentUrl)
-    window.open(shareUrl, "_blank", "width=600,height=400")
-  }
-
-  const qrCodeSize = 256
-  const logoSize = qrCodeSize * 0.2 // Reduced to 20% of QR code size
-  const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
 
   return (
-    <div ref={panelRef} className="fixed top-[50px] right-[50px] z-[998] flex">
-      {" "}
-      {/* Fixed top and right position */}
-      <AnimatePresence initial={false}>
-        {isExpanded ? (
-          <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "320px", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
-          >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
+    <AnimatePresence>
+      {isExpanded && (
+        <motion.div
+          ref={panelRef}
+          initial={{ opacity: 0, x: SHARE_PANEL_WIDTH }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: SHARE_PANEL_WIDTH }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className={cn(
+            "fixed top-12 right-12 z-50",
+            `w-[${SHARE_PANEL_WIDTH}px]`,
+            "bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-800",
+          )}
+        >
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between p-4 border-b dark:border-gray-800">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
-                Share
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsExpanded(false)
-                  const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
-                  onPanelStateChange(newState)
-                  onClose?.() // Call onClose when panel closes via button
-                }}
-                aria-label="Collapse share panel"
-              >
-                <ChevronLeft className="h-4 w-4" />
+                Share This Page
+              </CardTitle>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close share panel">
+                <X className="h-5 w-5" />
               </Button>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={copyToClipboard}>
-                  {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                  {copied ? "Copied!" : "Copy Link"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowQR(!showQR)}>
-                  <QrCode className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {showQR && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
-                >
-                  {/* Render the QR code here with image settings */}
-                  <QRCodeSVG
-                    value={currentUrl}
-                    size={qrCodeSize}
-                    level="H"
-                    bgColor="transparent" // Make background transparent to use parent's background
-                    fgColor="currentColor" // Use current text color for QR code
-                    className="text-gray-900 dark:text-gray-50" // Apply text color for dark/light mode
-                    imageSettings={{
-                      src: "/favicon.png", // Path to your logo
-                      x: logoPosition,
-                      y: logoPosition,
-                      height: logoSize,
-                      width: logoSize,
-                      excavate: true, // Create a transparent hole for the image
-                    }}
-                  />
-                </motion.div>
-              )}
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-4 p-2">
-                <TabsTrigger value="social">Social</TabsTrigger>
-                <TabsTrigger value="chat">Chat</TabsTrigger>
-                <TabsTrigger value="work">Work</TabsTrigger>
-                <TabsTrigger value="more">More</TabsTrigger>
-              </TabsList>
-
-              <div className="p-4">
-                {/* Search */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search platforms..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+            </CardHeader>
+            <CardContent className="flex-1 p-4 space-y-4">
+              <div>
+                <Label htmlFor="share-link" className="sr-only">
+                  Shareable Link
+                </Label>
+                <div className="flex space-x-2">
+                  <Input id="share-link" readOnly value={currentUrl} className="flex-1" />
+                  <Button onClick={handleCopyLink} aria-label="Copy link">
+                    <Copy className="h-4 w-4" />
+                    <span className="sr-only">Copy Link</span>
+                  </Button>
                 </div>
-
-                {/* Platform Grid */}
-                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
-                  {/* Content inside this div is scrollable */}
-                  {filteredPlatforms.map((platform) => (
-                    <motion.button
-                      key={platform.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => shareOnPlatform(platform)}
-                      className={cn(
-                        "flex items-center gap-2 p-3 rounded-lg border text-left",
-                        "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
-                        "focus:outline-none focus:ring-2 focus:ring-primary",
-                      )}
-                    >
-                      <div className={cn("p-2 rounded text-white", platform.color)}>{platform.icon}</div>
-                      <span className="text-sm font-medium">{platform.name}</span>
-                      <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
-                    </motion.button>
-                  ))}
-                </div>
-
-                {filteredPlatforms.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    No platforms found.
-                  </div>
-                )}
               </div>
-            </Tabs>
-          </motion.div>
-        ) : null}{" "}
-        {/* Render null when not expanded, as parent controls visibility */}
-      </AnimatePresence>
-    </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Share via Social Media:</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="icon" aria-label="Share on Facebook">
+                    <Facebook className="h-5 w-5" />
+                  </Button>
+                  <Button variant="outline" size="icon" aria-label="Share on Twitter">
+                    <Twitter className="h-5 w-5" />
+                  </Button>
+                  <Button variant="outline" size="icon" aria-label="Share via Email">
+                    <Mail className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
-
-export default CollapsibleSharePanel
