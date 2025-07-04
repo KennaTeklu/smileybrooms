@@ -24,11 +24,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-interface CollapsibleSettingsPanelProps {
-  onClose?: () => void
-}
-
-export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
+export function CollapsibleSettingsPanel({ onClose }: { onClose?: () => void }) {
   const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
   const [activeTab, setActiveTab] = useState("display")
   const [fontSize, setFontSize] = useState(1)

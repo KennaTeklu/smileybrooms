@@ -210,28 +210,33 @@ export function usePriceWorker() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    // Initialize worker only once
-    if (!workerRef.current) {
-      workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-        type: "module",
-      })
+    // Ensure this runs only on the client side
+    if (typeof window !== "undefined" && !workerRef.current) {
+      try {
+        workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+          type: "module", // Crucial for ES module support in workers
+        })
 
-      workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResponse>) => {
-        if (event.data.type === "calculationResult") {
-          setResult(event.data.payload)
+        workerRef.current.onmessage = (event: MessageEvent<PriceCalculationResponse>) => {
+          if (event.data.type === "calculationResult") {
+            setResult(event.data.payload)
+            setIsLoading(false)
+          }
+        }
+
+        workerRef.current.onerror = (event: ErrorEvent) => {
+          console.error("Worker error:", event.error || event)
+          setError(event.error || event)
           setIsLoading(false)
         }
-      }
-
-      workerRef.current.onerror = (e) => {
-        console.error("Worker error:", e)
+      } catch (e) {
+        console.error("Failed to create worker:", e)
         setError(e)
         setIsLoading(false)
       }
     }
 
     return () => {
-      // Terminate worker when component unmounts
       if (workerRef.current) {
         workerRef.current.terminate()
         workerRef.current = null
@@ -239,13 +244,16 @@ export function usePriceWorker() {
     }
   }, [])
 
-  const calculatePrice = (data: any) => {
+  const calculatePrice = (payload: any) => {
     if (workerRef.current) {
       setIsLoading(true)
       setError(null)
-      workerRef.current.postMessage({ type: "calculatePrice", payload: data } as PriceCalculationMessage)
+      workerRef.current.postMessage({ type: "calculatePrice", payload } as PriceCalculationMessage)
+    } else {
+      console.warn("Worker not initialized.")
+      setError(new Error("Worker not initialized."))
     }
   }
 
-  return { result, error, isLoading, calculatePrice }
+  return { result, calculatePrice, isLoading, error }
 }

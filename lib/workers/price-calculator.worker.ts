@@ -222,29 +222,32 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
-const WAIVER_DISCOUNT = 0.15 // Example value, adjust as needed
-
 self.onmessage = (event: MessageEvent) => {
   const { type, payload } = event.data
 
   if (type === "calculatePrice") {
     try {
-      // Simulate a complex calculation
-      let totalPrice = payload.basePrice || 0
+      // Example calculation logic
+      const basePrice = payload.basePrice || 0
+      const quantity = payload.quantity || 1
+      const applyDiscount = payload.applyDiscount || false
 
-      if (payload.services) {
-        totalPrice += payload.services.reduce((sum: number, service: { price: number }) => sum + service.price, 0)
+      let totalPrice = basePrice * quantity
+
+      if (applyDiscount) {
+        totalPrice -= totalPrice * 0.15 // Use local WAIVER_DISCOUNT value
       }
 
-      if (payload.applyDiscount) {
-        totalPrice *= 1 - WAIVER_DISCOUNT
+      // Simulate some heavy computation
+      for (let i = 0; i < 1000000; i++) {
+        Math.sqrt(i)
       }
 
-      // Post the result back to the main thread
-      self.postMessage({ type: "calculationResult", payload: { totalPrice } })
+      self.postMessage({ totalPrice })
     } catch (error) {
       console.error("Error in worker calculation:", error)
-      self.postMessage({ type: "error", payload: error instanceof Error ? error.message : String(error) })
+      // Post an error message back to the main thread
+      self.postMessage({ error: error instanceof Error ? error.message : String(error) })
     }
   } else if (type === "calculateServicePrice") {
     const config: ServiceConfig = payload

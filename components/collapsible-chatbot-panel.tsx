@@ -21,7 +21,7 @@ interface CollapsibleChatbotPanelProps {
 // Define fixed top offsets for different states
 const DEFAULT_COLLAPSED_TOP_OFFSET = 100 // Chatbot collapsed, Share panel collapsed
 const EXPANDED_CHATBOT_TOP_OFFSET = 100 // Chatbot expanded
-const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 400 // Share panel expanded (overrides other states for chatbot position) - Changed to 400px
+const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 400 // Chatbot moves to 400px when share panel is expanded
 
 // Define approximate heights for consistent clamping
 const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
