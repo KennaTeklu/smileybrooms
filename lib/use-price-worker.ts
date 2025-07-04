@@ -188,7 +188,7 @@ const fallbackCalculatePrice = (config: any): any => {
   }
 }
 
-export function usePriceCalculatorWorker() {
+export function usePriceWorker() {
   const workerRef = useRef<any | null>(null)
   const [result, setResult] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
