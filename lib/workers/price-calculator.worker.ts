@@ -222,43 +222,10 @@ function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   }
 }
 
-// Define a constant for the waiver discount directly in the worker file
-const WAIVER_DISCOUNT = 0.15
-
 self.onmessage = (event: MessageEvent) => {
   const { type, payload } = event.data
 
-  if (type === "calculatePrice") {
-    try {
-      const { basePrice, services, rooms, hasWaiver } = payload
-
-      let totalPrice = basePrice
-
-      // Add price for selected services
-      if (services && Array.isArray(services)) {
-        totalPrice += services.reduce((sum: number, service: { price: number }) => sum + service.price, 0)
-      }
-
-      // Add price for rooms (example: assuming each room adds a fixed amount or based on type)
-      if (rooms && Array.isArray(rooms)) {
-        totalPrice += rooms.reduce((sum: number, room: { price: number }) => sum + room.price, 0)
-      }
-
-      // Apply waiver discount if applicable
-      if (hasWaiver) {
-        totalPrice *= 1 - WAIVER_DISCOUNT
-      }
-
-      // Simulate a delay for complex calculation
-      // This is where a heavy computation would typically happen
-      // For demonstration, we'll just use a setTimeout
-      setTimeout(() => {
-        self.postMessage({ type: "priceCalculated", payload: totalPrice })
-      }, 50) // Small delay to simulate work
-    } catch (error: any) {
-      self.postMessage({ type: "error", error: error.message || "Failed to calculate price." })
-    }
-  } else if (type === "calculateServicePrice") {
+  if (type === "calculateServicePrice") {
     const config: ServiceConfig = payload
     const result = calculatePrice(config)
     self.postMessage(result)

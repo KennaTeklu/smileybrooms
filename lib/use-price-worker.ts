@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   SERVICE_TIERS,
   CLEANLINESS_DIFFICULTY,
@@ -10,6 +10,7 @@ import {
   AUTOMATIC_TIER_UPGRADES,
   MINIMUM_JOB_VALUES,
 } from "./pricing-config"
+import type { ServiceConfig, PriceCalculationResult } from "./workers/price-calculator.worker"
 
 // Fallback calculation function for browsers that don't support Web Workers
 const fallbackCalculatePrice = (config: any): any => {
@@ -188,81 +189,62 @@ const fallbackCalculatePrice = (config: any): any => {
   }
 }
 
-interface PriceCalculationResult {
-  totalPrice: number
-  // Add other properties that your worker might return
+interface UsePriceWorkerResult {
+  priceResult: PriceCalculationResult | null
+  loading: boolean
+  error: string | null
+  calculatePrice: (config: ServiceConfig) => void
 }
 
-interface PriceCalculationMessage {
-  type: "calculatePrice"
-  payload: any // Adjust this type based on what your worker expects
-}
-
-interface PriceCalculationResponse {
-  type: "calculationResult"
-  payload: PriceCalculationResult
-}
-
-// Define the type for the worker
-interface PriceCalculatorWorker extends Worker {
-  postMessage(message: { type: "calculatePrice"; payload: any }): void
-}
-
-// Function to create a new worker instance
-const createPriceWorker = (): PriceCalculatorWorker => {
-  // Use a dynamic import for the worker to ensure it's loaded correctly in the browser
-  // and to avoid issues with Next.js SSR.
-  // The `new URL(...)` syntax is a Webpack/Next.js specific way to import workers.
-  return new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-    type: "module",
-  }) as PriceCalculatorWorker
-}
-
-export const usePriceWorker = () => {
-  const [worker, setWorker] = useState<PriceCalculatorWorker | null>(null)
-  const [result, setResult] = useState<number | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
+export function usePriceWorker(): UsePriceWorkerResult {
+  const [priceResult, setPriceResult] = useState<PriceCalculationResult | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const workerRef = useRef<Worker | null>(null)
 
   useEffect(() => {
-    const priceWorker = createPriceWorker()
-    setWorker(priceWorker)
+    // Initialize worker only once
+    if (!workerRef.current) {
+      workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url))
 
-    priceWorker.onmessage = (event: MessageEvent) => {
-      const { type, payload, error: workerError } = event.data
-      if (type === "priceCalculated") {
-        setResult(payload)
-        setLoading(false)
-        setError(null)
-      } else if (type === "error") {
-        setError(workerError || "An unknown error occurred in the worker.")
+      workerRef.current.onmessage = (event: MessageEvent) => {
+        const { type, payload, error: workerError } = event.data
+        if (type === "priceCalculated" || payload) {
+          setPriceResult(payload || event.data) // Adjust based on actual worker message structure
+          setLoading(false)
+          setError(null)
+        } else if (workerError) {
+          setError(workerError)
+          setLoading(false)
+        }
+      }
+
+      workerRef.current.onerror = (event: ErrorEvent) => {
+        console.error("Worker error:", event)
+        setError(event.message || "An unknown worker error occurred.")
         setLoading(false)
       }
-    }
-
-    priceWorker.onerror = (err: ErrorEvent) => {
-      console.error("Worker error:", err)
-      setError("Failed to load or run price calculation worker.")
-      setLoading(false)
     }
 
     return () => {
-      priceWorker.terminate()
+      // Terminate worker when component unmounts
+      if (workerRef.current) {
+        workerRef.current.terminate()
+        workerRef.current = null
+      }
     }
   }, [])
 
-  const calculatePrice = useCallback(
-    (data: any) => {
-      if (worker) {
-        setLoading(true)
-        setError(null)
-        worker.postMessage({ type: "calculatePrice", payload: data })
-      } else {
-        setError("Price calculation worker not available.")
-      }
-    },
-    [worker],
-  )
+  const calculatePrice = useCallback((config: ServiceConfig) => {
+    setLoading(true)
+    setError(null)
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "calculateServicePrice", payload: config })
+    } else {
+      setError("Worker not initialized.")
+      setLoading(false)
+    }
+  }, [])
 
-  return { calculatePrice, result, loading, error }
+  return { priceResult, loading, error, calculatePrice }
 }

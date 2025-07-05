@@ -175,7 +175,7 @@ export function CollapsibleChatbotPanel({
                       // Ignore cross-origin errors
                     }
                   }}
-                  allowTransparency={true}
+                  allowtransparency="true" // Changed to lowercase string
                   allow="geolocation; microphone; camera; fullscreen"
                   src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
                   style={{

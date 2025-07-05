@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Settings, ChevronLeft, Palette, Accessibility, Info } from "lucide-react"
+import { Settings, ChevronLeft, Sun, Moon, Accessibility, Languages, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 import { useTheme } from "next-themes"
 
 interface CollapsibleSettingsPanelProps {
@@ -15,7 +15,7 @@ interface CollapsibleSettingsPanelProps {
 }
 
 export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelProps) {
-  const [isExpanded, setIsExpanded] = useState(true) // Start expanded when rendered by parent
+  const [isExpanded, setIsExpanded] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -24,7 +24,6 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
     setIsMounted(true)
   }, [])
 
-  // Handle clicks outside the panel to collapse it
   useEffect(() => {
     if (!isMounted) return
 
@@ -42,7 +41,7 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
   if (!isMounted) return null
 
   return (
-    <div ref={panelRef} className="fixed top-[50px] left-[50px] z-[998] flex">
+    <div ref={panelRef} className="fixed top-[50px] left-[50px] z-[999] flex">
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -72,77 +71,67 @@ export function CollapsibleSettingsPanel({ onClose }: CollapsibleSettingsPanelPr
             </div>
 
             <div className="p-4 space-y-6">
-              {/* Theme Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="theme-select" className="flex items-center gap-2 text-sm font-medium">
-                  <Palette className="h-4 w-4" />
+              {/* Theme Toggle */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="theme-toggle" className="flex items-center gap-2">
+                  {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                   Theme
                 </Label>
-                <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger id="theme-select" className="w-full">
-                    <SelectValue placeholder="Select a theme" />
+                <Switch
+                  id="theme-toggle"
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
+              </div>
+
+              {/* Language Selection */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="language-select" className="flex items-center gap-2">
+                  <Languages className="h-4 w-4" />
+                  Language
+                </Label>
+                <Select defaultValue="en" onValueChange={(value) => console.log("Language changed to:", value)}>
+                  <SelectTrigger id="language-select" className="w-[120px]">
+                    <SelectValue placeholder="Select language" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Accessibility Options */}
+              {/* Font Size Slider */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm font-medium">
-                  <Accessibility className="h-4 w-4" />
-                  Accessibility
-                </Label>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="high-contrast">High Contrast Mode</Label>
-                  <Switch id="high-contrast" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="large-text">Larger Text</Label>
-                  <Switch id="large-text" />
-                </div>
-              </div>
-
-              {/* Notification Settings */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm font-medium">
+                <Label htmlFor="font-size-slider" className="flex items-center gap-2">
                   <Info className="h-4 w-4" />
-                  Notifications
+                  Font Size
                 </Label>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="email-notifications">Email Notifications</Label>
-                  <Switch id="email-notifications" defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="push-notifications">Push Notifications</Label>
-                  <Switch id="push-notifications" />
-                </div>
+                <Slider
+                  id="font-size-slider"
+                  defaultValue={[100]}
+                  max={200}
+                  step={10}
+                  onValueChange={(value) => {
+                    document.documentElement.style.fontSize = `${value[0]}%`
+                  }}
+                  className="w-full"
+                />
               </div>
 
-              {/* Volume Slider (Example) */}
-              <div className="space-y-2">
-                <Label htmlFor="volume-slider" className="flex items-center gap-2 text-sm font-medium">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-                  </svg>
-                  Volume
+              {/* Accessibility Options (Example) */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="high-contrast-mode" className="flex items-center gap-2">
+                  <Accessibility className="h-4 w-4" />
+                  High Contrast Mode
                 </Label>
-                <Slider id="volume-slider" defaultValue={[50]} max={100} step={1} />
+                <Switch
+                  id="high-contrast-mode"
+                  onCheckedChange={(checked) => {
+                    document.documentElement.classList.toggle("high-contrast", checked)
+                  }}
+                />
               </div>
             </div>
           </motion.div>
