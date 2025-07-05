@@ -1,28 +1,15 @@
-"use client"
-
 import type React from "react"
+import AddAllToCartModal from "@/components/add-all-to-cart-modal"
 
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { CartProvider } from "@/lib/cart-context"
-import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
-
-interface ClientLayoutProps {
+export default function ClientLayout({
+  children,
+}: {
   children: React.ReactNode
-}
-
-export default function ClientLayout({ children }: ClientLayoutProps) {
+}) {
   return (
-    <QueryClientProviderWrapper>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AccessibilityProvider>
-          <CartProvider>
-            {children}
-            <Toaster />
-          </CartProvider>
-        </AccessibilityProvider>
-      </ThemeProvider>
-    </QueryClientProviderWrapper>
+    <>
+      {children}
+      <AddAllToCartModal />
+    </>
   )
 }

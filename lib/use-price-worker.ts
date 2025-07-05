@@ -190,48 +190,64 @@ const fallbackCalculatePrice = (config: any): any => {
 
 interface PriceCalculationResult {
   totalPrice: number
-  details: Record<string, number>
+  // Add other properties that your worker might return
 }
 
+interface PriceCalculationMessage {
+  type: "calculatePrice"
+  payload: any // Adjust this type based on what your worker expects
+}
+
+interface PriceCalculationResponse {
+  type: "calculationResult"
+  payload: PriceCalculationResult
+}
+
+// Define the type for the worker
 interface PriceCalculatorWorker extends Worker {
   postMessage(message: { type: "calculatePrice"; payload: any }): void
 }
 
-export function usePriceWorker() {
-  // Changed back to named export
+// Function to create a new worker instance
+const createPriceWorker = (): PriceCalculatorWorker => {
+  // Use a dynamic import for the worker to ensure it's loaded correctly in the browser
+  // and to avoid issues with Next.js SSR.
+  // The `new URL(...)` syntax is a Webpack/Next.js specific way to import workers.
+  return new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+    type: "module",
+  }) as PriceCalculatorWorker
+}
+
+export const usePriceWorker = () => {
   const [worker, setWorker] = useState<PriceCalculatorWorker | null>(null)
-  const [result, setResult] = useState<PriceCalculationResult | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<number | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if Worker is defined (for browser environment)
-    if (typeof Worker !== "undefined") {
-      const priceWorker = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
-        type: "module",
-      }) as PriceCalculatorWorker
+    const priceWorker = createPriceWorker()
+    setWorker(priceWorker)
 
-      priceWorker.onmessage = (event: MessageEvent<PriceCalculationResult>) => {
-        setResult(event.data)
+    priceWorker.onmessage = (event: MessageEvent) => {
+      const { type, payload, error: workerError } = event.data
+      if (type === "priceCalculated") {
+        setResult(payload)
         setLoading(false)
         setError(null)
-      }
-
-      priceWorker.onerror = (err) => {
-        console.error("Worker error:", err)
-        setError("Failed to calculate price. Please try again.")
+      } else if (type === "error") {
+        setError(workerError || "An unknown error occurred in the worker.")
         setLoading(false)
       }
+    }
 
-      setWorker(priceWorker)
+    priceWorker.onerror = (err: ErrorEvent) => {
+      console.error("Worker error:", err)
+      setError("Failed to load or run price calculation worker.")
+      setLoading(false)
+    }
 
-      return () => {
-        priceWorker.terminate()
-      }
-    } else {
-      // Fallback for environments where Worker is not supported (e.g., SSR)
-      console.warn("Web Workers are not supported in this environment. Price calculation will not use a worker.")
-      // You might want to implement a non-worker fallback here if necessary
+    return () => {
+      priceWorker.terminate()
     }
   }, [])
 
@@ -242,10 +258,7 @@ export function usePriceWorker() {
         setError(null)
         worker.postMessage({ type: "calculatePrice", payload: data })
       } else {
-        // Fallback for non-worker environments or if worker failed to initialize
-        console.warn("Worker not available. Performing price calculation on main thread (if fallback implemented).")
-        setError("Price calculation service is not available.")
-        setLoading(false)
+        setError("Price calculation worker not available.")
       }
     },
     [worker],

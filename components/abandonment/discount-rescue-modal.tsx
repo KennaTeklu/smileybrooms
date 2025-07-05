@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,73 +11,100 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { Gift, Percent } from "lucide-react"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface DiscountRescueModalProps {
   isOpen: boolean
   onClose: () => void
+  discountPercentage: number
+  onEmailCapture?: (email: string) => void
 }
 
-export function DiscountRescueModal({ isOpen, onClose }: DiscountRescueModalProps) {
-  const { toast } = useToast()
+export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEmailCapture }: DiscountRescueModalProps) {
   const [email, setEmail] = useState("")
+  const [isValid, setIsValid] = useState(false)
+  const [countdown, setCountdown] = useState(300) // 5 minutes in seconds
+  const router = useRouter()
 
-  const handleClaimDiscount = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) {
-      toast({
-        title: "Email Required",
-        description: "Please enter your email to claim the discount.",
-        variant: "destructive",
-      })
-      return
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+
+    if (isOpen) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
     }
 
-    // Simulate sending discount code
-    console.log("Discount claimed by:", email)
-    toast({
-      title: "Discount Sent!",
-      description: "A special discount code has been sent to your email. Check your inbox!",
-      variant: "success",
-    })
-    setEmail("")
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    setIsValid(emailRegex.test(email))
+  }, [email])
+
+  const handleSubmit = () => {
+    if (isValid && onEmailCapture) {
+      onEmailCapture(email)
+    }
+
+    // Apply discount to localStorage
+    localStorage.setItem("appliedDiscount", discountPercentage.toString())
+
+    // Redirect to cart
+    router.push("/cart")
     onClose()
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
-            Wait! Don't Go Yet!
-          </DialogTitle>
-          <DialogDescription>We noticed you're about to leave. Here's a special offer just for you!</DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-center">Wait! Special Offer Just For You</DialogTitle>
+          <DialogDescription className="text-center pt-2">
+            <span className="block text-3xl font-bold text-green-600">{discountPercentage}% OFF</span>
+            <span className="block mt-2">Complete your booking now and save!</span>
+            <div className="mt-4 text-amber-600 font-semibold">Offer expires in: {formatTime(countdown)}</div>
+          </DialogDescription>
         </DialogHeader>
-        <div className="text-center py-4">
-          <Percent className="h-20 w-20 mx-auto text-green-500 animate-bounce" />
-          <h3 className="text-3xl font-bold text-green-600 mt-2">GET 15% OFF</h3>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Your next cleaning service!</p>
+
+        <div className="flex flex-col space-y-4 py-4">
+          <p className="text-sm text-gray-500">Enter your email to claim this exclusive discount:</p>
+          <Input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="col-span-3"
+          />
         </div>
-        <form onSubmit={handleClaimDiscount} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="email">Enter your email to claim your discount:</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-        </form>
-        <DialogFooter>
-          <Button type="submit" onClick={handleClaimDiscount}>
-            Claim My Discount
+
+        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-4">
+          <Button type="button" variant="outline" onClick={onClose} className="sm:w-auto w-full order-2 sm:order-1">
+            No thanks
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isValid}
+            className="sm:w-auto w-full order-1 sm:order-2 bg-green-600 hover:bg-green-700"
+          >
+            Claim {discountPercentage}% Discount
           </Button>
         </DialogFooter>
       </DialogContent>

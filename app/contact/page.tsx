@@ -3,160 +3,277 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Mail, Phone, MapPin } from "lucide-react"
-import { useFormValidation } from "@/hooks/use-form-validation"
-import { validateEmail } from "@/lib/validation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Mail, Phone, MapPin, Clock } from "lucide-react"
 
 export default function ContactPage() {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  })
 
-  const { errors, validateField, validateForm } = useFormValidation(formData, {
-    name: (value) => (value.trim() ? null : "Name is required."),
-    email: (value) => (validateEmail(value) ? null : "Invalid email address."),
-    subject: (value) => (value.trim() ? null : "Subject is required."),
-    message: (value) => (value.trim() ? null : "Message is required."),
-  })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target
-    setFormData((prev) => ({ ...prev, [id]: value }))
-    validateField(id, value)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (validateForm()) {
-      // Simulate form submission
-      console.log("Form submitted:", formData)
+    setIsSubmitting(true)
+
+    // Email validation
+    const enteredEmail = email.trim().toLowerCase()
+    const allowedDomains = [
+      "gmail.com",
+      "outlook.com",
+      "hotmail.com",
+      "live.com",
+      "yahoo.com",
+      "aol.com",
+      "protonmail.com",
+      "proton.me",
+      "icloud.com",
+      "me.com",
+      "yandex.com",
+      "yandex.ru",
+      "comcast.net",
+      "verizon.net",
+      "cox.net",
+      "spectrum.net",
+    ]
+
+    const isValidEmail = allowedDomains.some((domain) => enteredEmail.endsWith(`@${domain}`))
+    if (!isValidEmail) {
       toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We will get back to you shortly.",
-      })
-      setFormData({ name: "", email: "", subject: "", message: "" }) // Clear form
-    } else {
-      toast({
-        title: "Validation Error",
-        description: "Please correct the errors in the form.",
+        title: "Invalid email",
+        description: "Please enter a valid email address ending with one of the accepted domain names.",
         variant: "destructive",
       })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Terms validation
+    if (!termsAccepted) {
+      toast({
+        title: "Terms not accepted",
+        description: "Please accept the terms and conditions to proceed.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      // Google Sheets integration
+      const scriptURL =
+        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+      // Extract the first sentence as a summary if message is long
+      const messageSummary = message.length > 50 ? message.substring(0, 50).split(".")[0] + "..." : message
+
+      // Analyze message content to suggest department
+      const department =
+        message.toLowerCase().includes("price") || message.toLowerCase().includes("cost")
+          ? "Sales"
+          : message.toLowerCase().includes("job") || message.toLowerCase().includes("career")
+            ? "Careers"
+            : message.toLowerCase().includes("clean") || message.toLowerCase().includes("service")
+              ? "Operations"
+              : "General"
+
+      const formData = {
+        name,
+        email: enteredEmail,
+        phone: "N/A", // Not used in contact form directly
+        message: `🔵 Contact: ${messageSummary}`,
+        fullMessage: message,
+        source: "Contact Form",
+        meta: {
+          formType: "contact",
+          submitDate: new Date().toISOString(),
+          browser: navigator.userAgent,
+          page: window.location.pathname,
+          referrer: document.referrer || "direct",
+          device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+          consent: termsAccepted,
+        },
+        data: {
+          suggestedDepartment: department,
+          messageLength: message.length,
+          wordCount: message.trim().split(/\s+/).length,
+          priority: message.length > 500 ? "high" : "normal",
+          messageCategory: department,
+        },
+      }
+
+      // Submit form data to Google Sheets
+      await fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      toast({
+        title: "Message sent!",
+        description: "We've received your message and will get back to you soon.",
+      })
+
+      // Reset form
+      setName("")
+      setEmail("")
+      setMessage("")
+      setTermsAccepted(false)
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Something went wrong",
+        description: "There was an error sending your message. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 md:px-6">
-      <h1 className="text-4xl font-bold text-center mb-10">Contact Us</h1>
-      <p className="text-lg text-center text-gray-600 dark:text-gray-400 mb-12">
-        Have questions or need assistance? Reach out to us!
-      </p>
+    <div className="flex min-h-screen flex-col">
+      <main className="flex-1">
+        <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Have questions or need a custom quote? Reach out to our friendly team.
+            </p>
+          </div>
+        </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Contact Form */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Send Us a Message</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Your Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={handleChange}
-                  onBlur={() => validateField("name", formData.name)}
-                />
-                {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Your Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john.doe@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onBlur={() => validateField("email", formData.email)}
-                />
-                {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  placeholder="Inquiry about services"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  onBlur={() => validateField("subject", formData.subject)}
-                />
-                {errors.subject && <p className="text-red-500 text-sm">{errors.subject}</p>}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="message">Your Message</Label>
-                <Textarea
-                  id="message"
-                  placeholder="Type your message here..."
-                  rows={5}
-                  value={formData.message}
-                  onChange={handleChange}
-                  onBlur={() => validateField("message", formData.message)}
-                />
-                {errors.message && <p className="text-red-500 text-sm">{errors.message}</p>}
-              </div>
-              <Button type="submit" className="w-full">
-                Send Message
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Contact Form */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
 
-        {/* Contact Information */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Our Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-start space-x-4">
-              <Mail className="h-6 w-6 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-lg">Email Us</h3>
-                <p className="text-gray-700 dark:text-gray-300">info@smileybrooms.com</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">We typically respond within 24 hours.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="john@example.com"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Tell us how we can help you..."
+                    rows={6}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I agree to the terms and conditions and privacy policy
+                  </Label>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+              </form>
+            </div>
+
+            {/* Contact Information */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
+              <div className="grid gap-6">
+                <Card>
+                  <CardContent className="flex items-start space-x-4 p-6">
+                    <Mail className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <h3 className="font-medium">Email</h3>
+                      <p className="text-gray-600 dark:text-gray-400">info@smileybrooms.com</p>
+                      <p className="text-gray-600 dark:text-gray-400">support@smileybrooms.com</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="flex items-start space-x-4 p-6">
+                    <Phone className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <h3 className="font-medium">Phone</h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Main:{" "}
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
+                        </a>
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Support:{" "}
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
+                        </a>
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="flex items-start space-x-4 p-6">
+                    <MapPin className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <h3 className="font-medium">Address</h3>
+                      <p className="text-gray-600 dark:text-gray-400">We'll come to you!</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="flex items-start space-x-4 p-6">
+                    <Clock className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <h3 className="font-medium">Business Hours</h3>
+                      <p className="text-gray-600 dark:text-gray-400">Monday - Friday: 6:00 AM - 9:00 PM</p>
+                      <p className="text-gray-600 dark:text-gray-400">Saturday: 9:00 AM - 4:00 PM</p>
+                      <p className="text-gray-600 dark:text-gray-400">Sunday: Closed</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
-            <div className="flex items-start space-x-4">
-              <Phone className="h-6 w-6 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-lg">Call Us</h3>
-                <p className="text-gray-700 dark:text-gray-300">+1 (555) 123-4567</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Mon-Fri, 9 AM - 5 PM EST</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4">
-              <MapPin className="h-6 w-6 text-primary flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-lg">Visit Our Office</h3>
-                <p className="text-gray-700 dark:text-gray-300">123 Cleaning Lane</p>
-                <p className="text-gray-700 dark:text-gray-300">Suite 100</p>
-                <p className="text-gray-700 dark:text-gray-300">Clean City, CA 90210</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">By appointment only.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

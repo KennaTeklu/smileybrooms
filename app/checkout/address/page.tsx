@@ -1,244 +1,394 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/components/ui/use-toast"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import { FormProgress } from "@/components/form-progress"
-import { useFormValidation } from "@/hooks/use-form-validation"
-import { validateEmail, validatePhone } from "@/lib/validation"
+import { useToast } from "@/components/ui/use-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { US_STATES } from "@/lib/location-data"
+import { motion } from "framer-motion"
 
-export default function CheckoutAddressPage() {
+type AddressData = {
+  fullName: string
+  email: string
+  phone: string
+  address: string
+  address2: string
+  city: string
+  state: string
+  zipCode: string
+  specialInstructions: string
+  addressType: "residential" | "commercial" | "other"
+}
+
+export default function AddressCollectionPage() {
   const router = useRouter()
+  const { cart } = useCart()
   const { toast } = useToast()
-  const { calculateTotal } = useCart()
-  const cartTotal = calculateTotal()
 
-  const [formData, setFormData] = useState({
+  const [addressData, setAddressData] = useState<AddressData>({
     fullName: "",
     email: "",
     phone: "",
-    address1: "",
+    address: "",
     address2: "",
     city: "",
     state: "",
     zipCode: "",
-    country: "US", // Default to US
+    specialInstructions: "",
+    addressType: "residential",
   })
 
-  const { errors, validateField, validateForm } = useFormValidation(formData, {
-    fullName: (value) => (value.trim() ? null : "Full Name is required."),
-    email: (value) => (validateEmail(value) ? null : "Invalid email address."),
-    phone: (value) => (validatePhone(value) ? null : "Invalid phone number."),
-    address1: (value) => (value.trim() ? null : "Address Line 1 is required."),
-    city: (value) => (value.trim() ? null : "City is required."),
-    state: (value) => (value.trim() ? null : "State / Province is required."),
-    zipCode: (value) => (value.trim() && /^\d{5}(-\d{4})?$/.test(value) ? null : "Invalid Zip Code."),
-    country: (value) => (value.trim() ? null : "Country is required."),
-  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { id, value } = e.target
-    setFormData((prev) => ({ ...prev, [id]: value }))
-    validateField(id, value)
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (cart.items.length === 0) {
+      router.push("/pricing")
+    }
+
+    // Try to load saved address data from localStorage
+    const savedAddress = localStorage.getItem("checkout-address")
+    if (savedAddress) {
+      try {
+        setAddressData(JSON.parse(savedAddress))
+      } catch (e) {
+        console.error("Failed to parse saved address data")
+      }
+    }
+  }, [cart.items.length, router])
+
+  const handleChange = (field: string, value: string) => {
+    setAddressData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+
+    // Clear error when field is edited
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
   }
 
-  const handleSelectChange = (value: string, id: string) => {
-    setFormData((prev) => ({ ...prev, [id]: value }))
-    validateField(id, value)
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
+    if (!addressData.email.trim()) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
+
+    if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
+    if (!addressData.address.trim()) newErrors.address = "Address is required"
+    if (!addressData.city.trim()) newErrors.city = "City is required"
+    if (!addressData.state) newErrors.state = "State is required"
+    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
     if (validateForm()) {
-      localStorage.setItem("checkoutAddress", JSON.stringify(formData))
-      toast({
-        title: "Address Saved!",
-        description: "Your shipping address has been successfully recorded.",
-      })
-      router.push("/checkout/payment")
+      setIsSubmitting(true)
+
+      try {
+        // Save address data to localStorage
+        localStorage.setItem("checkout-address", JSON.stringify(addressData))
+
+        // Proceed to checkout
+        router.push("/checkout/payment")
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "There was a problem saving your address information.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
     } else {
       toast({
-        title: "Validation Error",
-        description: "Please correct the errors in the form.",
+        title: "Please check your information",
+        description: "Some required fields are missing or invalid.",
         variant: "destructive",
       })
     }
   }
 
-  useEffect(() => {
-    const savedAddress = localStorage.getItem("checkoutAddress")
-    if (savedAddress) {
-      try {
-        setFormData(JSON.parse(savedAddress))
-      } catch (e) {
-        console.error("Failed to parse saved address data")
-      }
+  const getAddressTypeIcon = () => {
+    switch (addressData.addressType) {
+      case "commercial":
+        return <Building className="h-5 w-5" />
+      case "other":
+        return <Navigation className="h-5 w-5" />
+      default:
+        return <Home className="h-5 w-5" />
     }
-  }, [])
+  }
+
+  if (cart.items.length === 0) {
+    return null // Will redirect via useEffect
+  }
 
   return (
-    <div className="container mx-auto py-12 px-4 md:px-6">
-      <h1 className="text-4xl font-bold text-center mb-10">Checkout</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        {/* Header */}
+        <div className="mb-12">
+          <Link
+            href="/cart"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Cart
+          </Link>
 
-      <FormProgress currentStep={1} totalSteps={3} />
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-6">
+              <MapPin className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h1 className="text-4xl font-bold mb-4">Service Address</h1>
+            <p className="text-xl text-muted-foreground">Where would you like us to provide your cleaning service?</p>
+          </div>
+        </div>
 
-      <div className="grid gap-8 lg:grid-cols-3 mt-8">
         {/* Address Form */}
-        <Card className="lg:col-span-2 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Shipping Address</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  placeholder="John Doe"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  onBlur={() => validateField("fullName", formData.fullName)}
-                />
-                {errors.fullName && <p className="text-red-500 text-sm">{errors.fullName}</p>}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john.doe@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    onBlur={() => validateField("email", formData.email)}
-                  />
-                  {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="(123) 456-7890"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    onBlur={() => validateField("phone", formData.phone)}
-                  />
-                  {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address1">Address Line 1</Label>
-                <Input
-                  id="address1"
-                  placeholder="123 Main St"
-                  value={formData.address1}
-                  onChange={handleChange}
-                  onBlur={() => validateField("address1", formData.address1)}
-                />
-                {errors.address1 && <p className="text-red-500 text-sm">{errors.address1}</p>}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="address2">Address Line 2 (Optional)</Label>
-                <Input
-                  id="address2"
-                  placeholder="Apartment, Suite, etc."
-                  value={formData.address2}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Anytown"
-                    value={formData.city}
-                    onChange={handleChange}
-                    onBlur={() => validateField("city", formData.city)}
-                  />
-                  {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="state">State / Province</Label>
-                  <Input
-                    id="state"
-                    placeholder="CA"
-                    value={formData.state}
-                    onChange={handleChange}
-                    onBlur={() => validateField("state", formData.state)}
-                  />
-                  {errors.state && <p className="text-red-500 text-sm">{errors.state}</p>}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="zipCode">Zip / Postal Code</Label>
-                  <Input
-                    id="zipCode"
-                    placeholder="90210"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                    onBlur={() => validateField("zipCode", formData.zipCode)}
-                  />
-                  {errors.zipCode && <p className="text-red-500 text-sm">{errors.zipCode}</p>}
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="country">Country</Label>
-                <Select onValueChange={(value) => handleSelectChange(value, "country")} value={formData.country}>
-                  <SelectTrigger id="country">
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="US">United States</SelectItem>
-                    <SelectItem value="CA">Canada</SelectItem>
-                    <SelectItem value="GB">United Kingdom</SelectItem>
-                    <SelectItem value="AU">Australia</SelectItem>
-                    {/* Add more countries as needed */}
-                  </SelectContent>
-                </Select>
-                {errors.country && <p className="text-red-500 text-sm">{errors.country}</p>}
-              </div>
-              <Button type="submit" className="w-full mt-4">
-                Continue to Payment
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <Card className="shadow-lg border-0">
+            <CardHeader>
+              <CardTitle>Enter Your Address</CardTitle>
+              <CardDescription>
+                Please provide the address where you'd like us to perform the cleaning service
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Contact Information */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">Contact Information</h3>
 
-        {/* Order Summary */}
-        <Card className="lg:col-span-1 shadow-lg h-fit sticky top-24">
-          <CardHeader>
-            <CardTitle className="text-2xl">Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Subtotal:</span>
-              <span>{formatCurrency(cartTotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-              <span>Shipping:</span>
-              <span>Calculated at next step</span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-              <span>Taxes:</span>
-              <span>Calculated at next step</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-xl font-bold">
-              <span>Total:</span>
-              <span>{formatCurrency(cartTotal)}</span>
-            </div>
-          </CardContent>
-        </Card>
+                  <div>
+                    <Label htmlFor="fullName" className="text-base">
+                      Full Name
+                    </Label>
+                    <Input
+                      id="fullName"
+                      value={addressData.fullName}
+                      onChange={(e) => handleChange("fullName", e.target.value)}
+                      className={`mt-2 h-12 ${errors.fullName ? "border-red-500" : ""}`}
+                      placeholder="John Doe"
+                    />
+                    {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="email" className="text-base">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={addressData.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className={`mt-2 h-12 ${errors.email ? "border-red-500" : ""}`}
+                        placeholder="john.doe@example.com"
+                      />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="phone" className="text-base">
+                        Phone
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={addressData.phone}
+                        onChange={(e) => handleChange("phone", e.target.value)}
+                        className={`mt-2 h-12 ${errors.phone ? "border-red-500" : ""}`}
+                        placeholder="(555) 123-4567"
+                      />
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address Type */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Address Type</h3>
+
+                  <div className="flex flex-wrap gap-4">
+                    <Card
+                      className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "residential" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                      onClick={() => handleChange("addressType", "residential")}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <Home className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <p className="font-medium">Residential</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "commercial" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                      onClick={() => handleChange("addressType", "commercial")}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <Building className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <p className="font-medium">Commercial</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                      onClick={() => handleChange("addressType", "other")}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <Navigation className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <p className="font-medium">Other</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Address Information */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    {getAddressTypeIcon()}
+                    Service Address
+                  </h3>
+
+                  <div>
+                    <Label htmlFor="address" className="text-base">
+                      Street Address
+                    </Label>
+                    <Input
+                      id="address"
+                      value={addressData.address}
+                      onChange={(e) => handleChange("address", e.target.value)}
+                      className={`mt-2 h-12 ${errors.address ? "border-red-500" : ""}`}
+                      placeholder="123 Main Street"
+                    />
+                    {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address2" className="text-base">
+                      Apartment, suite, etc. (optional)
+                    </Label>
+                    <Input
+                      id="address2"
+                      value={addressData.address2}
+                      onChange={(e) => handleChange("address2", e.target.value)}
+                      className="mt-2 h-12"
+                      placeholder="Apt 4B"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <Label htmlFor="city" className="text-base">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        value={addressData.city}
+                        onChange={(e) => handleChange("city", e.target.value)}
+                        className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
+                        placeholder="New York"
+                      />
+                      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="state" className="text-base">
+                        State
+                      </Label>
+                      <Select value={addressData.state} onValueChange={(value) => handleChange("state", value)}>
+                        <SelectTrigger id="state" className={`mt-2 h-12 ${errors.state ? "border-red-500" : ""}`}>
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((state) => (
+                            <SelectItem key={state.value} value={state.value}>
+                              {state.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="zipCode" className="text-base">
+                        ZIP Code
+                      </Label>
+                      <Input
+                        id="zipCode"
+                        value={addressData.zipCode}
+                        onChange={(e) => handleChange("zipCode", e.target.value)}
+                        className={`mt-2 h-12 ${errors.zipCode ? "border-red-500" : ""}`}
+                        placeholder="10001"
+                      />
+                      {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Special Instructions */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Special Instructions (Optional)</h3>
+                  <Textarea
+                    id="specialInstructions"
+                    value={addressData.specialInstructions}
+                    onChange={(e) => handleChange("specialInstructions", e.target.value)}
+                    placeholder="Entry instructions, pets, areas to avoid, etc."
+                    className="h-32"
+                  />
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between pt-6">
+                  <Link href="/cart">
+                    <Button variant="outline" size="lg" className="px-8">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back to Cart
+                    </Button>
+                  </Link>
+                  <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Continue to Payment
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   )

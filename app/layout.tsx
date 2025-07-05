@@ -1,27 +1,25 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import ClientLayout from "./client-layout"
-
-const inter = Inter({ subsets: ["latin"] })
+import ClientLayout from "./client"
 
 export const metadata: Metadata = {
-  title: "SmileyBrooms - Professional Cleaning Services",
-  description: "Your trusted partner for sparkling clean homes and offices.",
-    generator: 'v0.dev'
+  title: "smileybrooms - Professional Cleaning Services",
+  description: "Professional cleaning services that bring joy to your home",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
-      </body>
-    </html>
-  )
+}) {
+  return <ClientLayout>{children}</ClientLayout>
 }
+
+
+import './globals.css'

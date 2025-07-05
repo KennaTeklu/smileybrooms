@@ -1,39 +1,51 @@
-import { ShieldCheck, Users, Sparkles } from "lucide-react"
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 
 export function OurCommitment() {
-  const commitments = [
-    {
-      icon: ShieldCheck,
-      title: "Quality Assurance",
-      description: "We guarantee a spotless clean every time, backed by our satisfaction promise.",
-    },
-    {
-      icon: Users,
-      title: "Professional Team",
-      description: "Our cleaners are thoroughly vetted, trained, and dedicated to excellence.",
-    },
-    {
-      icon: Sparkles,
-      title: "Eco-Friendly Practices",
-      description: "We use sustainable products and methods for a healthier home and planet.",
-    },
-  ]
-
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      {commitments.map((commitment, index) => {
-        const Icon = commitment.icon
-        return (
-          <Card key={index} className="text-center p-6 shadow-sm">
-            <CardContent className="flex flex-col items-center justify-center">
-              <Icon className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-xl font-semibold mb-2">{commitment.title}</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">{commitment.description}</p>
+    <section className="h-full flex items-center justify-center bg-gradient-to-b from-primary/10 to-transparent py-16">
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-6 text-center">Our Commitment</h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">To Our Customers</h3>
+                  <p>
+                    We promise to deliver exceptional cleaning services that exceed your expectations. We respect your
+                    home or office as if it were our own, using only the highest quality products and techniques.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">To Our Employees</h3>
+                  <p>
+                    We're committed to providing fair wages, comprehensive training, and opportunities for growth. Our
+                    team members are the heart of our business, and we invest in their success and well-being.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">To Our Environment</h3>
+                  <p>
+                    We use eco-friendly cleaning products and sustainable practices whenever possible. We're constantly
+                    researching and implementing new ways to reduce our environmental footprint.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">To Our Community</h3>
+                  <p>
+                    We actively participate in community initiatives and support local causes. We believe in giving back
+                    to the communities that have helped us grow.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        )
-      })}
-    </div>
+        </div>
+      </div>
+    </section>
   )
 }
+
+export default OurCommitment

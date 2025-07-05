@@ -1,86 +1,266 @@
-// This worker calculates the price based on the provided data.
-// It runs in a separate thread to avoid blocking the main UI thread.
+// lib/workers/price-calculator.worker.ts
 
-// Define a constant for the waiver discount
-const WAIVER_DISCOUNT = 0.15 // 15% discount for waiver
+import {
+  BASE_ROOM_RATES, // Changed from ROOM_PRICES in ../constants
+  CLEANLINESS_DIFFICULTY, // Changed from CLEANLINESS_LEVEL_MULTIPLIERS in ../constants
+  PREMIUM_EXCLUSIVE_SERVICES, // Changed from EXCLUSIVE_SERVICE_PRICING in ../constants
+  STRATEGIC_ADDONS, // Changed from ADDON_PRICING in ../constants
+  FREQUENCY_OPTIONS, // Changed from FREQUENCY_DISCOUNTS in ../constants
+  MINIMUM_JOB_VALUES,
+  SERVICE_TIERS,
+} from "../pricing-config" // All imports now from pricing-config.ts
 
-self.onmessage = (event: MessageEvent<{ type: string; payload: any }>) => {
-  if (event.data.type === "calculatePrice") {
-    const { rooms, services, frequency, hasWaiver } = event.data.payload
+import type { AddonId, CleanlinessLevelId, ExclusiveServiceId, ServiceTierId } from "../types"
 
-    let totalPrice = 0
-    const details: Record<string, number> = {}
+export interface ServiceConfig {
+  rooms: Record<string, number>
+  serviceTier: ServiceTierId
+  cleanlinessLevel: CleanlinessLevelId
+  frequency: string
+  paymentFrequency: string
+  selectedAddons: { id: AddonId; quantity?: number }[] // Updated to match context type
+  selectedExclusiveServices: ExclusiveServiceId[]
+  waiverSigned: boolean
+  propertySizeSqFt: number
+  propertyType: "studio" | "3br_home" | "5br_mansion" | null
+  isRentalProperty: boolean
+  hasPets: boolean
+  isPostRenovation: boolean
+  hasMoldWaterDamage: boolean
+}
 
-    // Example: Base price per room type
-    const roomPrices: Record<string, number> = {
-      bedroom: 50,
-      bathroom: 40,
-      kitchen: 60,
-      livingRoom: 55,
-      diningRoom: 45,
-      hallway: 30,
-      entryway: 25,
-      stairs: 35,
-      homeOffice: 40,
-      laundryRoom: 30,
+export interface PriceBreakdownItem {
+  item: string
+  value: number
+  type: "room" | "addon" | "exclusiveService" | "discount" | "adjustment"
+  description?: string // Added description for more detail
+}
+
+export interface PriceCalculationResult {
+  total: number
+  breakdown: PriceBreakdownItem[]
+  firstServicePrice: number
+  recurringServicePrice: number
+  estimatedDuration: number
+  enforcedTier?: ServiceTierId
+  enforcedTierReason?: string
+}
+
+function calculatePrice(config: ServiceConfig): PriceCalculationResult {
+  let currentTotal = 0
+  const breakdown: PriceBreakdownItem[] = []
+  let enforcedTier: ServiceTierId | undefined = undefined
+  let enforcedTierReason: string | undefined = undefined
+
+  // Determine the effective service tier, applying automatic upgrades
+  let effectiveServiceTier = config.serviceTier
+
+  // Simplified automatic tier upgrades for worker (full logic in context)
+  if (
+    config.hasMoldWaterDamage ||
+    config.isPostRenovation ||
+    config.cleanlinessLevel === CLEANLINESS_DIFFICULTY.BIOHAZARD.level
+  ) {
+    effectiveServiceTier = SERVICE_TIERS.ELITE.id
+    enforcedTier = SERVICE_TIERS.ELITE.id
+    enforcedTierReason = config.hasMoldWaterDamage
+      ? "Mold/water damage situations require Elite service."
+      : config.isPostRenovation
+        ? "Post-renovation cleanings require Elite service."
+        : "Biohazard situations require Elite service."
+  } else if (config.hasPets || config.isRentalProperty || (config.propertySizeSqFt && config.propertySizeSqFt > 3000)) {
+    if (effectiveServiceTier === SERVICE_TIERS.STANDARD.id) {
+      effectiveServiceTier = SERVICE_TIERS.PREMIUM.id
+      enforcedTier = SERVICE_TIERS.PREMIUM.id
+      enforcedTierReason = config.hasPets
+        ? "Homes with pets require Premium service."
+        : config.isRentalProperty
+          ? "Rental properties require Premium service."
+          : "For homes over 3,000 sq ft, Premium service is required."
     }
+  }
 
-    // Calculate price based on rooms
-    if (rooms) {
-      for (const roomType in rooms) {
-        const count = rooms[roomType]
-        if (roomPrices[roomType]) {
-          const roomCost = roomPrices[roomType] * count
-          totalPrice += roomCost
-          details[roomType] = roomCost
+  // --- Room Pricing ---
+  for (const roomType in config.rooms) {
+    const roomCount = config.rooms[roomType]
+    const roomPrice = BASE_ROOM_RATES[roomType as keyof typeof BASE_ROOM_RATES]?.[effectiveServiceTier] || 0
+    const roomTotal = roomCount * roomPrice
+
+    if (roomCount > 0) {
+      breakdown.push({
+        item: `${roomType} (${roomCount})`,
+        value: roomTotal,
+        type: "room",
+        description: `Base rate for ${roomCount} ${roomType}(s) at ${effectiveServiceTier} tier`,
+      })
+    }
+    currentTotal += roomTotal
+  }
+
+  // --- Service Tier Multiplier ---
+  const tierMultiplier = SERVICE_TIERS[effectiveServiceTier].multiplier
+  const priceAfterTierMultiplier = currentTotal * tierMultiplier
+  breakdown.push({
+    item: `Service Tier Multiplier (${SERVICE_TIERS[effectiveServiceTier].name})`,
+    value: priceAfterTierMultiplier - currentTotal,
+    type: "adjustment",
+    description: `${SERVICE_TIERS[effectiveServiceTier].name} tier (${tierMultiplier}x)`,
+  })
+  currentTotal = priceAfterTierMultiplier
+
+  // --- Cleanliness Level Multiplier ---
+  const cleanlinessLevelData = Object.values(CLEANLINESS_DIFFICULTY).find((c) => c.level === config.cleanlinessLevel)
+  const cleanlinessMultiplier = cleanlinessLevelData?.multipliers[effectiveServiceTier] || 1.0
+  const priceAfterCleanlinessMultiplier = currentTotal * cleanlinessMultiplier
+  breakdown.push({
+    item: `Cleanliness Level Multiplier (${cleanlinessLevelData?.name})`,
+    value: priceAfterCleanlinessMultiplier - currentTotal,
+    type: "adjustment",
+    description: `${cleanlinessLevelData?.name} level (${cleanlinessMultiplier}x)`,
+  })
+  currentTotal = priceAfterCleanlinessMultiplier
+
+  // --- Addon Pricing ---
+  let addonsTotal = 0
+  for (const selectedAddon of config.selectedAddons) {
+    const addon = STRATEGIC_ADDONS.find((a) => a.id === selectedAddon.id)
+    if (addon) {
+      let addonPrice = addon.prices[effectiveServiceTier]
+      if (addon.includedInElite && effectiveServiceTier === SERVICE_TIERS.ELITE.id) {
+        addonPrice = 0 // Included in Elite, so price is 0
+      }
+      const quantity = selectedAddon.quantity || 1
+      const totalAddonCost = addonPrice * quantity
+      addonsTotal += totalAddonCost
+      breakdown.push({
+        item: `Add-On: ${addon.name}`,
+        value: totalAddonCost,
+        type: "addon",
+        description: `${addon.name} (${quantity}${addon.unit || ""}) at ${effectiveServiceTier} tier`,
+      })
+    }
+  }
+  currentTotal += addonsTotal
+
+  // --- Exclusive Service Pricing ---
+  let exclusiveServicesTotal = 0
+  if (effectiveServiceTier === SERVICE_TIERS.ELITE.id) {
+    for (const serviceId of config.selectedExclusiveServices) {
+      const service = PREMIUM_EXCLUSIVE_SERVICES.find((s) => s.id === serviceId)
+      if (service) {
+        let serviceCost = service.price
+        if (service.unit === "/room") {
+          const totalRooms = Object.values(config.rooms).reduce((sum, count) => sum + count, 0)
+          serviceCost *= totalRooms
         }
+        exclusiveServicesTotal += serviceCost
+        breakdown.push({
+          item: `Exclusive Service: ${service.name}`,
+          value: serviceCost,
+          type: "exclusiveService",
+          description: `${service.name} (Elite Only)`,
+        })
       }
     }
+  }
+  currentTotal += exclusiveServicesTotal
 
-    // Example: Additional services pricing
-    const servicePrices: Record<string, number> = {
-      deepCleaning: 100,
-      windowCleaning: 50,
-      carpetCleaning: 75,
-      ovenCleaning: 40,
-      fridgeCleaning: 30,
+  // --- Minimum Job Value Enforcement ---
+  let minimumEnforcedAmount = 0
+  if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType]) {
+    const minimumValueForTier = MINIMUM_JOB_VALUES[config.propertyType][effectiveServiceTier]
+    if (minimumValueForTier && currentTotal < minimumValueForTier) {
+      minimumEnforcedAmount = minimumValueForTier - currentTotal
+      currentTotal = minimumValueForTier
+      breakdown.push({
+        item: `Minimum Job Value Enforcement`,
+        value: minimumEnforcedAmount,
+        type: "adjustment",
+        description: `Minimum job value of $${minimumValueForTier} enforced for ${config.propertyType} at ${effectiveServiceTier} tier`,
+      })
     }
+  }
 
-    // Calculate price based on selected services
-    if (services) {
-      for (const serviceName of services) {
-        if (servicePrices[serviceName]) {
-          totalPrice += servicePrices[serviceName]
-          details[serviceName] = servicePrices[serviceName]
-        }
+  // Calculate the one-time price (first service price)
+  const firstServicePrice = currentTotal
+
+  // Apply frequency discount for recurring price
+  const selectedFrequency = FREQUENCY_OPTIONS[config.frequency]
+  const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
+  const recurringServicePriceBeforePaymentDiscount = currentTotal * (1 - frequencyDiscount)
+  breakdown.push({
+    item: `Frequency Discount (${selectedFrequency?.name || config.frequency})`,
+    value: -(currentTotal - recurringServicePriceBeforePaymentDiscount),
+    type: "discount",
+    description: `${selectedFrequency?.name} discount (${(frequencyDiscount * 100).toFixed(0)}%)`,
+  })
+
+  const paymentDiscount = 0 // No payment frequency discount defined in pricing-config.ts yet
+  const recurringServicePrice = recurringServicePriceBeforePaymentDiscount * (1 - paymentDiscount)
+
+  // Apply waiver discount (if signed)
+  const WAIVER_DISCOUNT = 0.15 // Local constant for WAIVER_DISCOUNT
+  if (config.waiverSigned) {
+    const waiverDiscountAmount = currentTotal * WAIVER_DISCOUNT
+    breakdown.push({
+      item: "Waiver Discount",
+      value: -waiverDiscountAmount,
+      type: "discount",
+      description: `Waiver discount (${(WAIVER_DISCOUNT * 100).toFixed(0)}%)`,
+    })
+    currentTotal -= waiverDiscountAmount
+  }
+
+  return {
+    total: Number.parseFloat(currentTotal.toFixed(2)),
+    breakdown,
+    firstServicePrice: Number.parseFloat(firstServicePrice.toFixed(2)),
+    recurringServicePrice: Number.parseFloat(recurringServicePrice.toFixed(2)),
+    estimatedDuration: Math.round(firstServicePrice * 0.8), // Example estimation
+    enforcedTier: enforcedTier,
+    enforcedTierReason: enforcedTierReason,
+  }
+}
+
+// Define a constant for the waiver discount directly in the worker file
+const WAIVER_DISCOUNT = 0.15
+
+self.onmessage = (event: MessageEvent) => {
+  const { type, payload } = event.data
+
+  if (type === "calculatePrice") {
+    try {
+      const { basePrice, services, rooms, hasWaiver } = payload
+
+      let totalPrice = basePrice
+
+      // Add price for selected services
+      if (services && Array.isArray(services)) {
+        totalPrice += services.reduce((sum: number, service: { price: number }) => sum + service.price, 0)
       }
-    }
 
-    // Apply frequency discount/markup (example logic)
-    if (frequency === "weekly") {
-      totalPrice *= 0.8 // 20% discount for weekly
-      details.frequencyDiscount = totalPrice * 0.25 // Store the discount amount
-    } else if (frequency === "bi-weekly") {
-      totalPrice *= 0.9 // 10% discount for bi-weekly
-      details.frequencyDiscount = totalPrice * 0.1 // Store the discount amount
-    } else if (frequency === "monthly") {
-      // No discount or markup
-    }
+      // Add price for rooms (example: assuming each room adds a fixed amount or based on type)
+      if (rooms && Array.isArray(rooms)) {
+        totalPrice += rooms.reduce((sum: number, room: { price: number }) => sum + room.price, 0)
+      }
 
-    // Apply waiver discount if applicable
-    if (hasWaiver) {
-      const discountAmount = totalPrice * WAIVER_DISCOUNT
-      totalPrice -= discountAmount
-      details.waiverDiscount = discountAmount
-    }
+      // Apply waiver discount if applicable
+      if (hasWaiver) {
+        totalPrice *= 1 - WAIVER_DISCOUNT
+      }
 
-    // Simulate some heavy computation
-    let sum = 0
-    for (let i = 0; i < 100000000; i++) {
-      sum += Math.sqrt(i)
+      // Simulate a delay for complex calculation
+      // This is where a heavy computation would typically happen
+      // For demonstration, we'll just use a setTimeout
+      setTimeout(() => {
+        self.postMessage({ type: "priceCalculated", payload: totalPrice })
+      }, 50) // Small delay to simulate work
+    } catch (error: any) {
+      self.postMessage({ type: "error", error: error.message || "Failed to calculate price." })
     }
-    // console.log('Heavy computation result:', sum); // Log to ensure computation happens
-
-    self.postMessage({ totalPrice, details })
+  } else if (type === "calculateServicePrice") {
+    const config: ServiceConfig = payload
+    const result = calculatePrice(config)
+    self.postMessage(result)
   }
 }

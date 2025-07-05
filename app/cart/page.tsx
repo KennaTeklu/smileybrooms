@@ -1,120 +1,196 @@
 "use client"
-
+import { motion, AnimatePresence } from "framer-motion"
+import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import Image from "next/image"
-import Link from "next/link"
-import { MinusCircle, PlusCircle, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, calculateTotal } = useCart()
-  const cartTotal = calculateTotal()
+  const { cart, updateQuantity, removeItem, clearCart } = useCart()
+  const router = useRouter()
+
+  // Redirect to pricing if cart is empty
+  useEffect(() => {
+    if (cart.items.length === 0) {
+      router.push("/pricing")
+    }
+  }, [cart.items.length, router])
+
+  // Handle quantity changes
+  const handleQuantityChange = (itemId: string, change: number) => {
+    const currentItem = cart.items.find((item) => item.id === itemId)
+    if (currentItem) {
+      updateQuantity(itemId, currentItem.quantity + change)
+    }
+  }
+
+  // Handle item removal
+  const handleRemoveItem = (itemId: string) => {
+    removeItem(itemId)
+  }
+
+  // Handle checkout
+  const handleCheckout = () => {
+    router.push("/checkout")
+  }
+
+  // Handle continue shopping
+  const handleContinueShopping = () => {
+    router.push("/pricing")
+  }
+
+  // Handle clear cart
+  const handleClearCart = () => {
+    clearCart()
+  }
+
+  // Animation variants for individual cart items
+  const itemVariants = {
+    initial: { opacity: 0, y: 20, scale: 0.95 },
+    animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } },
+    exit: { opacity: 0, x: -50, transition: { duration: 0.2 } },
+  }
+
+  // Don't render anything if cart is empty (will redirect)
+  if (cart.items.length === 0) {
+    return null
+  }
 
   return (
-    <div className="container mx-auto py-12 px-4 md:px-6">
-      <h1 className="text-4xl font-bold text-center mb-10">Your Cart</h1>
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-128px)] flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <Button variant="ghost" onClick={handleContinueShopping} className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Continue Shopping</span>
+        </Button>
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">Your Cart</h1>
+          {cart.totalItems > 0 && (
+            <Badge variant="secondary" className="ml-2 text-base">
+              {cart.totalItems} {cart.totalItems === 1 ? "item" : "items"}
+            </Badge>
+          )}
+        </div>
+      </div>
 
-      {cartItems.length === 0 ? (
-        <Card className="w-full max-w-2xl mx-auto text-center py-12 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Your cart is empty!</CardTitle>
-            <CardDescription>Looks like you haven't added any cleaning services yet.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="mt-6">
-              <Link href="/calculator">Start Building Your Service</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Cart Items List */}
-          <div className="lg:col-span-2 space-y-6">
-            {cartItems.map((item) => (
-              <Card key={item.id} className="flex items-center p-4 shadow-md">
-                <div className="relative w-24 h-24 mr-4 flex-shrink-0">
-                  <Image
-                    src={item.image || "/placeholder.svg?height=100&width=100&text=Service"}
-                    alt={item.name}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    className="rounded-md"
-                  />
-                </div>
-                <div className="flex-grow">
-                  <h2 className="text-lg font-semibold">{item.name}</h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">{item.description}</p>
-                  <p className="text-md font-bold mt-1">{formatCurrency(item.price)}</p>
-                </div>
-                <div className="flex items-center gap-3 ml-4">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    disabled={item.quantity <= 1}
-                    aria-label={`Decrease quantity of ${item.name}`}
+      <div className="grid md:grid-cols-3 gap-8 flex-1">
+        {/* Cart Items */}
+        <div className="md:col-span-2">
+          <ScrollArea className="h-[calc(100vh-250px)] pr-4">
+            <div className="space-y-4">
+              <AnimatePresence initial={false}>
+                {cart.items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    variants={itemVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    layout // Enable layout animations for smooth reordering
+                    className="group relative bg-card rounded-lg p-4 border hover:shadow-md transition-shadow"
                   >
-                    <MinusCircle className="h-4 w-4" />
-                  </Button>
-                  <span className="font-medium">{item.quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    aria-label={`Increase quantity of ${item.name}`}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 hover:text-red-600"
-                    aria-label={`Remove ${item.name} from cart`}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                    <div className="flex gap-3">
+                      {/* Item image */}
+                      {item.image && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.name}
+                            className="w-20 h-20 object-cover rounded-md"
+                          />
+                        </div>
+                      )}
+
+                      {/* Item details */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-lg leading-tight mb-1">{item.name}</h4>
+                        {item.sourceSection && (
+                          <p className="text-sm text-muted-foreground mb-2">{item.sourceSection}</p>
+                        )}
+
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleQuantityChange(item.id, -1)}
+                              disabled={item.quantity <= 1}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="text-base font-medium min-w-[3ch] text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleQuantityChange(item.id, 1)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-lg font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                            {item.quantity > 1 && (
+                              <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Remove button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-8 w-8 p-0"
+                        onClick={() => handleRemoveItem(item.id)}
+                        aria-label={`Remove ${item.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Cart Summary */}
+        <div className="md:col-span-1 bg-card p-6 rounded-lg shadow-md h-fit sticky top-24">
+          <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+          <Separator className="mb-4" />
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-base">
+              <span>Subtotal ({cart.totalItems} items)</span>
+              <span>${cart.totalPrice.toFixed(2)}</span>
+            </div>
+            {/* Add more summary lines if needed, e.g., tax, discount */}
+            <div className="flex justify-between text-lg font-semibold pt-2">
+              <span>Total</span>
+              <span>${cart.totalPrice.toFixed(2)}</span>
+            </div>
           </div>
 
-          {/* Cart Summary */}
-          <Card className="lg:col-span-1 shadow-lg h-fit sticky top-24">
-            <CardHeader>
-              <CardTitle className="text-2xl">Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(cartTotal)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                <span>Shipping:</span>
-                <span>Calculated at checkout</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                <span>Taxes:</span>
-                <span>Calculated at checkout</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-xl font-bold">
-                <span>Total:</span>
-                <span>{formatCurrency(cartTotal)}</span>
-              </div>
-              <Button asChild className="w-full text-lg py-3">
-                <Link href="/checkout">Proceed to Checkout</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full mt-2 bg-transparent">
-                <Link href="/calculator">Continue Shopping</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <Separator className="my-6" />
+
+          <div className="space-y-3">
+            <Button onClick={handleCheckout} className="w-full" size="lg">
+              Proceed to Checkout
+            </Button>
+            <Button onClick={handleClearCart} variant="outline" className="w-full">
+              Clear Cart
+            </Button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

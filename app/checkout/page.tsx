@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -15,9 +15,11 @@ import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
-import { ShoppingCart } from "lucide-react"
+
+// Removed all Firebase imports and related types
 
 type CustomerData = {
   firstName: string
@@ -38,6 +40,8 @@ type PaymentMethod = "card" | "paypal" | "apple_pay" | "google_pay"
 
 type CheckoutStep = "contact" | "address" | "payment" | "review"
 
+// Removed Firebase configuration and initialization
+
 const steps = [
   { id: "contact", title: "Contact Info", icon: User },
   { id: "address", title: "Service Address", icon: MapPin },
@@ -46,9 +50,9 @@ const steps = [
 ]
 
 export default function CheckoutPage() {
-  const { cartItems, calculateTotal } = useCart()
-  const cartTotal = calculateTotal()
+  const { cart, clearCart } = useCart()
   const router = useRouter()
+  const { toast } = useToast()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("contact")
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([])
@@ -72,6 +76,29 @@ export default function CheckoutPage() {
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [allowVideoRecording, setAllowVideoRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Removed all Firebase-related state variables
+  // const [showOtpInput, setShowOtpInput] = useState(false)
+  // const [otp, setOtp] = useState("")
+  // const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
+  // const [isPhoneVerifying, setIsPhoneVerifying] = useState(false)
+  // const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  // const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
+  // const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false)
+  // const recaptchaRef = useRef<HTMLDivElement>(null)
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (cart.items.length === 0) {
+      router.push("/pricing")
+    }
+  }, [cart.items.length, router])
+
+  // Calculate totals (these will be passed to server action for final calculation)
+  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const videoDiscountAmount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+  const tax = (subtotal - videoDiscountAmount) * 0.08 // 8% tax
+  const total = subtotal - videoDiscountAmount + tax
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
   const progress = ((currentStepIndex + 1) / steps.length) * 100
@@ -108,6 +135,7 @@ export default function CheckoutPage() {
       case "payment":
         return !!paymentMethod
       case "review":
+        // Removed authentication check here
         return agreeToTerms
       default:
         return false
@@ -125,7 +153,11 @@ export default function CheckoutPage() {
         setCurrentStep(steps[nextStepIndex].id as CheckoutStep)
       }
     } else {
-      // Toast implementation here
+      toast({
+        title: "Please complete all required fields",
+        description: "Fill in all the required information before proceeding.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -140,32 +172,57 @@ export default function CheckoutPage() {
     const stepIndex = steps.findIndex((step) => step.id === stepId)
     const currentIndex = steps.findIndex((step) => step.id === currentStep)
 
+    // Allow going back to completed steps or the next step if current is valid
     if (stepIndex <= currentIndex || (stepIndex === currentIndex + 1 && validateStep(currentStep))) {
       setCurrentStep(stepId)
     }
   }
 
+  // Removed useEffect for reCAPTCHA initialization
+
+  // Removed handleSendOtp and handleVerifyOtp functions
+  // const handleSendOtp = async () => { ... }
+  // const handleVerifyOtp = async () => { ... }
+
+  // Removed handleGoogleSignIn function
+  // const handleGoogleSignIn = async () => { ... }
+
   const handleSubmit = async () => {
     if (!agreeToTerms) {
-      // Toast implementation here
+      toast({
+        title: "Terms Required",
+        description: "Please agree to the terms and conditions to continue.",
+        variant: "destructive",
+      })
       return
     }
+    // Removed authentication check:
+    // if (!isPhoneVerified && !isGoogleAuthenticated) {
+    //   toast({
+    //     title: "Authentication Required",
+    //     description: "Please verify your phone number or sign in with Google before completing the order.",
+    //     variant: "destructive",
+    //   })
+    //   return
+    // }
 
     setIsProcessing(true)
 
     try {
-      const customLineItems = cartItems.map((item) => ({
+      // Prepare line items from cart
+      const customLineItems = cart.items.map((item) => ({
         name: item.name,
         amount: item.price,
         quantity: item.quantity,
-        description: item.description,
+        description: item.sourceSection,
         metadata: item.metadata,
       }))
 
-      if (allowVideoRecording) {
+      // Add video recording discount as a line item if applicable
+      if (videoDiscountAmount > 0) {
         customLineItems.push({
           name: "Video Recording Discount",
-          amount: -cartTotal * 0.1, // Negative amount for discount
+          amount: -videoDiscountAmount, // Negative amount for discount
           quantity: 1,
           description: "Discount for allowing video recording",
         })
@@ -190,45 +247,30 @@ export default function CheckoutPage() {
           },
         },
         paymentMethodTypes: [paymentMethod],
-        automaticTax: { enabled: true },
-        allowPromotions: true,
+        automaticTax: { enabled: true }, // Enable automatic tax calculation on Stripe
+        allowPromotions: true, // Allow promotion codes if applicable
       })
 
       if (checkoutUrl) {
-        router.push(checkoutUrl)
+        clearCart() // Clear cart only if Stripe checkout is successfully initiated
+        window.location.href = checkoutUrl
       } else {
         throw new Error("Failed to get checkout URL from Stripe.")
       }
     } catch (error) {
       console.error("Error during checkout:", error)
-      // Toast implementation here
+      toast({
+        title: "Payment Failed",
+        description: "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsProcessing(false)
     }
   }
 
-  if (cartItems.length === 0) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-100 px-4 py-12 dark:bg-gray-900">
-        <Card className="w-full max-w-md text-center shadow-lg">
-          <CardHeader className="space-y-4">
-            <ShoppingCart className="mx-auto h-16 w-16 text-gray-400" />
-            <CardTitle className="text-3xl font-bold">Your Cart is Empty</CardTitle>
-            <CardDescription className="text-gray-500 dark:text-gray-400">
-              You need to add items to your cart before proceeding to checkout.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Button asChild className="w-full">
-              <Link href="/calculator">Go to Service Calculator</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full bg-transparent">
-              <Link href="/">Return to Homepage</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  if (cart.items.length === 0) {
+    return null
   }
 
   const renderStepContent = () => {
@@ -466,6 +508,7 @@ export default function CheckoutPage() {
                 </div>
               </RadioGroup>
 
+              {/* Stripe Elements Placeholder */}
               <div className="mt-8 p-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 dark:bg-gray-800">
                 <div className="text-center">
                   <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -507,14 +550,15 @@ export default function CheckoutPage() {
             </div>
 
             <div className="max-w-2xl mx-auto space-y-8">
+              {/* Order Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center py-3 border-b last:border-b-0">
+                    {cart.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
                         <div>
                           <h4 className="font-medium">{item.name}</h4>
                           <div className="text-sm text-gray-500 space-y-1">
@@ -530,6 +574,7 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
+              {/* Customer Details */}
               <Card>
                 <CardHeader>
                   <CardTitle>Customer & Service Details</CardTitle>
@@ -555,6 +600,97 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
+              {/* Removed Authentication Section */}
+              {/* <Card>
+                <CardHeader>
+                  <CardTitle>Authentication Required</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isPhoneVerified ? (
+                    <div className="flex items-center text-green-600 font-medium">
+                      <Check className="h-5 w-5 mr-2" />
+                      Phone number verified!
+                    </div>
+                  ) : isGoogleAuthenticated ? (
+                    <div className="flex items-center text-green-600 font-medium">
+                      <Check className="h-5 w-5 mr-2" />
+                      Signed in with Google!
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-gray-600">
+                        Please verify your identity to proceed with the booking. You can either verify your phone number
+                        or sign in with Google.
+                      </p>
+                      <Separator />
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Verify Phone Number ({customerData.phone})</h4>
+                        {!showOtpInput ? (
+                          <Button
+                            onClick={handleSendOtp}
+                            disabled={isPhoneVerifying || !customerData.phone}
+                            className="w-full"
+                          >
+                            {isPhoneVerifying ? "Sending Code..." : "Send Verification Code"}
+                          </Button>
+                        ) : (
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="otp" className="text-base font-medium">
+                                Enter 6-digit code
+                              </Label>
+                              <Input
+                                id="otp"
+                                type="text"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                className="mt-2 h-12"
+                                placeholder="XXXXXX"
+                                maxLength={6}
+                                required
+                              />
+                            </div>
+                            <Button
+                              onClick={handleVerifyOtp}
+                              disabled={isPhoneVerifying || otp.length !== 6}
+                              className="w-full"
+                            >
+                              {isPhoneVerifying ? "Verifying..." : "Verify Code"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowOtpInput(false)
+                                setOtp("")
+                                if (window.grecaptcha && window.recaptchaVerifier) {
+                                  window.grecaptcha.reset(window.recaptchaVerifier.widgetId)
+                                }
+                              }}
+                              className="w-full"
+                            >
+                              Resend Code
+                            </Button>
+                          </div>
+                        )}
+                        <div ref={recaptchaRef} id="recaptcha-container" className="hidden"></div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Or Sign in with Google</h4>
+                        <Button
+                          onClick={handleGoogleSignIn}
+                          disabled={isGoogleAuthenticating}
+                          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          {isGoogleAuthenticating ? "Signing in..." : "Sign in with Google"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card> */}
+
+              {/* Special Options */}
               <Card>
                 <CardHeader>
                   <CardTitle>Special Options</CardTitle>
@@ -568,7 +704,9 @@ export default function CheckoutPage() {
                     />
                     <Label htmlFor="videoRecording" className="text-base">
                       Allow video recording for quality assurance and social media use
-                      <span className="text-green-600 font-medium ml-2">(Save {formatCurrency(cartTotal * 0.1)})</span>
+                      <span className="text-green-600 font-medium ml-2">
+                        (Save {videoDiscountAmount > 0 ? formatCurrency(videoDiscountAmount) : "10%"})
+                      </span>
                     </Label>
                   </div>
 
@@ -588,27 +726,28 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
+              {/* Order Total */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-3">
                     <div className="flex justify-between text-lg">
                       <span>Subtotal</span>
-                      <span>{formatCurrency(cartTotal)}</span>
+                      <span>{formatCurrency(subtotal)}</span>
                     </div>
-                    {allowVideoRecording && (
+                    {videoDiscountAmount > 0 && (
                       <div className="flex justify-between text-lg text-green-600">
                         <span>Video Recording Discount</span>
-                        <span>-{formatCurrency(cartTotal * 0.1)}</span>
+                        <span>-{formatCurrency(videoDiscountAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg">
                       <span>Tax</span>
-                      <span>Calculated at next step</span>
+                      <span>{formatCurrency(tax)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-2xl font-bold">
                       <span>Total</span>
-                      <span>{formatCurrency(cartTotal)}</span>
+                      <span>{formatCurrency(total)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -625,6 +764,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
         <div className="mb-12">
           <Link
             href="/pricing"
@@ -638,6 +778,7 @@ export default function CheckoutPage() {
             <h1 className="text-4xl font-bold mb-4">Secure Checkout</h1>
             <p className="text-xl text-muted-foreground mb-8">Complete your order in just a few simple steps</p>
 
+            {/* Progress Bar */}
             <div className="max-w-md mx-auto mb-8">
               <Progress value={progress} className="h-2 mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -647,6 +788,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* Step Navigation */}
         <div className="mb-12">
           <div className="flex justify-center">
             <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
@@ -680,13 +822,15 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* Step Content */}
         <div className="mb-12">
           <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
         </div>
 
+        {/* Navigation Buttons */}
         <div className="flex justify-center space-x-4">
           {currentStepIndex > 0 && (
-            <Button variant="outline" size="lg" onClick={handlePrevious} className="px-8 bg-transparent">
+            <Button variant="outline" size="lg" onClick={handlePrevious} className="px-8">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Previous
             </Button>
@@ -701,6 +845,7 @@ export default function CheckoutPage() {
             <Button
               size="lg"
               onClick={handleSubmit}
+              // Removed authentication check from disabled prop
               disabled={isProcessing || !agreeToTerms}
               className="px-8 bg-green-600 hover:bg-green-700"
             >
@@ -712,13 +857,14 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <Shield className="mr-2 h-4 w-4" />
-                  Complete Order - {formatCurrency(cartTotal)}
+                  Complete Order - {formatCurrency(total)}
                 </>
               )}
             </Button>
           )}
         </div>
 
+        {/* Trust Indicators */}
         <div className="mt-16 text-center">
           <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
             <div className="flex items-center">

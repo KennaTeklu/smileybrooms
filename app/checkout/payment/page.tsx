@@ -2,240 +2,219 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/components/ui/use-toast"
+import { ArrowLeft, ArrowRight, Shield } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import { FormProgress } from "@/components/form-progress"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CreditCard, Banknote, Wallet } from "lucide-react"
-import { useFormValidation } from "@/hooks/use-form-validation"
-import { validateCreditCardNumber, validateCVC, validateExpiryDate } from "@/lib/validation"
+import { useToast } from "@/components/ui/use-toast"
+import { motion } from "framer-motion"
+import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
+import type { PaymentMethod } from "@/lib/payment-config"
+import { useDeviceDetection } from "@/lib/device-detection"
 
-export default function CheckoutPaymentPage() {
+export default function PaymentPage() {
   const router = useRouter()
+  const { cart } = useCart()
   const { toast } = useToast()
-  const { calculateTotal, clearCart } = useCart()
-  const cartTotal = calculateTotal()
+  const deviceInfo = useDeviceDetection()
 
-  const [paymentMethod, setPaymentMethod] = useState("creditCard")
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: "",
-    cardName: "",
-    expiryDate: "",
-    cvc: "",
-  })
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card")
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [allowVideoRecording, setAllowVideoRecording] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [addressData, setAddressData] = useState<any>(null)
 
-  const { errors, validateField, validateForm } = useFormValidation(cardDetails, {
-    cardNumber: (value) => (validateCreditCardNumber(value) ? null : "Invalid card number."),
-    cardName: (value) => (value.trim() ? null : "Name on card is required."),
-    expiryDate: (value) => (validateExpiryDate(value) ? null : "Invalid expiry date (MM/YY)."),
-    cvc: (value) => (validateCVC(value) ? null : "Invalid CVC."),
-  })
+  // Redirect if cart is empty or no address data
+  useEffect(() => {
+    if (cart.items.length === 0) {
+      router.push("/pricing")
+      return
+    }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setCardDetails((prev) => ({ ...prev, [id]: value }))
-    validateField(id, value)
-  }
+    // Load address data from localStorage
+    const savedAddress = localStorage.getItem("checkout-address")
+    if (!savedAddress) {
+      router.push("/checkout/address")
+      return
+    }
+
+    try {
+      setAddressData(JSON.parse(savedAddress))
+    } catch (e) {
+      console.error("Failed to parse saved address data")
+      router.push("/checkout/address")
+    }
+  }, [cart.items.length, router])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (paymentMethod === "creditCard") {
-      if (!validateForm()) {
-        toast({
-          title: "Validation Error",
-          description: "Please correct the credit card details.",
-          variant: "destructive",
-        })
-        return
-      }
+    if (!agreeToTerms) {
+      toast({
+        title: "Terms Required",
+        description: "Please agree to the terms and conditions to continue.",
+        variant: "destructive",
+      })
+      return
     }
 
-    // Simulate payment processing
-    toast({
-      title: "Processing Payment...",
-      description: "Please wait while we process your order.",
-      duration: 3000,
-    })
+    setIsSubmitting(true)
 
-    setTimeout(() => {
-      // In a real application, you would integrate with a payment gateway (e.g., Stripe)
-      const isPaymentSuccessful = Math.random() > 0.1 // 90% success rate for demo
+    try {
+      // Save payment preferences to localStorage
+      localStorage.setItem(
+        "checkout-payment",
+        JSON.stringify({
+          paymentMethod,
+          allowVideoRecording,
+        }),
+      )
 
-      if (isPaymentSuccessful) {
-        clearCart() // Clear cart on successful payment
-        toast({
-          title: "Payment Successful!",
-          description: "Your order has been placed. Redirecting to confirmation...",
-          variant: "success",
-        })
-        router.push("/success")
-      } else {
-        toast({
-          title: "Payment Failed",
-          description: "There was an issue processing your payment. Please try again or use a different method.",
-          variant: "destructive",
-        })
-        router.push("/canceled")
-      }
-    }, 2000) // Simulate network delay
+      // Proceed to review page
+      router.push("/checkout/review")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem saving your payment information.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (!addressData) {
+    return null // Will redirect via useEffect
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 md:px-6">
-      <h1 className="text-4xl font-bold text-center mb-10">Checkout</h1>
+    <div
+      className={`min-h-screen py-12 ${
+        deviceInfo.isIOS
+          ? "bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800"
+          : deviceInfo.isAndroid
+            ? "bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-gray-900 dark:to-purple-900"
+            : "bg-gradient-to-b from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800"
+      }`}
+    >
+      <div className="container mx-auto px-4 max-w-4xl">
+        {/* Header */}
+        <div className="mb-12">
+          <Link
+            href="/checkout/address"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Address
+          </Link>
 
-      <FormProgress currentStep={2} totalSteps={3} />
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-6"
+            >
+              <Shield className="h-10 w-10 text-blue-600 dark:text-blue-400" />
+            </motion.div>
+            <h1 className="text-4xl font-bold mb-4">Payment Method</h1>
+            <p className="text-xl text-muted-foreground">Choose how you'd like to pay for your cleaning service</p>
+          </div>
+        </div>
 
-      <div className="grid gap-8 lg:grid-cols-3 mt-8">
         {/* Payment Form */}
-        <Card className="lg:col-span-2 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">Payment Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-6">
-              <div className="grid gap-4">
-                <Label className="text-base">Select Payment Method</Label>
-                <RadioGroup
-                  value={paymentMethod}
-                  onValueChange={setPaymentMethod}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4"
-                >
-                  <Label
-                    htmlFor="creditCard"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                  >
-                    <RadioGroupItem id="creditCard" value="creditCard" className="sr-only" />
-                    <CreditCard className="mb-2 h-6 w-6" />
-                    Credit Card
-                  </Label>
-                  <Label
-                    htmlFor="paypal"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                  >
-                    <RadioGroupItem id="paypal" value="paypal" className="sr-only" />
-                    <Wallet className="mb-2 h-6 w-6" />
-                    PayPal
-                  </Label>
-                  <Label
-                    htmlFor="bankTransfer"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                  >
-                    <RadioGroupItem id="bankTransfer" value="bankTransfer" className="sr-only" />
-                    <Banknote className="mb-2 h-6 w-6" />
-                    Bank Transfer
-                  </Label>
-                </RadioGroup>
-              </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <Card className="shadow-lg border-0">
+            <CardHeader>
+              <CardTitle>Select Payment Method</CardTitle>
+              <CardDescription>All transactions are secure and encrypted</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Dynamic Payment Selector */}
+                <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
 
-              {paymentMethod === "creditCard" && (
-                <>
-                  <Separator />
-                  <div className="grid gap-2">
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input
-                      id="cardNumber"
-                      placeholder="XXXX XXXX XXXX XXXX"
-                      value={cardDetails.cardNumber}
-                      onChange={handleChange}
-                      onBlur={() => validateField("cardNumber", cardDetails.cardNumber)}
-                      maxLength={19} // Max length for formatted card number
+                {/* Special Options */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-lg font-medium">Additional Options</h3>
+
+                  <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Checkbox
+                      id="videoRecording"
+                      checked={allowVideoRecording}
+                      onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
                     />
-                    {errors.cardNumber && <p className="text-red-500 text-sm">{errors.cardNumber}</p>}
+                    <Label htmlFor="videoRecording" className="text-base">
+                      Allow video recording for quality assurance and social media use
+                      <span className="text-green-600 font-medium ml-2">(Save 10% on your order)</span>
+                    </Label>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="cardName">Name on Card</Label>
-                    <Input
-                      id="cardName"
-                      placeholder="John Doe"
-                      value={cardDetails.cardName}
-                      onChange={handleChange}
-                      onBlur={() => validateField("cardName", cardDetails.cardName)}
+
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <Checkbox
+                      id="terms"
+                      checked={agreeToTerms}
+                      onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                      required
                     />
-                    {errors.cardName && <p className="text-red-500 text-sm">{errors.cardName}</p>}
+                    <Label htmlFor="terms" className="text-base">
+                      I agree to the{" "}
+                      <Link href="/terms" className="text-primary hover:underline">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link href="/privacy" className="text-primary hover:underline">
+                        Privacy Policy
+                      </Link>
+                    </Label>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="grid gap-2">
-                      <Label htmlFor="expiryDate">Expiry Date (MM/YY)</Label>
-                      <Input
-                        id="expiryDate"
-                        placeholder="MM/YY"
-                        value={cardDetails.expiryDate}
-                        onChange={handleChange}
-                        onBlur={() => validateField("expiryDate", cardDetails.expiryDate)}
-                        maxLength={5} // MM/YY
-                      />
-                      {errors.expiryDate && <p className="text-red-500 text-sm">{errors.expiryDate}</p>}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="cvc">CVC</Label>
-                      <Input
-                        id="cvc"
-                        placeholder="CVC"
-                        value={cardDetails.cvc}
-                        onChange={handleChange}
-                        onBlur={() => validateField("cvc", cardDetails.cvc)}
-                        maxLength={4}
-                      />
-                      {errors.cvc && <p className="text-red-500 text-sm">{errors.cvc}</p>}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {paymentMethod === "paypal" && (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
-                  You will be redirected to PayPal to complete your purchase.
                 </div>
-              )}
 
-              {paymentMethod === "bankTransfer" && (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
-                  Instructions for bank transfer will be provided after order confirmation.
+                {/* Navigation Buttons */}
+                <div className="flex justify-between pt-6">
+                  <Link href="/checkout/address">
+                    <Button variant="outline" size="lg" className="px-8">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back to Address
+                    </Button>
+                  </Link>
+                  <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Review Order
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
-              )}
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-              <Button type="submit" className="w-full mt-4">
-                Place Order
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card className="lg:col-span-1 shadow-lg h-fit sticky top-24">
-          <CardHeader>
-            <CardTitle className="text-2xl">Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Subtotal:</span>
-              <span>{formatCurrency(cartTotal)}</span>
+        {/* Security Badges */}
+        <div className="mt-8 text-center">
+          <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
+            <div className="flex items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              SSL Secured
             </div>
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-              <span>Shipping:</span>
-              <span>$0.00</span> {/* Assuming free shipping for simplicity */}
+            <div className="flex items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              Encrypted Payment
             </div>
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-              <span>Taxes:</span>
-              <span>Calculated at checkout</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-xl font-bold">
-              <span>Total:</span>
-              <span>{formatCurrency(cartTotal)}</span>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
