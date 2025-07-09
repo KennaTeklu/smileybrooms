@@ -5,7 +5,7 @@ import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 
-export function CartButton() {
+export default function CartButton() {
   const { cartItems } = useCart()
   const itemCount = cartItems.reduce((total, item) => total + item.quantity, 0)
 
