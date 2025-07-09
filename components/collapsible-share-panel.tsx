@@ -147,8 +147,6 @@ export function CollapsibleSharePanel() {
 
   return (
     <div ref={panelRef} className="flex">
-      {" "}
-      {/* Removed fixed positioning */}
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
