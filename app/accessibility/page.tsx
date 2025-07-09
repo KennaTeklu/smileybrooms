@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic"
-;("use client")
+"use client"
 
 import { Suspense } from "react" // Import Suspense
 import { AccessibilityProvider } from "@/lib/accessibility-context"
