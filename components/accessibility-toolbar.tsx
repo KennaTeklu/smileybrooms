@@ -429,3 +429,4 @@ const AccessibilityToolbar = memo(function AccessibilityToolbar({ className }: A
 })
 
 export default AccessibilityToolbar
+export { AccessibilityToolbar }
