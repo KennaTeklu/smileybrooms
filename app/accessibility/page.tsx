@@ -1,4 +1,5 @@
-"use client"
+export const dynamic = "force-dynamic"
+;("use client")
 
 import { Suspense } from "react" // Import Suspense
 import { AccessibilityProvider } from "@/lib/accessibility-context"
@@ -37,7 +38,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-transparent">
                 Open Display Settings
               </Button>
             </CardFooter>
@@ -57,7 +58,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-transparent">
                 Try Voice Commands
               </Button>
             </CardFooter>
@@ -77,7 +78,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full bg-transparent">
                 View All Shortcuts
               </Button>
             </CardFooter>
