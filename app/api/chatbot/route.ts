@@ -7,7 +7,7 @@ export const maxDuration = 30
 export async function POST(req: Request) {
   const { messages } = await req.json()
   const result = streamText({
-    model: openai("gpt-4o-mini"), // Using a smaller model for quicker responses
+    model: openai("gpt-4-turbo"),
     messages,
   })
   return result.toDataStreamResponse()

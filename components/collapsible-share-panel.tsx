@@ -171,7 +171,6 @@ export function CollapsibleSharePanel() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
-
             {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
@@ -183,7 +182,6 @@ export function CollapsibleSharePanel() {
                   <QrCode className="h-4 w-4" />
                 </Button>
               </div>
-
               {showQR && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -197,7 +195,6 @@ export function CollapsibleSharePanel() {
                 </motion.div>
               )}
             </div>
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-4 p-2">
                 <TabsTrigger value="social">Social</TabsTrigger>
@@ -205,7 +202,6 @@ export function CollapsibleSharePanel() {
                 <TabsTrigger value="work">Work</TabsTrigger>
                 <TabsTrigger value="more">More</TabsTrigger>
               </TabsList>
-
               <div className="p-4">
                 {/* Search */}
                 <div className="relative mb-4">
@@ -217,7 +213,6 @@ export function CollapsibleSharePanel() {
                     className="pl-10"
                   />
                 </div>
-
                 {/* Platform Grid */}
                 <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
                   {filteredPlatforms.map((platform) => (
@@ -238,7 +233,6 @@ export function CollapsibleSharePanel() {
                     </motion.button>
                   ))}
                 </div>
-
                 {filteredPlatforms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />

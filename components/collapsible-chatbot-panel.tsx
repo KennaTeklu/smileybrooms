@@ -1,25 +1,16 @@
 "use client"
-
-import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageCircle, ChevronLeft, Send, X } from "lucide-react"
+import { MessageCircle, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { useChat } from "ai/react" // [^3]
 
 export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
-    api: "/api/chatbot", // Pointing to our new API route
-  }) // [^3]
 
   // Handle mounting for SSR
   useEffect(() => {
@@ -40,20 +31,9 @@ export function CollapsibleChatbotPanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
-  // Scroll to the bottom of messages when new messages arrive
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [messages])
-
   // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
-  }
-
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    handleSubmit(e)
   }
 
   return (
@@ -72,7 +52,7 @@ export function CollapsibleChatbotPanel() {
               <CardHeader className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <MessageCircle className="h-5 w-5" />
-                  AI Chatbot
+                  JotForm Chat
                 </CardTitle>
                 <Button
                   variant="ghost"
@@ -83,49 +63,17 @@ export function CollapsibleChatbotPanel() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </CardHeader>
-              <CardContent className="flex-1 p-4 overflow-hidden">
-                <ScrollArea className="h-full pr-4">
-                  {messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn("mb-4 max-w-[80%]", m.role === "user" ? "ml-auto text-right" : "mr-auto text-left")}
-                    >
-                      <span
-                        className={cn(
-                          "inline-block p-2 rounded-lg",
-                          m.role === "user"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-black dark:text-white",
-                        )}
-                      >
-                        {m.content}
-                      </span>
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="text-left mb-4">
-                      <span className="inline-block p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-black dark:text-white">
-                        AI is typing...
-                      </span>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
+              <CardContent className="flex-1 p-0 overflow-hidden">
+                <ScrollArea className="h-full w-full">
+                  {/* Embed JotForm here */}
+                  <iframe
+                    src="https://form.jotform.com/YOUR_FORM_ID" // REPLACE THIS WITH YOUR ACTUAL JOTFORM URL
+                    className="w-full h-full border-0"
+                    title="JotForm Chatbot"
+                    loading="lazy"
+                  ></iframe>
                 </ScrollArea>
               </CardContent>
-              <CardFooter className="p-4 border-t border-gray-200 dark:border-gray-800">
-                <form onSubmit={onSubmit} className="flex w-full space-x-2">
-                  <Input
-                    value={input}
-                    onChange={handleInputChange}
-                    placeholder="Type your message..."
-                    className="flex-grow"
-                    disabled={isLoading}
-                  />
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? <X className="h-4 w-4" onClick={stop} /> : <Send className="h-4 w-4" />}
-                  </Button>
-                </form>
-              </CardFooter>
             </Card>
           </motion.div>
         ) : (
