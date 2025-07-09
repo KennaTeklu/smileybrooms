@@ -17,6 +17,7 @@ import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import JotFormChatbot from "@/components/jotform-chatbot" // Import the actual chatbot component
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -49,8 +50,6 @@ export default function RootLayout({
                 <RoomProvider>
                   <TourProvider>
                     <TooltipProvider>
-                      {" "}
-                      {/* Moved TooltipProvider here */}
                       {/* Main layout container */}
                       <div className="relative flex min-h-screen flex-col">
                         <EnhancedHeader />
@@ -59,8 +58,12 @@ export default function RootLayout({
                       </div>
                       {/* Left side panels */}
                       <CollapsibleSettingsPanel />
-                      {/* Right side panels - properly aligned */}
-                      <CollapsibleSharePanel />
+                      {/* Right side panels - grouped and stacked */}
+                      <div className="fixed right-0 z-50 flex flex-col items-end space-y-5 top-1/2 -translate-y-1/2">
+                        <CollapsibleSharePanel />
+                        {/* Note: JotFormChatbot injects a floating widget, its exact positioning relative to the share panel might vary */}
+                        <JotFormChatbot />
+                      </div>
                       <CollapsibleAddAllPanel />
                       <CollapsibleCartPanel />
                       <Toaster />

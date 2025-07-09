@@ -97,7 +97,6 @@ export function CollapsibleSharePanel() {
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
   const panelRef = useRef<HTMLDivElement>(null)
@@ -107,17 +106,6 @@ export function CollapsibleSharePanel() {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
-
-  // Track scroll position only after mounting
-  useEffect(() => {
-    if (!isMounted) return
-    const updatePosition = () => {
-      setScrollPosition(window.scrollY)
-    }
-    window.addEventListener("scroll", updatePosition, { passive: true })
-    updatePosition()
-    return () => window.removeEventListener("scroll", updatePosition)
-  }, [isMounted])
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -135,9 +123,6 @@ export function CollapsibleSharePanel() {
   if (!isMounted) {
     return null
   }
-
-  // Calculate panel position based on scroll
-  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
 
   const copyToClipboard = async () => {
     try {
@@ -161,7 +146,9 @@ export function CollapsibleSharePanel() {
   }
 
   return (
-    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
+    <div ref={panelRef} className="flex">
+      {" "}
+      {/* Removed fixed positioning */}
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
