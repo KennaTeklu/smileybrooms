@@ -1,76 +1,43 @@
 "use client"
 
 import type React from "react"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import "./device-themes.css"
-import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
-import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from "next-themes"
 import { CartProvider } from "@/lib/cart-context"
-import { RoomProvider } from "@/lib/room-context"
+import { Toaster } from "@/components/ui/toaster"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
+import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
 import { TourProvider } from "@/contexts/tour-context"
-import { QueryClientProvider } from "@/components/providers/query-client-provider"
-import Header from "@/components/header"
-import SemicircleFooter from "@/components/semicircle-footer"
-import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
-import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
-import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
-import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
-import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { Header } from "@/components/header"
+import UnifiedFloatingWrapper from "@/components/unified-floating-wrapper"
+import UnifiedFooter from "@/components/unified-footer"
 import { AnalyticsTracker } from "@/components/analytics-tracker"
-import { Suspense, useState } from "react"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { usePathname } from "next/navigation"
 
-const inter = Inter({ subsets: ["latin"] })
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [sharePanelInfo, setSharePanelInfo] = useState({ expanded: false, height: 0 })
+  // Determine if the header should be shown based on pathname
+  const showHeader = pathname !== "/checkout" && pathname !== "/success" && pathname !== "/canceled"
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.png" sizes="any" />
-      </head>
-      <body className={inter.className}>
-        <QueryClientProvider>
-          <ThemeProviderEnhanced>
-            <AccessibilityProvider>
-              <CartProvider>
-                <RoomProvider>
-                  <TourProvider>
-                    <AbandonmentProvider>
-                      <TooltipProvider>
-                        {/* Main layout container */}
-                        <div className="relative flex min-h-screen flex-col">
-                          <Header />
-                          <Suspense>
-                            <main className="flex-1">{children}</main>
-                          </Suspense>
-                          <SemicircleFooter />
-                        </div>
-                        {/* Floating panels */}
-                        <CollapsibleChatbotPanel sharePanelInfo={sharePanelInfo} />
-                        <CollapsibleSettingsPanel />
-                        <CollapsibleSharePanel onPanelStateChange={setSharePanelInfo} />
-                        <CollapsibleAddAllPanel />
-                        <CollapsibleCartPanel />
-                        <Toaster />
-                        <AnalyticsTracker />
-                      </TooltipProvider>
-                    </AbandonmentProvider>
-                  </TourProvider>
-                </RoomProvider>
-              </CartProvider>
-            </AccessibilityProvider>
-          </ThemeProviderEnhanced>
-        </QueryClientProvider>
-      </body>
-    </html>
+    <ErrorBoundary>
+      <QueryClientProviderWrapper>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AccessibilityProvider>
+            <CartProvider>
+              <TourProvider>
+                <AnalyticsTracker />
+                {showHeader && <Header />}
+                <main className="flex-grow">{children}</main>
+                <UnifiedFooter />
+                <UnifiedFloatingWrapper />
+                <Toaster />
+              </TourProvider>
+            </CartProvider>
+          </AccessibilityProvider>
+        </ThemeProvider>
+      </QueryClientProviderWrapper>
+    </ErrorBoundary>
   )
 }
