@@ -4,7 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { Header } from "@/components/header"
+import Header from "@/components/header"
 import Footer from "@/components/footer" // Corrected import to default export
 import { CartProvider } from "@/lib/cart-context"
 import { RoomProvider } from "@/lib/room-context"
