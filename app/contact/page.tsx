@@ -234,14 +234,14 @@ export default function ContactPage() {
                       <h3 className="font-medium">Phone</h3>
                       <p className="text-gray-600 dark:text-gray-400">
                         Main:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
+                        <a href="tel:6616023000" className="hover:underline">
+                          (661) 602-3000
                         </a>
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
                         Support:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
+                        <a href="tel:6616023000" className="hover:underline">
+                          (661) 602-3000
                         </a>
                       </p>
                     </div>
