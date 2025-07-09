@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
-import { Header } from "@/components/header"
+import Header from "@/components/header"
 import Footer from "@/components/footer" // Corrected import to default
 import { Toaster } from "@/components/ui/toaster"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
