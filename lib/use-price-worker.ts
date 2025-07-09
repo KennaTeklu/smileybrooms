@@ -205,7 +205,9 @@ export function usePriceWorker(): UsePriceWorkerResult {
   useEffect(() => {
     // Initialize worker only once
     if (!workerRef.current) {
-      workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url))
+      workerRef.current = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url), {
+        type: "module",
+      })
 
       workerRef.current.onmessage = (event: MessageEvent) => {
         const { type, payload, error: workerError } = event.data
