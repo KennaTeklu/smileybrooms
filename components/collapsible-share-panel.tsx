@@ -201,7 +201,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={copyToClipboard}>
                   {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                   {copied ? "Copied!" : "Copy Link"}
                 </Button>
@@ -304,6 +304,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
             }}
             aria-label="Expand share panel"
           >
+            <ChevronLeft className="h-4 w-4" />
             <Share2 className="h-5 w-5" />
           </motion.button>
         )}
