@@ -1,4 +1,6 @@
 "use client"
+export const dynamic = "force-dynamic"
+
 import { motion, AnimatePresence } from "framer-motion"
 import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"

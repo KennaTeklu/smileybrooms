@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = "force-dynamic"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
 import { useAbandonmentRescue } from "@/lib/abandonment/rescue-funnel"

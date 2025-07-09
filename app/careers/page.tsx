@@ -1,4 +1,6 @@
 "use client"
+export const dynamic = "force-dynamic"
+
 import { useRouter } from "next/navigation"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"

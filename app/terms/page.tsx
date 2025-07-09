@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = "force-dynamic"
 
 import { generateTOS, type TOSConfig } from "@/lib/legal/tos-generator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
