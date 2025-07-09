@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation" // Import useRouter
-import { Menu, Home, Calculator, Users, Mail } from "lucide-react" // Import necessary icons
+import { usePathname, useRouter } from "next/navigation"
+import { Menu, Home, Calculator, Users, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Import SheetHeader, SheetTitle
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
-import CartButton from "@/components/cart-button" // Import CartButton
+import CartButton from "@/components/cart-button"
 
 const navigationLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -20,12 +20,12 @@ const navigationLinks = [
 
 export function EnhancedHeader() {
   const pathname = usePathname()
-  const router = useRouter() // Initialize useRouter
+  const router = useRouter()
   const { cart } = useCart()
   const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false) // State for mobile menu
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
     setIsHomePage(pathname === "/")
@@ -53,11 +53,6 @@ export function EnhancedHeader() {
 
   const handleCartButtonClick = () => {
     router.push("/cart")
-  }
-
-  const handleBookNowClick = () => {
-    router.push("/calculator") // Navigate to the calculator page
-    setIsMenuOpen(false) // Close menu on mobile after clicking
   }
 
   // If homepage and no items, don't show header
@@ -88,7 +83,6 @@ export function EnhancedHeader() {
           <Logo />
           <nav className="hidden md:flex gap-6">
             {navigationLinks.map((link) => {
-              const IconComponent = link.icon
               const isActive = pathname === link.href
               return (
                 <Link
@@ -107,11 +101,6 @@ export function EnhancedHeader() {
           <ThemeToggle />
 
           <CartButton showLabel={false} size="default" onClick={handleCartButtonClick} />
-
-          {/* Book Now Button for Desktop */}
-          <Button onClick={handleBookNowClick} className="hidden md:inline-flex">
-            Book Now
-          </Button>
 
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
@@ -132,17 +121,13 @@ export function EnhancedHeader() {
                       key={link.href}
                       href={link.href}
                       className="flex items-center gap-3 text-lg font-medium hover:text-primary"
-                      onClick={() => setIsMenuOpen(false)} // Close menu on click
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       <IconComponent className="h-5 w-5" />
                       {link.label}
                     </Link>
                   )
                 })}
-                {/* Book Now Button for Mobile */}
-                <Button onClick={handleBookNowClick} className="w-full mt-4">
-                  Book Now
-                </Button>
               </div>
             </SheetContent>
           </Sheet>
