@@ -6,7 +6,11 @@ import { MessageCircle, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export function CollapsibleChatbotPanel() {
+interface CollapsibleChatbotPanelProps {
+  jotformUrl: string // Prop to pass the JotForm URL
+}
+
+export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -19,13 +23,11 @@ export function CollapsibleChatbotPanel() {
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
-
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
@@ -36,11 +38,11 @@ export function CollapsibleChatbotPanel() {
   }
 
   return (
-    <div ref={panelRef} className="relative z-50 flex">
+    <div ref={panelRef} className="flex">
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
-            key="expanded"
+            key="expanded-chatbot"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "320px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
@@ -62,55 +64,19 @@ export function CollapsibleChatbotPanel() {
               </Button>
             </div>
             <div className="flex-1 overflow-hidden">
-              {/* JotForm Embed */}
+              {/* Embed JotForm here */}
               <iframe
-                id="JotFormIFrame-241914900000000"
+                id="jotformIframe"
+                src={jotformUrl}
+                className="w-full h-full border-0"
                 title="JotForm Chatbot"
-                onLoad={() => {
-                  window.parent.scrollTo(0, 0)
-                }}
-                allowTransparency={true}
-                allow="geolocation; microphone; camera; fullscreen"
-                src="https://form.jotform.com/241914900000000"
-                frameBorder="0"
-                style={{
-                  minWidth: "100%",
-                  maxWidth: "100%",
-                  height: "539px", // Adjust height as needed, or make it dynamic
-                  border: "none",
-                }}
-                scrolling="no"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               ></iframe>
-              <script type="text/javascript">
-                {`
-                  var ifr = document.getElementById("JotFormIFrame-241914900000000");
-                  if (ifr && ifr.contentWindow && ifr.contentWindow.postMessage) {
-                    var sendMessage = function(str) {
-                      ifr.contentWindow.postMessage(str, "https://form.jotform.com");
-                    };
-                    window.addEventListener("message", function(e) {
-                      if (e.origin === "https://form.jotform.com") {
-                        if (typeof e.data === "string") {
-                          try {
-                            var msg = JSON.parse(e.data);
-                            if (msg.type === "setHeight" || msg.type === "collapseErrorPage") {
-                              ifr.style.height = msg.height + "px";
-                            }
-                          } catch (ignore) {}
-                        }
-                      }
-                    });
-                    window.addEventListener("resize", function() {
-                      sendMessage("resize");
-                    });
-                  }
-                `}
-              </script>
             </div>
           </motion.div>
         ) : (
           <motion.button
-            key="collapsed"
+            key="collapsed-chatbot"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "auto", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
@@ -122,7 +88,7 @@ export function CollapsibleChatbotPanel() {
               "border-l border-t border-b border-gray-200 dark:border-gray-800",
               "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
             )}
-            aria-label="Open chatbot"
+            aria-label="Open chatbot panel"
           >
             <ChevronLeft className="h-4 w-4" />
             <MessageCircle className="h-5 w-5" />
