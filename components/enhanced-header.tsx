@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, Home, Calculator, Users, Mail } from "lucide-react"
+import { Menu, Home, DollarSign, Users, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
@@ -11,98 +11,98 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
 import CartButton from "@/components/cart-button"
 
-const navigationLinks = [
+/**
+ * Central place for links shown in the header
+ * – keeps both desktop and mobile navigation in sync
+ */
+const NAV_LINKS = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/pricing", label: "Pricing", icon: Calculator },
+  { href: "/pricing", label: "Pricing", icon: DollarSign },
   { href: "/about", label: "About", icon: Users },
   { href: "/contact", label: "Contact", icon: Mail },
-]
+] as const
 
 export function EnhancedHeader() {
   const pathname = usePathname()
   const router = useRouter()
+
+  /* cart & UI state ------------------------------------------------------- */
   const { cart } = useCart()
-  const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  /* detect if the current route is exactly "/" ---------------------------- */
+  const isHomePage = pathname === "/"
+
+  /* side-effects ---------------------------------------------------------- */
+  useEffect(() => {
+    setHasItems(!!cart.items?.length)
+  }, [cart.items])
 
   useEffect(() => {
-    setIsHomePage(pathname === "/")
-  }, [pathname])
-
-  useEffect(() => {
-    setHasItems(cart.items && cart.items.length > 0)
-  }, [cart])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    handleScroll()
-
-    return () => window.removeEventListener("scroll", handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMenuOpen(false)
-  }, [pathname])
+  /* handlers -------------------------------------------------------------- */
+  const goToCart = () => router.push("/cart")
 
-  const handleCartButtonClick = () => {
-    router.push("/cart")
-  }
+  /* render shortcuts ------------------------------------------------------ */
+  const containerCls = "container flex h-16 items-center justify-between transition-all"
 
-  // If homepage and no items, don't show header
-  if (isHomePage && !hasItems) {
-    return null
-  }
+  /* 1️⃣ No header (home page with empty cart) ----------------------------- */
+  if (isHomePage && !hasItems) return null
 
-  // If homepage with items, only show cart
+  /* 2️⃣ Cart-only header (home page with items) --------------------------- */
   if (isHomePage && hasItems) {
     return (
       <header
-        className={`fixed top-0 right-0 z-40 p-4 transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""}`}
+        className={`fixed top-0 right-0 z-40 p-4 ${
+          scrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""
+        }`}
       >
-        <div className="flex justify-end">
-          <CartButton showLabel={false} variant="default" size="lg" onClick={handleCartButtonClick} />
-        </div>
+        <CartButton showLabel={false} variant="default" size="lg" onClick={goToCart} />
       </header>
     )
   }
 
-  // Regular header for other pages
+  /* 3️⃣ Regular header (all other pages) ---------------------------------- */
   return (
     <header
-      className={`sticky top-0 z-40 w-full transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900"}`}
+      className={`sticky top-0 z-40 w-full ${
+        scrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900"
+      }`}
     >
-      <div className="container flex h-16 items-center justify-between">
+      <div className={containerCls}>
+        {/* ---------- brand + desktop nav ---------- */}
         <div className="flex items-center gap-6">
           <Logo />
-          <nav className="hidden md:flex gap-6">
-            {navigationLinks.map((link) => {
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
+          <nav className="hidden gap-6 md:flex">
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  pathname === href ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
         </div>
 
+        {/* ---------- right-hand controls ---------- */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          <CartButton showLabel={false} size="default" onClick={handleCartButtonClick} />
+          <CartButton showLabel={false} onClick={goToCart} />
 
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          {/* mobile menu */}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden bg-transparent">
                 <Menu className="h-5 w-5" />
@@ -113,21 +113,19 @@ export function EnhancedHeader() {
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
+
               <div className="flex flex-col gap-6 pt-6">
-                {navigationLinks.map((link) => {
-                  const IconComponent = link.icon
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="flex items-center gap-3 text-lg font-medium hover:text-primary"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <IconComponent className="h-5 w-5" />
-                      {link.label}
-                    </Link>
-                  )
-                })}
+                {NAV_LINKS.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex items-center gap-3 text-lg font-medium hover:text-primary"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {label}
+                  </Link>
+                ))}
               </div>
             </SheetContent>
           </Sheet>
@@ -136,3 +134,5 @@ export function EnhancedHeader() {
     </header>
   )
 }
+
+export default EnhancedHeader
