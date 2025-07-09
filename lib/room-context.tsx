@@ -53,19 +53,19 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
           return updatedConfigs
         })
       } else if (!prev[roomType] && count > 0) {
-        // If a room is added for the first time, add a default config
+        // If a room is added for the first time, add a default config with PREMIUM CLEAN
         setRoomConfigs((prevConfigs) => ({
           ...prevConfigs,
           [roomType]: {
             roomName: roomType,
-            selectedTier: "ESSENTIAL CLEAN",
+            selectedTier: "PREMIUM CLEAN", // Default to PREMIUM CLEAN
             selectedAddOns: [],
             selectedReductions: [],
-            basePrice: 25,
+            basePrice: 50, // Assuming a base price for PREMIUM CLEAN
             tierUpgradePrice: 0,
             addOnsPrice: 0,
             reductionsPrice: 0,
-            totalPrice: 25,
+            totalPrice: 50, // Assuming a total price for PREMIUM CLEAN
           },
         }))
       }

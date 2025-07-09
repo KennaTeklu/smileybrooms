@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,17 +22,15 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
     /* Accessibility variables */
-    --accessibility-font-scale: 1;
-    --accessibility-contrast: 1;
-    --accessibility-saturation: 1;
-    --accessibility-cursor-scale: 1;
-
-    /* Header height in centimeters */
-    --header-height-cm: 1.69; /* 64px / 37.8 = 1.69cm */
+    --font-size-multiplier: 1;
+    --line-height-multiplier: 1.5;
+    --letter-spacing-em: 0;
+    --text-align: left;
+    --font-family: sans-serif;
   }
 
   .dark {
@@ -42,7 +40,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -54,7 +52,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 210 40% 98%;
   }
 }
 
@@ -68,12 +66,16 @@
     @apply bg-background text-foreground;
     position: relative;
     overflow-x: hidden;
-    filter: contrast(var(--accessibility-contrast)) saturate(var(--accessibility-saturation));
+    font-size: calc(16px * var(--font-size-multiplier));
+    line-height: var(--line-height-multiplier);
+    letter-spacing: var(--letter-spacing-em);
+    text-align: var(--text-align);
+    font-family: var(--font-family);
   }
 
   /* Accessibility font scaling */
   html {
-    font-size: calc(100% * var(--accessibility-font-scale));
+    font-size: calc(100% * var(--font-size-multiplier));
   }
 
   /* Custom cursor for accessibility */

@@ -69,18 +69,35 @@ export function ServiceSummaryCard({
   // Calculate discount amount
   const discountAmount = subtotal * ((frequencyDiscount || 0) / 100)
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    // Made async
     if (!hasItems) {
       return
     }
 
     setIsLoading(true)
-
-    if (onAddToCart) {
-      onAddToCart()
+    try {
+      // Simulate an async operation
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      if (onAddToCart) {
+        onAddToCart()
+      }
+      toast({
+        title: "Service added to cart",
+        description: "Your customized service has been added to your cart.",
+        duration: 3000,
+      })
+    } catch (error) {
+      console.error("Error adding service to cart:", error)
+      toast({
+        title: "Failed to add service to cart",
+        description: "There was an error adding the service to your cart. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   const handleViewCart = () => {
@@ -177,7 +194,12 @@ export function ServiceSummaryCard({
           {isLoading ? "Adding..." : hasItems ? "Add to Cart" : "No Services Selected"}
           {!isLoading && hasItems && <Plus className="ml-2 h-4 w-4" aria-hidden="true" />}
         </Button>
-        <Button variant="outline" className="w-full" onClick={handleViewCart} aria-label="View shopping cart">
+        <Button
+          variant="outline"
+          className="w-full bg-transparent"
+          onClick={handleViewCart}
+          aria-label="View shopping cart"
+        >
           <ShoppingCart className="mr-2 h-4 w-4" aria-hidden="true" /> View Cart
         </Button>
       </CardFooter>

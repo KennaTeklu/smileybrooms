@@ -408,29 +408,36 @@ export function CollapsibleAddAllPanel() {
               className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-6 flex-shrink-0">
+              {/* Enhanced Header */}
+              <div className="bg-gradient-to-r from-green-600 via-green-700 to-green-800 text-white p-6 flex-shrink-0 border-b border-green-500/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={handleBackToButton}
-                      className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                      className="text-white hover:bg-white/20 rounded-xl h-10 w-10"
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <div>
-                      <h2 className="text-xl font-bold">Review Your Selections</h2>
-                      <p className="text-blue-100 text-sm">
-                        {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                        <Plus className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold">Review Your Selections</h2>
+                        <p className="text-green-100 text-sm">
+                          {selectedRoomTypes.length} room type{selectedRoomTypes.length !== 1 ? "s" : ""} selected •{" "}
+                          {formatCurrency(totalPrice)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleBackToButton}
-                    className="text-white hover:bg-white/20 rounded-full h-10 w-10"
+                    className="text-white hover:bg-white/20 rounded-xl h-10 w-10"
                   >
                     <X className="h-5 w-5" />
                   </Button>
@@ -587,17 +594,22 @@ export function CollapsibleAddAllPanel() {
           whileTap={{ scale: 0.98 }}
           onClick={handleOpenFullscreen}
           className={cn(
-            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
-            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-            "border border-blue-500/20 backdrop-blur-sm relative",
+            "flex items-center justify-center p-4 bg-gradient-to-r from-green-600 to-green-700 text-white",
+            "rounded-2xl shadow-2xl hover:from-green-700 hover:to-green-800",
+            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-500/50",
+            "border-2 border-green-500/20 backdrop-blur-sm relative",
           )}
+          style={{
+            boxShadow: "0 25px 50px -12px rgba(34, 197, 94, 0.4), 0 0 0 1px rgba(34, 197, 94, 0.1)",
+          }}
           aria-label="Open add to cart panel"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <Plus className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Plus className="h-6 w-6" />
+              </div>
+              <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white shadow-lg">
                 {selectedRoomTypes.length}
               </Badge>
             </div>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from "lucide-react"
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from 'lucide-react'
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -65,6 +65,13 @@ export default function AddressCollectionPage() {
       } catch (e) {
         console.error("Failed to parse saved address data")
       }
+    }
+  }, [cart.items.length, router])
+
+  // Redirect to checkout page if no items in cart
+  useEffect(() => {
+    if (cart.items.length === 0) {
+      router.replace("/checkout")
     }
   }, [cart.items.length, router])
 

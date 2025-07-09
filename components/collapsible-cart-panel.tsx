@@ -710,17 +710,20 @@ export function CollapsibleCartPanel() {
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            "flex items-center justify-center p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-            "rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800",
+            "flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+            "rounded-2xl shadow-2xl hover:from-blue-700 hover:to-blue-800",
             "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-            "border border-blue-500/20 backdrop-blur-sm relative",
+            "border-2 border-blue-500/20 backdrop-blur-sm relative",
           )}
+          style={{
+            boxShadow: "0 25px 50px -12px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+          }}
           aria-label="Toggle cart panel"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white">
+              <ShoppingCart className="h-6 w-6" />
+              <Badge className="absolute -top-3 -right-3 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white shadow-lg">
                 {totalItems}
               </Badge>
             </div>
@@ -728,7 +731,7 @@ export function CollapsibleCartPanel() {
               <div className="text-sm font-bold">Cart</div>
               <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
             </div>
-            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+            <ChevronRight className={cn("h-5 w-5 transition-transform duration-200", isExpanded && "rotate-90")} />
           </div>
         </motion.button>
 
@@ -741,33 +744,37 @@ export function CollapsibleCartPanel() {
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full right-0 mt-2 w-96 max-w-[90vw] bg-white dark:bg-gray-900 shadow-2xl rounded-xl overflow-hidden border-2 border-blue-200 dark:border-blue-800",
-                "relative flex flex-col", // Added flex flex-col
+                "absolute top-full right-0 mt-3 w-96 max-w-[90vw] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50",
+                "relative flex flex-col",
                 showTopShadow && "before:shadow-top-gradient",
                 showBottomShadow && "after:shadow-bottom-gradient",
               )}
-              style={{ maxHeight: "70vh" }}
+              style={{
+                maxHeight: "70vh",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+              }}
             >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4">
+              {/* Enhanced Header */}
+              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-full">
+                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
                       <ShoppingCart className="h-5 w-5" />
                     </div>
                     <div>
                       <h3 className="text-lg font-bold">Your Cart</h3>
                       <p className="text-blue-100 text-sm">
-                        {cartItems.length} item{cartItems.length !== 1 ? "s" : ""}
+                        {cartItems.length} item{cartItems.length !== 1 ? "s" : ""} • {formatCurrency(totalPrice)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-white/20 text-white border-white/30">{totalItems}</Badge>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={handleReviewClick}
-                      className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                       title="Fullscreen view"
                     >
                       <Maximize2 className="h-4 w-4" />
@@ -776,7 +783,7 @@ export function CollapsibleCartPanel() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsExpanded(false)}
-                      className="text-white hover:bg-white/20 rounded-full h-8 w-8"
+                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                     >
                       <X className="h-4 w-4" />
                     </Button>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check } from "lucide-react"
+import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check } from 'lucide-react'
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -135,6 +135,12 @@ export default function ReviewPage() {
       setIsProcessing(false)
     }
   }
+
+  useEffect(() => {
+    if (!addressData || !paymentData) {
+      router.replace("/checkout")
+    }
+  }, [addressData, paymentData, router])
 
   if (!addressData || !paymentData) {
     return null // Will redirect via useEffect

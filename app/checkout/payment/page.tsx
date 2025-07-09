@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, ArrowRight, Shield } from "lucide-react"
+import { ArrowLeft, ArrowRight, Shield } from 'lucide-react'
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -50,6 +50,12 @@ export default function PaymentPage() {
       router.push("/checkout/address")
     }
   }, [cart.items.length, router])
+
+  useEffect(() => {
+    if (!addressData) {
+      router.replace("/checkout")
+    }
+  }, [addressData, router])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

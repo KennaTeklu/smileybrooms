@@ -20,7 +20,10 @@ export type CartItem = {
 type CartState = {
   items: CartItem[]
   totalItems: number
-  totalPrice: number
+  subtotalPrice: number // Renamed from totalPrice to subtotalPrice
+  totalPrice: number // New field for total after discounts/taxes
+  couponCode: string | null
+  couponDiscount: number
 }
 
 type CartAction =
@@ -28,31 +31,57 @@ type CartAction =
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
+  | { type: "APPLY_COUPON"; payload: string }
+  | { type: "SET_CART"; payload: CartState } // New action for loading from localStorage
 
 const initialState: CartState = {
   items: [],
   totalItems: 0,
+  subtotalPrice: 0,
   totalPrice: 0,
+  couponCode: null,
+  couponDiscount: 0,
 }
 
-const calculateCartTotals = (items: CartItem[]): { totalItems: number; totalPrice: number } => {
-  return items.reduce(
-    (totals, item) => {
-      return {
-        totalItems: totals.totalItems + item.quantity,
-        totalPrice: totals.totalPrice + item.price * item.quantity,
+// Define valid coupons and their effects
+const VALID_COUPONS: { [key: string]: { type: "percentage" | "fixed"; value: number; maxDiscount?: number } } = {
+  V0DISCOUNT: { type: "percentage", value: 0.15, maxDiscount: 50 }, // 15% off, max $50
+  FREECLEAN: { type: "fixed", value: 25 }, // $25 off
+}
+
+const calculateCartTotals = (
+  items: CartItem[],
+  couponCode: string | null,
+): { totalItems: number; subtotalPrice: number; totalPrice: number; couponDiscount: number } => {
+  const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  let couponDiscount = 0
+  let finalPrice = subtotalPrice
+
+  if (couponCode && VALID_COUPONS[couponCode.toUpperCase()]) {
+    const coupon = VALID_COUPONS[couponCode.toUpperCase()]
+    if (coupon.type === "percentage") {
+      couponDiscount = subtotalPrice * coupon.value
+      if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+        couponDiscount = coupon.maxDiscount
       }
-    },
-    { totalItems: 0, totalPrice: 0 },
-  )
+    } else if (coupon.type === "fixed") {
+      couponDiscount = coupon.value
+    }
+    finalPrice = Math.max(0, subtotalPrice - couponDiscount) // Ensure price doesn't go below zero
+  }
+
+  return {
+    totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
+    subtotalPrice,
+    totalPrice: finalPrice,
+    couponDiscount,
+  }
 }
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
-      // Check if there's a similar item using advanced matching criteria
       const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
-
       let updatedItems: CartItem[]
 
       if (similarItemIndex >= 0) {
@@ -63,7 +92,6 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           return item
         })
       } else {
-        // Generate a more reliable ID for the new item
         const itemSignature = getItemSignature(action.payload)
         const enhancedItem = {
           ...action.payload,
@@ -72,25 +100,35 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         updatedItems = [...state.items, enhancedItem]
       }
 
-      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+        updatedItems,
+        state.couponCode,
+      )
 
       return {
         ...state,
         items: updatedItems,
         totalItems,
+        subtotalPrice,
         totalPrice,
+        couponDiscount,
       }
     }
 
     case "REMOVE_ITEM": {
       const updatedItems = state.items.filter((item) => item.id !== action.payload)
-      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+        updatedItems,
+        state.couponCode,
+      )
 
       return {
         ...state,
         items: updatedItems,
         totalItems,
+        subtotalPrice,
         totalPrice,
+        couponDiscount,
       }
     }
 
@@ -102,18 +140,40 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         return item
       })
 
-      const { totalItems, totalPrice } = calculateCartTotals(updatedItems)
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+        updatedItems,
+        state.couponCode,
+      )
 
       return {
         ...state,
         items: updatedItems,
         totalItems,
+        subtotalPrice,
+        totalPrice,
+        couponDiscount,
+      }
+    }
+
+    case "APPLY_COUPON": {
+      const newCouponCode = action.payload.toUpperCase()
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(state.items, newCouponCode)
+
+      return {
+        ...state,
+        couponCode: newCouponCode,
+        couponDiscount,
+        totalItems,
+        subtotalPrice,
         totalPrice,
       }
     }
 
     case "CLEAR_CART":
       return initialState
+
+    case "SET_CART": // For loading from localStorage
+      return action.payload
 
     default:
       return state
@@ -126,6 +186,7 @@ type CartContextType = {
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
+  applyCoupon: (couponCode: string) => boolean // Returns true if coupon is valid
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -140,13 +201,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem("cart")
       if (savedCart) {
         const parsedCart = JSON.parse(savedCart) as CartState
-        parsedCart.items.forEach((item) => {
-          dispatch({ type: "ADD_ITEM", payload: item })
+        // Recalculate totals to ensure consistency with current coupon logic
+        const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+          parsedCart.items,
+          parsedCart.couponCode,
+        )
+        dispatch({
+          type: "SET_CART",
+          payload: {
+            ...parsedCart,
+            totalItems,
+            subtotalPrice,
+            totalPrice,
+            couponDiscount,
+          },
         })
       }
     } catch (error) {
       console.error("Error loading cart from localStorage:", error)
-      // Reset to initial state if there's an error
       dispatch({ type: "CLEAR_CART" })
     }
   }, [])
@@ -157,7 +229,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("cart", JSON.stringify(cart))
     } catch (error) {
       console.error("Error saving cart to localStorage:", error)
-      // Notify user of the error
       if (toast) {
         toast({
           title: "Error saving cart",
@@ -178,7 +249,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart`,
-        duration: 3000, // Auto-dismiss after 3 seconds
+        duration: 3000,
       })
     }
   }
@@ -211,8 +282,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const applyCoupon = (couponCode: string): boolean => {
+    if (VALID_COUPONS[couponCode.toUpperCase()]) {
+      dispatch({ type: "APPLY_COUPON", payload: couponCode })
+      if (toast) {
+        toast({
+          title: "Coupon Applied!",
+          description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
+          variant: "success",
+        })
+      }
+      return true
+    } else {
+      if (toast) {
+        toast({
+          title: "Invalid Coupon",
+          description: `The coupon code "${couponCode}" is not valid.`,
+          variant: "destructive",
+        })
+      }
+      return false
+    }
+  }
+
   return (
-    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart, applyCoupon }}>
       {children}
     </CartContext.Provider>
   )
