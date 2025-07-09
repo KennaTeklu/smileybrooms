@@ -13,8 +13,6 @@ const PersistentBookNowButton = dynamic(() => import("./persistent-book-now-butt
   loading: () => null,
 })
 
-// Removed AccessibilityToolbar dynamic import
-
 const CollapsibleSharePanel = dynamic(() => import("./collapsible-share-panel"), {
   ssr: false,
   loading: () => null,
@@ -32,7 +30,6 @@ export default function UnifiedFloatingWrapper() {
     <Suspense fallback={null}>
       <FloatingCartButton />
       <PersistentBookNowButton />
-      {/* Removed AccessibilityToolbar component */}
       <CollapsibleSharePanel onPanelStateChange={setSharePanelInfo} />
       <CollapsibleChatbotPanel sharePanelInfo={sharePanelInfo} />
     </Suspense>
