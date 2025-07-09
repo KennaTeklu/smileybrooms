@@ -17,7 +17,7 @@ import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
 import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import JotFormChatbot from "@/components/jotform-chatbot"
+import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel" // Import the new chatbot panel
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -61,7 +61,7 @@ export default function RootLayout({
                       {/* Right side panels - grouped and stacked */}
                       <div className="fixed right-0 top-20 z-50 flex flex-col items-end space-y-5">
                         <CollapsibleSharePanel />
-                        <JotFormChatbot />
+                        <CollapsibleChatbotPanel /> {/* Use the new chatbot panel */}
                       </div>
                       <CollapsibleAddAllPanel />
                       <CollapsibleCartPanel />

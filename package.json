@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/openai": "latest",
     "@emotion/is-prop-valid": "latest",
     "@floating-ui/react": "latest",
     "@hookform/resolvers": "^3.9.1",
@@ -40,6 +41,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "latest",
     "@tanstack/react-query": "latest",
+    "ai": "latest",
     "autoprefixer": "^10.4.20",
     "canvas-confetti": "latest",
     "class-variance-authority": "^0.7.1",
