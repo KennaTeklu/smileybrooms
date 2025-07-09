@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic"
 import { Suspense } from "react" // Import Suspense
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
-import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -72,9 +71,9 @@ export default function AccessibilityPage() {
               </CardHeader>
               <CardContent>
                 <ul className="list-disc pl-5 space-y-2">
-                  <li>Alt+C to open cart</li>
-                  <li>Alt+A for accessibility panel</li>
-                  <li>Alt+H to go to homepage</li>
+                  <li>Alt&#43;C to open cart</li>
+                  <li>Alt&#43;A for accessibility panel</li>
+                  <li>Alt&#43;H to go to homepage</li>
                   <li>Improved focus indicators</li>
                 </ul>
               </CardContent>
@@ -106,7 +105,6 @@ export default function AccessibilityPage() {
             <EnhancedAccessibilityPanel />
           </Suspense>
         </main>
-        <AccessibilityToolbar />
       </div>
     </AccessibilityProvider>
   )
