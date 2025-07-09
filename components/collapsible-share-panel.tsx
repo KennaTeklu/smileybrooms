@@ -103,7 +103,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const panelRef = useRef<HTMLDivElement>(null)
-  const panelTopPosition = useRef("0px").current // Initialize panelTopPosition
+  const panelTopPosition = useRef(0) // numeric top position (in px) stored in a ref
 
   // Define configurable scroll range values
   const minTopOffset = 20 // Minimum distance from the top of the viewport
@@ -129,7 +129,13 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
       setScrollPosition(window.scrollY)
       if (panelRef.current) {
         setPanelHeight(panelRef.current.offsetHeight)
-        panelTopPosition.current = `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, document.documentElement.scrollHeight - panelRef.current.offsetHeight - bottomPageMargin))}px`
+        panelTopPosition.current = Math.max(
+          minTopOffset,
+          Math.min(
+            window.scrollY + initialScrollOffset,
+            document.documentElement.scrollHeight - panelRef.current.offsetHeight - bottomPageMargin,
+          ),
+        )
       }
     }
 
@@ -154,7 +160,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
         const newState = {
           expanded: false,
           height: panelRef.current.offsetHeight || 0,
-          top: Number.parseFloat(panelTopPosition.current),
+          top: panelTopPosition.current,
         }
         onPanelStateChange(newState)
       }
@@ -233,7 +239,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
                   const newState = {
                     expanded: false,
                     height: panelRef.current?.offsetHeight || 0,
-                    top: Number.parseFloat(panelTopPosition.current),
+                    top: panelTopPosition.current,
                   }
                   onPanelStateChange(newState)
                 }}
@@ -347,7 +353,7 @@ export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: Collaps
               const newState = {
                 expanded: true,
                 height: panelRef.current?.offsetHeight || 0,
-                top: Number.parseFloat(panelTopPosition.current),
+                top: panelTopPosition.current,
               }
               onPanelStateChange(newState)
             }}
