@@ -1,108 +1,119 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { Menu, Home, DollarSign, Users, Mail } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation" // Import useRouter
+import { Menu, Home, Calculator, Users, Mail } from "lucide-react" // Import necessary icons
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Import SheetHeader, SheetTitle
 import Logo from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
-import CartButton from "@/components/cart-button"
+import CartButton from "@/components/cart-button" // Import CartButton
 
-/**
- * Central place for links shown in the header
- * – keeps both desktop and mobile navigation in sync
- */
-const NAV_LINKS = [
+const navigationLinks = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/pricing", label: "Pricing", icon: Calculator },
   { href: "/about", label: "About", icon: Users },
   { href: "/contact", label: "Contact", icon: Mail },
-] as const
+]
 
 export function EnhancedHeader() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  /* cart & UI state ------------------------------------------------------- */
+  const router = useRouter() // Initialize useRouter
   const { cart } = useCart()
+  const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  /* detect if the current route is exactly "/" ---------------------------- */
-  const isHomePage = pathname === "/"
-
-  /* side-effects ---------------------------------------------------------- */
-  useEffect(() => {
-    setHasItems(!!cart.items?.length)
-  }, [cart.items])
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false) // State for mobile menu
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    onScroll()
-    return () => window.removeEventListener("scroll", onScroll)
+    setIsHomePage(pathname === "/")
+  }, [pathname])
+
+  useEffect(() => {
+    setHasItems(cart.items && cart.items.length > 0)
+  }, [cart])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    handleScroll()
+
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  /* handlers -------------------------------------------------------------- */
-  const goToCart = () => router.push("/cart")
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
 
-  /* render shortcuts ------------------------------------------------------ */
-  const containerCls = "container flex h-16 items-center justify-between transition-all"
+  const handleCartButtonClick = () => {
+    router.push("/cart")
+  }
 
-  /* 1️⃣ No header (home page with empty cart) ----------------------------- */
-  if (isHomePage && !hasItems) return null
+  const handleBookNowClick = () => {
+    router.push("/calculator") // Navigate to the calculator page
+    setIsMenuOpen(false) // Close menu on mobile after clicking
+  }
 
-  /* 2️⃣ Cart-only header (home page with items) --------------------------- */
+  // If homepage and no items, don't show header
+  if (isHomePage && !hasItems) {
+    return null
+  }
+
+  // If homepage with items, only show cart
   if (isHomePage && hasItems) {
     return (
       <header
-        className={`fixed top-0 right-0 z-40 p-4 ${
-          scrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""
-        }`}
+        className={`fixed top-0 right-0 z-40 p-4 transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""}`}
       >
-        <CartButton showLabel={false} variant="default" size="lg" onClick={goToCart} />
+        <div className="flex justify-end">
+          <CartButton showLabel={false} variant="default" size="lg" onClick={handleCartButtonClick} />
+        </div>
       </header>
     )
   }
 
-  /* 3️⃣ Regular header (all other pages) ---------------------------------- */
+  // Regular header for other pages
   return (
     <header
-      className={`sticky top-0 z-40 w-full ${
-        scrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900"
-      }`}
+      className={`sticky top-0 z-40 w-full transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900"}`}
     >
-      <div className={containerCls}>
-        {/* ---------- brand + desktop nav ---------- */}
+      <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Logo />
-          <nav className="hidden gap-6 md:flex">
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  pathname === href ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex gap-6">
+            {navigationLinks.map((link) => {
+              const IconComponent = link.icon
+              const isActive = pathname === link.href
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
           </nav>
         </div>
 
-        {/* ---------- right-hand controls ---------- */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          <CartButton showLabel={false} onClick={goToCart} />
+          <CartButton showLabel={false} size="default" onClick={handleCartButtonClick} />
 
-          {/* mobile menu */}
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+          {/* Book Now Button for Desktop */}
+          <Button onClick={handleBookNowClick} className="hidden md:inline-flex">
+            Book Now
+          </Button>
+
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden bg-transparent">
                 <Menu className="h-5 w-5" />
@@ -113,19 +124,25 @@ export function EnhancedHeader() {
               <SheetHeader>
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
-
               <div className="flex flex-col gap-6 pt-6">
-                {NAV_LINKS.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="flex items-center gap-3 text-lg font-medium hover:text-primary"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {label}
-                  </Link>
-                ))}
+                {navigationLinks.map((link) => {
+                  const IconComponent = link.icon
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="flex items-center gap-3 text-lg font-medium hover:text-primary"
+                      onClick={() => setIsMenuOpen(false)} // Close menu on click
+                    >
+                      <IconComponent className="h-5 w-5" />
+                      {link.label}
+                    </Link>
+                  )
+                })}
+                {/* Book Now Button for Mobile */}
+                <Button onClick={handleBookNowClick} className="w-full mt-4">
+                  Book Now
+                </Button>
               </div>
             </SheetContent>
           </Sheet>
@@ -134,5 +151,3 @@ export function EnhancedHeader() {
     </header>
   )
 }
-
-export default EnhancedHeader
