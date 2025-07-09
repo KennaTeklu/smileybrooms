@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
+import { Twitter, Facebook, Linkedin, RssIcon as Reddit, Mail, MessageSquare, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,7 +25,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "twitter",
     name: "Twitter",
     url: "https://twitter.com/intent/tweet?url=",
-    icon: <Share2 />,
+    icon: <Twitter />,
     color: "bg-blue-500",
     category: "social",
   },
@@ -32,7 +33,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "facebook",
     name: "Facebook",
     url: "https://www.facebook.com/sharer/sharer.php?u=",
-    icon: <Share2 />,
+    icon: <Facebook />,
     color: "bg-blue-700",
     category: "social",
   },
@@ -40,7 +41,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "linkedin",
     name: "LinkedIn",
     url: "https://www.linkedin.com/shareArticle?url=",
-    icon: <Share2 />,
+    icon: <Linkedin />,
     color: "bg-blue-800",
     category: "work",
   },
@@ -48,7 +49,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "reddit",
     name: "Reddit",
     url: "https://www.reddit.com/submit?url=",
-    icon: <Share2 />,
+    icon: <Reddit />,
     color: "bg-orange-500",
     category: "social",
   },
@@ -56,7 +57,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "email",
     name: "Email",
     url: "mailto:?body=",
-    icon: <Share2 />,
+    icon: <Mail />,
     color: "bg-gray-500",
     category: "more",
   },
@@ -64,7 +65,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "whatsapp",
     name: "WhatsApp",
     url: "https://api.whatsapp.com/send?text=",
-    icon: <Share2 />,
+    icon: <MessageSquare />,
     color: "bg-green-500",
     category: "chat",
   },
@@ -72,7 +73,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "telegram",
     name: "Telegram",
     url: "https://telegram.me/share/url?url=",
-    icon: <Share2 />,
+    icon: <Send />,
     color: "bg-blue-400",
     category: "chat",
   },
@@ -80,7 +81,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "copy",
     name: "Copy Link",
     url: "",
-    icon: <Share2 />,
+    icon: <Copy />,
     color: "bg-gray-500",
     category: "more",
   },
@@ -224,7 +225,7 @@ export function CollapsibleSharePanel() {
             {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={copyToClipboard}>
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={copyToClipboard}>
                   {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                   {copied ? "Copied!" : "Copy Link"}
                 </Button>
