@@ -5,12 +5,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import { MessageCircle, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import JotFormChatbotEmbed from "./jotform-chatbot-embed" // Import the new embed component
 
-interface CollapsibleChatbotPanelProps {
-  jotformUrl: string // Prop to pass the JotForm URL
-}
-
-export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -23,11 +20,13 @@ export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelP
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
@@ -38,11 +37,11 @@ export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelP
   }
 
   return (
-    <div ref={panelRef} className="flex">
+    <div ref={panelRef} className="relative z-50 flex">
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
-            key="expanded-chatbot"
+            key="expanded"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "320px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
@@ -63,20 +62,14 @@ export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelP
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-hidden">
-              {/* Embed JotForm here */}
-              <iframe
-                id="jotformIframe"
-                src={jotformUrl}
-                className="w-full h-full border-0"
-                title="JotForm Chatbot"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              ></iframe>
+            <div className="flex-1 overflow-hidden min-h-[300px]">
+              {/* Render the JotForm chatbot embed component */}
+              <JotFormChatbotEmbed />
             </div>
           </motion.div>
         ) : (
           <motion.button
-            key="collapsed-chatbot"
+            key="collapsed"
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: "auto", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
@@ -88,7 +81,7 @@ export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelP
               "border-l border-t border-b border-gray-200 dark:border-gray-800",
               "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
             )}
-            aria-label="Open chatbot panel"
+            aria-label="Open chatbot"
           >
             <ChevronLeft className="h-4 w-4" />
             <MessageCircle className="h-5 w-5" />
