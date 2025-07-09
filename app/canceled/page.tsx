@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { XCircle, ShoppingCart, ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
 
 export default function CanceledPage() {
   return (
@@ -36,8 +34,6 @@ export default function CanceledPage() {
         </CardFooter>
       </Card>
 
-      {/* Accessibility Toolbar */}
-      <AccessibilityToolbar />
     </div>
   )
 }
