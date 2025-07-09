@@ -1,5 +1,4 @@
 "use client"
-export const dynamic = "force-dynamic"
 
 import type React from "react"
 
@@ -11,9 +10,3 @@ export function QueryClientProvider({ children }: { children: React.ReactNode })
 
   return <ReactQueryClientProvider client={queryClient}>{children}</ReactQueryClientProvider>
 }
-
-// Alias so other modules can import { QueryClientProviderWrapper }
-export const QueryClientProviderWrapper = QueryClientProvider
-
-// Optional default export for convenience
-export default QueryClientProvider

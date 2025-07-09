@@ -6,18 +6,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Send,
-  Loader2,
-  Mic,
-  MicOff,
-  Compass,
-  DollarSign,
-  CalendarCheck,
-  MessageSquareText,
-  ChevronLeft,
-  Bot,
-} from "lucide-react"
+import { Send, Loader2, Mic, MicOff, MapPin, Star, MessageSquare, TrendingUp, ChevronLeft, Bot } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { useAccessibility } from "@/lib/accessibility-context"
@@ -53,7 +42,6 @@ export default function SuperChatbot() {
   const [isMounted, setIsMounted] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const [isScrollPaused, setIsScrollPaused] = useState(false)
-  const [jotformLoaded, setJotformLoaded] = useState(false)
   const [userContext, setUserContext] = useState({
     currentPage: pathname,
     hasInteracted: false,
@@ -64,12 +52,10 @@ export default function SuperChatbot() {
   const panelRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const jotformIframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Define configurable scroll range values
+  // Define configurable scroll range values - positioned below share panel
   const minTopOffset = 20 // Minimum distance from the top of the viewport
-  // Adjusted initialScrollOffset to be 50px below the share panel (which is around 100px from top)
-  const initialScrollOffset = 150 // This positions it roughly 50px below the share panel
+  const initialScrollOffset = 150 // Much more offset to position below share panel
   const bottomPageMargin = 20 // Margin from the very bottom of the document
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
@@ -161,25 +147,6 @@ export default function SuperChatbot() {
     }
   }, [handleInputChange, toast])
 
-  // Load JotForm script when "Live Agent" tab is active
-  useEffect(() => {
-    if (activeTab === "live-agent" && !jotformLoaded) {
-      const script = document.createElement("script")
-      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
-      script.onload = () => {
-        setJotformLoaded(true)
-        if (jotformIframeRef.current) {
-          ;(window as any).jotformEmbedHandler(`iframe[id='${jotformIframeRef.current.id}']`, "https://www.jotform.com")
-        }
-      }
-      document.body.appendChild(script)
-
-      return () => {
-        document.body.removeChild(script)
-      }
-    }
-  }, [activeTab, jotformLoaded])
-
   // Track user context
   useEffect(() => {
     setUserContext((prev) => ({
@@ -249,7 +216,7 @@ export default function SuperChatbot() {
       const systemMessage: ChatMessage = {
         id: Date.now().toString(),
         role: "system",
-        content: "Your feedback has been submitted successfully!",
+        content: "✅ Your feedback has been submitted successfully!",
         timestamp: new Date(),
         type: "form",
       }
@@ -270,7 +237,7 @@ export default function SuperChatbot() {
     const systemMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "system",
-      content: "Starting the website tour! I'll guide you through the key features.",
+      content: "🎯 Starting the website tour! I'll guide you through the key features.",
       timestamp: new Date(),
       type: "tour",
     }
@@ -301,12 +268,12 @@ export default function SuperChatbot() {
     }
 
     welcome += `\n\nI can help you with:
-• Cleaning service questions
-• Booking and scheduling
-• Pricing information
-• Website tour and navigation
-• Feedback and suggestions
-• Voice commands (click the mic!)
+• 🧹 Cleaning service questions
+• 📋 Booking and scheduling
+• 💰 Pricing information
+• 🎯 Website tour and navigation
+• 📝 Feedback and suggestions
+• 🎤 Voice commands (click the mic!)
 
 What would you like to know?`
 
@@ -314,18 +281,18 @@ What would you like to know?`
   }
 
   const quickActions = [
-    { label: "Start Tour", icon: Compass, action: handleTourRequest },
+    { label: "Start Tour", icon: MapPin, action: handleTourRequest },
     {
       label: "Get Pricing",
-      icon: DollarSign,
+      icon: TrendingUp,
       action: () => handleInputChange({ target: { value: "What are your cleaning service prices?" } } as any),
     },
     {
       label: "Book Service",
-      icon: CalendarCheck,
+      icon: Star,
       action: () => handleInputChange({ target: { value: "How do I book a cleaning service?" } } as any),
     },
-    { label: "Give Feedback", icon: MessageSquareText, action: () => setActiveTab("feedback") },
+    { label: "Give Feedback", icon: MessageSquare, action: () => setActiveTab("feedback") },
   ]
 
   return (
@@ -335,7 +302,7 @@ What would you like to know?`
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "min(100vw, 400px)", opacity: 1 }}
+            animate={{ width: "400px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 rounded-l-lg shadow-xl overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
@@ -370,11 +337,10 @@ What would you like to know?`
 
             <div className="h-[500px] flex flex-col">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                <TabsList className="grid w-full grid-cols-4 m-2">
+                <TabsList className="grid w-full grid-cols-3 m-2">
                   <TabsTrigger value="chat">Chat</TabsTrigger>
                   <TabsTrigger value="actions">Actions</TabsTrigger>
                   <TabsTrigger value="feedback">Feedback</TabsTrigger>
-                  <TabsTrigger value="live-agent">Live Agent</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="chat" className="flex-1 flex flex-col m-0">
@@ -493,7 +459,7 @@ What would you like to know?`
                       <div>
                         <label className="text-sm font-medium">Quick Feedback</label>
                         <div className="flex gap-2 mt-1">
-                          {["Excellent", "Good", "Neutral", "Poor", "Very Poor"].map((label, index) => (
+                          {["😍", "😊", "😐", "😕", "😞"].map((emoji, index) => (
                             <Button
                               key={index}
                               variant="outline"
@@ -502,11 +468,12 @@ What would you like to know?`
                                 handleFormSubmission({
                                   type: "quick_feedback",
                                   rating: 5 - index,
+                                  emoji,
                                   page: pathname,
                                 })
                               }
                             >
-                              {label}
+                              {emoji}
                             </Button>
                           ))}
                         </div>
@@ -530,39 +497,6 @@ What would you like to know?`
                         />
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
-
-                {/* Live Agent Tab with JotForm Embed */}
-                <TabsContent value="live-agent" className="flex-1 flex flex-col m-0 p-0">
-                  <div className="flex-1 w-full h-full overflow-hidden">
-                    <iframe
-                      id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
-                      ref={jotformIframeRef}
-                      title="smileybrooms.com: Customer Support Representative"
-                      onLoad={() => {
-                        if (jotformIframeRef.current) {
-                          if (jotformLoaded) {
-                            ;(window as any).jotformEmbedHandler(
-                              `iframe[id='${jotformIframeRef.current.id}']`,
-                              "https://www.jotform.com",
-                            )
-                          }
-                        }
-                      }}
-                      allowTransparency={true}
-                      allow="geolocation; microphone; camera; fullscreen"
-                      src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
-                      frameBorder="0"
-                      style={{
-                        minWidth: "100%",
-                        maxWidth: "100%",
-                        height: "100%",
-                        border: "none",
-                        width: "100%",
-                      }}
-                      scrolling="no"
-                    ></iframe>
                   </div>
                 </TabsContent>
               </Tabs>

@@ -1,5 +1,4 @@
 "use client"
-export const dynamic = "force-dynamic"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Shield, Leaf, Award, Users } from "lucide-react"

@@ -1,16 +1,15 @@
 // lib/workers/price-calculator.worker.ts
 
 import {
-  BASE_ROOM_RATES, // Changed from ROOM_PRICES in ../constants
-  CLEANLINESS_DIFFICULTY, // Changed from CLEANLINESS_LEVEL_MULTIPLIERS in ../constants
-  PREMIUM_EXCLUSIVE_SERVICES, // Changed from EXCLUSIVE_SERVICE_PRICING in ../constants
-  STRATEGIC_ADDONS, // Changed from ADDON_PRICING in ../constants
-  FREQUENCY_OPTIONS, // Changed from FREQUENCY_DISCOUNTS in ../constants
+  ADDON_PRICING,
+  CLEANLINESS_LEVEL_MULTIPLIERS,
+  EXCLUSIVE_SERVICE_PRICING,
+  FREQUENCY_DISCOUNTS,
   MINIMUM_JOB_VALUES,
+  ROOM_PRICES,
   SERVICE_TIERS,
-  WAIVER_DISCOUNT, // Declared here
-} from "../pricing-config" // All imports now from pricing-config.ts
-
+  WAIVER_DISCOUNT,
+} from "../constants"
 import type { AddonId, CleanlinessLevelId, ExclusiveServiceId, ServiceTierId } from "../types"
 
 export interface ServiceConfig {
@@ -19,206 +18,117 @@ export interface ServiceConfig {
   cleanlinessLevel: CleanlinessLevelId
   frequency: string
   paymentFrequency: string
-  selectedAddons: { id: AddonId; quantity?: number }[] // Updated to match context type
-  selectedExclusiveServices: ExclusiveServiceId[]
+  selectedAddons: string[]
+  selectedExclusiveServices: string[]
   waiverSigned: boolean
-  propertySizeSqFt: number
-  propertyType: "studio" | "3br_home" | "5br_mansion" | null
-  isRentalProperty: boolean
-  hasPets: boolean
-  isPostRenovation: boolean
-  hasMoldWaterDamage: boolean
+  propertySizeSqFt: number // New
+  propertyType: "studio" | "3br_home" | "5br_mansion" | null // New
+  isRentalProperty: boolean // New
+  hasPets: boolean // New
+  isPostRenovation: boolean // New
+  hasMoldWaterDamage: boolean // New
 }
 
 export interface PriceBreakdownItem {
   item: string
   value: number
   type: "room" | "addon" | "exclusiveService" | "discount" | "adjustment"
-  description?: string // Added description for more detail
 }
 
 export interface PriceCalculationResult {
   total: number
   breakdown: PriceBreakdownItem[]
-  firstServicePrice: number
-  recurringServicePrice: number
-  estimatedDuration: number
-  enforcedTier?: ServiceTierId
-  enforcedTierReason?: string
 }
 
 function calculatePrice(config: ServiceConfig): PriceCalculationResult {
   let currentTotal = 0
   const breakdown: PriceBreakdownItem[] = []
-  let enforcedTier: ServiceTierId | undefined = undefined
-  let enforcedTierReason: string | undefined = undefined
-
-  // Determine the effective service tier, applying automatic upgrades
-  let effectiveServiceTier = config.serviceTier
-
-  // Simplified automatic tier upgrades for worker (full logic in context)
-  if (
-    config.hasMoldWaterDamage ||
-    config.isPostRenovation ||
-    config.cleanlinessLevel === CLEANLINESS_DIFFICULTY.BIOHAZARD.level
-  ) {
-    effectiveServiceTier = SERVICE_TIERS.ELITE.id
-    enforcedTier = SERVICE_TIERS.ELITE.id
-    enforcedTierReason = config.hasMoldWaterDamage
-      ? "Mold/water damage situations require Elite service."
-      : config.isPostRenovation
-        ? "Post-renovation cleanings require Elite service."
-        : "Biohazard situations require Elite service."
-  } else if (config.hasPets || config.isRentalProperty || (config.propertySizeSqFt && config.propertySizeSqFt > 3000)) {
-    if (effectiveServiceTier === SERVICE_TIERS.STANDARD.id) {
-      effectiveServiceTier = SERVICE_TIERS.PREMIUM.id
-      enforcedTier = SERVICE_TIERS.PREMIUM.id
-      enforcedTierReason = config.hasPets
-        ? "Homes with pets require Premium service."
-        : config.isRentalProperty
-          ? "Rental properties require Premium service."
-          : "For homes over 3,000 sq ft, Premium service is required."
-    }
-  }
 
   // --- Room Pricing ---
   for (const roomType in config.rooms) {
     const roomCount = config.rooms[roomType]
-    const roomPrice = BASE_ROOM_RATES[roomType as keyof typeof BASE_ROOM_RATES]?.[effectiveServiceTier] || 0
+    const roomPrice = ROOM_PRICES[roomType] || 0 // Default to 0 if room price is not found
     const roomTotal = roomCount * roomPrice
 
-    if (roomCount > 0) {
-      breakdown.push({
-        item: `${roomType} (${roomCount})`,
-        value: roomTotal,
-        type: "room",
-        description: `Base rate for ${roomCount} ${roomType}(s) at ${effectiveServiceTier} tier`,
-      })
-    }
-    currentTotal += roomTotal
+    breakdown.push({
+      item: `${roomType} (${roomCount})`, // Corrected: Removed backslash, ensured proper template literal closing
+      value: roomTotal,
+      type: "room",
+    }) // Added semicolon for clarity
+    currentTotal += roomTotal // This line should be *after* the push, on its own line.
   }
 
   // --- Service Tier Multiplier ---
-  const tierMultiplier = SERVICE_TIERS[effectiveServiceTier].multiplier
-  const priceAfterTierMultiplier = currentTotal * tierMultiplier
-  breakdown.push({
-    item: `Service Tier Multiplier (${SERVICE_TIERS[effectiveServiceTier].name})`,
-    value: priceAfterTierMultiplier - currentTotal,
-    type: "adjustment",
-    description: `${SERVICE_TIERS[effectiveServiceTier].name} tier (${tierMultiplier}x)`,
-  })
-  currentTotal = priceAfterTierMultiplier
+  const tierMultiplier = SERVICE_TIERS[config.serviceTier].multiplier
+  currentTotal *= tierMultiplier
 
   // --- Cleanliness Level Multiplier ---
-  const cleanlinessLevelData = Object.values(CLEANLINESS_DIFFICULTY).find((c) => c.level === config.cleanlinessLevel)
-  const cleanlinessMultiplier = cleanlinessLevelData?.multipliers[effectiveServiceTier] || 1.0
-  const priceAfterCleanlinessMultiplier = currentTotal * cleanlinessMultiplier
+  const cleanlinessMultiplier = CLEANLINESS_LEVEL_MULTIPLIERS[config.cleanlinessLevel]
+  currentTotal *= cleanlinessMultiplier
+
+  // --- Frequency Discount ---
+  const frequencyDiscount = FREQUENCY_DISCOUNTS[config.frequency] || 0 // Default to 0 if frequency is not found
   breakdown.push({
-    item: `Cleanliness Level Multiplier (${cleanlinessLevelData?.name})`,
-    value: priceAfterCleanlinessMultiplier - currentTotal,
-    type: "adjustment",
-    description: `${cleanlinessLevelData?.name} level (${cleanlinessMultiplier}x)`,
+    item: `Frequency Discount (${config.frequency})`,
+    value: currentTotal * frequencyDiscount * -1,
+    type: "discount",
   })
-  currentTotal = priceAfterCleanlinessMultiplier
+  currentTotal *= 1 - frequencyDiscount
 
   // --- Addon Pricing ---
-  let addonsTotal = 0
-  for (const selectedAddon of config.selectedAddons) {
-    const addon = STRATEGIC_ADDONS.find((a) => a.id === selectedAddon.id)
-    if (addon) {
-      let addonPrice = addon.prices[effectiveServiceTier]
-      if (addon.includedInElite && effectiveServiceTier === SERVICE_TIERS.ELITE.id) {
-        addonPrice = 0 // Included in Elite, so price is 0
-      }
-      const quantity = selectedAddon.quantity || 1
-      const totalAddonCost = addonPrice * quantity
-      addonsTotal += totalAddonCost
-      breakdown.push({
-        item: `Add-On: ${addon.name}`,
-        value: totalAddonCost,
-        type: "addon",
-        description: `${addon.name} (${quantity}${addon.unit || ""}) at ${effectiveServiceTier} tier`,
-      })
-    }
+  for (const addonId of config.selectedAddons) {
+    const addonPrice = ADDON_PRICING[addonId as AddonId]
+    breakdown.push({
+      item: `Addon: ${addonId}`,
+      value: addonPrice,
+      type: "addon",
+    })
+    currentTotal += addonPrice
   }
-  currentTotal += addonsTotal
 
   // --- Exclusive Service Pricing ---
-  let exclusiveServicesTotal = 0
-  if (effectiveServiceTier === SERVICE_TIERS.ELITE.id) {
-    for (const serviceId of config.selectedExclusiveServices) {
-      const service = PREMIUM_EXCLUSIVE_SERVICES.find((s) => s.id === serviceId)
-      if (service) {
-        let serviceCost = service.price
-        if (service.unit === "/room") {
-          const totalRooms = Object.values(config.rooms).reduce((sum, count) => sum + count, 0)
-          serviceCost *= totalRooms
-        }
-        exclusiveServicesTotal += serviceCost
-        breakdown.push({
-          item: `Exclusive Service: ${service.name}`,
-          value: serviceCost,
-          type: "exclusiveService",
-          description: `${service.name} (Elite Only)`,
-        })
-      }
-    }
-  }
-  currentTotal += exclusiveServicesTotal
-
-  // --- Minimum Job Value Enforcement ---
-  let minimumEnforcedAmount = 0
-  if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType]) {
-    const minimumValueForTier = MINIMUM_JOB_VALUES[config.propertyType][effectiveServiceTier]
-    if (minimumValueForTier && currentTotal < minimumValueForTier) {
-      minimumEnforcedAmount = minimumValueForTier - currentTotal
-      currentTotal = minimumValueForTier
-      breakdown.push({
-        item: `Minimum Job Value Enforcement`,
-        value: minimumEnforcedAmount,
-        type: "adjustment",
-        description: `Minimum job value of $${minimumValueForTier} enforced for ${config.propertyType} at ${effectiveServiceTier} tier`,
-      })
-    }
+  for (const serviceId of config.selectedExclusiveServices) {
+    const servicePrice = EXCLUSIVE_SERVICE_PRICING[serviceId as ExclusiveServiceId]
+    breakdown.push({
+      item: `Exclusive Service: ${serviceId}`,
+      value: servicePrice,
+      type: "exclusiveService",
+    })
+    currentTotal += servicePrice
   }
 
-  // Calculate the one-time price (first service price)
-  const firstServicePrice = currentTotal
-
-  // Apply frequency discount for recurring price
-  const selectedFrequency = FREQUENCY_OPTIONS[config.frequency]
-  const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-  const recurringServicePriceBeforePaymentDiscount = currentTotal * (1 - frequencyDiscount)
-  breakdown.push({
-    item: `Frequency Discount (${selectedFrequency?.name || config.frequency})`,
-    value: -(currentTotal - recurringServicePriceBeforePaymentDiscount),
-    type: "discount",
-    description: `${selectedFrequency?.name} discount (${(frequencyDiscount * 100).toFixed(0)}%)`,
-  })
-
-  const paymentDiscount = 0 // No payment frequency discount defined in pricing-config.ts yet
-  const recurringServicePrice = recurringServicePriceBeforePaymentDiscount * (1 - paymentDiscount)
-
-  // Apply waiver discount (if signed)
+  // --- Waiver Discount ---
   if (config.waiverSigned) {
-    const waiverDiscountAmount = currentTotal * WAIVER_DISCOUNT
     breakdown.push({
       item: "Waiver Discount",
-      value: -waiverDiscountAmount,
+      value: currentTotal * WAIVER_DISCOUNT * -1,
       type: "discount",
-      description: `Waiver discount (${(WAIVER_DISCOUNT * 100).toFixed(0)}%)`,
     })
-    currentTotal -= waiverDiscountAmount
+    currentTotal *= 1 - WAIVER_DISCOUNT
+  }
+
+  // --- Automatic Tier Upgrades Enforcement (Worker-side validation/override) ---
+  // This logic should primarily live in the context, but the worker needs to be aware
+  // of the final serviceTier passed to it. We'll ensure the worker uses the
+  // `serviceTier` provided in the config, which the context will have already enforced.
+  // The worker's role here is to apply the correct minimums and multipliers based on the *final* tier.
+
+  // --- Minimum Job Value Enforcement ---
+  if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType]) {
+    const minimumValueForTier = MINIMUM_JOB_VALUES[config.propertyType][config.serviceTier]
+    if (minimumValueForTier && currentTotal < minimumValueForTier) {
+      breakdown.push({
+        item: `Minimum Job Value (${config.propertyType} - ${SERVICE_TIERS[config.serviceTier].name})`,
+        value: minimumValueForTier - currentTotal,
+        type: "adjustment",
+      })
+      currentTotal = minimumValueForTier
+    }
   }
 
   return {
     total: Number.parseFloat(currentTotal.toFixed(2)),
     breakdown,
-    firstServicePrice: Number.parseFloat(firstServicePrice.toFixed(2)),
-    recurringServicePrice: Number.parseFloat(recurringServicePrice.toFixed(2)),
-    estimatedDuration: Math.round(firstServicePrice * 0.8), // Example estimation
-    enforcedTier: enforcedTier,
-    enforcedTierReason: enforcedTierReason,
   }
 }
 

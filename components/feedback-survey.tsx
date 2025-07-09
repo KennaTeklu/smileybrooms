@@ -41,7 +41,7 @@ export default function FeedbackSurvey() {
         rating: rating,
         comment: comment || "No comment provided",
         suggestions: suggestions || "No suggestions provided",
-        message: `[FEEDBACK] User Feedback: Rating ${rating}/5`, // Main message for spreadsheet
+        message: `⭐ User Feedback: Rating ${rating}/5`, // Main message for spreadsheet
       }
 
       const metaData = {

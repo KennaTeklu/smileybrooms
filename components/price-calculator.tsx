@@ -10,19 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import {
-  Home,
-  Calendar,
-  Sparkles,
-  AlertCircle,
-  PlusCircle,
-  Diamond,
-  DollarSign,
-  Check,
-  Star,
-  Zap,
-  Shield,
-} from "lucide-react" // Added Check, Star, Zap, Shield
+import { Home, Calendar, Sparkles, AlertCircle, PlusCircle, Diamond, DollarSign } from "lucide-react" // Added DollarSign
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus, Plus } from "lucide-react"
@@ -33,7 +21,6 @@ import {
   CLEANLINESS_DIFFICULTY,
   STRATEGIC_ADDONS,
   PREMIUM_EXCLUSIVE_SERVICES,
-  BUNDLE_NAMING, // Import the new bundle naming
 } from "@/lib/pricing-config" // Import pricing data
 import type { ServiceTierId, CleanlinessLevelId } from "@/lib/pricing-config" // Import types
 import { Input } from "@/components/ui/input"
@@ -41,8 +28,6 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PriceBreakdownDetailed } from "@/components/price-breakdown-detailed" // Import PriceBreakdownDetailed
-import { Badge } from "@/components/ui/badge" // Import Badge for "Most Popular"
-import { Progress } from "@/components/ui/progress" // Import Progress component
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -83,27 +68,6 @@ const paymentFrequencyOptions = [
   { id: "monthly", label: "Monthly Subscription" },
   { id: "yearly", label: "Annual Subscription (Save 10%)" },
 ]
-
-// Define task counts for each tier
-const TIER_TASK_COUNTS = {
-  standard: 20, // Example: 20+ point checklist
-  premium: 70, // Example: 70+ point checklist
-  elite: 120, // Example: 120+ point checklist
-}
-
-// Define time estimates for each tier
-const TIER_TIME_ESTIMATES = {
-  standard: "15-20 min",
-  premium: "45-60 min",
-  elite: "90-120 min",
-}
-
-// Define guarantees for each tier
-const TIER_GUARANTEES = {
-  standard: "7-day",
-  premium: "30-day",
-  elite: "1-year",
-}
 
 interface RoomConfiguratorProps {
   selectedRooms: Record<string, number>
@@ -297,60 +261,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     multiplier: level.multipliers[serviceTier],
   }))
 
-  // Calculate total rooms selected
-  const totalRoomsSelected = Object.values(selectedRooms).reduce((sum, count) => sum + count, 0)
-
-  // Function to render tier comparison table
-  const renderTierComparisonTable = () => {
-    const getTierIcon = (tierId: ServiceTierId) => {
-      if (tierId === "standard") return <Shield className="h-4 w-4 text-blue-600" />
-      if (tierId === "premium") return <Star className="h-4 w-4 text-purple-600" />
-      if (tierId === "elite") return <Zap className="h-4 w-4 text-green-600" />
-      return null
-    }
-
-    return (
-      <div className="overflow-x-auto mt-4">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-2"></th>
-              {Object.values(SERVICE_TIERS).map((tier) => (
-                <th key={tier.id} className="text-center py-2">
-                  <div className="flex items-center justify-center gap-1">
-                    {getTierIcon(tier.id as ServiceTierId)}
-                    <span>{tier.name}</span>
-                    {tier.id === "premium" && <Badge className="ml-1 bg-green-500">Popular</Badge>}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b">
-              <td className="py-2 font-medium">Tasks/Room</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.standard}+</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.premium}+</td>
-              <td className="text-center py-2">{TIER_TASK_COUNTS.elite}+</td>
-            </tr>
-            <tr className="border-b">
-              <td className="py-2 font-medium">Time/Room</td>
-              <td className="text-center py-2">{TIER_TIME_ESTIMATES.standard}</td>
-              <td className="text-center py-2">{TIER_TIME_ESTIMATES.premium}</td>
-              <td className="text-center py-2">{TIER_TIME_ESTIMATES.elite}</td>
-            </tr>
-            <tr>
-              <td className="py-2 font-medium">Guarantee</td>
-              <td className="text-center py-2">{TIER_GUARANTEES.standard}</td>
-              <td className="text-center py-2">{TIER_GUARANTEES.premium}</td>
-              <td className="text-center py-2">{TIER_GUARANTEES.elite}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto">
       <Tabs
@@ -360,14 +270,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         <TabsList className="grid w-full grid-cols-3 mb-6">
           {Object.values(SERVICE_TIERS).map((tier) => (
             <TabsTrigger key={tier.id} value={tier.id} className="text-sm md:text-base">
-              {tier.id === "premium" ? (
-                <div className="flex flex-col items-center">
-                  <span>{tier.name} Cleaning</span>
-                  <Badge className="mt-1 bg-green-500">Most Popular</Badge>
-                </div>
-              ) : (
-                <span>{tier.name} Cleaning</span>
-              )}
+              {tier.name} Cleaning
             </TabsTrigger>
           ))}
         </TabsList>
@@ -375,38 +278,16 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         {Object.values(SERVICE_TIERS).map((tier) => (
           <TabsContent key={tier.id} value={tier.id} className="space-y-6">
             <div className="text-center mb-4">
-              <h3 className="text-lg font-medium">
-                {tier.name} Cleaning Service - {BUNDLE_NAMING[tier.name.toUpperCase() as keyof typeof BUNDLE_NAMING]}
-              </h3>
+              <h3 className="text-lg font-medium">{tier.name} Cleaning Service</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {tier.id === "standard" && (
-                  <>
-                    <span className="font-medium">For: Basic maintenance</span>
-                    <br />
-                    Our standard cleaning covers all the basics with {TIER_TASK_COUNTS.standard}+ tasks per room.
-                  </>
-                )}
-                {tier.id === "premium" && (
-                  <>
-                    <span className="font-medium">For: Health-conscious families</span>
-                    <br />
-                    Our premium service includes {TIER_TASK_COUNTS.premium}+ tasks per room with hospital-grade
-                    disinfectants.
-                  </>
-                )}
-                {tier.id === "elite" && (
-                  <>
-                    <span className="font-medium">For: Luxury homes/Airbnb Superhosts</span>
-                    <br />
-                    Our white-glove service offers {TIER_TASK_COUNTS.elite}+ tasks per room with unparalleled attention
-                    to detail.
-                  </>
-                )}
+                {tier.id === "standard" &&
+                  "Our standard cleaning covers all the basics to keep your space clean and tidy."}
+                {tier.id === "premium" &&
+                  "Our premium service includes deep sanitization and premium products for a superior clean."}
+                {tier.id === "elite" &&
+                  "Our white-glove service offers unparalleled attention to detail and comprehensive guarantees."}
               </p>
             </div>
-
-            {/* Tier Comparison Table */}
-            {renderTierComparisonTable()}
 
             {/* Room Selection - Always visible */}
             <Card
@@ -433,38 +314,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <RoomConfigurator selectedRooms={selectedRooms} serviceTier={serviceTier} dispatch={dispatch} />
               </CardContent>
             </Card>
-
-            {/* Task Count Display with Progress Bar */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Check className="h-5 w-5 mr-2 text-green-500" />
-                <h3 className="text-lg font-medium">{TIER_TASK_COUNTS[serviceTier]}+ expert-level tasks per room</h3>
-              </div>
-              <div className="ml-7">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {serviceTier === "premium" && "2.3X deeper cleaning than standard"}
-                  {serviceTier === "elite" && "3.6X deeper cleaning than standard"}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {serviceTier === "standard" && "20+ point checklist"}
-                  {serviceTier === "premium" && "70+ point checklist"}
-                  {serviceTier === "elite" && "120+ point checklist"}
-                </p>
-                {serviceTier !== "elite" && (
-                  <div className="mt-3">
-                    <Label className="text-sm text-gray-600 dark:text-gray-400">
-                      Progress towards Elite:{" "}
-                      {Math.round((TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100)}%
-                    </Label>
-                    <Progress
-                      value={(TIER_TASK_COUNTS[serviceTier] / TIER_TASK_COUNTS.elite) * 100}
-                      className="w-full mt-1"
-                      indicatorColor={serviceTier === "standard" ? "bg-blue-500" : "bg-purple-500"}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Collapsible Sections */}
             <Accordion type="single" collapsible className="w-full space-y-4">
@@ -739,10 +588,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               {frequency !== "one_time" ? "First Service Price" : "Estimated Price"}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {SERVICE_TIERS[serviceTier].name} Cleaning (
-              {BUNDLE_NAMING[SERVICE_TIERS[serviceTier].name.toUpperCase() as keyof typeof BUNDLE_NAMING]})
+              {SERVICE_TIERS[serviceTier].name} Cleaning
               {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
-              {hasSelectedRooms() && ` • ${TIER_TASK_COUNTS[serviceTier]}+ tasks per room`}
             </p>
           </div>
           <div className="text-right">
@@ -803,27 +650,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                   onCheckedChange={(checked) => dispatch({ type: "SET_WAIVER_SIGNED", payload: checked })}
                 />
                 <Label htmlFor="biohazard-waiver">I agree to the Biohazard Waiver terms.</Label>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Elite tier upsell for multiple rooms */}
-        {totalRoomsSelected > 3 && serviceTier !== "elite" && (
-          <Alert className="mt-4 bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-800 dark:text-blue-300">
-            <Sparkles className="h-4 w-4" />
-            <AlertTitle>Upgrade Recommendation</AlertTitle>
-            <AlertDescription>
-              For {totalRoomsSelected} rooms, our Elite tier offers the best value with a bundle discount of
-              approximately ${(totalRoomsSelected * 50).toFixed(2)}.
-              <div className="mt-2">
-                <Button
-                  size="sm"
-                  onClick={() => dispatch({ type: "SET_SERVICE_TIER", payload: "elite" })}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Upgrade to Elite
-                </Button>
               </div>
             </AlertDescription>
           </Alert>

@@ -29,9 +29,9 @@ export function EnhancedFooter() {
               <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">SB</span>
               </div>
-              <span className="font-bold text-lg">
+              <span className="font-bold text-lg inline-flex items-center">
                 smiley
-                <span>brooms</span>
+                <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
               </span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -101,7 +101,7 @@ export function EnhancedFooter() {
           <div>
             <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>Phone: (602) 800-0605</li>
+              <li>Phone: (555) 123-4567</li>
               <li>Email: hello@smileybrooms.com</li>
               <li>Hours: Mon-Fri 8AM-6PM</li>
             </ul>
@@ -111,9 +111,9 @@ export function EnhancedFooter() {
         <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600 dark:text-gray-400">
           <p>
             &copy; 2024{" "}
-            <span className="">
+            <span className="inline-flex items-center">
               smiley
-              <span>brooms</span>
+              <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
             </span>
             . All rights reserved.
           </p>

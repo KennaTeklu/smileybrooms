@@ -120,21 +120,21 @@
 export const getFormEmoji = (formType: string): string => {
   switch (formType) {
     case "waitlist":
-      return "[WAITLIST]"
+      return "🟢"
     case "contact":
-      return "[CONTACT]"
+      return "🔵"
     case "career":
-      return "[CAREER]"
+      return "🟡"
     case "address":
-      return "[ADDRESS]"
+      return "🟣"
     case "checkout":
-      return "[CHECKOUT]"
+      return "🔴"
     case "question":
-      return "[QUESTION]"
+      return "❓"
     case "feedback":
-      return "[FEEDBACK]"
+      return "⭐"
     default:
-      return "[OTHER]"
+      return "⚪"
   }
 }
 

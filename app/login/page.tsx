@@ -1,5 +1,4 @@
 "use client"
-export const dynamic = "force-dynamic"
 
 import { useActionState } from "react"
 import { signIn, signUp } from "@/app/auth/actions"
