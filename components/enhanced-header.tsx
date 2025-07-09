@@ -2,39 +2,32 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation" // Import useRouter
-import { Menu, Home, Calculator, Users, Mail } from "lucide-react" // Import necessary icons
+import { usePathname } from "next/navigation"
+import { Menu, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Import SheetHeader, SheetTitle
-import Logo from "@/components/logo"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Logo from "@/components/logo" // Ensure this imports the updated Logo
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
-import CartButton from "@/components/cart-button" // Import CartButton
-
-const navigationLinks = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/pricing", label: "Pricing", icon: Calculator },
-  { href: "/about", label: "About", icon: Users },
-  { href: "/contact", label: "Contact", icon: Mail },
-]
 
 export function EnhancedHeader() {
   const pathname = usePathname()
-  const router = useRouter() // Initialize useRouter
   const { cart } = useCart()
   const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false) // State for mobile menu
 
+  // Check if current page is homepage
   useEffect(() => {
     setIsHomePage(pathname === "/")
   }, [pathname])
 
+  // Check if cart has items
   useEffect(() => {
     setHasItems(cart.items && cart.items.length > 0)
   }, [cart])
 
+  // Track scroll position for header styling
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
@@ -45,20 +38,6 @@ export function EnhancedHeader() {
 
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMenuOpen(false)
-  }, [pathname])
-
-  const handleCartButtonClick = () => {
-    router.push("/cart")
-  }
-
-  const handleBookNowClick = () => {
-    router.push("/calculator") // Navigate to the calculator page
-    setIsMenuOpen(false) // Close menu on mobile after clicking
-  }
 
   // If homepage and no items, don't show header
   if (isHomePage && !hasItems) {
@@ -72,7 +51,14 @@ export function EnhancedHeader() {
         className={`fixed top-0 right-0 z-40 p-4 transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""}`}
       >
         <div className="flex justify-end">
-          <CartButton showLabel={false} variant="default" size="lg" onClick={handleCartButtonClick} />
+          <Button variant="outline" size="icon" aria-label="Open cart">
+            <ShoppingCart className="h-5 w-5" />
+            {hasItems && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                {cart.items?.length}
+              </span>
+            )}
+          </Button>
         </div>
       </header>
     )
@@ -85,64 +71,73 @@ export function EnhancedHeader() {
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Logo />
+          {/* Removed the outer Link here, Logo component handles its own linking */}
+          <Logo /> {/* This will now use favicon.png */}
           <nav className="hidden md:flex gap-6">
-            {navigationLinks.map((link) => {
-              const IconComponent = link.icon
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"}`}
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
+            {pathname !== "/" && (
+              <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
+                Home
+              </Link>
+            )}
+            {pathname !== "/pricing" && (
+              <Link href="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
+                Pricing
+              </Link>
+            )}
+            {pathname !== "/about" && (
+              <Link href="/about" className="text-sm font-medium transition-colors hover:text-primary">
+                About
+              </Link>
+            )}
+            {pathname !== "/contact" && (
+              <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
+                Contact
+              </Link>
+            )}
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          <CartButton showLabel={false} size="default" onClick={handleCartButtonClick} />
-
-          {/* Book Now Button for Desktop */}
-          <Button onClick={handleBookNowClick} className="hidden md:inline-flex">
-            Book Now
+          <Button variant="outline" size="icon" aria-label="Open cart">
+            <ShoppingCart className="h-5 w-5" />
+            {hasItems && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                {cart.items?.length}
+              </span>
+            )}
           </Button>
 
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden bg-transparent">
+              <Button variant="outline" size="icon" className="md:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetHeader>
-                <SheetTitle>Navigation</SheetTitle>
-              </SheetHeader>
               <div className="flex flex-col gap-6 pt-6">
-                {navigationLinks.map((link) => {
-                  const IconComponent = link.icon
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="flex items-center gap-3 text-lg font-medium hover:text-primary"
-                      onClick={() => setIsMenuOpen(false)} // Close menu on click
-                    >
-                      <IconComponent className="h-5 w-5" />
-                      {link.label}
-                    </Link>
-                  )
-                })}
-                {/* Book Now Button for Mobile */}
-                <Button onClick={handleBookNowClick} className="w-full mt-4">
-                  Book Now
-                </Button>
+                {pathname !== "/" && (
+                  <Link href="/" className="text-lg font-medium">
+                    Home
+                  </Link>
+                )}
+                {pathname !== "/pricing" && (
+                  <Link href="/pricing" className="text-lg font-medium">
+                    Pricing
+                  </Link>
+                )}
+                {pathname !== "/about" && (
+                  <Link href="/about" className="text-lg font-medium">
+                    About
+                  </Link>
+                )}
+                {pathname !== "/contact" && (
+                  <Link href="/contact" className="text-lg font-medium">
+                    Contact
+                  </Link>
+                )}
               </div>
             </SheetContent>
           </Sheet>
