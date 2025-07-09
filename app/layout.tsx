@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 
 import { Inter } from "next/font/google"
@@ -11,7 +9,7 @@ import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import Header from "@/components/header"
-import { Footer } from "@/components/footer"
+import Footer from "@/components/footer"
 import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
