@@ -1,16 +1,13 @@
 "use client"
-
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Share2, ChevronLeft, Copy, Check, QrCode, Search, ExternalLink } from "lucide-react"
-import { Twitter, Facebook, Linkedin, RssIcon as Reddit, Mail, MessageSquare, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { QRCodeSVG } from "qrcode.react" // Corrected import for QRCodeSVG
-
 type SharePlatform = {
   id: string
   name: string
@@ -19,13 +16,12 @@ type SharePlatform = {
   color: string
   category: string
 }
-
 const sharePlatforms: SharePlatform[] = [
   {
     id: "twitter",
     name: "Twitter",
     url: "https://twitter.com/intent/tweet?url=",
-    icon: <Twitter />,
+    icon: <Share2 />,
     color: "bg-blue-500",
     category: "social",
   },
@@ -33,7 +29,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "facebook",
     name: "Facebook",
     url: "https://www.facebook.com/sharer/sharer.php?u=",
-    icon: <Facebook />,
+    icon: <Share2 />,
     color: "bg-blue-700",
     category: "social",
   },
@@ -41,7 +37,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "linkedin",
     name: "LinkedIn",
     url: "https://www.linkedin.com/shareArticle?url=",
-    icon: <Linkedin />,
+    icon: <Share2 />,
     color: "bg-blue-800",
     category: "work",
   },
@@ -49,7 +45,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "reddit",
     name: "Reddit",
     url: "https://www.reddit.com/submit?url=",
-    icon: <Reddit />,
+    icon: <Share2 />,
     color: "bg-orange-500",
     category: "social",
   },
@@ -57,7 +53,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "email",
     name: "Email",
     url: "mailto:?body=",
-    icon: <Mail />,
+    icon: <Share2 />,
     color: "bg-gray-500",
     category: "more",
   },
@@ -65,7 +61,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "whatsapp",
     name: "WhatsApp",
     url: "https://api.whatsapp.com/send?text=",
-    icon: <MessageSquare />,
+    icon: <Share2 />,
     color: "bg-green-500",
     category: "chat",
   },
@@ -73,7 +69,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "telegram",
     name: "Telegram",
     url: "https://telegram.me/share/url?url=",
-    icon: <Send />,
+    icon: <Share2 />,
     color: "bg-blue-400",
     category: "chat",
   },
@@ -81,90 +77,57 @@ const sharePlatforms: SharePlatform[] = [
     id: "copy",
     name: "Copy Link",
     url: "",
-    icon: <Copy />,
+    icon: <Share2 />,
     color: "bg-gray-500",
     category: "more",
   },
 ]
-
-export function CollapsibleSharePanel() {
+interface CollapsibleSharePanelProps {
+  onPanelStateChange?: (info: { expanded: boolean; height: number }) => void
+}
+export function CollapsibleSharePanel({ onPanelStateChange = () => {} }: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
-  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
   const [currentUrl, setCurrentUrl] = useState("")
-  const [panelHeight, setPanelHeight] = useState(0)
-  const [isScrollPaused, setIsScrollPaused] = useState(false) // State for pausing panel's scroll-following
   const panelRef = useRef<HTMLDivElement>(null)
-
-  // Define configurable scroll range values
+  // Define configurable scroll range values (these are now less relevant for fixed positioning)
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const initialScrollOffset = 50 // How far down the panel starts relative to scroll
   const bottomPageMargin = 20 // Margin from the very bottom of the document
-
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
-
-  // Pause panel's scroll-following when expanded
-  useEffect(() => {
-    setIsScrollPaused(isExpanded)
-  }, [isExpanded])
-
-  // Track scroll position and panel height after mounting
-  useEffect(() => {
-    if (!isMounted || isScrollPaused) return // Don't track scroll when panel's position is paused
-
-    const updatePositionAndHeight = () => {
-      setScrollPosition(window.scrollY)
-      if (panelRef.current) {
-        setPanelHeight(panelRef.current.offsetHeight)
-      }
-    }
-
-    window.addEventListener("scroll", updatePositionAndHeight, { passive: true })
-    window.addEventListener("resize", updatePositionAndHeight, { passive: true })
-    updatePositionAndHeight() // Initial call
-
-    return () => {
-      window.removeEventListener("scroll", updatePositionAndHeight)
-      window.removeEventListener("resize", updatePositionAndHeight)
-    }
-  }, [isMounted, isScrollPaused]) // Added isScrollPaused dependency
-
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
-
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
+        const newState = { expanded: false, height: panelRef.current.offsetHeight || 0 }
+        onPanelStateChange(newState)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isExpanded, isMounted])
-
+  }, [isExpanded, isMounted, onPanelStateChange]) // Added onPanelStateChange to dependencies
   // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
-
-  // Calculate panel position based on scroll and document height
+  // Calculate panel position based on scroll and document height (this is now fixed)
   const documentHeight = document.documentElement.scrollHeight // Total scrollable height of the page
-  const maxPanelTop = documentHeight - panelHeight - bottomPageMargin
-
-  // Use the current scroll position for panel's top if scroll-following is paused, otherwise calculate
-  const panelTopPosition = isScrollPaused
-    ? `${Math.max(minTopOffset, Math.min(scrollPosition + initialScrollOffset, maxPanelTop))}px`
-    : `${Math.max(minTopOffset, Math.min(window.scrollY + initialScrollOffset, maxPanelTop))}px`
-
+  const COLLAPSED_PANEL_HEIGHT = 48 // Approximate height of the collapsed share button
+  const EXPANDED_PANEL_HEIGHT = 600 // Approximate height of the expanded share panel (adjust as needed)
+  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
+  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
+  // The share panel's top position is now fixed relative to the viewport
+  const panelTopPosition = `${Math.max(minTopOffset, Math.min(initialScrollOffset, maxPanelTop))}px` // Using initialScrollOffset as a fixed top for the share panel
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(currentUrl)
@@ -174,24 +137,20 @@ export function CollapsibleSharePanel() {
       console.error("Failed to copy:", err)
     }
   }
-
   const filteredPlatforms = sharePlatforms.filter(
     (platform) =>
       platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (activeTab === "all" || platform.category === activeTab),
   )
-
   const shareOnPlatform = (platform: SharePlatform) => {
     const shareUrl = platform.url + encodeURIComponent(currentUrl)
     window.open(shareUrl, "_blank", "width=600,height=400")
   }
-
   const qrCodeSize = 256
   const logoSize = qrCodeSize * 0.2 // Reduced to 20% of QR code size
   const logoPosition = (qrCodeSize - logoSize) / 2 // Center the logo
-
   return (
-    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: panelTopPosition }}>
+    <div ref={panelRef} className="fixed right-0 z-[998] flex" style={{ top: panelTopPosition }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
@@ -206,22 +165,20 @@ export function CollapsibleSharePanel() {
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Share2 className="h-5 w-5" />
                 Share
-                {isScrollPaused && (
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2 py-1 rounded ml-2">
-                    Scroll Fixed
-                  </span>
-                )}
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsExpanded(false)}
+                onClick={() => {
+                  setIsExpanded(false)
+                  const newState = { expanded: false, height: panelRef.current?.offsetHeight || 0 }
+                  onPanelStateChange(newState)
+                }}
                 aria-label="Collapse share panel"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
-
             {/* Quick Actions */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
               <div className="flex gap-2">
@@ -233,7 +190,6 @@ export function CollapsibleSharePanel() {
                   <QrCode className="h-4 w-4" />
                 </Button>
               </div>
-
               {showQR && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -261,7 +217,6 @@ export function CollapsibleSharePanel() {
                 </motion.div>
               )}
             </div>
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-4 p-2">
                 <TabsTrigger value="social">Social</TabsTrigger>
@@ -269,7 +224,6 @@ export function CollapsibleSharePanel() {
                 <TabsTrigger value="work">Work</TabsTrigger>
                 <TabsTrigger value="more">More</TabsTrigger>
               </TabsList>
-
               <div className="p-4">
                 {/* Search */}
                 <div className="relative mb-4">
@@ -281,7 +235,6 @@ export function CollapsibleSharePanel() {
                     className="pl-10"
                   />
                 </div>
-
                 {/* Platform Grid */}
                 <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
                   {/* Content inside this div is scrollable */}
@@ -303,7 +256,6 @@ export function CollapsibleSharePanel() {
                     </motion.button>
                   ))}
                 </div>
-
                 {filteredPlatforms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -321,7 +273,11 @@ export function CollapsibleSharePanel() {
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-primary rounded-l-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-200 flex items-center justify-center h-12 w-12"
-            onClick={() => setIsExpanded(true)}
+            onClick={() => {
+              setIsExpanded(true)
+              const newState = { expanded: true, height: panelRef.current?.offsetHeight || 0 }
+              onPanelStateChange(newState)
+            }}
             aria-label="Expand share panel"
           >
             <Share2 className="h-5 w-5" />
