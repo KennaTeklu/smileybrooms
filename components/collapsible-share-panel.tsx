@@ -110,13 +110,11 @@ export function CollapsibleSharePanel() {
   // Handle click outside to collapse panel
   useEffect(() => {
     if (!isMounted) return
-
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
@@ -148,7 +146,7 @@ export function CollapsibleSharePanel() {
   }
 
   return (
-    <div ref={panelRef} className="relative z-50 flex">
+    <div ref={panelRef} className="flex">
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div

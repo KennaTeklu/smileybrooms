@@ -6,11 +6,7 @@ import { MessageCircle, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-interface CollapsibleChatbotPanelProps {
-  jotformUrl: string // Prop to pass the JotForm URL
-}
-
-export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -68,13 +64,48 @@ export function CollapsibleChatbotPanel({ jotformUrl }: CollapsibleChatbotPanelP
             <div className="flex-1 overflow-hidden">
               {/* JotForm Embed */}
               <iframe
-                id="jotformIframe"
-                src={jotformUrl}
-                frameBorder="0"
-                scrolling="auto"
-                className="w-full h-full min-h-[300px]" // Adjust min-h as needed
+                id="JotFormIFrame-241914900000000"
                 title="JotForm Chatbot"
+                onLoad={() => {
+                  window.parent.scrollTo(0, 0)
+                }}
+                allowTransparency={true}
+                allow="geolocation; microphone; camera; fullscreen"
+                src="https://form.jotform.com/241914900000000"
+                frameBorder="0"
+                style={{
+                  minWidth: "100%",
+                  maxWidth: "100%",
+                  height: "539px", // Adjust height as needed, or make it dynamic
+                  border: "none",
+                }}
+                scrolling="no"
               ></iframe>
+              <script type="text/javascript">
+                {`
+                  var ifr = document.getElementById("JotFormIFrame-241914900000000");
+                  if (ifr && ifr.contentWindow && ifr.contentWindow.postMessage) {
+                    var sendMessage = function(str) {
+                      ifr.contentWindow.postMessage(str, "https://form.jotform.com");
+                    };
+                    window.addEventListener("message", function(e) {
+                      if (e.origin === "https://form.jotform.com") {
+                        if (typeof e.data === "string") {
+                          try {
+                            var msg = JSON.parse(e.data);
+                            if (msg.type === "setHeight" || msg.type === "collapseErrorPage") {
+                              ifr.style.height = msg.height + "px";
+                            }
+                          } catch (ignore) {}
+                        }
+                      }
+                    });
+                    window.addEventListener("resize", function() {
+                      sendMessage("resize");
+                    });
+                  }
+                `}
+              </script>
             </div>
           </motion.div>
         ) : (
