@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense } from "react"
 import dynamic from "next/dynamic"
 
 const FloatingCartButton = dynamic(() => import("./floating-cart-button"), {
@@ -13,26 +13,17 @@ const PersistentBookNowButton = dynamic(() => import("./persistent-book-now-butt
   loading: () => null,
 })
 
-const CollapsibleSharePanel = dynamic(() => import("./collapsible-share-panel"), {
-  ssr: false,
-  loading: () => null,
-})
-
-const CollapsibleChatbotPanel = dynamic(() => import("./collapsible-chatbot-panel"), {
+const AccessibilityToolbar = dynamic(() => import("./accessibility-toolbar"), {
   ssr: false,
   loading: () => null,
 })
 
 export default function UnifiedFloatingWrapper() {
-  const [sharePanelInfo, setSharePanelInfo] = useState({ expanded: false, height: 0 })
-
   return (
     <Suspense fallback={null}>
       <FloatingCartButton />
       <PersistentBookNowButton />
-      {/* Removed AccessibilityToolbar as per previous request */}
-      <CollapsibleSharePanel onPanelStateChange={setSharePanelInfo} />
-      <CollapsibleChatbotPanel sharePanelInfo={sharePanelInfo} />
+      <AccessibilityToolbar />
     </Suspense>
   )
 }

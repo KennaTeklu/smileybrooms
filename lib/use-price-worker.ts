@@ -1,225 +1,126 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {
-  SERVICE_TIERS,
-  CLEANLINESS_DIFFICULTY,
-  BASE_ROOM_RATES,
-  STRATEGIC_ADDONS,
-  PREMIUM_EXCLUSIVE_SERVICES,
-  AUTOMATIC_TIER_UPGRADES,
-  MINIMUM_JOB_VALUES,
-} from "./pricing-config"
 
-// Define the input configuration type (aligned with worker)
+// Define the input configuration type
 export type ServiceConfig = {
   rooms: Record<string, number>
-  serviceTier: "standard" | "premium" | "elite"
+  serviceType: "standard" | "detailing"
   frequency: string
   cleanlinessLevel: number
   specialRequests?: string[]
   discounts?: Record<string, number>
+  addons?: Record<string, number>
   zipCode?: string
   squareFootage?: number
-  propertyType?: "Studio" | "3BR Home" | "5BR Mansion" | string
-  petOwners?: boolean
-  postRenovation?: boolean
-  moldWaterDamage?: boolean
-  biohazardSituations?: boolean
-  selectedAddons?: { id: string; quantity?: number }[]
-  selectedExclusiveServices?: string[]
 }
 
-// Define the output result type (aligned with worker)
+// Define the output result type
 export type PriceResult = {
   basePrice: number
   adjustments: Record<string, number>
-  firstServicePrice: number
-  recurringServicePrice: number
+  finalPrice: number
   estimatedDuration: number // in minutes
   breakdown: {
     category: string
     amount: number
     description: string
   }[]
-  enforcedTier?: "standard" | "premium" | "elite"
-  enforcedTierReason?: string
 }
 
 // Fallback calculation function for browsers that don't support Web Workers
 const fallbackCalculatePrice = (config: ServiceConfig): PriceResult => {
-  let currentServiceTier = config.serviceTier
-  let enforcedTierReason: string | undefined
+  // This is a simplified version of the calculation
+  // In a real app, you'd duplicate the logic from the worker
 
-  const cleanlinessLevelData = Object.values(CLEANLINESS_DIFFICULTY).find((c) => c.level === config.cleanlinessLevel)
-
-  // --- Automatic Tier Upgrades (Simplified for fallback, full logic in Phase 17) ---
-  if (cleanlinessLevelData?.name === "Biohazard" && currentServiceTier !== SERVICE_TIERS.ELITE.id) {
-    currentServiceTier = SERVICE_TIERS.ELITE.id
-    enforcedTierReason = AUTOMATIC_TIER_UPGRADES.find((u) => u.condition === "biohazard_situations")?.message
-  }
-  // Add other preliminary checks here if needed for immediate enforcement feedback
-
+  // Calculate base price
   let basePrice = 0
-  const breakdown = []
-
-  // 1. Base Room Price Calculation (Tier-Specific)
   for (const [roomType, count] of Object.entries(config.rooms)) {
     if (count > 0) {
-      const roomRate = BASE_ROOM_RATES[roomType as keyof typeof BASE_ROOM_RATES]?.[currentServiceTier]
-      if (roomRate !== undefined) {
-        basePrice += roomRate * count
-        breakdown.push({
-          category: `${roomType} (${count})`,
-          amount: roomRate * count,
-          description: `Base rate for ${count} ${roomType}(s) at ${currentServiceTier} tier`,
-        })
-      }
+      // Simplified room pricing
+      const roomPrice =
+        {
+          bathroom: 35,
+          bedroom: 30,
+          kitchen: 45,
+          living_room: 40,
+          dining_room: 25,
+          office: 30,
+          laundry_room: 20,
+          hallway: 15,
+          staircase: 25,
+          basement: 50,
+          garage: 40,
+          patio: 30,
+          other: 25,
+        }[roomType] || 25
+
+      basePrice += roomPrice * count
     }
   }
 
-  // 2. Service Tier Multiplier Application
-  const serviceTierMultiplier =
-    SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.multiplier || 1.0
-  const priceAfterServiceTier = basePrice * serviceTierMultiplier
-  breakdown.push({
-    category: "Service Tier Multiplier",
-    amount: priceAfterServiceTier - basePrice,
-    description: `${SERVICE_TIERS[currentServiceTier.toUpperCase() as keyof typeof SERVICE_TIERS]?.name} tier (${serviceTierMultiplier}x)`,
-  })
+  // Apply service type multiplier
+  const serviceMultiplier = config.serviceType === "detailing" ? 1.5 : 1.0
+  basePrice *= serviceMultiplier
 
-  // 3. Cleanliness Difficulty Multiplier Application (Tier & Level Dependent)
-  const cleanlinessMultiplier = cleanlinessLevelData?.multipliers[currentServiceTier] || 1.0
-  const priceAfterCleanliness = priceAfterServiceTier * cleanlinessMultiplier
-  breakdown.push({
-    category: "Cleanliness Level Multiplier",
-    amount: priceAfterCleanliness - priceAfterServiceTier,
-    description: `${cleanlinessLevelData?.name} level (${cleanlinessMultiplier}x)`,
-  })
+  // Apply frequency discount
+  const frequencyMultiplier =
+    {
+      one_time: 1.0,
+      weekly: 0.8,
+      biweekly: 0.85,
+      monthly: 0.9,
+      semi_annual: 0.95,
+      annually: 0.98,
+      vip_daily: 0.7,
+    }[config.frequency] || 1.0
 
-  let currentTotal = priceAfterCleanliness
+  basePrice *= frequencyMultiplier
 
-  // 4. Strategic Add-Ons Calculation (Tier-Specific)
-  let addonsTotal = 0
-  if (config.selectedAddons && config.selectedAddons.length > 0) {
-    for (const selectedAddon of config.selectedAddons) {
-      const addon = STRATEGIC_ADDONS.find((a) => a.id === selectedAddon.id)
-      if (addon) {
-        let addonPrice = addon.prices[currentServiceTier]
-        if (addon.includedInElite && currentServiceTier === SERVICE_TIERS.ELITE.id) {
-          addonPrice = 0
-        }
-        const quantity = selectedAddon.quantity || 1
-        const totalAddonCost = addonPrice * quantity
-        addonsTotal += totalAddonCost
-        breakdown.push({
-          category: `Add-On: ${addon.name}`,
-          amount: totalAddonCost,
-          description: `${addon.name} (${quantity}${addon.unit || ""}) at ${currentServiceTier} tier`,
-        })
-      }
-    }
-  }
-  currentTotal += addonsTotal
+  // Apply cleanliness level multiplier
+  const cleanlinessMultiplier =
+    {
+      1: 0.9,
+      2: 1.0,
+      3: 1.1,
+      4: 1.25,
+      5: 1.5,
+    }[config.cleanlinessLevel] || 1.0
 
-  // 5. Premium-Exclusive Services Calculation (Elite-Only)
-  let exclusiveServicesTotal = 0
-  if (config.selectedExclusiveServices && config.selectedExclusiveServices.length > 0) {
-    if (currentServiceTier === SERVICE_TIERS.ELITE.id) {
-      for (const selectedServiceId of config.selectedExclusiveServices) {
-        const service = PREMIUM_EXCLUSIVE_SERVICES.find((s) => s.id === selectedServiceId)
-        if (service) {
-          let serviceCost = service.price
-          if (service.unit === "/room") {
-            const totalRooms = Object.values(config.rooms).reduce((sum, count) => sum + count, 0)
-            serviceCost *= totalRooms
-          }
-          exclusiveServicesTotal += serviceCost
-          breakdown.push({
-            category: `Exclusive Service: ${service.name}`,
-            amount: serviceCost,
-            description: `${service.name} (Elite Only)`,
-          })
-        }
-      }
-    }
-  }
-  currentTotal += exclusiveServicesTotal
+  basePrice *= cleanlinessMultiplier
 
-  // 6. Minimum Job Value Enforcement
-  let minimumEnforcedAmount = 0
-  if (config.propertyType && MINIMUM_JOB_VALUES[config.propertyType as keyof typeof MINIMUM_JOB_VALUES]) {
-    const minimumForTier =
-      MINIMUM_JOB_VALUES[config.propertyType as keyof typeof MINIMUM_JOB_VALUES][currentServiceTier]
-    if (minimumForTier && currentTotal < minimumForTier) {
-      minimumEnforcedAmount = minimumForTier - currentTotal
-      currentTotal = minimumForTier
-      breakdown.push({
-        category: "Minimum Job Value Enforcement",
-        amount: minimumEnforcedAmount,
-        description: `Minimum job value of $${minimumForTier} enforced for ${config.propertyType} at ${currentServiceTier} tier`,
-      })
-    }
-  }
-
-  // Calculate the one-time price (first service price)
-  const firstServicePrice = currentTotal
-
-  // Apply frequency discount for recurring price
-  const frequencyOptions = [
-    { id: "one_time", discount: 0 },
-    { id: "weekly", discount: 0.15 },
-    { id: "biweekly", discount: 0.1 },
-    { id: "monthly", discount: 0.05 },
-    { id: "semi_annual", discount: 0.02 },
-    { id: "annually", discount: 0.01 },
-    { id: "vip_daily", discount: 0.25 },
-  ]
-  const selectedFrequency = frequencyOptions.find((f) => f.id === config.frequency)
-  const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-  const recurringServicePriceBeforePaymentDiscount = currentTotal * (1 - frequencyDiscount)
-  breakdown.push({
-    category: "Frequency Discount",
-    amount: -(currentTotal - recurringServicePriceBeforePaymentDiscount),
-    description: `${selectedFrequency?.name} discount (${(frequencyDiscount * 100).toFixed(0)}%)`,
-  })
-
-  const paymentDiscount = 0 // No payment frequency discount defined in pricing-config.ts yet
-  const recurringServicePrice = recurringServicePriceBeforePaymentDiscount * (1 - paymentDiscount)
-
-  // Apply general discounts (from config.discounts)
+  // Apply discounts and addons
   let discountTotal = 0
   if (config.discounts) {
     discountTotal = Object.values(config.discounts).reduce((sum, val) => sum + val, 0)
-    if (discountTotal > 0) {
-      breakdown.push({
-        category: "General Discounts",
-        amount: -discountTotal,
-        description: "Applied general discounts",
-      })
-    }
   }
 
-  const finalFirstServicePrice = Math.max(0, firstServicePrice - discountTotal)
-  const finalRecurringServicePrice = Math.max(0, recurringServicePrice - discountTotal)
+  let addonTotal = 0
+  if (config.addons) {
+    addonTotal = Object.values(config.addons).reduce((sum, val) => sum + val, 0)
+  }
 
+  const finalPrice = Math.max(0, basePrice - discountTotal + addonTotal)
+
+  // Return simplified result
   return {
     basePrice,
     adjustments: {
-      serviceTier: priceAfterServiceTier - basePrice,
-      cleanliness: priceAfterCleanliness - priceAfterServiceTier,
-      addons: addonsTotal,
-      exclusiveServices: exclusiveServicesTotal,
-      minimumEnforcement: minimumEnforcedAmount,
-      frequency: currentTotal - recurringServicePriceBeforePaymentDiscount,
+      serviceType: basePrice * (serviceMultiplier - 1),
+      frequency: basePrice * (1 - frequencyMultiplier),
+      cleanliness: basePrice * (cleanlinessMultiplier - 1),
       discounts: -discountTotal,
+      addons: addonTotal,
     },
-    firstServicePrice: Math.round(finalFirstServicePrice * 100) / 100,
-    recurringServicePrice: Math.round(finalRecurringServicePrice * 100) / 100,
-    estimatedDuration: Math.round(finalFirstServicePrice * 0.8),
-    breakdown: breakdown,
-    enforcedTier: enforcedTierReason ? currentServiceTier : undefined,
-    enforcedTierReason: enforcedTierReason,
+    finalPrice,
+    estimatedDuration: Math.round(finalPrice * 0.8),
+    breakdown: [
+      {
+        category: "Base Price",
+        amount: basePrice,
+        description: "Base price for selected rooms",
+      },
+    ],
   }
 }
 
@@ -230,11 +131,14 @@ export function usePriceWorker() {
 
   // Initialize the worker
   useEffect(() => {
+    // Check if Web Workers are supported
     if (typeof Worker !== "undefined") {
       try {
+        // Create the worker
         const priceWorker = new Worker(new URL("./workers/price-calculator.worker.ts", import.meta.url))
         setWorker(priceWorker)
 
+        // Clean up on unmount
         return () => {
           priceWorker.terminate()
         }
@@ -250,18 +154,19 @@ export function usePriceWorker() {
 
   // Function to calculate price using the worker
   const calculatePrice = async (config: ServiceConfig): Promise<PriceResult> => {
+    // If Web Workers aren't supported, use the fallback
     if (!isSupported || !worker) {
-      console.warn("Using fallback price calculation.")
       return fallbackCalculatePrice(config)
     }
 
     setIsCalculating(true)
 
     try {
+      // Create a promise that resolves when the worker responds
       const result = await new Promise<PriceResult>((resolve, reject) => {
+        // Set up one-time message handler
         const handleMessage = (e: MessageEvent) => {
           worker.removeEventListener("message", handleMessage)
-          worker.removeEventListener("error", handleError) // Ensure error listener is also removed
           if (e.data.error) {
             reject(new Error(e.data.error))
           } else {
@@ -269,22 +174,24 @@ export function usePriceWorker() {
           }
         }
 
+        // Set up error handler
         const handleError = (error: ErrorEvent) => {
-          worker.removeEventListener("message", handleMessage) // Ensure message listener is also removed
           worker.removeEventListener("error", handleError)
           reject(error)
         }
 
+        // Add event listeners
         worker.addEventListener("message", handleMessage)
         worker.addEventListener("error", handleError)
 
+        // Send the configuration to the worker
         worker.postMessage(config)
       })
 
       return result
     } catch (error) {
       console.error("Error in price calculation worker:", error)
-      // Fall back to synchronous calculation on worker error
+      // Fall back to synchronous calculation
       return fallbackCalculatePrice(config)
     } finally {
       setIsCalculating(false)

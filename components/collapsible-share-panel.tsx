@@ -1,84 +1,173 @@
 "use client"
-
+import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, ChevronRight, ChevronLeft } from "lucide-react"
+import {
+  Share2,
+  ChevronLeft,
+  Copy,
+  QrCode,
+  Search,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  Mail,
+  Phone,
+  Check,
+  ExternalLink,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { usePathname } from "next/navigation"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
-interface CollapsibleSharePanelProps {
-  onPanelStateChange?: (state: { expanded: boolean; height: number; top: number }) => void
+interface SharePlatform {
+  id: string
+  name: string
+  icon: React.ReactNode
+  url: string
+  color: string
+  category: "social" | "chat" | "work" | "more"
 }
 
-// Define approximate heights for consistent clamping
-const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
-const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (688px iframe + padding/border)
+const sharePlatforms: SharePlatform[] = [
+  {
+    id: "facebook",
+    name: "Facebook",
+    icon: <Facebook className="h-4 w-4" />,
+    url: "https://www.facebook.com/sharer/sharer.php?u=",
+    color: "bg-blue-600",
+    category: "social",
+  },
+  {
+    id: "twitter",
+    name: "Twitter",
+    icon: <Twitter className="h-4 w-4" />,
+    url: "https://twitter.com/intent/tweet?url=",
+    color: "bg-sky-500",
+    category: "social",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    icon: <Linkedin className="h-4 w-4" />,
+    url: "https://www.linkedin.com/sharing/share-offsite/?url=",
+    color: "bg-blue-700",
+    category: "social",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    icon: <Instagram className="h-4 w-4" />,
+    url: "https://www.instagram.com/",
+    color: "bg-pink-600",
+    category: "social",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: <MessageCircle className="h-4 w-4" />,
+    url: "https://wa.me/?text=",
+    color: "bg-green-600",
+    category: "chat",
+  },
+  {
+    id: "email",
+    name: "Email",
+    icon: <Mail className="h-4 w-4" />,
+    url: "mailto:?subject=Check this out&body=",
+    color: "bg-gray-600",
+    category: "chat",
+  },
+  {
+    id: "sms",
+    name: "SMS",
+    icon: <Phone className="h-4 w-4" />,
+    url: "sms:?body=",
+    color: "bg-green-500",
+    category: "chat",
+  },
+]
 
-export function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePanelProps) {
+export function CollapsibleSharePanel() {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState("social")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState(0)
   const [isMounted, setIsMounted] = useState(false)
+  const [currentUrl, setCurrentUrl] = useState("")
   const panelRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
 
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
-
+  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
+    setCurrentUrl(window.location.href)
   }, [])
 
-  // Handle clicks outside the panel to collapse it
+  // Track scroll position only after mounting
   useEffect(() => {
     if (!isMounted) return
+    const updatePosition = () => {
+      setScrollPosition(window.scrollY)
+    }
+    window.addEventListener("scroll", updatePosition, { passive: true })
+    updatePosition()
+    return () => window.removeEventListener("scroll", updatePosition)
+  }, [isMounted])
 
+  // Handle click outside to collapse panel
+  useEffect(() => {
+    if (!isMounted) return
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
         setIsExpanded(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
-  // Report panel state (expanded, height, top) to parent
-  useEffect(() => {
-    if (onPanelStateChange && panelRef.current) {
-      const rect = panelRef.current.getBoundingClientRect()
-      onPanelStateChange({
-        expanded: isExpanded,
-        height: rect.height,
-        top: rect.top,
-      })
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return null
+  }
+
+  // Calculate panel position based on scroll
+  const panelTopPosition = Math.max(20, Math.min(scrollPosition + 100, window.innerHeight - 400))
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
     }
-  }, [isExpanded, onPanelStateChange, isMounted]) // Re-run when expanded state changes or on mount
+  }
 
-  if (!isMounted) return null
+  const filteredPlatforms = sharePlatforms.filter(
+    (platform) =>
+      platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (activeTab === "all" || platform.category === activeTab),
+  )
 
-  const documentHeight = document.documentElement.scrollHeight
-
-  // Determine the current panel height for consistent clamping of its top position
-  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
-  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
-
-  // Calculate desired top position (e.g., fixed at 20px from top for simplicity, or more complex logic)
-  const desiredTop = minTopOffset // For now, let's keep it simple for the share panel
-
-  // Clamp the desiredTop within the visible document boundaries
-  const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
+  const shareOnPlatform = (platform: SharePlatform) => {
+    const shareUrl = platform.url + encodeURIComponent(currentUrl)
+    window.open(shareUrl, "_blank", "width=600,height=400")
+  }
 
   return (
-    <div
-      ref={panelRef}
-      className="fixed right-0 z-[999] flex transition-all duration-300 ease-in-out"
-      style={{ top: panelTopPosition }}
-    >
+    <div ref={panelRef} className="fixed right-0 z-50 flex" style={{ top: `${panelTopPosition}px` }}>
       <AnimatePresence initial={false}>
         {isExpanded ? (
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "400px", opacity: 1 }}
+            animate={{ width: "320px", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white dark:bg-gray-900 rounded-l-lg shadow-lg overflow-hidden border-l border-t border-b border-gray-200 dark:border-gray-800"
@@ -97,23 +186,82 @@ export function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePa
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
-            <div className="p-4 text-sm text-gray-700 dark:text-gray-300">
-              <p className="mb-4">Share this page with your friends and family!</p>
-              <div className="flex flex-col gap-2">
-                <Button variant="outline" className="justify-start bg-transparent">
-                  <Share2 className="mr-2 h-4 w-4" /> Share via Email
+
+            {/* Quick Actions */}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 space-y-2">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={copyToClipboard}>
+                  {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                  {copied ? "Copied!" : "Copy Link"}
                 </Button>
-                <Button variant="outline" className="justify-start bg-transparent">
-                  <Share2 className="mr-2 h-4 w-4" /> Share on Facebook
-                </Button>
-                <Button variant="outline" className="justify-start bg-transparent">
-                  <Share2 className="mr-2 h-4 w-4" /> Share on Twitter
-                </Button>
-                <Button variant="outline" className="justify-start bg-transparent">
-                  <Share2 className="mr-2 h-4 w-4" /> Copy Link
+                <Button variant="outline" size="sm" onClick={() => setShowQR(!showQR)}>
+                  <QrCode className="h-4 w-4" />
                 </Button>
               </div>
+
+              {showQR && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex justify-center p-4 bg-gray-50 dark:bg-gray-800 rounded"
+                >
+                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center">
+                    <QrCode className="h-16 w-16 text-gray-400" />
+                  </div>
+                </motion.div>
+              )}
             </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-4 p-2">
+                <TabsTrigger value="social">Social</TabsTrigger>
+                <TabsTrigger value="chat">Chat</TabsTrigger>
+                <TabsTrigger value="work">Work</TabsTrigger>
+                <TabsTrigger value="more">More</TabsTrigger>
+              </TabsList>
+
+              <div className="p-4">
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search platforms..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Platform Grid */}
+                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-auto">
+                  {filteredPlatforms.map((platform) => (
+                    <motion.button
+                      key={platform.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => shareOnPlatform(platform)}
+                      className={cn(
+                        "flex items-center gap-2 p-3 rounded-lg border text-left",
+                        "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+                        "focus:outline-none focus:ring-2 focus:ring-primary",
+                      )}
+                    >
+                      <div className={cn("p-2 rounded text-white", platform.color)}>{platform.icon}</div>
+                      <span className="text-sm font-medium">{platform.name}</span>
+                      <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                    </motion.button>
+                  ))}
+                </div>
+
+                {filteredPlatforms.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No platforms found</p>
+                  </div>
+                )}
+              </div>
+            </Tabs>
           </motion.div>
         ) : (
           <motion.button
@@ -123,11 +271,16 @@ export function CollapsibleSharePanel({ onPanelStateChange }: CollapsibleSharePa
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900 rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 border-l border-t border-b border-gray-200 dark:border-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+            className={cn(
+              "flex items-center gap-2 py-3 px-4 bg-white dark:bg-gray-900",
+              "rounded-l-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border-l border-t border-b border-gray-200 dark:border-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
             aria-label="Open share panel"
           >
-            <ChevronRight className="h-5 w-5" />
-            <span className="text-sm font-medium">Share</span>
+            <ChevronLeft className="h-4 w-4" />
+            <Share2 className="h-5 w-5" />
           </motion.button>
         )}
       </AnimatePresence>

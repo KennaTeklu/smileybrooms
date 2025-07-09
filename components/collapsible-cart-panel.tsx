@@ -27,7 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { useCart } from "@/lib/cart-context" // Corrected import path
+import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
@@ -356,16 +356,6 @@ export function CollapsibleCartPanel() {
             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
               {item.metadata?.roomConfig?.selectedTier || "One-time service"}
             </p>
-            {/* Display room counts if available */}
-            {item.metadata?.roomCounts && Object.keys(item.metadata.roomCounts).length > 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Rooms:{" "}
-                {Object.entries(item.metadata.roomCounts)
-                  .filter(([, count]) => count > 0)
-                  .map(([room, count]) => `${count}x ${room}`)
-                  .join(", ")}
-              </p>
-            )}
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
                 Qty: {item.quantity}
@@ -602,16 +592,6 @@ export function CollapsibleCartPanel() {
                               <p>Tier: {item.metadata?.roomConfig?.name || "N/A"}</p>
                               {item.metadata?.roomConfig?.timeEstimate && (
                                 <p>Est. Time: {item.metadata.roomConfig.timeEstimate}</p>
-                              )}
-                              {/* Display room counts in order summary */}
-                              {item.metadata?.roomCounts && Object.keys(item.metadata.roomCounts).length > 0 && (
-                                <p>
-                                  Rooms:{" "}
-                                  {Object.entries(item.metadata.roomCounts)
-                                    .filter(([, count]) => count > 0)
-                                    .map(([room, count]) => `${count}x ${room}`)
-                                    .join(", ")}
-                                </p>
                               )}
                             </div>
                             {item.metadata?.detailedTasks && item.metadata.detailedTasks.length > 0 && (

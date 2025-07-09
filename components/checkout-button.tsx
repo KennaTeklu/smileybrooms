@@ -6,7 +6,6 @@ import { Loader2, CreditCard, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
-import { createCheckoutSession } from "@/lib/actions" // Ensure this is imported
 
 interface CheckoutButtonProps {
   priceId?: string
@@ -77,7 +76,6 @@ export function CheckoutButton({
             description: "Please add items to your cart before checking out.",
             variant: "destructive",
           })
-          setIsLoading(false) // Ensure loading state is reset
           return
         }
 
@@ -86,7 +84,8 @@ export function CheckoutButton({
       }
 
       // Original Stripe direct checkout logic (kept for backward compatibility)
-      // This path is typically used for single product "Buy Now" buttons, not a full cart checkout
+      const { createCheckoutSession } = await import("@/lib/actions")
+
       const commonParams = {
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/canceled`,

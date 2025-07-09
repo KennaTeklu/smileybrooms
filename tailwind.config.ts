@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss"
 
-const config = {
+const config: Config = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -19,6 +19,10 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -53,9 +57,6 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Custom colors for "brooms" highlight
-        "brooms-bg-emphasis": "hsl(var(--primary))", // Uses primary color for background
-        "brooms-text-emphasis": "hsl(var(--primary-foreground))", // Uses primary-foreground for text
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -71,15 +72,10 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        flash: {
-          "0%, 100%": { opacity: "0" },
-          "50%": { opacity: "0.3" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        flash: "flash 0.2s ease-in-out",
       },
     },
   },

@@ -29,10 +29,7 @@ export function EnhancedFooter() {
               <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">SB</span>
               </div>
-              <span className="font-bold text-lg inline-flex items-center">
-                smiley
-                <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-              </span>
+              <span className="font-bold text-lg">SmileyBrooms</span>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Professional cleaning services that bring joy to your home.
@@ -109,14 +106,7 @@ export function EnhancedFooter() {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          <p>
-            &copy; 2024{" "}
-            <span className="inline-flex items-center">
-              smiley
-              <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-            </span>
-            . All rights reserved.
-          </p>
+          <p>&copy; 2024 SmileyBrooms. All rights reserved.</p>
         </div>
       </div>
     </footer>

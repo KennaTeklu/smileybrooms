@@ -51,12 +51,7 @@ export function SmileyBroomsLogo({ className, size = "md", iconOnly = false }: S
         </svg>
       </div>
 
-      {!iconOnly && (
-        <span className="font-bold text-lg tracking-tight inline-flex items-center">
-          smiley
-          <span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-        </span>
-      )}
+      {!iconOnly && <span className="font-bold text-lg tracking-tight">SmileyBrooms</span>}
     </div>
   )
 }

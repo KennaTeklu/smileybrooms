@@ -1,18 +1,16 @@
 "use client"
 
-import { forwardRef, useEffect, useRef, useState } from "react" // Import useState
-import { motion, AnimatePresence } from "framer-motion"
+import { forwardRef, useEffect, useRef } from "react"
+import { motion } from "framer-motion"
 import { X, ShoppingBag, Trash2, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-// Removed: import { useFloatingUI } from "@/hooks/useFloatingUI" // Not needed for fixed sidebar
+import { useFloatingUI } from "@/hooks/useFloatingUI"
 import { useScrollContainerDetection } from "@/hooks/useScrollContainerDetection"
 import { cn } from "@/lib/utils"
 import type { CartItem } from "@/lib/cart/types"
-import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
 
 interface CartPanelProps {
   isOpen: boolean
@@ -55,19 +53,17 @@ const panelVariants = {
   },
 }
 
-// Animation variants for individual cart items
-const itemVariants = {
-  initial: { opacity: 0, y: 20, scale: 0.95 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } },
-  exit: { opacity: 0, x: -50, transition: { duration: 0.2 } },
-}
-
-export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, onClose, className }, ref) => {
+export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, onClose, cart, className }, ref) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const { detectionRef, activeContainer } = useScrollContainerDetection()
-  const { cart, updateQuantity, removeItem, clearCart } = useCart()
-  const router = useRouter()
-  const [isCheckoutPending, setIsCheckoutPending] = useState(false) // New state to manage checkout initiation
+
+  // Floating UI for advanced positioning
+  const { refs, floatingStyles, isHidden } = useFloatingUI({
+    placement: "top-end",
+    enableFlip: true,
+    enableShift: true,
+    enableHide: true,
+  })
 
   // Focus close button when panel opens
   useEffect(() => {
@@ -80,35 +76,29 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
 
   // Handle quantity changes
   const handleQuantityChange = (itemId: string, change: number) => {
-    const currentItem = cart.items.find((item) => item.id === itemId)
-    if (currentItem) {
-      updateQuantity(itemId, currentItem.quantity + change)
-    }
+    // This would integrate with your cart context
+    console.log(`Changing quantity for ${itemId} by ${change}`)
   }
 
   // Handle item removal
   const handleRemoveItem = (itemId: string) => {
-    removeItem(itemId)
+    // This would integrate with your cart context
+    console.log(`Removing item ${itemId}`)
   }
 
   // Handle checkout
   const handleCheckout = () => {
-    setIsCheckoutPending(true) // Set flag to indicate checkout is pending
-    onClose() // Trigger the cart panel to close (start exit animation)
-  }
-
-  // Callback for when the animation completes
-  const handleAnimationComplete = (definition: string) => {
-    // If the exit animation just completed and checkout was pending, navigate
-    if (definition === "exit" && isCheckoutPending) {
-      router.push("/checkout")
-      setIsCheckoutPending(false) // Reset the flag
-    }
+    console.log("Proceeding to checkout")
+    onClose()
   }
 
   // Handle clear cart
   const handleClearCart = () => {
-    clearCart()
+    console.log("Clearing cart")
+  }
+
+  if (isHidden) {
+    return null
   }
 
   return (
@@ -116,14 +106,14 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
       ref={ref}
       variants={panelVariants}
       initial="hidden"
-      animate={isOpen ? "visible" : "hidden"} // Explicitly animate based on isOpen
+      animate="visible"
       exit="exit"
-      onAnimationComplete={handleAnimationComplete} // Add this prop to delay navigation
       className={cn(
         "fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background border-l shadow-2xl",
         "flex flex-col",
         className,
       )}
+      style={floatingStyles}
       data-testid="cart-panel"
     >
       {/* Header */}
@@ -162,84 +152,78 @@ export const CartPanel = forwardRef<HTMLDivElement, CartPanelProps>(({ isOpen, o
             </Button>
           </div>
         ) : (
-          // Cart items with AnimatePresence
+          // Cart items
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
-              <AnimatePresence initial={false}>
-                {cart.items.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    variants={itemVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    layout // Enable layout animations for smooth reordering
-                    className="group relative bg-card rounded-lg p-4 border hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex gap-3">
-                      {/* Item image */}
-                      {item.image && (
-                        <div className="flex-shrink-0">
-                          <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            className="w-16 h-16 object-cover rounded-md"
-                          />
+              {cart.items.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative bg-card rounded-lg p-4 border hover:shadow-md transition-shadow"
+                >
+                  <div className="flex gap-3">
+                    {/* Item image */}
+                    {item.image && (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-md"
+                        />
+                      </div>
+                    )}
+
+                    {/* Item details */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm leading-tight mb-1">{item.name}</h4>
+                      {item.sourceSection && <p className="text-xs text-muted-foreground mb-2">{item.sourceSection}</p>}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleQuantityChange(item.id, -1)}
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="text-sm font-medium min-w-[2ch] text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => handleQuantityChange(item.id, 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
                         </div>
-                      )}
 
-                      {/* Item details */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm leading-tight mb-1">{item.name}</h4>
-                        {item.sourceSection && (
-                          <p className="text-xs text-muted-foreground mb-2">{item.sourceSection}</p>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, -1)}
-                              disabled={item.quantity <= 1}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-sm font-medium min-w-[2ch] text-center">{item.quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-sm font-medium">${(item.price * item.quantity).toFixed(2)}</p>
-                            {item.quantity > 1 && (
-                              <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</p>
-                            )}
-                          </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                          {item.quantity > 1 && (
+                            <p className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</p>
+                          )}
                         </div>
                       </div>
-
-                      {/* Remove button (appears on hover) */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleRemoveItem(item.id)}
-                        aria-label={`Remove ${item.name}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+
+                    {/* Remove button (appears on hover) */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveItem(item.id)}
+                      aria-label={`Remove ${item.name}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </ScrollArea>
         )}

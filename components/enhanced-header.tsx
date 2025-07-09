@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { Menu, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Logo from "@/components/logo" // Ensure this imports the updated Logo
+import { Logo } from "@/components/logo" // Ensure this imports the updated Logo
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
 
@@ -71,8 +71,10 @@ export function EnhancedHeader() {
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          {/* Removed the outer Link here, Logo component handles its own linking */}
-          <Logo /> {/* This will now use favicon.png */}
+          <Link href="/">
+            <Logo /> {/* This will now use favicon.png */}
+          </Link>
+
           <nav className="hidden md:flex gap-6">
             {pathname !== "/" && (
               <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">

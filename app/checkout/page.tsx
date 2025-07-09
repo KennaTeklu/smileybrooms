@@ -17,7 +17,6 @@ import { formatCurrency } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
-import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
 type CustomerData = {
   firstName: string
@@ -80,11 +79,11 @@ export default function CheckoutPage() {
     }
   }, [cart.items.length, router])
 
-  // Calculate totals (these will be passed to server action for final calculation)
+  // Calculate totals
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const videoDiscountAmount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const tax = (subtotal - videoDiscountAmount) * 0.08 // 8% tax
-  const total = subtotal - videoDiscountAmount + tax
+  const videoDiscount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+  const tax = (subtotal - videoDiscount) * 0.08 // 8% tax
+  const total = subtotal - videoDiscount + tax
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
   const progress = ((currentStepIndex + 1) / steps.length) * 100
@@ -176,56 +175,18 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      // Prepare line items from cart
-      const customLineItems = cart.items.map((item) => ({
-        name: item.name,
-        amount: item.price,
-        quantity: item.quantity,
-        description: item.sourceSection,
-        metadata: item.metadata,
-      }))
+      // Here you would integrate with Stripe or other payment processor
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Add video recording discount as a line item if applicable
-      if (videoDiscountAmount > 0) {
-        customLineItems.push({
-          name: "Video Recording Discount",
-          amount: -videoDiscountAmount, // Negative amount for discount
-          quantity: 1,
-          description: "Discount for allowing video recording",
-        })
-      }
+      // Clear cart and redirect to success
+      clearCart()
+      router.push("/success")
 
-      const checkoutUrl = await createCheckoutSession({
-        customLineItems: customLineItems,
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: customerData.email,
-        customerData: {
-          name: `${customerData.firstName} ${customerData.lastName}`,
-          email: customerData.email,
-          phone: customerData.phone,
-          address: {
-            line1: customerData.address.line1,
-            line2: customerData.address.line2,
-            city: customerData.address.city,
-            state: customerData.address.state,
-            postal_code: customerData.address.postalCode,
-            country: customerData.address.country,
-          },
-        },
-        paymentMethodTypes: [paymentMethod],
-        automaticTax: { enabled: true }, // Enable automatic tax calculation on Stripe
-        allowPromotions: true, // Allow promotion codes if applicable
+      toast({
+        title: "Order Placed Successfully!",
+        description: "You will receive a confirmation email shortly.",
       })
-
-      if (checkoutUrl) {
-        clearCart() // Clear cart only if Stripe checkout is successfully initiated
-        window.location.href = checkoutUrl
-      } else {
-        throw new Error("Failed to get checkout URL from Stripe.")
-      }
     } catch (error) {
-      console.error("Error during checkout:", error)
       toast({
         title: "Payment Failed",
         description: "There was an error processing your payment. Please try again.",
@@ -582,7 +543,7 @@ export default function CheckoutPage() {
                     <Label htmlFor="videoRecording" className="text-base">
                       Allow video recording for quality assurance and social media use
                       <span className="text-green-600 font-medium ml-2">
-                        (Save {videoDiscountAmount > 0 ? formatCurrency(videoDiscountAmount) : "10%"})
+                        (Save {videoDiscount > 0 ? formatCurrency(videoDiscount) : "10%"})
                       </span>
                     </Label>
                   </div>
@@ -611,10 +572,10 @@ export default function CheckoutPage() {
                       <span>Subtotal</span>
                       <span>{formatCurrency(subtotal)}</span>
                     </div>
-                    {videoDiscountAmount > 0 && (
+                    {videoDiscount > 0 && (
                       <div className="flex justify-between text-lg text-green-600">
                         <span>Video Recording Discount</span>
-                        <span>-{formatCurrency(videoDiscountAmount)}</span>
+                        <span>-{formatCurrency(videoDiscount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg">

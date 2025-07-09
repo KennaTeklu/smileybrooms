@@ -202,14 +202,7 @@ export default function ContactPage() {
                     onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
                   />
                   <Label htmlFor="terms" className="text-sm">
-                    I agree to the{" "}
-                    <a href="/terms" className="text-primary hover:underline">
-                      terms and conditions
-                    </a>{" "}
-                    and{" "}
-                    <a href="/privacy" className="text-primary hover:underline">
-                      privacy policy
-                    </a>
+                    I agree to the terms and conditions and privacy policy
                   </Label>
                 </div>
 
@@ -241,14 +234,14 @@ export default function ContactPage() {
                       <h3 className="font-medium">Phone</h3>
                       <p className="text-gray-600 dark:text-gray-400">
                         Main:{" "}
-                        <a href="tel:6616023000" className="hover:underline">
-                          (661) 602-3000
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
                         </a>
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
                         Support:{" "}
-                        <a href="tel:6616023000" className="hover:underline">
-                          (661) 602-3000
+                        <a href="tel:6028000605" className="hover:underline">
+                          (602) 800-0605
                         </a>
                       </p>
                     </div>

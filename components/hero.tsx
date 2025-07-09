@@ -7,7 +7,6 @@ import { motion } from "framer-motion"
 import CountUp from "react-countup"
 import { useInView } from "react-intersection-observer"
 import Link from "next/link"
-import { useABTest } from "@/hooks/use-ab-test" // Import the new hook
 
 export default function Hero() {
   const [showWaitlist, setShowWaitlist] = useState(false)
@@ -15,9 +14,6 @@ export default function Hero() {
     triggerOnce: true,
     threshold: 0.3,
   })
-
-  // Use the A/B test hook for the hero content
-  const { content: heroContent } = useABTest("heroHeadlineTest")
 
   const scrollToSelections = () => {
     const selectionsElement = document.getElementById("service-selections")
@@ -83,11 +79,12 @@ export default function Hero() {
               className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
               variants={itemVariants}
             >
-              {heroContent.headline} {/* Dynamic Headline */}
+              You rest, we take care of the rest!
             </motion.h1>
 
             <motion.p className="mb-8 text-lg text-gray-600 dark:text-gray-400" variants={itemVariants}>
-              {heroContent.description} {/* Dynamic Description */}
+              Experience the joy of coming home to a perfectly clean space. Our professional cleaning services are
+              tailored to your needs, schedule, and budget.
             </motion.p>
 
             <motion.div
@@ -96,7 +93,7 @@ export default function Hero() {
             >
               <Link href="/pricing">
                 <Button size="lg" className="text-base group">
-                  {heroContent.buttonText} {/* Dynamic Button Text */}
+                  Book New Services
                   <ArrowDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-1" />
                 </Button>
               </Link>

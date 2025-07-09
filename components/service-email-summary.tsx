@@ -1,29 +1,23 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { ArrowRight, Check, Copy, Mail } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatFormDataForEmail, openGmailWithFormData } from "@/lib/email-utils"
+import { Mail, Copy, Check, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 
 interface ServiceEmailSummaryProps {
-  formData: any // Replace 'any' with the actual type of your form data
-  emailTo: string
+  formData: Record<string, any>
   onClose?: () => void
-  formatFormDataForEmail: (data: any) => string // Replace 'any' with the actual type
-  openGmailWithFormData: (data: any, email: string) => void
+  emailTo?: string
 }
 
-const ServiceEmailSummary: React.FC<ServiceEmailSummaryProps> = ({
+export default function ServiceEmailSummary({
   formData,
-  emailTo,
   onClose,
-  formatFormDataForEmail,
-  openGmailWithFormData,
-}) => {
+  emailTo = "customize@smileybrooms.com",
+}: ServiceEmailSummaryProps) {
   const [isCopied, setIsCopied] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const { toast } = useToast()
@@ -79,12 +73,7 @@ const ServiceEmailSummary: React.FC<ServiceEmailSummaryProps> = ({
           <Mail className="mr-2 h-5 w-5" />
           Service Summary Email
         </CardTitle>
-        <CardDescription>
-          Review your service details and send them directly to{" "}
-          <span className="inline-flex items-center">
-            smiley<span className="rounded-md px-1 py-0.5 bg-brooms-bg-emphasis text-brooms-text-emphasis">brooms</span>
-          </span>
-        </CardDescription>
+        <CardDescription>Review your service details and send them directly to SmileBrooms</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md border border-gray-200 dark:border-gray-800 whitespace-pre-wrap font-mono text-sm overflow-auto max-h-96">
@@ -105,5 +94,3 @@ const ServiceEmailSummary: React.FC<ServiceEmailSummaryProps> = ({
     </Card>
   )
 }
-
-export default ServiceEmailSummary
