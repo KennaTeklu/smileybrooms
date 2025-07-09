@@ -2,45 +2,47 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Settings, ChevronRight, Palette, Moon, Contrast, Text, Volume2 } from "lucide-react"
+import { Settings, ChevronRight, Sun, Moon, Palette, TextIcon as TextSize, Contrast, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
+import { useAccessibility } from "@/lib/accessibility-context"
 
 export function CollapsibleSettingsPanel() {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
-  const [fontSize, setFontSize] = useState(16)
-  const [volume, setVolume] = useState(50)
+  const [activeTab, setActiveTab] = useState("display")
   const panelRef = useRef<HTMLDivElement>(null)
+  const [isMounted, setIsMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const {
+    highContrast,
+    toggleHighContrast,
+    fontSize,
+    setFontSize,
+    grayscale,
+    toggleGrayscale,
+    invertColors,
+    toggleInvertColors,
+    lineHeight,
+    setLineHeight,
+    letterSpacing,
+    setLetterSpacing,
+    animations,
+    toggleAnimations,
+    screenReaderMode,
+    toggleScreenReaderMode,
+    linkHighlight,
+    toggleLinkHighlight,
+  } = useAccessibility()
 
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
-    // Load settings from localStorage
-    setDarkMode(localStorage.getItem("darkMode") === "true")
-    setHighContrast(localStorage.getItem("highContrast") === "true")
-    setFontSize(Number.parseInt(localStorage.getItem("fontSize") || "16"))
-    setVolume(Number.parseInt(localStorage.getItem("volume") || "50"))
   }, [])
-
-  // Apply settings and save to localStorage
-  useEffect(() => {
-    if (!isMounted) return
-    document.documentElement.classList.toggle("dark", darkMode)
-    document.documentElement.classList.toggle("high-contrast", highContrast)
-    document.documentElement.style.fontSize = `${fontSize}px`
-    // For volume, you'd typically integrate with an audio player or global audio settings
-    // For now, it's just a state variable.
-    localStorage.setItem("darkMode", String(darkMode))
-    localStorage.setItem("highContrast", String(highContrast))
-    localStorage.setItem("fontSize", String(fontSize))
-    localStorage.setItem("volume", String(volume))
-  }, [darkMode, highContrast, fontSize, volume, isMounted])
 
   // Handle click outside to collapse panel
   useEffect(() => {
@@ -54,7 +56,6 @@ export function CollapsibleSettingsPanel() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
 
-  // Don't render until mounted to prevent SSR issues
   if (!isMounted) {
     return null
   }
@@ -72,6 +73,10 @@ export function CollapsibleSettingsPanel() {
             className="bg-white dark:bg-gray-900 rounded-r-lg shadow-lg overflow-hidden border-r border-t border-b border-gray-200 dark:border-gray-800 flex flex-col"
           >
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Settings
+              </h2>
               <Button
                 variant="ghost"
                 size="icon"
@@ -80,81 +85,130 @@ export function CollapsibleSettingsPanel() {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Settings
-              </h2>
             </div>
-            <div className="flex-1 p-4 space-y-6 overflow-y-auto">
-              {/* Theme Settings */}
-              <div>
-                <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
-                  <Palette className="h-4 w-4" /> Theme
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="dark-mode" className="flex items-center gap-2">
-                      <Moon className="h-4 w-4" /> Dark Mode
-                    </Label>
-                    <Switch
-                      id="dark-mode"
-                      checked={darkMode}
-                      onCheckedChange={setDarkMode}
-                      aria-label="Toggle dark mode"
-                    />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
+              <TabsList className="grid grid-cols-2 p-2">
+                <TabsTrigger value="display">Display</TabsTrigger>
+                <TabsTrigger value="accessibility">Accessibility</TabsTrigger>
+              </TabsList>
+              <div className="p-4 flex-1 overflow-auto">
+                <TabsContent value="display" className="mt-0">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="theme-toggle" className="flex items-center gap-2">
+                        {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                        Dark Mode
+                      </Label>
+                      <Switch
+                        id="theme-toggle"
+                        checked={theme === "dark"}
+                        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="font-size" className="flex items-center gap-2">
+                        <TextSize className="h-4 w-4" />
+                        Font Size ({fontSize}%)
+                      </Label>
+                      <Slider
+                        id="font-size"
+                        min={80}
+                        max={150}
+                        step={5}
+                        value={[fontSize]}
+                        onValueChange={([value]) => setFontSize(value)}
+                        className="w-[80%]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="line-height" className="flex items-center gap-2">
+                        <TextSize className="h-4 w-4" />
+                        Line Height ({lineHeight.toFixed(1)})
+                      </Label>
+                      <Slider
+                        id="line-height"
+                        min={1.0}
+                        max={2.0}
+                        step={0.1}
+                        value={[lineHeight]}
+                        onValueChange={([value]) => setLineHeight(value)}
+                        className="w-[80%]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="letter-spacing" className="flex items-center gap-2">
+                        <TextSize className="h-4 w-4" />
+                        Letter Spacing ({letterSpacing.toFixed(2)}em)
+                      </Label>
+                      <Slider
+                        id="letter-spacing"
+                        min={0}
+                        max={0.1}
+                        step={0.01}
+                        value={[letterSpacing]}
+                        onValueChange={([value]) => setLetterSpacing(value)}
+                        className="w-[80%]"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="high-contrast" className="flex items-center gap-2">
-                      <Contrast className="h-4 w-4" /> High Contrast
-                    </Label>
-                    <Switch
-                      id="high-contrast"
-                      checked={highContrast}
-                      onCheckedChange={setHighContrast}
-                      aria-label="Toggle high contrast mode"
-                    />
+                </TabsContent>
+                <TabsContent value="accessibility" className="mt-0">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="high-contrast" className="flex items-center gap-2">
+                        <Contrast className="h-4 w-4" />
+                        High Contrast
+                      </Label>
+                      <Switch id="high-contrast" checked={highContrast} onCheckedChange={toggleHighContrast} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="grayscale" className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Grayscale
+                      </Label>
+                      <Switch id="grayscale" checked={grayscale} onCheckedChange={toggleGrayscale} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="invert-colors" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Invert Colors
+                      </Label>
+                      <Switch id="invert-colors" checked={invertColors} onCheckedChange={toggleInvertColors} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="animations" className="flex items-center gap-2">
+                        <motion.div
+                          animate={{ rotate: animations ? 360 : 0 }}
+                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </motion.div>
+                        Animations
+                      </Label>
+                      <Switch id="animations" checked={animations} onCheckedChange={toggleAnimations} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="screen-reader-mode" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Screen Reader Mode
+                      </Label>
+                      <Switch
+                        id="screen-reader-mode"
+                        checked={screenReaderMode}
+                        onCheckedChange={toggleScreenReaderMode}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="link-highlight" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Link Highlight
+                      </Label>
+                      <Switch id="link-highlight" checked={linkHighlight} onCheckedChange={toggleLinkHighlight} />
+                    </div>
                   </div>
-                </div>
+                </TabsContent>
               </div>
-
-              {/* Font Size */}
-              <div>
-                <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
-                  <Text className="h-4 w-4" /> Font Size
-                </h3>
-                <div className="flex items-center gap-4">
-                  <Slider
-                    min={12}
-                    max={20}
-                    step={1}
-                    value={[fontSize]}
-                    onValueChange={(val) => setFontSize(val[0])}
-                    className="w-full"
-                    aria-label="Font size slider"
-                  />
-                  <span className="text-sm font-medium w-8 text-right">{fontSize}px</span>
-                </div>
-              </div>
-
-              {/* Volume Control */}
-              <div>
-                <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
-                  <Volume2 className="h-4 w-4" /> Volume
-                </h3>
-                <div className="flex items-center gap-4">
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[volume]}
-                    onValueChange={(val) => setVolume(val[0])}
-                    className="w-full"
-                    aria-label="Volume slider"
-                  />
-                  <span className="text-sm font-medium w-8 text-right">{volume}%</span>
-                </div>
-              </div>
-            </div>
+            </Tabs>
           </motion.div>
         ) : (
           <motion.button

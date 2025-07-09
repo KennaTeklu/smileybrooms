@@ -1,5 +1,4 @@
 "use client"
-
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -62,7 +61,7 @@ const sharePlatforms: SharePlatform[] = [
     id: "instagram",
     name: "Instagram",
     icon: <Instagram className="h-4 w-4" />,
-    url: "https://www.instagram.com/", // Instagram doesn't have a direct share URL for web
+    url: "https://www.instagram.com/",
     color: "bg-pink-600",
     category: "social",
   },
