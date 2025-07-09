@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import ClientLayout from "./client-layout"
+import ClientLayout from "./client"
 
 export const metadata: Metadata = {
   title: "smileybrooms - Professional Cleaning Services",
@@ -21,4 +21,5 @@ export default function RootLayout({
   return <ClientLayout>{children}</ClientLayout>
 }
 
-import "./globals.css"
+
+import './globals.css'

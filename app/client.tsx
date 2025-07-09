@@ -1,42 +1,76 @@
 "use client"
 
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { CartProvider } from "@/lib/cart-context"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import "./device-themes.css"
+import { ThemeProviderEnhanced } from "@/components/theme-provider-enhanced"
 import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from "@/components/providers/query-client-provider"
-import { AnalyticsTracker } from "@/components/analytics-tracker"
-import { FeedbackSurvey } from "@/components/feedback-survey"
-import { Header } from "@/components/header"
-import { UnifiedFooter } from "@/components/unified-footer"
+import { CartProvider } from "@/lib/cart-context"
+import { RoomProvider } from "@/lib/room-context"
+import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { TourProvider } from "@/contexts/tour-context"
-import { PricingProvider } from "@/contexts/pricing-context"
-import { ErrorBoundary } from "@/components/error-boundary"
+import { QueryClientProvider } from "@/components/providers/query-client-provider"
+import Header from "@/components/header"
+import SemicircleFooter from "@/components/semicircle-footer"
+import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
+import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
+import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
+import { CollapsibleCartPanel } from "@/components/collapsible-cart-panel"
+import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { AnalyticsTracker } from "@/components/analytics-tracker"
+import { Suspense, useState } from "react"
 
-import "@/styles/globals.css"
-import "@/app/accessibility.css"
-import "@/app/device-themes.css"
-import "@/app/payment-themes.css"
+const inter = Inter({ subsets: ["latin"] })
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [sharePanelInfo, setSharePanelInfo] = useState({ expanded: false, height: 0 })
+
   return (
-    <ErrorBoundary>
-      <QueryClientProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <CartProvider>
-            <TourProvider>
-              <PricingProvider>
-                <Header />
-                <main className="flex-grow">{children}</main>
-                <UnifiedFooter />
-                <FeedbackSurvey />
-                <Toaster />
-                <AnalyticsTracker />
-              </PricingProvider>
-            </TourProvider>
-          </CartProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+      </head>
+      <body className={inter.className}>
+        <QueryClientProvider>
+          <ThemeProviderEnhanced>
+            <AccessibilityProvider>
+              <CartProvider>
+                <RoomProvider>
+                  <TourProvider>
+                    <AbandonmentProvider>
+                      <TooltipProvider>
+                        {/* Main layout container */}
+                        <div className="relative flex min-h-screen flex-col">
+                          <Header />
+                          <Suspense>
+                            <main className="flex-1">{children}</main>
+                          </Suspense>
+                          <SemicircleFooter />
+                        </div>
+                        {/* Floating panels */}
+                        <CollapsibleChatbotPanel sharePanelInfo={sharePanelInfo} />
+                        <CollapsibleSettingsPanel />
+                        <CollapsibleSharePanel onPanelStateChange={setSharePanelInfo} />
+                        <CollapsibleAddAllPanel />
+                        <CollapsibleCartPanel />
+                        <Toaster />
+                        <AnalyticsTracker />
+                      </TooltipProvider>
+                    </AbandonmentProvider>
+                  </TourProvider>
+                </RoomProvider>
+              </CartProvider>
+            </AccessibilityProvider>
+          </ThemeProviderEnhanced>
+        </QueryClientProvider>
+      </body>
+    </html>
   )
 }
