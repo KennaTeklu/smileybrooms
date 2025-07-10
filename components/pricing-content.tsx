@@ -34,7 +34,7 @@ export function PricingContent({ roomType, onSelect, selected }: PricingContentP
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4 pb-6">
               <Image
-                src={roomImages[roomType] || "/placeholder.svg"} // Use roomImages based on roomType
+                src={roomImages[roomType] || roomImages.default} // Use roomImages based on roomType or fallback
                 alt={`${tier.name} illustration for ${roomType}`}
                 width={200}
                 height={140}

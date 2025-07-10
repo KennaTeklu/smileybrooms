@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { roomConfig } from "@/lib/room-config"
-import PricingContent from "@/components/pricing-content" // Default export
-import PriceCalculator from "@/components/price-calculator" // Default export
-import { ServiceComparisonTable } from "@/components/service-comparison-table" // Import ServiceComparisonTable
+import PricingContent from "@/components/pricing-content"
+import PriceCalculator from "@/components/price-calculator"
+import { ServiceComparisonTable } from "@/components/service-comparison-table"
 import { Home, Sparkles, Calculator } from "lucide-react"
-import { getServiceFeatures } from "@/lib/service-features" // Import getServiceFeatures
+import { getServiceFeatures } from "@/lib/service-features"
 
 export default function PricingPage() {
   const [selectedTab, setSelectedTab] = useState("tiers") // 'tiers' or 'custom-plan'
@@ -91,6 +91,12 @@ export default function PricingPage() {
         </TabsContent>
 
         <TabsContent value="custom-plan" className="space-y-8">
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-semibold">Design Your Perfect Clean</h3>
+            <p className="text-sm text-muted-foreground">
+              Select individual rooms, frequency, and cleanliness level to get a custom quote.
+            </p>
+          </div>
           <PriceCalculator />
         </TabsContent>
       </Tabs>
