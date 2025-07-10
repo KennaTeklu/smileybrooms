@@ -1,255 +1,299 @@
 "use client"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
+
 import { useState } from "react"
-import { Settings, X, ChevronLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Slider } from "@/components/ui/slider"
-import { Separator } from "@/components/ui/separator"
-import { useAccessibility } from "@/hooks/use-accessibility"
 import { motion, AnimatePresence } from "framer-motion"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Settings,
+  X,
+  Sun,
+  Moon,
+  Contrast,
+  Text,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Keyboard,
+  Volume2,
+  RotateCcw,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAccessibility } from "@/hooks/use-accessibility"
+import { cn } from "@/lib/utils"
 
 export function CollapsibleSettingsPanel() {
-  const { preferences, updatePreference, resetPreferences } = useAccessibility()
+  const { preferences, updatePreference, resetPreferences, announceToScreenReader } = useAccessibility()
   const [isOpen, setIsOpen] = useState(false)
 
+  const togglePanel = () => setIsOpen(!isOpen)
+
   const panelVariants = {
-    hidden: { opacity: 0, x: "-100%", scale: 0.8, originX: 0, originY: 1 },
-    visible: { opacity: 1, x: "0%", scale: 1, transition: { duration: 0.3, ease: "easeOut" } },
-    exit: { opacity: 0, x: "-100%", scale: 0.8, transition: { duration: 0.2, ease: "easeIn" } },
+    hidden: { opacity: 0, scale: 0.8, y: 50, x: -50, transition: { duration: 0.2 } },
+    visible: { opacity: 1, scale: 1, y: 0, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  }
+
+  const handleReset = () => {
+    resetPreferences()
+    announceToScreenReader("All accessibility settings have been reset to default.", true)
   }
 
   return (
-    <TooltipProvider>
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="rounded-full shadow-lg bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label={isOpen ? "Close settings panel" : "Open settings panel"}
-            >
-              {isOpen ? <ChevronLeft className="h-5 w-5" /> : <Settings className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{isOpen ? "Close Settings" : "Open Settings"}</TooltipContent>
-        </Tooltip>
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-4 left-4 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        onClick={togglePanel}
+        aria-label={isOpen ? "Close settings" : "Open settings"}
+      >
+        <Settings className="h-5 w-5" />
+      </Button>
 
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              className="mt-4 w-full max-w-[90vw] sm:max-w-md h-[80vh] flex flex-col rounded-xl border bg-background shadow-lg overflow-hidden"
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={panelVariants}
-            >
-              <Card className="flex flex-col flex-1 rounded-xl border-none shadow-none">
-                <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                  <CardTitle className="text-xl font-bold flex items-center gap-2">
-                    <Settings className="h-6 w-6 text-purple-500" /> Accessibility Settings
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsOpen(false)}
-                    aria-label="Close settings panel"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </CardHeader>
-                <CardContent className="flex-1 p-4 overflow-y-auto space-y-6">
-                  {/* Theme Preference */}
-                  <div className="space-y-2">
-                    <Label htmlFor="theme-preference" className="text-base font-semibold">
-                      Theme Preference
-                    </Label>
-                    <RadioGroup
-                      id="theme-preference"
-                      value={preferences.prefersDarkTheme ? "dark" : preferences.prefersLightTheme ? "light" : "system"}
-                      onValueChange={(value) => {
-                        updatePreference("prefersDarkTheme", value === "dark")
-                        updatePreference("prefersLightTheme", value === "light")
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed bottom-4 left-4 z-40 flex h-[85vh] w-full max-w-[90vw] flex-col rounded-xl border border-purple-200 bg-background shadow-lg sm:max-w-md"
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            variants={panelVariants}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-panel-title"
+          >
+            <div className="flex items-center justify-between p-4">
+              <h2 id="settings-panel-title" className="text-xl font-semibold">
+                Accessibility Settings
+              </h2>
+              <Button variant="ghost" size="icon" onClick={togglePanel} aria-label="Close settings panel">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <Separator />
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-6">
+                {/* Theme Preference */}
+                <div>
+                  <h3 className="mb-2 text-lg font-medium">Theme</h3>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant={preferences.prefersLightTheme ? "default" : "outline"}
+                      onClick={() => {
+                        updatePreference("prefersLightTheme", true)
+                        updatePreference("prefersDarkTheme", false)
+                        announceToScreenReader("Theme set to light.", true)
                       }}
-                      className="flex gap-4"
+                      className="flex-1"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="system" id="theme-system" />
-                        <Label htmlFor="theme-system">System</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="light" id="theme-light" />
-                        <Label htmlFor="theme-light">Light</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="dark" id="theme-dark" />
-                        <Label htmlFor="theme-dark">Dark</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <Separator />
-
-                  {/* High Contrast */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="high-contrast" className="text-base font-semibold">
-                      High Contrast Mode
-                    </Label>
-                    <Switch
-                      id="high-contrast"
-                      checked={preferences.highContrast}
-                      onCheckedChange={(checked) => updatePreference("highContrast", checked)}
-                    />
-                  </div>
-
-                  {/* Large Text */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="large-text" className="text-base font-semibold">
-                      Large Text
-                    </Label>
-                    <Switch
-                      id="large-text"
-                      checked={preferences.largeText}
-                      onCheckedChange={(checked) => updatePreference("largeText", checked)}
-                    />
-                  </div>
-
-                  {/* Reduced Motion */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="reduced-motion" className="text-base font-semibold">
-                      Reduced Motion
-                    </Label>
-                    <Switch
-                      id="reduced-motion"
-                      checked={preferences.reducedMotion}
-                      onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
-                    />
-                  </div>
-
-                  {/* Keyboard Navigation */}
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="keyboard-navigation" className="text-base font-semibold">
-                      Keyboard Navigation
-                    </Label>
-                    <Switch
-                      id="keyboard-navigation"
-                      checked={preferences.keyboardNavigation}
-                      onCheckedChange={(checked) => updatePreference("keyboardNavigation", checked)}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  {/* Text Alignment */}
-                  <div className="space-y-2">
-                    <Label htmlFor="text-alignment" className="text-base font-semibold">
-                      Text Alignment
-                    </Label>
-                    <RadioGroup
-                      id="text-alignment"
-                      value={preferences.textAlign}
-                      onValueChange={(value) => updatePreference("textAlign", value as "left" | "center" | "right")}
-                      className="flex gap-4"
+                      <Sun className="mr-2 h-4 w-4" /> Light
+                    </Button>
+                    <Button
+                      variant={preferences.prefersDarkTheme ? "default" : "outline"}
+                      onClick={() => {
+                        updatePreference("prefersDarkTheme", true)
+                        updatePreference("prefersLightTheme", false)
+                        announceToScreenReader("Theme set to dark.", true)
+                      }}
+                      className="flex-1"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="left" id="align-left" />
-                        <Label htmlFor="align-left">Left</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="center" id="align-center" />
-                        <Label htmlFor="align-center">Center</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="right" id="align-right" />
-                        <Label htmlFor="align-right">Right</Label>
-                      </div>
-                    </RadioGroup>
+                      <Moon className="mr-2 h-4 w-4" /> Dark
+                    </Button>
                   </div>
+                </div>
 
-                  {/* Font Family */}
-                  <div className="space-y-2">
-                    <Label htmlFor="font-family" className="text-base font-semibold">
-                      Font Family
-                    </Label>
-                    <RadioGroup
-                      id="font-family"
-                      value={preferences.fontFamily}
-                      onValueChange={(value) => updatePreference("fontFamily", value as "sans" | "serif" | "mono")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="sans" id="font-sans" />
-                        <Label htmlFor="font-sans">Sans-serif</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="serif" id="font-serif" />
-                        <Label htmlFor="font-serif">Serif</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="mono" id="font-mono" />
-                        <Label htmlFor="font-mono">Monospace</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
+                {/* High Contrast */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="high-contrast" className="flex items-center gap-2 text-base">
+                    <Contrast className="h-5 w-5" /> High Contrast Mode
+                  </Label>
+                  <Switch
+                    id="high-contrast"
+                    checked={preferences.highContrast}
+                    onCheckedChange={(checked) => {
+                      updatePreference("highContrast", checked)
+                      announceToScreenReader(`High contrast mode ${checked ? "enabled" : "disabled"}.`, true)
+                    }}
+                  />
+                </div>
 
-                  {/* Line Height */}
-                  <div className="space-y-2">
-                    <Label htmlFor="line-height" className="text-base font-semibold">
-                      Line Height
-                    </Label>
-                    <Slider
-                      id="line-height"
-                      min={1}
-                      max={2}
-                      step={0.1}
-                      value={[preferences.lineHeight]}
-                      onValueChange={(value) => updatePreference("lineHeight", value[0])}
-                      className="w-full"
-                    />
-                    <div className="text-right text-sm text-muted-foreground">{preferences.lineHeight.toFixed(1)}x</div>
-                  </div>
+                {/* Large Text */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="large-text" className="flex items-center gap-2 text-base">
+                    <Text className="h-5 w-5" /> Large Text
+                  </Label>
+                  <Switch
+                    id="large-text"
+                    checked={preferences.largeText}
+                    onCheckedChange={(checked) => {
+                      updatePreference("largeText", checked)
+                      announceToScreenReader(`Large text mode ${checked ? "enabled" : "disabled"}.`, true)
+                    }}
+                  />
+                </div>
 
-                  {/* Letter Spacing */}
-                  <div className="space-y-2">
-                    <Label htmlFor="letter-spacing" className="text-base font-semibold">
-                      Letter Spacing
-                    </Label>
-                    <Slider
-                      id="letter-spacing"
-                      min={0}
-                      max={0.1}
-                      step={0.01}
-                      value={[preferences.letterSpacing]}
-                      onValueChange={(value) => updatePreference("letterSpacing", value[0])}
-                      className="w-full"
-                    />
-                    <div className="text-right text-sm text-muted-foreground">
-                      {preferences.letterSpacing.toFixed(2)}em
-                    </div>
-                  </div>
+                {/* Reduced Motion */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="reduced-motion" className="flex items-center gap-2 text-base">
+                    <RotateCcw className="h-5 w-5" /> Reduced Motion
+                  </Label>
+                  <Switch
+                    id="reduced-motion"
+                    checked={preferences.reducedMotion}
+                    onCheckedChange={(checked) => {
+                      updatePreference("reducedMotion", checked)
+                      announceToScreenReader(`Reduced motion ${checked ? "enabled" : "disabled"}.`, true)
+                    }}
+                  />
+                </div>
 
-                  <Separator />
+                {/* Screen Reader Mode */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="screen-reader" className="flex items-center gap-2 text-base">
+                    <Volume2 className="h-5 w-5" /> Screen Reader Mode
+                  </Label>
+                  <Switch
+                    id="screen-reader"
+                    checked={preferences.screenReaderMode}
+                    onCheckedChange={(checked) => {
+                      updatePreference("screenReaderMode", checked)
+                      announceToScreenReader(`Screen reader mode ${checked ? "enabled" : "disabled"}.`, true)
+                    }}
+                  />
+                </div>
 
-                  {/* Reset Button */}
-                  <Button
-                    variant="outline"
-                    className="w-full text-red-500 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 bg-transparent"
-                    onClick={resetPreferences}
+                {/* Keyboard Navigation */}
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="keyboard-nav" className="flex items-center gap-2 text-base">
+                    <Keyboard className="h-5 w-5" /> Keyboard Navigation
+                  </Label>
+                  <Switch
+                    id="keyboard-nav"
+                    checked={preferences.keyboardNavigation}
+                    onCheckedChange={(checked) => {
+                      updatePreference("keyboardNavigation", checked)
+                      announceToScreenReader(`Keyboard navigation ${checked ? "enabled" : "disabled"}.`, true)
+                    }}
+                  />
+                </div>
+
+                {/* Text Alignment */}
+                <div>
+                  <h3 className="mb-2 text-lg font-medium">Text Alignment</h3>
+                  <RadioGroup
+                    value={preferences.textAlignment}
+                    onValueChange={(value: "left" | "center" | "right" | "justify") => {
+                      updatePreference("textAlignment", value)
+                      announceToScreenReader(`Text alignment set to ${value}.`, true)
+                    }}
+                    className="grid grid-cols-4 gap-2"
                   >
-                    Reset All Settings
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </TooltipProvider>
+                    <Label
+                      htmlFor="align-left"
+                      className={cn(
+                        "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                        preferences.textAlignment === "left" && "border-primary",
+                      )}
+                    >
+                      <RadioGroupItem value="left" id="align-left" className="sr-only" />
+                      <AlignLeft className="mb-2 h-6 w-6" />
+                      <span>Left</span>
+                    </Label>
+                    <Label
+                      htmlFor="align-center"
+                      className={cn(
+                        "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                        preferences.textAlignment === "center" && "border-primary",
+                      )}
+                    >
+                      <RadioGroupItem value="center" id="align-center" className="sr-only" />
+                      <AlignCenter className="mb-2 h-6 w-6" />
+                      <span>Center</span>
+                    </Label>
+                    <Label
+                      htmlFor="align-right"
+                      className={cn(
+                        "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                        preferences.textAlignment === "right" && "border-primary",
+                      )}
+                    >
+                      <RadioGroupItem value="right" id="align-right" className="sr-only" />
+                      <AlignRight className="mb-2 h-6 w-6" />
+                      <span>Right</span>
+                    </Label>
+                    <Label
+                      htmlFor="align-justify"
+                      className={cn(
+                        "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                        preferences.textAlignment === "justify" && "border-primary",
+                      )}
+                    >
+                      <RadioGroupItem value="justify" id="align-justify" className="sr-only" />
+                      <AlignJustify className="mb-2 h-6 w-6" />
+                      <span>Justify</span>
+                    </Label>
+                  </RadioGroup>
+                </div>
+
+                {/* Font Family */}
+                <div>
+                  <h3 className="mb-2 text-lg font-medium">Font Family</h3>
+                  <Select
+                    value={preferences.fontFamily}
+                    onValueChange={(value) => {
+                      updatePreference("fontFamily", value)
+                      announceToScreenReader(`Font family set to ${value}.`, true)
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inter, sans-serif">Inter (Default)</SelectItem>
+                      <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                      <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                      <SelectItem value="monospace">Monospace</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Language */}
+                <div>
+                  <h3 className="mb-2 text-lg font-medium">Language</h3>
+                  <Select
+                    value={preferences.language}
+                    onValueChange={(value) => {
+                      updatePreference("language", value)
+                      announceToScreenReader(`Language set to ${value}.`, true)
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </ScrollArea>
+            <Separator />
+            <div className="p-4">
+              <Button onClick={handleReset} variant="outline" className="w-full bg-transparent">
+                <RotateCcw className="mr-2 h-4 w-4" /> Reset All Settings
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
