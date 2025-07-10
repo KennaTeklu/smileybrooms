@@ -87,7 +87,7 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
           <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
 
           {/* Stripe Payment Request Button for Apple Pay / Google Pay */}
-          {(paymentMethod === "apple" || paymentMethod === "google") && (
+          {(paymentMethod === "apple_pay" || paymentMethod === "google_pay") && (
             <div className="pt-4">
               <StripePaymentRequestButton
                 total={total}
@@ -141,7 +141,10 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Address
             </Button>
-            {paymentMethod === "card" || paymentMethod === "paypal" ? ( // Only show continue button for card/paypal
+            {paymentMethod === "card" ||
+            paymentMethod === "paypal" ||
+            paymentMethod === "amazon_pay" ||
+            paymentMethod === "bank_transfer" ? ( // Only show continue button for non-Stripe Payment Request methods
               <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>

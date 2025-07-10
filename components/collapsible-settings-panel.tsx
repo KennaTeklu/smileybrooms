@@ -17,7 +17,6 @@ import {
   ClipboardCheck,
   FileTypeIcon as Font,
   Languages,
-  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -25,11 +24,11 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added for Select component
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { useAccessibility } from "@/hooks/use-accessibility" // Correct import
+import { useAccessibility } from "@/hooks/use-accessibility"
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -155,7 +154,7 @@ export function CollapsibleSettingsPanel() {
                     size="icon"
                     onClick={() => setIsOpen(false)}
                     className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                    aria-label="Close accessibility settings"
+                    aria-label="Close accessibility settings panel"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -173,10 +172,10 @@ export function CollapsibleSettingsPanel() {
                   </Label>
                   <Switch
                     id="theme-toggle"
-                    checked={preferences.prefersDarkTheme}
+                    checked={preferences.prefersDarkTheme} // Use prefersDarkTheme
                     onCheckedChange={(checked) => {
                       updatePreference("prefersDarkTheme", checked)
-                      updatePreference("prefersLightTheme", !checked)
+                      updatePreference("prefersLightTheme", !checked) // Ensure light theme is opposite
                     }}
                     aria-label="Toggle dark mode"
                   />
@@ -263,7 +262,7 @@ export function CollapsibleSettingsPanel() {
                     value={preferences.fontFamily}
                     onValueChange={(value) => updatePreference("fontFamily", value)}
                   >
-                    <SelectTrigger id="font-family-select" className="w-full">
+                    <SelectTrigger id="font-family-select" className="w-full" aria-label="Select font family">
                       <SelectValue placeholder="Select a font" />
                     </SelectTrigger>
                     <SelectContent>
@@ -283,7 +282,7 @@ export function CollapsibleSettingsPanel() {
                     <span>Language</span>
                   </Label>
                   <Select value={preferences.language} onValueChange={(value) => updatePreference("language", value)}>
-                    <SelectTrigger id="language-select" className="w-full">
+                    <SelectTrigger id="language-select" className="w-full" aria-label="Select language">
                       <SelectValue placeholder="Select a language" />
                     </SelectTrigger>
                     <SelectContent>
@@ -350,21 +349,21 @@ export function CollapsibleSettingsPanel() {
                     aria-label="Select text alignment"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="left" id="align-left" />
+                      <RadioGroupItem value="left" id="align-left" aria-label="Align text left" />
                       <Label htmlFor="align-left">
                         <AlignLeft className="h-5 w-5" />
                         <span className="sr-only">Align Left</span>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="center" id="align-center" />
+                      <RadioGroupItem value="center" id="align-center" aria-label="Align text center" />
                       <Label htmlFor="align-center">
                         <AlignCenter className="h-5 w-5" />
                         <span className="sr-only">Align Center</span>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="right" id="align-right" />
+                      <RadioGroupItem value="right" id="align-right" aria-label="Align text right" />
                       <Label htmlFor="align-right">
                         <AlignRight className="h-5 w-5" />
                         <span className="sr-only">Align Right</span>
@@ -379,8 +378,8 @@ export function CollapsibleSettingsPanel() {
                     variant="outline"
                     className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/30 border-red-200/50 dark:border-red-800/50"
                     onClick={handleReset}
+                    aria-label="Reset all accessibility settings to default"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
                     Reset All Settings
                   </Button>
                 </div>
