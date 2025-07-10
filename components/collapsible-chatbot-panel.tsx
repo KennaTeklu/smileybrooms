@@ -129,7 +129,8 @@ export function CollapsibleChatbotPanel({
     <div
       ref={panelRef}
       // Apply transition-all and the dynamic duration class
-      className={`fixed right-4 sm:right-4 md:right-4 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
+      // Adjusted right positioning for better mobile responsiveness
+      className={`fixed right-4 sm:right-4 md:right-4 lg:right-4 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
@@ -137,7 +138,8 @@ export function CollapsibleChatbotPanel({
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "100%", maxWidth: "420px", opacity: 1, x: 0 }} // Adjusted width for responsiveness
+            // Adjusted maxWidth for better responsiveness across screen sizes
+            animate={{ width: "100%", maxWidth: "90vw", sm: { maxWidth: "420px" }, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
@@ -219,5 +221,3 @@ export function CollapsibleChatbotPanel({
     </div>
   )
 }
-
-export default CollapsibleChatbotPanel
