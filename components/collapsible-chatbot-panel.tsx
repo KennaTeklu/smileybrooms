@@ -2,39 +2,54 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, X, Loader2 } from "lucide-react"
+import { MessageSquare, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
 
-export function CollapsibleChatbotPanel() {
+export default function CollapsibleChatbotPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
 
   const togglePanel = () => setIsOpen(!isOpen)
 
+  // Close panel if ESC key is pressed
   useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true)
-      const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 1500) // Simulate loading time for the iframe
-      return () => clearTimeout(timer)
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false)
+      }
     }
-  }, [isOpen])
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   const panelVariants = {
-    hidden: { opacity: 0, scale: 0.8, y: 50, x: 50, transition: { duration: 0.2 } },
-    visible: { opacity: 1, scale: 1, y: 0, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+    hidden: {
+      opacity: 0,
+      y: 50,
+      scale: 0.9,
+      transition: { duration: 0.2, ease: "easeOut" },
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.3, ease: "easeOut" },
+    },
+    exit: {
+      opacity: 0,
+      y: 50,
+      scale: 0.9,
+      transition: { duration: 0.2, ease: "easeIn" },
+    },
   }
 
   return (
     <>
       <Button
-        variant="outline"
+        variant="secondary"
         size="icon"
-        className="fixed bottom-4 right-4 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        className="fixed bottom-4 right-4 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-background"
         onClick={togglePanel}
         aria-label={isOpen ? "Close chatbot" : "Open chatbot"}
       >
@@ -44,37 +59,37 @@ export function CollapsibleChatbotPanel() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed bottom-4 right-4 z-40 flex h-[80vh] w-full max-w-[90vw] flex-col rounded-xl border border-purple-200 bg-background shadow-lg sm:max-w-md"
+            className={cn(
+              "fixed bottom-4 right-4 z-50 flex h-[80vh] w-full max-w-[90vw] flex-col rounded-xl border bg-background shadow-lg sm:max-w-md",
+              "border-purple-200 bg-purple-50/50 backdrop-blur-md dark:border-purple-800 dark:bg-purple-950/50",
+            )}
+            variants={panelVariants}
             initial="hidden"
             animate="visible"
-            exit="hidden"
-            variants={panelVariants}
+            exit="exit"
             role="dialog"
             aria-modal="true"
             aria-labelledby="chatbot-panel-title"
           >
             <div className="flex items-center justify-between p-4">
-              <h2 id="chatbot-panel-title" className="text-xl font-semibold">
+              <h2 id="chatbot-panel-title" className="text-xl font-bold text-purple-800 dark:text-purple-200">
                 Chat with us!
               </h2>
               <Button variant="ghost" size="icon" onClick={togglePanel} aria-label="Close chatbot panel">
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </Button>
             </div>
-            <Separator />
-            <div className="relative flex-1">
-              {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                </div>
-              )}
+            <Separator className="bg-purple-200 dark:bg-purple-800" />
+            <div className="flex-1">
+              {/* Placeholder for chatbot iframe/content */}
               <iframe
-                src="https://form.jotform.com/241806000000000" // Replace with your actual JotForm chatbot URL
-                className="h-full w-full rounded-b-xl"
+                src="https://www.chatbase.co/chatbot-iframe/YOUR_CHATBOT_ID" // Replace with your actual chatbot URL
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                className="rounded-b-xl"
                 title="Chatbot"
-                onLoad={() => setIsLoading(false)}
-                style={{ border: "none" }}
-              />
+              ></iframe>
             </div>
           </motion.div>
         )}
