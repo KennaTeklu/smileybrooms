@@ -680,6 +680,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Washer drum cleaning",
         "✗ Dryer vent cleaning",
         "✗ Cabinet interior organization",
+        "✗ Utility sink deep cleaning",
+        "✗ Detergent area organization",
+        "✗ Wall spot cleaning",
       ],
       upsellMessage:
         "For a more hygienic laundry space, our ADVANCED CLEAN includes washer/dryer exterior cleaning and lint trap cleaning.",
