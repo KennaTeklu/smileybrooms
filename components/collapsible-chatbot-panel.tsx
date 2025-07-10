@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { usePathname } from "next/navigation"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { JotformChatbot } from "./jotform-chatbot" // Assuming this is the component for the JotForm chatbot
+
+// Extend Window interface for JotForm
+declare global {
+  interface Window {
+    jotformEmbedHandler?: (selector: string, url: string) => void
+  }
+}
 
 interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
@@ -48,6 +56,36 @@ export function CollapsibleChatbotPanel({
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isOpen, isMounted])
+
+  // Load JotForm embed handler script when panel expands
+  useEffect(() => {
+    if (isOpen && isMounted) {
+      const script = document.createElement("script")
+      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
+      script.onload = () => {
+        try {
+          if (window.jotformEmbedHandler) {
+            window.jotformEmbedHandler(
+              "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
+              "https://www.jotform.com",
+            )
+          }
+        } catch (error) {
+          //console.log("JotForm embed handler initialization skipped")
+        }
+      }
+      document.head.appendChild(script)
+
+      return () => {
+        const existingScript = document.querySelector(
+          'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
+        )
+        if (existingScript) {
+          document.head.removeChild(existingScript)
+        }
+      }
+    }
   }, [isOpen, isMounted])
 
   // Add this useEffect hook immediately after the existing useEffect hooks
@@ -116,9 +154,7 @@ export function CollapsibleChatbotPanel({
           <Separator />
           <div className="h-[400px] w-full overflow-hidden rounded-md border">
             {/* The JotFormChatbot component should handle its own scrolling if its content overflows */}
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-              Chatbot functionality removed.
-            </div>
+            <JotformChatbot />
           </div>
           <p className="text-sm text-muted-foreground">
             Ask our AI assistant any questions about our services, pricing, or booking process.
