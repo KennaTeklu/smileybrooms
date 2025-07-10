@@ -33,16 +33,26 @@
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    /* Accessibility CSS Variables */
+    --accessibility-font-scale: 1;
+    --accessibility-contrast: 1;
+    --accessibility-saturation: 1;
+    --accessibility-cursor-scale: 1;
+    --accessibility-font-family: "Inter", sans-serif;
+    --accessibility-line-height: 1.5;
+    --accessibility-letter-spacing: 0em;
+    --accessibility-text-align: left;
   }
 
   .dark {
-    --background: 222.2 47.4% 11.2%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 47.4% 11.2%;
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 47.4% 11.2%;
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
@@ -72,101 +82,34 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: calc(16px * var(--accessibility-font-scale)); /* Apply font scale */
+    line-height: var(--accessibility-line-height); /* Apply line height */
+    letter-spacing: var(--accessibility-letter-spacing); /* Apply letter spacing */
+    text-align: var(--accessibility-text-align); /* Apply text alignment */
+    font-family: var(--accessibility-font-family); /* Apply font family */
   }
-}
 
-/* Accessibility Styles */
+  /* Accessibility Classes */
+  .high-contrast {
+    filter: contrast(var(--accessibility-contrast));
+  }
 
-/* High Contrast Mode */
-body.high-contrast {
-  background-color: #000 !important;
-  color: #fff !important;
-  /* Adjust other elements for high contrast */
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
-  --card: 0 0% 0%;
-  --card-foreground: 0 0% 100%;
-  --popover: 0 0% 0%;
-  --popover-foreground: 0 0% 100%;
-  --primary: 0 0% 100%;
-  --primary-foreground: 0 0% 0%;
-  --secondary: 0 0% 20%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 80%;
-  --accent: 0 0% 20%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 100% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 50%;
-  --input: 0 0% 20%;
-  --ring: 0 0% 100%;
-}
+  .large-text {
+    font-size: calc(18px * var(--accessibility-font-scale)); /* Slightly larger base for large text mode */
+  }
 
-/* Large Text Mode */
-body.large-text {
-  font-size: 1.25em; /* Increase base font size */
-}
+  .motion-reduced * {
+    transition: none !important;
+    animation: none !important;
+  }
 
-body.large-text h1 {
-  font-size: 2.5em; /* Example: Scale up specific headings */
-}
+  .keyboard-navigation *:focus-visible {
+    outline: 2px solid var(--ring); /* Enhanced focus indicator */
+    outline-offset: 2px;
+  }
 
-body.large-text h2 {
-  font-size: 2em;
-}
-
-/* Reduced Motion Mode */
-body.reduced-motion * {
-  transition-duration: 0s !important;
-  animation-duration: 0s !important;
-  scroll-behavior: auto !important;
-}
-
-/* Keyboard Navigation Enabled */
-body.keyboard-navigation-enabled *:focus-visible {
-  outline: 3px solid var(--purple-500); /* Use a strong outline color */
-  outline-offset: 2px;
-  border-radius: var(--radius); /* Match border-radius for consistency */
-}
-
-/* Screen Reader Mode (visual adjustments, actual screen reader behavior is handled by ARIA) */
-body.screen-reader-mode .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Ensure theme classes are applied correctly by next-themes */
-html.dark {
-  color-scheme: dark;
-}
-
-html.light {
-  color-scheme: light;
-}
-
-/* Custom classes for accessibility provider to override next-themes if needed */
-body.prefers-dark-theme {
-  /* This class can be used to force dark theme styles if next-themes isn't active */
-  /* For example, if you want to ensure dark mode even without the next-themes provider */
-}
-
-body.prefers-light-theme {
-  /* This class can be used to force light theme styles */
-}
-
-/* Ensure the root font size is adjustable */
-html {
-  font-size: 16px; /* Base font size */
-}
-
-body.large-text html {
-  font-size: 20px; /* Larger base font size for large text mode */
+  /* Cursor size (example, might need more specific targeting) */
+  body.cursor-large {
+    cursor: url("/path/to/large-cursor.png"), auto; /* Placeholder for custom cursor */
+  }
 }

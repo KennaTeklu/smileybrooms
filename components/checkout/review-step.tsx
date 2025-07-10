@@ -21,51 +21,45 @@ interface ReviewStepProps {
 
 export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps) {
   const router = useRouter()
-  const { cart, clearCart } = useCart()
+  const { cart, clearCart, applyCoupon } = useCart() // Destructure applyCoupon from useCart
   const { toast } = useToast()
 
   const [isProcessing, setIsProcessing] = useState(false)
-  const [couponCode, setCouponCode] = useState("")
-  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponCodeInput, setCouponCodeInput] = useState("") // State for the input field
   const [couponError, setCouponError] = useState<string | null>(null)
 
   const { contact: contactData, address: addressData, payment: paymentData } = checkoutData
 
-  // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Calculate totals based on cart state, which now includes couponDiscount
+  const subtotal = cart.subtotalPrice // Use subtotalPrice from cart context
   const videoDiscount = paymentData?.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const totalBeforeTax = subtotal - videoDiscount - couponDiscount
+  const totalBeforeTax = subtotal - videoDiscount - cart.couponDiscount // Use cart.couponDiscount
   const tax = totalBeforeTax * 0.08 // 8% tax
   const total = totalBeforeTax + tax
 
   useEffect(() => {
-    // Reset coupon discount if cart items or other discounts change
-    setCouponDiscount(0)
-    setCouponCode("")
+    // Reset coupon input and error if cart items or other discounts change
+    // The actual coupon discount is managed by the cart context
+    setCouponCodeInput(cart.couponCode || "") // Keep input synced with applied coupon
     setCouponError(null)
-  }, [cart.items, videoDiscount])
+  }, [cart.items, videoDiscount, cart.couponCode])
 
   const handleApplyCoupon = () => {
     setCouponError(null)
-    // Simulate coupon application
-    if (couponCode.toLowerCase() === "v0discount") {
-      const discountAmount = Math.min(totalBeforeTax * 0.15, 50) // 15% off, max $50
-      setCouponDiscount(discountAmount)
-      toast({
-        title: "Coupon Applied!",
-        description: `You saved ${formatCurrency(discountAmount)} with code "${couponCode}".`,
-        variant: "success",
-      })
-    } else if (couponCode.trim() === "") {
+    if (couponCodeInput.trim() === "") {
       setCouponError("Please enter a coupon code.")
-    } else {
-      setCouponDiscount(0)
-      setCouponError("Invalid coupon code. Please try again.")
       toast({
-        title: "Invalid Coupon",
-        description: "The coupon code you entered is not valid.",
+        title: "Coupon Required",
+        description: "Please enter a coupon code to apply.",
         variant: "destructive",
       })
+      return
+    }
+
+    const success = applyCoupon(couponCodeInput) // Use the applyCoupon from context
+    if (!success) {
+      setCouponError("Invalid coupon code. Please try again.")
+      // Toast is already handled by applyCoupon in cart-context
     }
   }
 
@@ -106,12 +100,13 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
       }
 
       // Add coupon discount if applicable
-      if (couponDiscount > 0) {
+      if (cart.couponDiscount > 0) {
+        // Use cart.couponDiscount
         customLineItems.push({
-          name: `Coupon Discount: ${couponCode}`,
-          amount: -couponDiscount, // Negative amount for discount
+          name: `Coupon Discount: ${cart.couponCode}`, // Use cart.couponCode
+          amount: -cart.couponDiscount, // Negative amount for discount
           quantity: 1,
-          description: `Discount applied with coupon code: ${couponCode}`,
+          description: `Discount applied with coupon code: ${cart.couponCode}`,
         })
       }
 
@@ -215,8 +210,8 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
               <div className="flex gap-2">
                 <Input
                   placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value)}
                   className={couponError ? "border-red-500" : ""}
                 />
                 <Button onClick={handleApplyCoupon} disabled={isProcessing}>
@@ -224,8 +219,10 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                 </Button>
               </div>
               {couponError && <p className="text-red-500 text-sm mt-1">{couponError}</p>}
-              {couponDiscount > 0 && (
-                <p className="text-green-600 text-sm mt-1">Coupon applied: -{formatCurrency(couponDiscount)}</p>
+              {cart.couponDiscount > 0 && ( // Use cart.couponDiscount
+                <p className="text-green-600 text-sm mt-1">
+                  Coupon applied: -{formatCurrency(cart.couponDiscount)} (Code: {cart.couponCode})
+                </p>
               )}
             </div>
 
@@ -240,10 +237,10 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                   <span>-{formatCurrency(videoDiscount)}</span>
                 </div>
               )}
-              {couponDiscount > 0 && (
+              {cart.couponDiscount > 0 && ( // Use cart.couponDiscount
                 <div className="flex justify-between text-lg text-green-600">
                   <span>Coupon Discount</span>
-                  <span>-{formatCurrency(couponDiscount)}</span>
+                  <span>-{formatCurrency(cart.couponDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg">

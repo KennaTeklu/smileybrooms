@@ -9,7 +9,7 @@ export type CartItem = {
   id: string
   name: string
   price: number
-  priceId: string
+  priceId?: string // Made optional as it might not always be present for custom items
   quantity: number
   image?: string
   sourceSection?: string

@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   FileTypeIcon as Font,
   Languages,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -24,11 +25,11 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added for Select component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { useAccessibility } from "@/hooks/use-accessibility"
+import { useAccessibility } from "@/hooks/use-accessibility" // Correct import
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -172,10 +173,10 @@ export function CollapsibleSettingsPanel() {
                   </Label>
                   <Switch
                     id="theme-toggle"
-                    checked={preferences.prefersDarkTheme} // Use prefersDarkTheme
+                    checked={preferences.prefersDarkTheme}
                     onCheckedChange={(checked) => {
                       updatePreference("prefersDarkTheme", checked)
-                      updatePreference("prefersLightTheme", !checked) // Ensure light theme is opposite
+                      updatePreference("prefersLightTheme", !checked)
                     }}
                     aria-label="Toggle dark mode"
                   />
@@ -379,6 +380,7 @@ export function CollapsibleSettingsPanel() {
                     className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/30 border-red-200/50 dark:border-red-800/50"
                     onClick={handleReset}
                   >
+                    <RefreshCw className="h-4 w-4 mr-2" />
                     Reset All Settings
                   </Button>
                 </div>
