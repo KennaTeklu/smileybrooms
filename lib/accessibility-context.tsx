@@ -32,8 +32,8 @@ export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   screenReaderMode: false,
   keyboardNavigation: false,
   textAlignment: "left",
-  fontFamily: "Inter, sans-serif",
-  language: "en",
+  fontFamily: "Inter, sans-serif", // Default font
+  language: "en", // Default language
   prefersDarkTheme: false, // Default to light theme preference
   prefersLightTheme: true, // Default to light theme preference
   lineHeight: 1.5, // 1.0–2.0   (1.5 = browser default)

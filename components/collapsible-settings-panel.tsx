@@ -5,17 +5,18 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Settings,
   X,
+  Sun,
+  Moon,
   Text,
   AlignLeft,
   AlignCenter,
   AlignRight,
   ChevronRight,
+  Sparkles,
   Zap,
-  Palette,
-  LineChartIcon as LineHeight,
-  LayoutListIcon as LetterSpacing,
-  Eye,
-  Accessibility,
+  ClipboardCheck,
+  FileTypeIcon as Font,
+  Languages,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -23,11 +24,11 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added for Select component
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { useAccessibility } from "@/hooks/use-accessibility" // Corrected import path
-import { Separator } from "@/components/ui/separator" // Ensure Separator is imported
+import { useAccessibility } from "@/hooks/use-accessibility"
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -161,17 +162,21 @@ export function CollapsibleSettingsPanel() {
               </div>
 
               {/* Settings Content */}
-              <div className="p-5 flex-1 overflow-y-auto space-y-6">
+              <div className="p-5 flex-1 overflow-auto space-y-6">
                 {/* Theme Toggle */}
                 <div className="flex items-center justify-between">
                   <Label htmlFor="theme-toggle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Sun className="h-5 w-5 text-yellow-500" />
+                    <Moon className="h-5 w-5 text-blue-500" />
                     <span>Dark Mode</span>
                   </Label>
                   <Switch
                     id="theme-toggle"
-                    checked={preferences.theme === "dark"}
-                    onCheckedChange={(checked) => updatePreference("theme", checked ? "dark" : "light")}
+                    checked={preferences.prefersDarkTheme} // Use prefersDarkTheme
+                    onCheckedChange={(checked) => {
+                      updatePreference("prefersDarkTheme", checked)
+                      updatePreference("prefersLightTheme", !checked) // Ensure light theme is opposite
+                    }}
                     aria-label="Toggle dark mode"
                   />
                 </div>
@@ -182,7 +187,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="high-contrast-toggle"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <Eye className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Sparkles className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>High Contrast Mode</span>
                   </Label>
                   <Switch
@@ -233,7 +238,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="keyboard-nav-toggle"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <Accessibility className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <ClipboardCheck className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Keyboard Navigation</span>
                   </Label>
                   <Switch
@@ -244,7 +249,50 @@ export function CollapsibleSettingsPanel() {
                   />
                 </div>
 
-                <Separator />
+                {/* Font Family Selection */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="font-family-select"
+                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                  >
+                    <Font className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>Font Family</span>
+                  </Label>
+                  <Select
+                    value={preferences.fontFamily}
+                    onValueChange={(value) => updatePreference("fontFamily", value)}
+                  >
+                    <SelectTrigger id="font-family-select" className="w-full">
+                      <SelectValue placeholder="Select a font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inter, sans-serif">Inter (Default)</SelectItem>
+                      <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                      <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                      <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                      <SelectItem value="monospace">Monospace</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Language Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="language-select" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <Languages className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>Language</span>
+                  </Label>
+                  <Select value={preferences.language} onValueChange={(value) => updatePreference("language", value)}>
+                    <SelectTrigger id="language-select" className="w-full">
+                      <SelectValue placeholder="Select a language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Español</SelectItem>
+                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="de">Deutsch</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 {/* Line Height Slider */}
                 <div className="space-y-2">
@@ -252,7 +300,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="line-height-slider"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <LineHeight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Line Height: {preferences.lineHeight?.toFixed(2)}</span>
                   </Label>
                   <Slider
@@ -273,7 +321,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="letter-spacing-slider"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <LetterSpacing className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Letter Spacing: {preferences.letterSpacing?.toFixed(2)}em</span>
                   </Label>
                   <Slider
@@ -323,79 +371,6 @@ export function CollapsibleSettingsPanel() {
                     </div>
                   </RadioGroup>
                 </div>
-
-                <Separator />
-
-                {/* Duplicated sections for longer scrolling */}
-                <div className="space-y-2">
-                  <Label htmlFor="theme-toggle-2" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Another Theme Option</span>
-                  </Label>
-                  <Switch
-                    id="theme-toggle-2"
-                    checked={false} // Placeholder value
-                    onCheckedChange={() => {}} // Placeholder handler
-                    aria-label="Another theme option"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="line-height-slider-2"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <LineHeight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Another Line Height: 1.20</span>
-                  </Label>
-                  <Slider
-                    id="line-height-slider-2"
-                    min={1.0}
-                    max={2.0}
-                    step={0.05}
-                    value={[1.2]} // Placeholder value
-                    onValueChange={() => {}} // Placeholder handler
-                    className="w-full"
-                    aria-label="Another line height adjustment"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <AlignLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Another Text Alignment</span>
-                  </Label>
-                  <RadioGroup
-                    value="center" // Placeholder value
-                    onValueChange={() => {}} // Placeholder handler
-                    className="flex gap-4"
-                    aria-label="Another text alignment selection"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="left" id="align-left-2" />
-                      <Label htmlFor="align-left-2">
-                        <AlignLeft className="h-5 w-5" />
-                        <span className="sr-only">Align Left</span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="center" id="align-center-2" />
-                      <Label htmlFor="align-center-2">
-                        <AlignCenter className="h-5 w-5" />
-                        <span className="sr-only">Align Center</span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="right" id="align-right-2" />
-                      <Label htmlFor="align-right-2">
-                        <AlignRight className="h-5 w-5" />
-                        <span className="sr-only">Align Right</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <Separator />
 
                 {/* Reset Button */}
                 <div className="pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
