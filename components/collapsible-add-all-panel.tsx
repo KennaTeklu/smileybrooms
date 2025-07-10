@@ -15,7 +15,6 @@ import {
   ListChecks,
   ListX,
   Lightbulb,
-  PlusCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,9 +26,9 @@ import { useCart } from "@/lib/cart-context"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import { roomImages, roomDisplayNames, roomTiers } from "@/lib/room-tiers"
+import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -49,7 +48,6 @@ export function CollapsibleAddAllPanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const controls = useAnimation()
-  const { toast } = useToast()
 
   // State for dynamic positioning - start with fixed position, then adjust
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
@@ -60,8 +58,6 @@ export function CollapsibleAddAllPanel() {
 
   // Check if selection requirements are met (2 or more rooms selected)
   const selectionRequirementsMet = selectedRoomTypes.length >= 2
-
-  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -218,7 +214,7 @@ export function CollapsibleAddAllPanel() {
         duration: 3000,
       })
     }
-  }, [selectedRoomTypes, roomCounts, roomConfigs, addItem, updateRoomCount, vibrate, toast])
+  }, [selectedRoomTypes, roomCounts, roomConfigs, addItem, updateRoomCount, vibrate])
 
   const handleRemoveRoom = useCallback(
     (roomType: string) => {
@@ -249,54 +245,6 @@ export function CollapsibleAddAllPanel() {
     setReviewStep(0)
     vibrate(50)
   }, [vibrate])
-
-  const togglePanel = () => setIsOpen(!isOpen)
-
-  const handleAddAllRooms = () => {
-    const allRoomTypes = Object.keys(roomTiers) // Assuming roomTiers contains all possible room types
-
-    allRoomTypes.forEach((roomType) => {
-      // Add 1 to each room type if not already present or count is 0
-      if (!roomCounts[roomType] || roomCounts[roomType] === 0) {
-        updateRoomCount(roomType, 1)
-        // Add to cart with default config if not already there
-        const defaultRoomConfig = roomConfigs[roomType] || {
-          roomName: roomType,
-          selectedTier: "PREMIUM CLEAN",
-          selectedAddOns: [],
-          selectedReductions: [],
-          basePrice: 50,
-          tierUpgradePrice: 0,
-          addOnsPrice: 0,
-          reductionsPrice: 0,
-          totalPrice: 50,
-        }
-        addItem({
-          id: `room-${roomType}`,
-          name: `${roomType} (Premium Clean)`,
-          price: defaultRoomConfig.totalPrice,
-          priceId: `price_room_${roomType}_premium`, // Placeholder price ID
-          quantity: 1,
-          image: `/images/${roomType.toLowerCase().replace(/\s/g, "-")}-professional.png`, // Placeholder image
-          metadata: { roomType: roomType, tier: "PREMIUM CLEAN" },
-          paymentFrequency: "per_service",
-        })
-      }
-    })
-
-    toast({
-      title: "All Rooms Added!",
-      description: "All available room types have been added to your cart.",
-      variant: "success",
-      duration: 3000,
-    })
-    setIsOpen(false) // Close panel after adding
-  }
-
-  const panelVariants = {
-    hidden: { opacity: 0, transition: { duration: 0.2 } },
-    visible: { opacity: 1, transition: { duration: 0.3, ease: "easeOut" } },
-  }
 
   // Memoized room list with enhanced styling
   const roomList = useMemo(() => {
@@ -342,21 +290,19 @@ export function CollapsibleAddAllPanel() {
 
             <div className="text-right flex-shrink-0">
               <div className="font-bold text-xl text-blue-600 dark:text-blue-400">{formatCurrency(roomTotal)}</div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveRoom(roomType)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Remove from selection</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRoom(roomType)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove from selection</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
@@ -456,11 +402,10 @@ export function CollapsibleAddAllPanel() {
             className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-4"
           >
             <motion.div
-              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Header */}
               {/* Enhanced Header */}
@@ -627,7 +572,7 @@ export function CollapsibleAddAllPanel() {
 
   // Floating trigger button (only shows when not in fullscreen)
   return (
-    <>
+    <TooltipProvider>
       <SuccessNotification />
       <motion.div
         ref={panelRef}
@@ -675,64 +620,6 @@ export function CollapsibleAddAllPanel() {
           </div>
         </motion.button>
       </motion.div>
-
-      <Button
-        variant="outline"
-        size="icon"
-        className="fixed bottom-4 right-60 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-        onClick={togglePanel}
-        aria-label={isOpen ? "Close add all rooms panel" : "Open add all rooms panel"}
-      >
-        <PlusCircle className="h-5 w-5" />
-      </Button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={panelVariants}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-all-panel-title"
-          >
-            <motion.div
-              className="relative flex flex-col rounded-xl border border-purple-200 bg-background p-8 shadow-lg sm:max-w-lg w-[90vw]"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4"
-                onClick={togglePanel}
-                aria-label="Close panel"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-              <h2 id="add-all-panel-title" className="mb-4 text-2xl font-bold text-center">
-                Add All Rooms to Cart?
-              </h2>
-              <p className="mb-6 text-center text-muted-foreground">
-                This will add one of each standard room type to your cart with the default "Premium Clean" service. You
-                can customize them later.
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" onClick={togglePanel}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddAllRooms}>
-                  <CheckCircle className="mr-2 h-4 w-4" /> Add All Rooms
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+    </TooltipProvider>
   )
 }

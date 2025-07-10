@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 
 export type AccessibilityPreferences = {
   highContrast: boolean
@@ -50,7 +50,7 @@ const getInitialState = <T,>(key: string, defaultValue: T): T => {
   }
 }
 
-export const AccessibilityProvider = ({ children }: { ReactNode }) => {
+export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(() => {
     const saved = getInitialState("accessibilityPreferences", DEFAULT_PREFERENCES)
     // Merge saved preferences with default to ensure new keys are included
@@ -118,6 +118,3 @@ export const AccessibilityProvider = ({ children }: { ReactNode }) => {
 export const _useAccessibilityContextInternal = () => {
   return useContext(AccessibilityContext)
 }
-
-// Re-export the public hook so existing imports keep working
-export { useAccessibility } from "../hooks/use-accessibility"

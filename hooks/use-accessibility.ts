@@ -4,36 +4,43 @@ import { useCallback } from "react"
 import { _useAccessibilityContextInternal, DEFAULT_PREFERENCES } from "@/lib/accessibility-context"
 
 /**
- * Public hook that exposes accessibility preferences, update helpers,
- * and a few DOM-utilities (announce, focus, trapFocus).
+ * Public hook for accessing accessibility preferences and utilities.
  *
- * It is safe to call during SSR – when the provider is absent we fall
- * back to stub implementations so nothing crashes.
+ * It provides:
+ * - `preferences`: An object containing all current accessibility settings.
+ * - `updatePreference`: A function to update a specific preference.
+ * - `resetPreferences`: A function to reset all preferences to default.
+ * - DOM utility helpers: `announceToScreenReader`, `focusElement`, `trapFocus`.
+ *
+ * This hook is safe to use during server-side rendering (SSR) as it provides
+ * a default stub when the context is not yet available.
  */
 export function useAccessibility() {
-  /* ───────────────────────────  DOM helpers  ─────────────────────────── */
+  /* ╭───────────────────────────────────────────────────────────────╮
+     │  DOM helper utilities                                         │
+     ╰───────────────────────────────────────────────────────────────╯ */
 
-  /** Announce a message to screen-reader users (client-only). */
+  /** Announces a message for screen-reader users (client-only). */
   const announceToScreenReader = useCallback((message: string, polite = true) => {
     if (typeof window === "undefined") return
     const el = document.createElement("div")
     el.setAttribute("role", "status")
     el.setAttribute("aria-live", polite ? "polite" : "assertive")
-    el.className = "sr-only"
+    el.className = "sr-only" // Hidden visually, but accessible to screen readers
     el.textContent = message
     document.body.appendChild(el)
     setTimeout(() => document.body.removeChild(el), 700)
   }, [])
 
-  /** Focus the first element that matches `selector`. */
+  /** Programmatically focuses the first element that matches `selector`. */
   const focusElement = useCallback((selector: string) => {
     if (typeof window === "undefined") return
     document.querySelector<HTMLElement>(selector)?.focus()
   }, [])
 
   /**
-   * Trap keyboard focus inside the element matched by `containerSelector`.
-   * Returns a cleanup function.
+   * Traps keyboard focus inside the element matched by `containerSelector`.
+   * Returns a cleanup function to remove the event listener.
    */
   const trapFocus = useCallback((containerSelector: string) => {
     if (typeof window === "undefined") return () => {}
@@ -50,33 +57,34 @@ export function useAccessibility() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return
       if (e.shiftKey) {
-        // shift + tab
+        // Shift + Tab
         if (document.activeElement === first) {
           e.preventDefault()
           last.focus()
         }
       } else {
-        // tab forward
+        // Tab
         if (document.activeElement === last) {
           e.preventDefault()
           first.focus()
         }
       }
     }
-
     container.addEventListener("keydown", onKeyDown)
     return () => container.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  /* ─────────────────────  Context access with fallback  ───────────────────── */
+  /* ╭───────────────────────────────────────────────────────────────╮
+     │  Context access & graceful fallback                           │
+     ╰───────────────────────────────────────────────────────────────╯ */
 
   const context = _useAccessibilityContextInternal()
 
+  // If context is undefined (e.g., during SSR), return a safe stub
   if (!context) {
-    // Provider not mounted yet (e.g. during SSR) – return safe stubs.
     const noop = () => {}
     return {
-      preferences: DEFAULT_PREFERENCES,
+      preferences: DEFAULT_PREFERENCES, // Always provide default preferences
       updatePreference: noop,
       resetPreferences: noop,
       announceToScreenReader,
@@ -85,6 +93,7 @@ export function useAccessibility() {
     }
   }
 
+  // If context is available, return the real values
   return {
     ...context,
     announceToScreenReader,
