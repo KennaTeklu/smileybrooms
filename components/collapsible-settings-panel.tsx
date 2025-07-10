@@ -1,21 +1,12 @@
 "use client"
 
-import { DrawerFooter } from "@/components/ui/drawer"
-
-import { DrawerTitle } from "@/components/ui/drawer"
-
-import { DrawerHeader } from "@/components/ui/drawer"
-
-import { DrawerContent } from "@/components/ui/drawer"
-
-import { Drawer } from "@/components/ui/drawer"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Mic,
@@ -42,7 +33,7 @@ import { useVoiceCommands } from "@/lib/voice-commands"
 import { useKeyboardNavigation } from "@/lib/keyboard-navigation"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
-import type { AccessibilityPreferences } from "@/types/accessibility-preferences"
+import type { AccessibilityPreferences } from "@/lib/accessibility-context" // Corrected import path for type
 
 export function CollapsibleSettingsPanel() {
   const [open, setOpen] = useState(false)
@@ -151,7 +142,8 @@ export function CollapsibleSettingsPanel() {
         phrases: ["dark mode", "switch to dark mode", "enable dark mode"],
         handler: () => {
           setTheme("dark")
-          updatePreference("language", "dark") // Using language for theme preference
+          updatePreference("prefersDarkTheme", true)
+          updatePreference("prefersLightTheme", false)
         },
         description: "Switch to dark mode",
       },
@@ -159,7 +151,8 @@ export function CollapsibleSettingsPanel() {
         phrases: ["light mode", "switch to light mode", "enable light mode"],
         handler: () => {
           setTheme("light")
-          updatePreference("language", "light") // Using language for theme preference
+          updatePreference("prefersDarkTheme", false)
+          updatePreference("prefersLightTheme", true)
         },
         description: "Switch to light mode",
       },
@@ -198,8 +191,10 @@ export function CollapsibleSettingsPanel() {
         altKey: true,
         description: "Toggle dark/light mode",
         handler: () => {
-          setTheme(theme === "dark" ? "light" : "dark")
-          updatePreference("language", theme === "dark" ? "light" : "dark") // Using language for theme preference
+          const newTheme = theme === "dark" ? "light" : "dark"
+          setTheme(newTheme)
+          updatePreference("prefersDarkTheme", newTheme === "dark")
+          updatePreference("prefersLightTheme", newTheme === "light")
         },
       },
     ])
@@ -263,14 +258,15 @@ export function CollapsibleSettingsPanel() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant={theme === "light" ? "default" : "outline"}
+                    variant={preferences.prefersLightTheme ? "default" : "outline"}
                     onClick={() => {
                       setTheme("light")
-                      updatePreference("language", "light") // Using language for theme preference
+                      updatePreference("prefersLightTheme", true)
+                      updatePreference("prefersDarkTheme", false)
                     }}
                     className={cn(
                       "text-purple-700 border-purple-400 hover:bg-purple-100 dark:text-purple-300 dark:border-purple-700 dark:hover:bg-gray-700",
-                      theme === "light" &&
+                      preferences.prefersLightTheme &&
                         "bg-purple-500 text-white hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700",
                     )}
                   >
@@ -278,14 +274,15 @@ export function CollapsibleSettingsPanel() {
                   </Button>
                   <Button
                     size="sm"
-                    variant={theme === "dark" ? "default" : "outline"}
+                    variant={preferences.prefersDarkTheme ? "default" : "outline"}
                     onClick={() => {
                       setTheme("dark")
-                      updatePreference("language", "dark") // Using language for theme preference
+                      updatePreference("prefersDarkTheme", true)
+                      updatePreference("prefersLightTheme", false)
                     }}
                     className={cn(
                       "text-purple-700 border-purple-400 hover:bg-purple-100 dark:text-purple-300 dark:border-purple-700 dark:hover:bg-gray-700",
-                      theme === "dark" &&
+                      preferences.prefersDarkTheme &&
                         "bg-purple-500 text-white hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700",
                     )}
                   >

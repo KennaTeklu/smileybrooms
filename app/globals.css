@@ -6,53 +6,63 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
+
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
+
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
 
-    /* Accessibility variables */
-    --font-size-multiplier: 1;
-    --line-height-multiplier: 1.5;
-    --letter-spacing-em: 0;
-    --text-align: left;
-    --font-family: sans-serif;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222.2 47.4% 11.2%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+
+    --card: 222.2 47.4% 11.2%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+
+    --popover: 222.2 47.4% 11.2%;
     --popover-foreground: 210 40% 98%;
+
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
+
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 210 40% 98%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -60,64 +70,18 @@
   * {
     @apply border-border;
   }
-
-  /* Critical CSS foundations */
   body {
     @apply bg-background text-foreground;
-    position: relative;
-    overflow-x: hidden;
-    font-size: calc(16px * var(--font-size-multiplier));
-    line-height: var(--line-height-multiplier);
-    letter-spacing: var(--letter-spacing-em);
-    text-align: var(--text-align);
-    font-family: var(--font-family);
-  }
-
-  /* Accessibility font scaling */
-  html {
-    font-size: calc(100% * var(--font-size-multiplier));
-  }
-
-  /* Custom cursor for accessibility */
-  .accessibility-cursor {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z'/%3E%3Cpath d='m13 13 6 6'/%3E%3C/svg%3E")
-      0 0, auto;
-    transform: scale(var(--accessibility-cursor-scale));
-  }
-
-  /* Sticky header styles */
-  .sticky-header {
-    position: sticky;
-    top: 0;
-    z-index: 1001;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  /* Floating button critical styles */
-  .floating-cart-button {
-    position: absolute;
-    top: 0;
-    right: 20px;
-    z-index: 1000;
-    transition: none;
-    contain: content;
-    will-change: transform;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
   }
 }
 
-/* Dyslexia friendly font */
-.dyslexic-font {
-  font-family: "Open Sans", "Comic Sans MS", sans-serif;
-  letter-spacing: 0.05em;
-  word-spacing: 0.1em;
-  line-height: 1.5;
-}
+/* Accessibility Styles */
 
-/* High contrast mode */
-.high-contrast {
+/* High Contrast Mode */
+body.high-contrast {
+  background-color: #000 !important;
+  color: #fff !important;
+  /* Adjust other elements for high contrast */
   --background: 0 0% 0%;
   --foreground: 0 0% 100%;
   --card: 0 0% 0%;
@@ -134,169 +98,40 @@
   --accent-foreground: 0 0% 100%;
   --destructive: 0 100% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 40%;
-  --input: 0 0% 40%;
+  --border: 0 0% 50%;
+  --input: 0 0% 20%;
   --ring: 0 0% 100%;
 }
 
-.high-contrast img {
-  filter: grayscale(100%) contrast(1.5);
+/* Large Text Mode */
+body.large-text {
+  font-size: 1.25em; /* Increase base font size */
 }
 
-/* Motion reduced mode */
-.motion-reduced * {
-  animation-duration: 0.001ms !important;
-  transition-duration: 0.001ms !important;
-  animation-iteration-count: 1 !important;
+body.large-text h1 {
+  font-size: 2.5em; /* Example: Scale up specific headings */
 }
 
-/* Keyboard navigation mode */
-.keyboard-mode:focus {
-  outline: 3px solid var(--primary);
+body.large-text h2 {
+  font-size: 2em;
+}
+
+/* Reduced Motion Mode */
+body.reduced-motion * {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Keyboard Navigation Enabled */
+body.keyboard-navigation-enabled *:focus-visible {
+  outline: 3px solid var(--purple-500); /* Use a strong outline color */
   outline-offset: 2px;
+  border-radius: var(--radius); /* Match border-radius for consistency */
 }
 
-/* Focus indicators */
-.focus-indicators a:focus,
-.focus-indicators button:focus,
-.focus-indicators input:focus,
-.focus-indicators select:focus,
-.focus-indicators textarea:focus {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes glow {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
-  }
-  50% {
-    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.8));
-  }
-  100% {
-    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3));
-  }
-}
-
-@keyframes neonBorder {
-  0% {
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.5);
-  }
-  100% {
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3);
-  }
-}
-
-/* Add the flash animation */
-@keyframes flash {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.animate-flash {
-  animation: flash 0.1s ease-out;
-}
-
-/* Background pattern */
-.bg-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* Consistent background image opacity */
-.bg-image-overlay {
-  background-color: rgba(255, 255, 255, 0.85);
-}
-
-.dark .bg-image-overlay {
-  background-color: rgba(17, 24, 39, 0.85);
-}
-
-/* Neon button effect */
-.neon-button {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.neon-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: 0.5s;
-}
-
-.neon-button:hover::before {
-  left: 100%;
-}
-
-.neon-border {
-  animation: neonBorder 2s infinite;
-}
-
-/* Typing effect */
-.typing-effect::after {
-  content: "|";
-  animation: pulse 1s infinite;
-}
-
-/* Accessibility helper classes */
-.sr-only {
+/* Screen Reader Mode (visual adjustments, actual screen reader behavior is handled by ARIA) */
+body.screen-reader-mode .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -308,132 +143,30 @@
   border-width: 0;
 }
 
-.bg-grid-pattern-light {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+/* Ensure theme classes are applied correctly by next-themes */
+html.dark {
+  color-scheme: dark;
 }
 
-.bg-grid-pattern-dark {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+html.light {
+  color-scheme: light;
 }
 
-/* Terms overlay styles */
-.terms-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #ffffff;
-  z-index: 2147483647; /* Maximum possible z-index */
-  overflow: hidden;
-  isolation: isolate; /* Creates a new stacking context */
-  contain: strict; /* Improves performance and prevents content leakage */
+/* Custom classes for accessibility provider to override next-themes if needed */
+body.prefers-dark-theme {
+  /* This class can be used to force dark theme styles if next-themes isn't active */
+  /* For example, if you want to ensure dark mode even without the next-themes provider */
 }
 
-/* Dark mode support */
-.dark .terms-overlay {
-  background-color: #030712; /* dark:bg-gray-950 */
+body.prefers-light-theme {
+  /* This class can be used to force light theme styles */
 }
 
-/* Prevent any transparency */
-.terms-overlay::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: inherit;
-  z-index: -1;
+/* Ensure the root font size is adjustable */
+html {
+  font-size: 16px; /* Base font size */
 }
 
-/* Ensure body is locked when terms are shown */
-body.terms-locked {
-  overflow: hidden !important;
-  position: fixed !important;
-  width: 100% !important;
-  height: 100% !important;
-  top: 0 !important;
-  left: 0 !important;
-  touch-action: none !important;
-  -webkit-overflow-scrolling: none !important;
-  overscroll-behavior: none !important;
-  pointer-events: none !important;
-}
-
-/* Re-enable pointer events for the terms overlay */
-.terms-overlay,
-.terms-overlay * {
-  pointer-events: auto !important;
-}
-
-/* Prevent iOS Safari from showing content behind the overlay */
-@supports (-webkit-touch-callout: none) {
-  .terms-overlay {
-    height: -webkit-fill-available;
-  }
-
-  body.terms-locked {
-    height: -webkit-fill-available !important;
-  }
-}
-
-/* Prevent Android Chrome from showing content behind the overlay */
-@supports not (-webkit-touch-callout: none) {
-  .terms-overlay {
-    height: 100vh;
-  }
-
-  body.terms-locked {
-    height: 100vh !important;
-  }
-}
-
-/* Ensure proper stacking in all browsers */
-.terms-overlay {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
-
-.sticky-container {
-  contain: layout style;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-/* Visual scroll indicators (shadows) */
-.shadow-top-gradient::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px; /* Height of the shadow */
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
-  pointer-events: none;
-  z-index: 10;
-}
-
-.shadow-bottom-gradient::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 20px; /* Height of the shadow */
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* For dark mode */
-.dark .shadow-top-gradient::before {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
-}
-
-.dark .shadow-bottom-gradient::after {
-  background: linear-gradient(to top, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+body.large-text html {
+  font-size: 20px; /* Larger base font size for large text mode */
 }

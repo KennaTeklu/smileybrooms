@@ -11,6 +11,8 @@ export type AccessibilityPreferences = {
   textAlignment: "left" | "center" | "right" | "justify"
   fontFamily: string
   language: string
+  prefersDarkTheme: boolean // Added for explicit theme preference
+  prefersLightTheme: boolean // Added for explicit theme preference
   // Add other preferences as needed
 }
 
@@ -30,6 +32,8 @@ export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   textAlignment: "left",
   fontFamily: "Inter, sans-serif",
   language: "en",
+  prefersDarkTheme: false, // Default to light theme preference
+  prefersLightTheme: true, // Default to light theme preference
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
@@ -63,6 +67,9 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
     body.classList.toggle("reduced-motion", prefs.reducedMotion)
     body.classList.toggle("screen-reader-mode", prefs.screenReaderMode)
     body.classList.toggle("keyboard-navigation-enabled", prefs.keyboardNavigation)
+    body.classList.toggle("prefers-dark-theme", prefs.prefersDarkTheme) // Apply dark theme class
+    body.classList.toggle("prefers-light-theme", prefs.prefersLightTheme) // Apply light theme class
+
     body.style.textAlign = prefs.textAlignment
     body.style.fontFamily = prefs.fontFamily
     document.documentElement.lang = prefs.language
