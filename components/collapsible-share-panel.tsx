@@ -16,14 +16,14 @@ import {
   Linkedin,
   MessageCircle,
   Mail,
-  Phone,
-  Check,
   ExternalLink,
   Download,
   Sparkles,
   Globe,
   Users,
   Zap,
+  ClipboardCheck,
+  ChevronLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -123,7 +123,7 @@ const sharePlatforms: SharePlatform[] = [
   {
     id: "sms",
     name: "SMS",
-    icon: <Phone className="h-4 w-4" />,
+    icon: <MessageCircle className="h-4 w-4" />,
     url: "sms:?body=",
     color: "bg-green-500",
     category: "chat",
@@ -191,9 +191,8 @@ const sharePlatforms: SharePlatform[] = [
 ]
 
 export function CollapsibleSharePanel() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [activeTab, setActiveTab] = useState("social")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -205,6 +204,10 @@ export function CollapsibleSharePanel() {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
+
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "https://example.com"
+  const shareTitle = "Check out this amazing cleaning service!"
+  const shareText = "I found the best cleaning service for homes and offices. Highly recommended!"
 
   // Handle mounting for SSR
   useEffect(() => {
@@ -256,33 +259,23 @@ export function CollapsibleSharePanel() {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
     }
-    setIsExpanded(false)
+    setIsOpen(false)
   })
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
-    "alt+s": () => setIsExpanded((prev) => !prev),
-    Escape: () => setIsExpanded(false),
+    "alt+s": () => setIsOpen((prev) => !prev),
+    Escape: () => setIsOpen(false),
   })
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl)
-      setCopied(true)
-      vibrate(50)
-      toast({
-        title: "Copied!",
-        description: "Link copied to clipboard.",
-      })
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy:", err)
-      toast({
-        title: "Copy Failed",
-        description: "Could not copy link to clipboard.",
-        variant: "destructive",
-      })
-    }
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    toast({
+      title: "Link Copied!",
+      description: "The shareable link has been copied to your clipboard.",
+    })
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const downloadQR = () => {
@@ -321,11 +314,64 @@ export function CollapsibleSharePanel() {
     }
   }
 
-  const filteredPlatforms = sharePlatforms.filter(
-    (platform) =>
-      platform.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (activeTab === "all" || platform.category === activeTab),
-  )
+  const handleShare = async (platform: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        toast({
+          title: "Shared Successfully!",
+          description: `Content shared via ${platform}.`,
+        })
+      } catch (error) {
+        console.error("Error sharing:", error)
+        toast({
+          title: "Sharing Cancelled or Failed",
+          description: "Could not share content.",
+          variant: "destructive",
+        })
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      let url = ""
+      switch (platform) {
+        case "Twitter":
+          url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`
+          break
+        case "Facebook":
+          url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+          break
+        case "LinkedIn":
+          url = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(shareText)}`
+          break
+        case "WhatsApp":
+          url = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`
+          break
+        case "Email":
+          url = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`
+          break
+        case "SMS":
+          url = `sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`
+          break
+        default:
+          break
+      }
+      if (url) {
+        window.open(url, "_blank")
+      } else {
+        toast({
+          title: "Sharing Not Supported",
+          description: `Direct sharing to ${platform} is not supported in this browser.`,
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const filteredPlatforms = sharePlatforms.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const popularPlatforms = sharePlatforms.filter((platform) => platform.popular)
 
@@ -390,6 +436,12 @@ export function CollapsibleSharePanel() {
     })
   }
 
+  const panelVariants = {
+    hidden: { opacity: 0, x: "100%", scale: 0.8, originX: 1, originY: 1 },
+    visible: { opacity: 1, x: "0%", scale: 1, transition: { duration: 0.3, ease: "easeOut" } },
+    exit: { opacity: 0, x: "100%", scale: 0.8, transition: { duration: 0.2, ease: "easeIn" } },
+  }
+
   if (!isMounted) {
     return null
   }
@@ -415,7 +467,7 @@ export function CollapsibleSharePanel() {
               ref={buttonRef}
               variant="outline"
               size="icon"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => setIsOpen(!isOpen)}
               className={cn(
                 "h-12 w-12 rounded-full shadow-lg bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm",
                 "border-2 border-purple-200/50 dark:border-purple-800/50",
@@ -426,9 +478,13 @@ export function CollapsibleSharePanel() {
               style={{
                 boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(147, 51, 234, 0.05)",
               }}
-              aria-label="Toggle share panel"
+              aria-label={isOpen ? "Close share panel" : "Open share panel"}
             >
-              <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              {isOpen ? (
+                <ChevronLeft className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              ) : (
+                <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              )}
               {shareCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-green-500 text-white text-xs font-bold border-2 border-white">
                   {shareCount}
@@ -436,12 +492,12 @@ export function CollapsibleSharePanel() {
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Share Options</TooltipContent>
+          <TooltipContent side="left">{isOpen ? "Close Share" : "Open Share"}</TooltipContent>
         </Tooltip>
 
         {/* Enhanced Expandable Panel */}
         <AnimatePresence>
-          {isExpanded && (
+          {isOpen && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -475,7 +531,7 @@ export function CollapsibleSharePanel() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setIsExpanded(false)}
+                      onClick={() => setIsOpen(false)}
                       className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                     >
                       <X className="h-4 w-4" />
@@ -490,9 +546,13 @@ export function CollapsibleSharePanel() {
                   <Button
                     variant="outline"
                     className="flex-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-200/50 dark:border-purple-800/50"
-                    onClick={copyToClipboard}
+                    onClick={handleCopyLink}
                   >
-                    {copied ? <Check className="h-4 w-4 mr-2 text-green-600" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {copied ? (
+                      <ClipboardCheck className="h-4 w-4 mr-2 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-2" />
+                    )}
                     {copied ? "Copied!" : "Copy Link"}
                   </Button>
                   <Button
@@ -555,7 +615,7 @@ export function CollapsibleSharePanel() {
                 </div>
               </div>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
+              <Tabs defaultValue="social" className="w-full flex-1 flex flex-col">
                 <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl">
                   <TabsTrigger value="social" className="rounded-lg font-medium text-xs">
                     <Users className="h-3 w-3 mr-1" />
@@ -581,8 +641,8 @@ export function CollapsibleSharePanel() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                       placeholder="Search platforms..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
                     />
                   </div>
