@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ShoppingCart, Info, Plus } from "lucide-react"
+import { ShoppingCart, Info, Plus, XCircle } from "lucide-react" // Added XCircle for clear button
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
 import { Minus } from "lucide-react"
@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/utils"
 import { roomConfigs } from "@/lib/room-config"
 import { ServiceDetailsModal } from "@/components/service-details-modal"
 import { roomDisplayNames, getRoomTiers } from "@/lib/room-tiers"
-import { useCart } from "@/hooks/useCart" // Import useCart hook
+import { useCart } from "@/lib/cart-context" // Corrected import path for useCart
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -43,7 +43,8 @@ interface FullHousePackage {
   id: string
   name: string
   description: string
-  basePrice: number // This is the advertised package price
+  originalPrice: number // Added original price for display
+  basePrice: number // This is the advertised package price (already discounted)
   includedRooms: string[]
   tier: "essential" | "premium" | "luxury"
 }
@@ -53,6 +54,7 @@ const fullHousePackages: FullHousePackage[] = [
     id: "essential-full-house",
     name: "Essential Full House Clean",
     description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
+    originalPrice: 1620,
     basePrice: 1458, // Discounted price from guide
     includedRooms: [
       "bedroom",
@@ -71,6 +73,7 @@ const fullHousePackages: FullHousePackage[] = [
     id: "premium-full-house",
     name: "Premium Full House Clean",
     description: "Thorough cleaning with attention to detail for every room",
+    originalPrice: 2880,
     basePrice: 2592, // Discounted price from guide
     includedRooms: [
       "bedroom",
@@ -90,6 +93,7 @@ const fullHousePackages: FullHousePackage[] = [
     id: "luxury-full-house",
     name: "Luxury Full House Clean",
     description: "Comprehensive deep cleaning with premium treatments throughout",
+    originalPrice: 4680,
     basePrice: 4212, // Discounted price from guide
     includedRooms: [
       "bedroom",
@@ -144,9 +148,15 @@ interface RoomConfiguratorProps {
   selectedRooms: Record<string, number>
   setSelectedRooms: (rooms: Record<string, number>) => void
   serviceType: "standard" | "detailing"
+  isDisabled: boolean // New prop to disable controls
 }
 
-const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setSelectedRooms, serviceType }) => {
+const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
+  selectedRooms,
+  setSelectedRooms,
+  serviceType,
+  isDisabled,
+}) => {
   const incrementRoom = (roomId: string) => {
     setSelectedRooms((prev) => ({
       ...prev,
@@ -164,7 +174,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
   }
 
   return (
-    <>
+    <fieldset disabled={isDisabled} className={cn(isDisabled && "opacity-50 cursor-not-allowed")}>
       <div className="border-b pb-2 mb-4">
         <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
       </div>
@@ -199,13 +209,19 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                     variant="outline"
                     size="icon"
                     onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
+                    disabled={selectedRooms[room.id] === 0 || isDisabled}
                     className="h-7 w-7"
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
                   <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => incrementRoom(room.id)}
+                    disabled={isDisabled}
+                    className="h-7 w-7"
+                  >
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
@@ -251,13 +267,19 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                     variant="outline"
                     size="icon"
                     onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
+                    disabled={selectedRooms[room.id] === 0 || isDisabled}
                     className="h-7 w-7"
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
                   <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => incrementRoom(room.id)}
+                    disabled={isDisabled}
+                    className="h-7 w-7"
+                  >
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
@@ -270,11 +292,15 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
       </div>
 
       <div className="mt-4 pt-4 border-t">
-        <Button variant="outline" className="w-full flex items-center justify-center gap-2 bg-transparent">
+        <Button
+          variant="outline"
+          className="w-full flex items-center justify-center gap-2 bg-transparent"
+          disabled={isDisabled}
+        >
           <Plus className="h-4 w-4" /> Request Custom Space
         </Button>
       </div>
-    </>
+    </fieldset>
   )
 }
 
@@ -285,7 +311,7 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
   const [cleanlinessLevel, setCleanlinessLevel] = useState(5) // 1-10 scale
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null) // New state for package selection
-  const { addToCart } = useCart() // Import useCart hook
+  const { addToCart } = useCart()
 
   // Update state when initial props change (e.g., from tier selection)
   useEffect(() => {
@@ -317,13 +343,19 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
     }
   }, [])
 
+  const handleClearPackageSelection = useCallback(() => {
+    setSelectedPackage(null)
+    setSelectedRooms({}) // Clear any lingering room counts
+    setServiceType("standard") // Reset to default service type
+  }, [])
+
   const calculateTotalPrice = useMemo(() => {
     let total = 0
 
     if (selectedPackage) {
       const pkg = fullHousePackages.find((p) => p.id === selectedPackage)
       if (pkg) {
-        total = pkg.basePrice
+        total = pkg.basePrice // Use the already discounted basePrice from the package
       }
     } else {
       Object.entries(selectedRooms).forEach(([roomType, count]) => {
@@ -343,13 +375,13 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
       })
     }
 
-    // Apply frequency discount/premium
+    // Apply frequency discount/premium (applies to both individual rooms and packages)
     const selectedFrequency = frequencyOptions.find((opt) => opt.id === frequency)
     if (selectedFrequency) {
       total *= 1 - selectedFrequency.discount
     }
 
-    // Apply cleanliness level modifier
+    // Apply cleanliness level modifier (applies to both individual rooms and packages)
     const cleanlinessModifier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1.0
     total *= cleanlinessModifier
 
@@ -438,49 +470,37 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
                 <div className="flex flex-col items-center space-y-1">
                   <span className="text-base font-medium">{pkg.name}</span>
                   <span className="text-sm text-gray-500 text-center">{pkg.description}</span>
-                  <span className="text-lg font-bold mt-2">{formatCurrency(pkg.basePrice)}</span>
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="text-sm text-gray-400 line-through">{formatCurrency(pkg.originalPrice)}</span>
+                    <span className="text-lg font-bold">{formatCurrency(pkg.basePrice)}</span>
+                  </div>
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                    Save {formatCurrency(pkg.originalPrice - pkg.basePrice)}!
+                  </span>
                 </div>
               </Label>
             ))}
           </RadioGroup>
+          {selectedPackage && (
+            <div className="mt-4 text-center">
+              <Button variant="outline" onClick={handleClearPackageSelection} className="gap-2 bg-transparent">
+                <XCircle className="h-4 w-4" /> Clear Package Selection
+              </Button>
+            </div>
+          )}
         </div>
 
         <Separator />
 
         {/* Room Selection */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Select Rooms</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {roomConfigs.map((room) => (
-              <div key={room.id} className="flex items-center justify-between p-3 border rounded-md">
-                <Label htmlFor={`room-${room.id}`} className="flex items-center gap-2">
-                  {room.icon && <span className="text-xl">{room.icon}</span>}
-                  {room.name}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7 bg-transparent"
-                    onClick={() => handleRoomCountChange(room.id, -1)}
-                    disabled={(selectedRooms[room.id] || 0) === 0 || selectedPackage !== null}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="font-medium w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7 bg-transparent"
-                    onClick={() => handleRoomCountChange(room.id, 1)}
-                    disabled={selectedPackage !== null}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <h3 className="text-lg font-semibold mb-3">Custom Room Selection</h3>
+          <RoomConfigurator
+            selectedRooms={selectedRooms}
+            setSelectedRooms={setSelectedRooms}
+            serviceType={serviceType}
+            isDisabled={selectedPackage !== null} // Pass disabled state to RoomConfigurator
+          />
         </div>
 
         <Separator />
@@ -533,7 +553,7 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
             <SelectContent>
               <SelectItem value="one_time">One-time Clean</SelectItem>
               <SelectItem value="weekly">Weekly (20% off)</SelectItem>
-              <SelectItem value="biweekly">Bi-Weekly (10% off)</SelectItem>
+              <SelectItem value="bi_weekly">Bi-Weekly (10% off)</SelectItem>
               <SelectItem value="monthly">Monthly (5% off)</SelectItem>
             </SelectContent>
           </Select>
