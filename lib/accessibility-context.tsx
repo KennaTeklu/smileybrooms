@@ -1,43 +1,73 @@
 "use client"
 
-import * as React from "react"
-import type { AccessibilityPreferences } from "@/hooks/use-accessibility"
-import { useLocalStorage } from "@/hooks/use-local-storage" // already present in the repo
+import type React from "react"
+import { createContext, useState, useEffect } from "react"
+import { useAccessibility as useAccessibilityHook } from "@/hooks/use-accessibility" // Renamed to avoid conflict
 
-/* ---------- Context value ---------- */
-type AccessibilityContextValue = {
+interface AccessibilityPreferences {
+  fontSize: "small" | "medium" | "large"
+  highContrast: boolean
+  animationsEnabled: boolean
+  keyboardNavigation: boolean
+  // Add more preferences as needed
+}
+
+interface AccessibilityContextType {
   preferences: AccessibilityPreferences
-  setPreferences: (prefs: AccessibilityPreferences) => void
+  updatePreference: (key: keyof AccessibilityPreferences, value: any) => void
+  resetPreferences: () => void
 }
 
-/* ---------- Defaults ---------- */
 const defaultPreferences: AccessibilityPreferences = {
+  fontSize: "medium",
   highContrast: false,
-  largeText: false,
-  reducedMotion: false,
+  animationsEnabled: true,
+  keyboardNavigation: false,
 }
 
-/* ---------- Context & Provider ---------- */
-export const AccessibilityContext = React.createContext<AccessibilityContextValue>({
-  preferences: defaultPreferences,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setPreferences: () => {},
-})
+export const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
-export function AccessibilityProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [preferences, setPreferences] = useLocalStorage<AccessibilityPreferences>(
-    "sb-accessibility-preferences",
-    defaultPreferences,
+export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
+
+  // Load preferences from local storage on mount
+  useEffect(() => {
+    try {
+      const storedPreferences = localStorage.getItem("accessibilityPreferences")
+      if (storedPreferences) {
+        setPreferences(JSON.parse(storedPreferences))
+      }
+    } catch (error) {
+      console.error("Failed to load accessibility preferences from local storage:", error)
+    }
+  }, [])
+
+  // Save preferences to local storage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("accessibilityPreferences", JSON.stringify(preferences))
+    } catch (error) {
+      console.error("Failed to save accessibility preferences to local storage:", error)
+    }
+  }, [preferences])
+
+  const updatePreference = (key: keyof AccessibilityPreferences, value: any) => {
+    setPreferences((prev) => ({
+      ...prev,
+      [key]: value,
+    }))
+  }
+
+  const resetPreferences = () => {
+    setPreferences(defaultPreferences)
+  }
+
+  return (
+    <AccessibilityContext.Provider value={{ preferences, updatePreference, resetPreferences }}>
+      {children}
+    </AccessibilityContext.Provider>
   )
-
-  const value = React.useMemo(() => ({ preferences, setPreferences }), [preferences])
-
-  return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>
 }
 
-/* ---------- Re-export hook for backwards compatibility ---------- */
-export { useAccessibility } from "@/hooks/use-accessibility"
+// Re-export the hook for convenience
+export const useAccessibility = useAccessibilityHook

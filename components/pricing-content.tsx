@@ -1,30 +1,52 @@
 "use client"
 
 import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { roomTiers } from "@/lib/room-tiers"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { roomTiers } from "@/lib/room-tiers" // Import the correct roomTiers
 
-export function PricingContent() {
+type PricingContentProps = {
+  onSelect?: (tier: (typeof roomTiers)[0]) => void // Use typeof roomTiers to infer type
+  selected?: string | null
+}
+
+export function PricingContent({ onSelect, selected }: PricingContentProps) {
   return (
-    <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {roomTiers.map((tier) => (
-        <Card key={tier.id} className="transition hover:shadow-lg">
-          <CardContent className="p-4 flex flex-col items-center text-center space-y-3">
-            <Image
-              src={tier.image || "/placeholder.svg"}
-              alt={`${tier.name} illustration`}
-              width={160}
-              height={120}
-              className="object-contain rounded"
-            />
-            <h3 className="text-lg font-semibold">{tier.name}</h3>
-            <p className="text-sm text-muted-foreground">Multiplier: {tier.priceMultiplier.toFixed(2)}&times;</p>
-          </CardContent>
-        </Card>
-      ))}
-    </section>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {roomTiers.bedroom.map((tier) => {
+        // Access the bedroom tiers specifically
+        const isActive = tier.id === selected
+        return (
+          <Card
+            key={tier.id}
+            onClick={() => onSelect?.(tier)}
+            className={cn(
+              "cursor-pointer transition-colors hover:border-primary/60",
+              isActive && "border-2 border-primary",
+            )}
+            aria-pressed={isActive}
+            role="button"
+          >
+            <CardHeader>
+              <h3 className="text-lg font-semibold">{tier.name}</h3>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-4 pb-6">
+              <Image
+                src={tier.image || "/placeholder.svg"} // Assuming tier.image exists or fallback
+                alt={`${tier.name} illustration`}
+                width={200}
+                height={140}
+                className="rounded-md object-cover"
+              />
+              <p className="text-sm text-muted-foreground">{tier.description}</p>
+              <span className="text-2xl font-bold">${tier.price.toFixed(2)}</span> {/* Use tier.price */}
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
   )
 }
 
-/* Export both styles to satisfy every importer */
+// Keep existing named imports working AND provide a default export
 export default PricingContent
