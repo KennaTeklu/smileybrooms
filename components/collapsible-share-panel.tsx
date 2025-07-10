@@ -2,7 +2,7 @@
 import type React from "react"
 import { TooltipTrigger } from "@/components/ui/tooltip"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2,
@@ -215,45 +215,6 @@ export function CollapsibleSharePanel() {
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Calculate panel position based on scroll and viewport
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("20px")
-
-  const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current) return
-
-    const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
-    const documentHeight = document.documentElement.scrollHeight
-
-    const initialViewportTopOffset = 20
-    const bottomPadding = 20
-
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = Math.max(
-      documentHeight - panelRef.current.offsetHeight - bottomPadding,
-      scrollY + 20,
-    )
-
-    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
-    setPanelTopPosition(`${finalTop}px`)
-  }, [])
-
-  useEffect(() => {
-    const handleScrollAndResize = () => {
-      calculatePanelPosition()
-    }
-
-    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-    window.addEventListener("resize", handleScrollAndResize, { passive: true })
-
-    calculatePanelPosition()
-
-    return () => {
-      window.removeEventListener("scroll", handleScrollAndResize)
-      window.removeEventListener("resize", handleScrollAndResize)
-    }
-  }, [calculatePanelPosition])
-
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -436,10 +397,17 @@ export function CollapsibleSharePanel() {
     })
   }
 
+  // Define animation variants for the panel
   const panelVariants = {
-    hidden: { opacity: 0, x: "100%", scale: 0.8, originX: 1, originY: 1 },
-    visible: { opacity: 1, x: "0%", scale: 1, transition: { duration: 0.3, ease: "easeOut" } },
-    exit: { opacity: 0, x: "100%", scale: 0.8, transition: { duration: 0.2, ease: "easeIn" } },
+    hidden: { opacity: 0, y: 20, scale: 0.8, originX: 1, originY: 1 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", damping: 25, stiffness: 300 } },
+    exit: { opacity: 0, y: 20, scale: 0.8, transition: { type: "spring", damping: 25, stiffness: 300 } },
+  }
+
+  // Define animation variants for the button
+  const buttonVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.8, transition: { type: "spring", damping: 25, stiffness: 300 } },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", damping: 25, stiffness: 300 } },
   }
 
   if (!isMounted) {
@@ -450,15 +418,11 @@ export function CollapsibleSharePanel() {
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className="fixed z-[998]"
-        style={{
-          top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
-          width: "fit-content",
-        }}
-        initial={{ x: "150%" }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="fixed z-[998] bottom-4 right-20" // Fixed positioning at bottom-right
+        initial="hidden"
+        animate="visible"
+        exit="hidden"
+        variants={buttonVariants} // Apply button variants to the container for initial button animation
       >
         {/* Enhanced Trigger Button */}
         <Tooltip>
@@ -499,12 +463,12 @@ export function CollapsibleSharePanel() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={panelVariants} // Apply panel variants here
               className={cn(
-                "absolute top-full right-0 mt-3 w-full max-w-[90vw] sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50",
+                "absolute bottom-full right-0 mb-3 w-full max-w-[90vw] sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50",
                 "relative flex flex-col",
               )}
               style={{
