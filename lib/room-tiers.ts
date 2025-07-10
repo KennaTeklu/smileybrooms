@@ -947,6 +947,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Carpet deep cleaning",
         "✗ Spindle detailed cleaning",
         "✗ Stair runner detailed cleaning",
+        "✗ Under-stair visible areas",
+        "✗ Light fixture detailed cleaning",
+        "✗ Decorative element cleaning",
       ],
       upsellMessage:
         "For a more thorough staircase clean, our ADVANCED CLEAN includes detailed step and handrail cleaning.",
@@ -1283,7 +1286,12 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
     { id: "hal-5", name: "Wall sconce cleaning", price: 12.0, description: "Cleaning of wall sconces" },
   ],
   stairs: [
-    { id: "sta-1", name: "Carpet deep cleaning", price: 25.0, description: "Deep cleaning of stair carpet" },
+    {
+      id: "sta-1",
+      name: "Carpet deep cleaning",
+      price: 25.0,
+      description: "Deep cleaning of stair carpet",
+    },
     {
       id: "sta-2",
       name: "Banister detailed cleaning",
