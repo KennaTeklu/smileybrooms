@@ -1,12 +1,21 @@
 "use client"
 
+import { DrawerFooter } from "@/components/ui/drawer"
+
+import { DrawerTitle } from "@/components/ui/drawer"
+
+import { DrawerHeader } from "@/components/ui/drawer"
+
+import { DrawerContent } from "@/components/ui/drawer"
+
+import { Drawer } from "@/components/ui/drawer"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Mic,
@@ -28,17 +37,17 @@ import {
   Type,
   ChevronRight,
 } from "lucide-react"
-import { useAccessibility } from "@/hooks/use-accessibility" // Corrected import path
+import { useAccessibility } from "@/hooks/use-accessibility"
 import { useVoiceCommands } from "@/lib/voice-commands"
 import { useKeyboardNavigation } from "@/lib/keyboard-navigation"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
-import type { AccessibilityPreferences } from "@/types/accessibility-preferences" // Declare the variable before using it
+import type { AccessibilityPreferences } from "@/types/accessibility-preferences"
 
 export function CollapsibleSettingsPanel() {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("display")
-  const { preferences, updatePreference, resetPreferences } = useAccessibility() // Use the public hook
+  const { preferences, updatePreference, resetPreferences } = useAccessibility()
   const voiceCommands = useVoiceCommands()
   const keyboardNav = useKeyboardNavigation()
   const [isListening, setIsListening] = useState(false)

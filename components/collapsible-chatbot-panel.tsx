@@ -137,12 +137,13 @@ export function CollapsibleChatbotPanel({
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "420px", opacity: 1, x: 0 }}
+            animate={{ width: "100%", maxWidth: "420px", opacity: 1, x: 0 }} // Adjusted width for responsiveness
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
             style={{
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+              maxHeight: "80vh", // Added max height for vertical responsiveness
             }}
           >
             <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20 flex items-center justify-between">
@@ -166,7 +167,7 @@ export function CollapsibleChatbotPanel({
               </Button>
             </div>
 
-            <div className="h-[688px] w-full">
+            <div className="h-full w-full overflow-y-auto">
               <iframe
                 id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
                 title="smileybrooms.com: Customer Support Representative"
@@ -183,7 +184,7 @@ export function CollapsibleChatbotPanel({
                 style={{
                   minWidth: "100%",
                   maxWidth: "100%",
-                  height: "688px",
+                  height: "688px", // Keep fixed height for iframe content
                   border: "none",
                   width: "100%",
                 }}

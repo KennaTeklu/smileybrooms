@@ -448,11 +448,11 @@ export function CollapsibleSharePanel() {
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full right-0 mt-3 w-96 max-w-[90vw] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50",
+                "absolute top-full right-0 mt-3 w-full max-w-[90vw] sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50",
                 "relative flex flex-col",
               )}
               style={{
-                maxHeight: "70vh",
+                maxHeight: "80vh", // Adjusted max height for better mobile fit
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(147, 51, 234, 0.1)",
               }}
             >
