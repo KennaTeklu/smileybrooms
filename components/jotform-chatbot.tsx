@@ -10,12 +10,7 @@ interface JotFormChatbotProps {
   autoOpen?: boolean
 }
 
-/**
- * Embeds the Jotform AI chatbot once per page.
- * – Loads the Jotform script when mounted
- * – Removes the script and any global handlers on unmount / route change
- */
-function JotFormChatbot({
+export default function JotFormChatbot({
   skipWelcome = true,
   maximizable = true,
   position = "right",
@@ -25,71 +20,76 @@ function JotFormChatbot({
   const pathname = usePathname()
 
   useEffect(() => {
-    // ---- cleanup (if user navigated away and back) ------------------------
+    // Clean up any existing chatbot instance
     if (scriptRef.current && document.head.contains(scriptRef.current)) {
-      document.head.removeChild(scriptRef.current)
+      try {
+        document.head.removeChild(scriptRef.current)
+      } catch (error) {
+        console.warn("Script already removed:", error)
+      }
       scriptRef.current = null
     }
+
+    // Clear any existing JotForm agent
     if (typeof window !== "undefined" && (window as any).AgentInitializer) {
       delete (window as any).AgentInitializer
     }
 
-    // ---- inject the Jotform embed script ----------------------------------
+    // Create and load the JotForm script
     const script = document.createElement("script")
-    script.src =
-      "https://cdn.jotfor.ms/agent/embedjs/019727f88b017b95a6ff71f7fdcc58538ab4/embed.js?" +
-      `skipWelcome=${skipWelcome ? 1 : 0}&maximizable=${maximizable ? 1 : 0}&autoOpen=${autoOpen ? 1 : 0}`
+    script.src = `https://cdn.jotfor.ms/agent/embedjs/019727f88b017b95a6ff71f7fdcc58538ab4/embed.js?skipWelcome=1&maximizable=1&autoOpen=0`
     script.async = true
     script.defer = true
 
     script.onload = () => {
-      try {
-        if ((window as any).AgentInitializer) {
+      // Initialize the chatbot with custom configuration - NEVER auto-open
+      if (typeof window !== "undefined" && (window as any).AgentInitializer) {
+        try {
           ;(window as any).AgentInitializer.init({
             agentRenderURL: "https://www.jotform.com/agent/019727f88b017b95a6ff71f7fdcc58538ab4",
             toolId: "JotformAgent-019727f88b017b95a6ff71f7fdcc58538ab4",
             formID: "019727f88b017b95a6ff71f7fdcc58538ab4",
             domain: "https://www.jotform.com/",
-            queryParams: [
-              `skipWelcome=${skipWelcome ? 1 : 0}`,
-              `maximizable=${maximizable ? 1 : 0}`,
-              `autoOpen=${autoOpen ? 1 : 0}`,
-            ],
-            position,
-            skipWelcome,
-            maximizable,
-            autoOpen,
+            initialContext: "",
+            queryParams: ["skipWelcome=1", "maximizable=1", "autoOpen=0"],
             isDraggable: false,
-            isGreeting: "greeting:No",
-            buttonColor: "#158ded",
+            buttonColor: "#158ded, #6C73A8 0%, #6C73A8 100%",
+            buttonBackgroundColor: "#00cc3",
             buttonIconColor: "#FFFFFF",
+            inputTextColor: "#91105C",
+            variant: false,
+            isGreeting: "greeting:No,greetingMessage:,openByDefault:No,pulse:No,position:right,autoOpenChatIn:0",
+            isVoice: false,
+            isVoiceWebCallEnabled: true,
+            autoOpen: false,
+            openByDefault: false,
+            skipWelcome: true,
+            autoOpenChatIn: 0,
           })
+        } catch (error) {
+          console.warn("Failed to initialize JotForm agent:", error)
         }
-      } catch (err) {
-        console.warn("💬 Jotform chatbot failed to initialise:", err)
       }
+    }
+
+    script.onerror = (error) => {
+      console.error("Failed to load JotForm script:", error)
     }
 
     document.head.appendChild(script)
     scriptRef.current = script
 
-    // ---- remove on unmount / route change ---------------------------------
     return () => {
       if (scriptRef.current && document.head.contains(scriptRef.current)) {
-        document.head.removeChild(scriptRef.current)
-        scriptRef.current = null
+        try {
+          document.head.removeChild(scriptRef.current)
+        } catch (error) {
+          console.warn("Cleanup error:", error)
+        }
       }
+      scriptRef.current = null
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, skipWelcome, maximizable, position, autoOpen])
 
-  // This component only injects the bot; it renders nothing.
-  return null
+  return null // This component doesn't render anything visible
 }
-
-/* ------------------------------------------------------------------------ */
-/* Exports                                                                  */
-/* ------------------------------------------------------------------------ */
-export default JotFormChatbot
-// Alias so that `import { JotformChatbot }` also works (lower-case “f”)
-export { JotFormChatbot as JotformChatbot }

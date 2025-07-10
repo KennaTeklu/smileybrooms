@@ -2,19 +2,12 @@
 
 // Unified floating system inspired by JotForm chatbot behavior
 export const FLOATING_LAYERS = {
-  DEFAULT: 10,
-  MENU: 20,
-  TOOLTIP: 30,
-  POPOVER: 40,
-  DROPDOWN: 50,
-  DIALOG: 60,
-  MODAL_DRAWER: 70, // Higher z-index for the centered modal/drawer
-  MODAL_DRAWER_OVERLAY: 69, // Slightly lower for the overlay
-  TOAST: 80,
-  ALERT: 90,
-  LOADING_OVERLAY: 100,
-  FULL_SCREEN_OVERLAY: 110,
-  CRITICAL_ERROR: 120,
+  BASE: 10,
+  PANEL: 50,
+  MODAL_DRAWER: 100, // Higher z-index for modals
+  TOOLTIP: 150,
+  OVERLAY: 200,
+  NOTIFICATION: 250,
 } as const
 
 export type FloatingLayer = (typeof FLOATING_LAYERS)[keyof typeof FLOATING_LAYERS]
@@ -47,7 +40,7 @@ export interface FloatingElementConfig {
 }
 
 export const DEFAULT_FLOATING_CONFIG: FloatingElementConfig = {
-  layer: FLOATING_LAYERS.DEFAULT,
+  layer: FLOATING_LAYERS.PANEL,
   position: "right",
   offset: {
     bottom: 20,

@@ -1,13 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { useState, useEffect, useRef } from "react"
-import { ChevronDown } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { usePathname } from "next/navigation"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { JotformChatbot } from "./jotform-chatbot" // Assuming this is the component for the JotForm chatbot
 
 // Extend Window interface for JotForm
 declare global {
@@ -32,7 +29,7 @@ const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (6
 export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
 }: CollapsibleChatbotPanelProps) {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
@@ -49,18 +46,18 @@ export function CollapsibleChatbotPanel({
     if (!isMounted) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isOpen) {
-        setIsOpen(false)
+      if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
+        setIsExpanded(false)
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isOpen, isMounted])
+  }, [isExpanded, isMounted])
 
   // Load JotForm embed handler script when panel expands
   useEffect(() => {
-    if (isOpen && isMounted) {
+    if (isExpanded && isMounted) {
       const script = document.createElement("script")
       script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
       script.onload = () => {
@@ -86,7 +83,7 @@ export function CollapsibleChatbotPanel({
         }
       }
     }
-  }, [isOpen, isMounted])
+  }, [isExpanded, isMounted])
 
   // Add this useEffect hook immediately after the existing useEffect hooks
   useEffect(() => {
@@ -109,7 +106,7 @@ export function CollapsibleChatbotPanel({
   if (sharePanelInfo.expanded) {
     // If share panel is expanded, chatbot always goes to 500px from top immediately
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
-  } else if (isOpen) {
+  } else if (isExpanded) {
     // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
     desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
   } else {
@@ -118,7 +115,7 @@ export function CollapsibleChatbotPanel({
   }
 
   // Determine the current panel height for consistent clamping of its top position
-  const currentPanelHeight = isOpen ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
+  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
   const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
 
   // Clamp the desiredTop within the visible document boundaries
@@ -136,31 +133,91 @@ export function CollapsibleChatbotPanel({
       className={`fixed right-4 sm:right-4 md:right-4 lg:right-4 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
       style={{ top: panelTopPosition }}
     >
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className="w-full max-w-md rounded-md border bg-white p-4 shadow-sm dark:bg-gray-950"
-      >
-        <div className="flex items-center justify-between space-x-4 px-4 py-2">
-          <h4 className="text-lg font-semibold">AI Chatbot</h4>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-9 p-0">
-              <ChevronDown className="h-4 w-4" />
-              <span className="sr-only">Toggle chatbot</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="space-y-4 px-4 pb-2">
-          <Separator />
-          <div className="h-[400px] w-full overflow-hidden rounded-md border">
-            {/* The JotFormChatbot component should handle its own scrolling if its content overflows */}
-            <JotformChatbot />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Ask our AI assistant any questions about our services, pricing, or booking process.
-          </p>
-        </CollapsibleContent>
-      </Collapsible>
+      <AnimatePresence initial={false}>
+        {isExpanded ? (
+          <motion.div
+            key="expanded"
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            // Adjusted maxWidth for better responsiveness across screen sizes
+            animate={{ width: "100%", maxWidth: "90vw", sm: { maxWidth: "420px" }, opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+              maxHeight: "80vh", // Added max height for vertical responsiveness
+            }}
+          >
+            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Customer Support</h2>
+                  <p className="text-blue-100 text-sm">We're here to help</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsExpanded(false)}
+                className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                aria-label="Collapse chatbot panel"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="h-full w-full overflow-y-auto">
+              <iframe
+                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                title="smileybrooms.com: Customer Support Representative"
+                onLoad={() => {
+                  try {
+                    window.parent.scrollTo(0, 0)
+                  } catch (error) {
+                    // Ignore cross-origin errors
+                  }
+                }}
+                allowTransparency={true}
+                allow="geolocation; microphone; camera; fullscreen"
+                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                style={{
+                  minWidth: "100%",
+                  maxWidth: "100%",
+                  height: "688px", // Keep fixed height for iframe content
+                  border: "none",
+                  width: "100%",
+                }}
+                // Removed scrolling="no" to allow browser to handle iframe scrolling
+              />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center gap-3 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            style={{
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
+            }}
+            aria-label="Open Customer Support"
+          >
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
+              <Bot className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Support</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Get help now</div>
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

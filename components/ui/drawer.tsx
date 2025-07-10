@@ -15,16 +15,14 @@ const DrawerTrigger = DrawerPrimitive.Trigger
 
 const DrawerPortal = DrawerPrimitive.Portal
 
-const DrawerClose = DrawerPrimitive.Close
-
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 bg-black/80", className)}
-    style={{ zIndex: FLOATING_LAYERS.MODAL_DRAWER_OVERLAY }} // Use new Z-index
+    className={cn("fixed inset-0 z-[var(--z-index-modal-drawer)] bg-black/80", className)}
+    style={{ "--z-index-modal-drawer": FLOATING_LAYERS.MODAL_DRAWER } as React.CSSProperties}
     {...props}
   />
 ))
@@ -39,13 +37,12 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 flex h-auto w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-full", // Centered positioning and max-width
+        "fixed left-1/2 top-1/2 z-[var(--z-index-modal-drawer)] flex h-auto w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-background",
         className,
       )}
-      style={{ zIndex: FLOATING_LAYERS.MODAL_DRAWER }} // Use new Z-index
+      style={{ "--z-index-modal-drawer": FLOATING_LAYERS.MODAL_DRAWER } as React.CSSProperties}
       {...props}
     >
-      {/* Removed the handle div as it's for bottom drawers */}
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
@@ -82,15 +79,17 @@ const DrawerDescription = React.forwardRef<
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 
+const DrawerClose = DrawerPrimitive.Close
+
 export {
   Drawer,
   DrawerPortal,
   DrawerOverlay,
   DrawerTrigger,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  DrawerClose,
 }
