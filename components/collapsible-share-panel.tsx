@@ -14,6 +14,8 @@ import {
   Copy,
   ShareIcon,
   ChevronRight,
+  Linkedin,
+  PhoneIcon as Whatsapp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -302,6 +304,32 @@ export function CollapsibleSharePanel() {
                     aria-label={t("share.twitter_button")}
                   >
                     <Twitter className="mr-2 h-4 w-4" />X (Twitter)
+                  </a>
+                  <a
+                    href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodedShareUrl}&title=${encodedShareTitle}&summary=${encodedShareText}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm",
+                      "bg-blue-700 hover:bg-blue-800 text-white transition-colors",
+                    )}
+                    aria-label={t("share.linkedin_button")}
+                  >
+                    <Linkedin className="mr-2 h-4 w-4" />
+                    LinkedIn
+                  </a>
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodedShareText}%20${encodedShareUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm",
+                      "bg-green-500 hover:bg-green-600 text-white transition-colors",
+                    )}
+                    aria-label={t("share.whatsapp_button")}
+                  >
+                    <Whatsapp className="mr-2 h-4 w-4" />
+                    WhatsApp
                   </a>
                   <a
                     href={`mailto:?subject=${encodedShareTitle}&body=${encodedShareText}%0A%0A${encodedShareUrl}`}
