@@ -195,7 +195,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Tile wall cleaning",
       ],
       upsellMessage:
-        "Experience the ultimate bathroom refresh with our PREMIUM CLEAN, including grout and cabinet interiors.",
+        "Experience the ultimate bathroom refresh with our PREMIUM CLEAN, covering every detail from grout to cabinet interiors.",
     },
     {
       id: "bathroom-premium",
@@ -1467,6 +1467,10 @@ export function getRoomAddOns(roomType: string): RoomAddOn[] {
 }
 
 // Helper function to get reductions for a specific room type
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return defaultReductions[roomType] || defaultReductions.default
+}
+
 // Room type to professional image mapping
 export const roomImages: Record<string, string> = {
   bedroom: "/images/bedroom-professional.png",

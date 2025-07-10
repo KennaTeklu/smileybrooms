@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator"
 import { Check, X, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { formatCurrency } from "@/lib/utils"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns, roomImages } from "@/lib/room-tiers" // Import roomImages
 import { getMatrixServices } from "@/lib/matrix-services"
 import { roomDisplayNames, roomIcons } from "@/lib/room-tiers"
 
@@ -273,28 +273,39 @@ export function RoomCustomizationDrawer(props: RoomCustomizationDrawerProps) {
               {/* Tier selection */}
               <section>
                 <h3 className="mb-4 text-lg font-medium">Select Cleaning Tier</h3>
-                <RadioGroup
-                  value={selectedTier}
-                  onValueChange={setSelectedTier}
-                  aria-label="Cleaning tier options"
-                  className="space-y-4"
-                >
-                  {tiers.map((tier, idx) => (
-                    <div key={idx} className="flex items-start space-x-3">
-                      <RadioGroupItem value={tier.name} id={`tier-${idx}`} className="mt-1" />
-                      <div className="grid gap-1.5 leading-none">
-                        <Label
-                          htmlFor={`tier-${idx}`}
-                          className="flex items-center justify-between text-base font-medium"
-                        >
-                          <span>{tier.name}</span>
-                          <span>{formatCurrency(tier.price)}</span>
-                        </Label>
-                        <p className="text-sm text-muted-foreground">{tier.description}</p>
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="md:w-1/2 flex justify-center items-center">
+                    <img
+                      src={roomImages[roomType] || "/placeholder.svg?height=200&width=200&query=room-placeholder"}
+                      alt={`${roomDisplayName} illustration`}
+                      width={300}
+                      height={200}
+                      className="rounded-lg object-cover w-full h-auto max-h-[200px]"
+                    />
+                  </div>
+                  <RadioGroup
+                    value={selectedTier}
+                    onValueChange={setSelectedTier}
+                    aria-label="Cleaning tier options"
+                    className="space-y-4 md:w-1/2"
+                  >
+                    {tiers.map((tier, idx) => (
+                      <div key={idx} className="flex items-start space-x-3">
+                        <RadioGroupItem value={tier.name} id={`tier-${idx}`} className="mt-1" />
+                        <div className="grid gap-1.5 leading-none">
+                          <Label
+                            htmlFor={`tier-${idx}`}
+                            className="flex items-center justify-between text-base font-medium"
+                          >
+                            <span>{tier.name}</span>
+                            <span>{formatCurrency(tier.price)}</span>
+                          </Label>
+                          <p className="text-sm text-muted-foreground">{tier.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </RadioGroup>
+                    ))}
+                  </RadioGroup>
+                </div>
               </section>
 
               {/* Add-ons */}
