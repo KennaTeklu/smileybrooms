@@ -10,13 +10,13 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles, ShoppingCart } from "lucide-react" // Import ShoppingCart and Plus
+import { Home, Calendar, Sparkles, ShoppingCart } from "lucide-react"
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
-import { Minus, PlusIcon } from "lucide-react" // Renamed Plus to avoid conflict
-import { useCart } from "@/lib/cart-context" // Import useCart
-import { toast } from "@/components/ui/use-toast" // Import toast
+import { Minus, PlusIcon } from "lucide-react"
+import { useCart } from "@/lib/cart-context"
+import { toast } from "@/components/ui/use-toast"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -36,12 +36,11 @@ interface PriceCalculatorProps {
   onAddToCart?: () => void
 }
 
-// Add these new interfaces and data at the top after the existing interfaces
 interface FullHousePackage {
   id: string
   name: string
   description: string
-  basePrice: number
+  basePrice: number // This is the advertised package price
   includedRooms: string[]
   tier: "essential" | "premium" | "luxury"
 }
@@ -52,7 +51,7 @@ const fullHousePackages: FullHousePackage[] = [
     name: "Essential Full House Clean",
     description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
     basePrice: 299,
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"],
+    includedRooms: ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"],
     tier: "essential",
   },
   {
@@ -60,7 +59,7 @@ const fullHousePackages: FullHousePackage[] = [
     name: "Premium Full House Clean",
     description: "Thorough cleaning with attention to detail for every room",
     basePrice: 599,
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice", "laundryRoom"],
+    includedRooms: ["bedroom", "bathroom", "kitchen", "living_room", "dining_room", "home_office", "laundry_room"],
     tier: "premium",
   },
   {
@@ -72,10 +71,10 @@ const fullHousePackages: FullHousePackage[] = [
       "bedroom",
       "bathroom",
       "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "homeOffice",
-      "laundryRoom",
+      "living_room",
+      "dining_room",
+      "home_office",
+      "laundry_room",
       "entryway",
       "hallway",
       "stairs",
@@ -306,14 +305,19 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const calculatePrice = () => {
     let basePrice = 0
 
-    // If a full house package is selected, use its base price
     if (selectedPackage) {
       const pkg = fullHousePackages.find((p) => p.id === selectedPackage)
       if (pkg) {
-        basePrice = pkg.basePrice
+        // Calculate base price by summing the prices of included rooms
+        pkg.includedRooms.forEach((roomId) => {
+          const room = roomTypes.find((r) => r.id === roomId)
+          if (room) {
+            basePrice += room.basePrice // Add base price for each included room
+          }
+        })
       }
     } else {
-      // Calculate base price from selected rooms (existing logic)
+      // Existing logic for individual room selection
       Object.entries(selectedRooms).forEach(([roomId, count]) => {
         const room = roomTypes.find((r) => r.id === roomId)
         if (room) {
@@ -427,8 +431,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
       addItem({
         id: `calculated-service-${Date.now()}`, // Unique ID for this specific configuration
-        name: `${serviceDescription} (${frequencyLabel})`,
-        price: totalPrice,
+        name: `${selectedPackage ? fullHousePackages.find((p) => p.id === selectedPackage)?.name : serviceDescription} (${frequencyLabel})`,
+        price: totalPrice, // Use the calculated total price
         priceId: "price_calculated_service", // Placeholder price ID
         quantity: 1, // This represents one service booking
         image: "/placeholder.svg?height=100&width=100",
@@ -439,6 +443,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           serviceType,
           cleanlinessLevel,
           paymentFrequency,
+          selectedPackage, // Include selected package ID in metadata
         },
       })
 
@@ -1015,6 +1020,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
                 <>
                   {fullHousePackages.find((p) => p.id === selectedPackage)?.name}
                   {serviceType === "detailing" && " (Premium Detailing)"}
+                  {" • "}
+                  {fullHousePackages.find((p) => p.id === selectedPackage)?.includedRooms.length} rooms
                 </>
               ) : (
                 <>
