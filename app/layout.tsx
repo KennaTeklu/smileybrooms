@@ -11,6 +11,7 @@ import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-pane
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
 import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
+import { RoomProvider } from "@/lib/room-context" // Ensure RoomProvider is imported
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,14 +32,18 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AccessibilityProvider>
             <CartProvider>
-              <Header />
-              {children}
-              <Toaster />
-              {/* Global Collapsible Panels */}
-              <CollapsibleSettingsPanel />
-              <CollapsibleSharePanel />
-              <CollapsibleChatbotPanel />
-              <CollapsibleAddAllPanel />
+              <RoomProvider>
+                {" "}
+                {/* RoomProvider now wraps both children and the panels */}
+                <Header />
+                {children}
+                <Toaster />
+                {/* Global Collapsible Panels */}
+                <CollapsibleSettingsPanel />
+                <CollapsibleSharePanel />
+                <CollapsibleChatbotPanel />
+                <CollapsibleAddAllPanel />
+              </RoomProvider>
             </CartProvider>
           </AccessibilityProvider>
         </ThemeProvider>
