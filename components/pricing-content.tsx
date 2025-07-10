@@ -3,13 +3,14 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Contact, Home, Building2 } from "lucide-react"
-import { roomDisplayNames } from "@/lib/room-tiers"
+import { roomDisplayNames, roomImages } from "@/lib/room-tiers"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
+import Image from "next/image"
 
 function PricingContent() {
   const { toast } = useToast()
@@ -174,17 +175,16 @@ function PricingContent() {
                       key={roomType}
                       className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
                     >
-                      <div className="text-2xl mb-2">
-                        {roomType === "bedroom" && "🛏️"}
-                        {roomType === "bathroom" && "🚿"}
-                        {roomType === "kitchen" && "🍳"}
-                        {roomType === "livingRoom" && "🛋️"}
-                        {roomType === "diningRoom" && "🍽️"}
-                        {roomType === "homeOffice" && "💻"}
-                        {roomType === "laundryRoom" && "🧺"}
-                        {roomType === "entryway" && "🚪"}
-                        {roomType === "hallway" && "🚶"}
-                        {roomType === "stairs" && "🪜"}
+                      <div className="relative w-24 h-24 mb-2">
+                        {roomImages[roomType] && (
+                          <Image
+                            src={roomImages[roomType] || "/placeholder.svg"}
+                            alt={roomDisplayNames[roomType]}
+                            layout="fill"
+                            objectFit="cover"
+                            className="rounded-lg"
+                          />
+                        )}
                       </div>
                       <span className="font-medium text-sm text-center">
                         {roomDisplayNames[roomType]} ({roomCounts[roomType]})
