@@ -147,3 +147,6 @@ export function PricingContent({ panelType = "enhanced" }: RoomConfiguratorProps
     </div>
   )
 }
+
+// Keep the named export above and also provide a default export
+export default PricingContent

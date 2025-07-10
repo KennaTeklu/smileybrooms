@@ -125,3 +125,8 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
 export const _useAccessibilityContextInternal = () => {
   return useContext(AccessibilityContext)
 }
+
+// Re-export the public hook so older imports like
+// `import { useAccessibility } from "@/lib/accessibility-context"`
+// continue to work without breaking.
+export { useAccessibility } from "@/hooks/use-accessibility"
