@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import {
   ShoppingCart,
   Plus,
@@ -33,15 +33,11 @@ import { roomImages, roomDisplayNames, roomTiers } from "@/lib/room-tiers"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Separator } from "@/components/ui/separator"
-import { useRoom } from "@/lib/room-context"
-import { useAnimationControls } from "framer-motion"
 
 export function CollapsibleAddAllPanel() {
   const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
-  const { addItem, addAllRoomsToCart } = useCart()
-  const { rooms, addRoom, removeRoom, getRoomCount } = useRoom()
+  const { addItem } = useCart()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
@@ -52,8 +48,8 @@ export function CollapsibleAddAllPanel() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
+  const controls = useAnimation()
   const { toast } = useToast()
-  const controls = useAnimationControls()
 
   // State for dynamic positioning - start with fixed position, then adjust
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
@@ -66,7 +62,6 @@ export function CollapsibleAddAllPanel() {
   const selectionRequirementsMet = selectedRoomTypes.length >= 2
 
   const [isOpen, setIsOpen] = useState(false)
-  const [addedRooms, setAddedRooms] = useState<string[]>([])
 
   useEffect(() => {
     setIsMounted(true)
@@ -298,29 +293,9 @@ export function CollapsibleAddAllPanel() {
     setIsOpen(false) // Close panel after adding
   }
 
-  const handleAddAll = () => {
-    const roomsToAdd = rooms.filter((room) => getRoomCount(room.id) === 0)
-    roomsToAdd.forEach((room) => {
-      addRoom(room.id) // Add one instance of each room
-      setAddedRooms((prev) => [...prev, room.id])
-    })
-    addAllRoomsToCart() // Add all to cart context
-    toast({
-      title: "All Rooms Added!",
-      description: "All available rooms have been added to your cleaning plan.",
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-    })
-    setIsOpen(false) // Close panel after adding
-  }
-
   const panelVariants = {
     hidden: { opacity: 0, transition: { duration: 0.2 } },
     visible: { opacity: 1, transition: { duration: 0.3, ease: "easeOut" } },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      transition: { duration: 0.2, ease: "easeIn" },
-    },
   }
 
   // Memoized room list with enhanced styling
@@ -702,9 +677,9 @@ export function CollapsibleAddAllPanel() {
       </motion.div>
 
       <Button
-        variant="secondary"
+        variant="outline"
         size="icon"
-        className="fixed bottom-4 right-60 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-background"
+        className="fixed bottom-4 right-60 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         onClick={togglePanel}
         aria-label={isOpen ? "Close add all rooms panel" : "Open add all rooms panel"}
       >
@@ -714,58 +689,47 @@ export function CollapsibleAddAllPanel() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className={cn(
-              "fixed inset-0 z-40 flex flex-col rounded-none border bg-background shadow-lg md:inset-y-4 md:left-1/2 md:right-4 md:h-[calc(100vh-2rem)] md:max-w-md md:-translate-x-1/2 md:rounded-xl",
-              "border-purple-200 bg-purple-50/50 backdrop-blur-md dark:border-purple-800 dark:bg-purple-950/50",
-            )}
-            variants={panelVariants}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm"
             initial="hidden"
             animate="visible"
-            exit="exit"
+            exit="hidden"
+            variants={panelVariants}
             role="dialog"
             aria-modal="true"
             aria-labelledby="add-all-panel-title"
           >
-            <div className="flex items-center justify-between p-4">
-              <h2 id="add-all-panel-title" className="text-xl font-bold text-purple-800 dark:text-purple-200">
-                Add All Rooms
+            <motion.div
+              className="relative flex flex-col rounded-xl border border-purple-200 bg-background p-8 shadow-lg sm:max-w-lg w-[90vw]"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4"
+                onClick={togglePanel}
+                aria-label="Close panel"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              <h2 id="add-all-panel-title" className="mb-4 text-2xl font-bold text-center">
+                Add All Rooms to Cart?
               </h2>
-              <Button variant="ghost" size="icon" onClick={togglePanel} aria-label="Close add all rooms panel">
-                <X className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </Button>
-            </div>
-            <Separator className="bg-purple-200 dark:bg-purple-800" />
-
-            <ScrollArea className="flex-1 p-4">
-              <p className="mb-4 text-gray-700 dark:text-gray-300">
-                This will add one of each available room type to your cleaning plan. You can adjust quantities later in
-                your cart.
+              <p className="mb-6 text-center text-muted-foreground">
+                This will add one of each standard room type to your cart with the default "Premium Clean" service. You
+                can customize them later.
               </p>
-              <div className="space-y-2">
-                {rooms.map((room) => (
-                  <div
-                    key={room.id}
-                    className="flex items-center justify-between rounded-md bg-purple-100/50 p-3 dark:bg-purple-900/50"
-                  >
-                    <span className="font-medium text-purple-900 dark:text-purple-100">{room.name}</span>
-                    {getRoomCount(room.id) > 0 ? (
-                      <span className="flex items-center text-sm text-green-600 dark:text-green-400">
-                        <CheckCircle className="mr-1 h-4 w-4" /> Added
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Not added</span>
-                    )}
-                  </div>
-                ))}
+              <div className="flex justify-center gap-4">
+                <Button variant="outline" onClick={togglePanel}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddAllRooms}>
+                  <CheckCircle className="mr-2 h-4 w-4" /> Add All Rooms
+                </Button>
               </div>
-            </ScrollArea>
-
-            <Separator className="bg-purple-200 dark:bg-purple-800" />
-            <div className="p-4">
-              <Button className="w-full bg-purple-600 text-white hover:bg-purple-700" onClick={handleAddAll}>
-                Add All Rooms to Plan
-              </Button>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

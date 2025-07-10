@@ -1,150 +1,123 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-  type Dispatch,
-  type SetStateAction,
-} from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 
-// Define the structure for accessibility preferences
-export interface AccessibilityPreferences {
+export type AccessibilityPreferences = {
   highContrast: boolean
   largeText: boolean
   reducedMotion: boolean
+  screenReaderMode: boolean
   keyboardNavigation: boolean
   textAlignment: "left" | "center" | "right" | "justify"
-  fontFamily: "sans" | "serif" | "mono"
-  prefersDarkTheme: boolean
-  prefersLightTheme: boolean
+  fontFamily: string
+  language: string
+  prefersDarkTheme: boolean // Added for explicit theme preference
+  prefersLightTheme: boolean // Added for explicit theme preference
+  // Add other preferences as needed
 }
 
-// Default preferences
-export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
-  highContrast: false,
-  largeText: false,
-  reducedMotion: false,
-  keyboardNavigation: false,
-  textAlignment: "left",
-  fontFamily: "sans",
-  prefersDarkTheme: false,
-  prefersLightTheme: false,
-}
-
-// Define the context value type
-interface AccessibilityContextType {
+type AccessibilityContextType = {
   preferences: AccessibilityPreferences
-  setPreferences: Dispatch<SetStateAction<AccessibilityPreferences>>
+  updatePreference: <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => void
   resetPreferences: () => void
   applySettings: (prefs: AccessibilityPreferences) => void
 }
 
-// Create the context
-const InternalAccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
+export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
+  highContrast: false,
+  largeText: false,
+  reducedMotion: false,
+  screenReaderMode: false,
+  keyboardNavigation: false,
+  textAlignment: "left",
+  fontFamily: "Inter, sans-serif",
+  language: "en",
+  prefersDarkTheme: false, // Default to light theme preference
+  prefersLightTheme: true, // Default to light theme preference
+}
 
-// Provider component
-export function AccessibilityProvider({ children }: { children: ReactNode }) {
+const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
+
+// Helper to get initial state from localStorage
+const getInitialState = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === "undefined") return defaultValue
+  try {
+    const saved = localStorage.getItem(key)
+    return saved ? (JSON.parse(saved) as T) : defaultValue
+  } catch (error) {
+    console.error(`Error loading preference ${key} from localStorage:`, error)
+    return defaultValue
+  }
+}
+
+export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(() => {
-    // Initialize from localStorage or default
-    if (typeof window !== "undefined") {
-      const savedPrefs = localStorage.getItem("accessibilityPreferences")
-      return savedPrefs ? JSON.parse(savedPrefs) : DEFAULT_PREFERENCES
-    }
-    return DEFAULT_PREFERENCES
+    const saved = getInitialState("accessibilityPreferences", DEFAULT_PREFERENCES)
+    // Merge saved preferences with default to ensure new keys are included
+    return { ...DEFAULT_PREFERENCES, ...saved }
   })
 
-  // Function to apply settings to the document body
+  // Apply settings to document body
   const applySettings = useCallback((prefs: AccessibilityPreferences) => {
-    if (typeof document !== "undefined") {
-      const body = document.body
+    const body = document.body
+    if (!body) return
 
-      // High Contrast
-      prefs.highContrast ? body.classList.add("high-contrast") : body.classList.remove("high-contrast")
+    body.classList.toggle("high-contrast", prefs.highContrast)
+    body.classList.toggle("large-text", prefs.largeText)
+    body.classList.toggle("reduced-motion", prefs.reducedMotion)
+    body.classList.toggle("screen-reader-mode", prefs.screenReaderMode)
+    body.classList.toggle("keyboard-navigation-enabled", prefs.keyboardNavigation)
+    body.classList.toggle("prefers-dark-theme", prefs.prefersDarkTheme) // Apply dark theme class
+    body.classList.toggle("prefers-light-theme", prefs.prefersLightTheme) // Apply light theme class
 
-      // Large Text
-      prefs.largeText ? body.classList.add("large-text") : body.classList.remove("large-text")
-
-      // Reduced Motion
-      prefs.reducedMotion ? body.classList.add("reduced-motion") : body.classList.remove("reduced-motion")
-
-      // Keyboard Navigation
-      prefs.keyboardNavigation
-        ? body.classList.add("keyboard-navigation-enabled")
-        : body.classList.remove("keyboard-navigation-enabled")
-
-      // Text Alignment
-      body.style.textAlign = prefs.textAlignment
-
-      // Font Family
-      switch (prefs.fontFamily) {
-        case "sans":
-          body.style.fontFamily = "sans-serif"
-          break
-        case "serif":
-          body.style.fontFamily = "serif"
-          break
-        case "mono":
-          body.style.fontFamily = "monospace"
-          break
-        default:
-          body.style.fontFamily = "sans-serif"
-      }
-
-      // Theme preferences
-      if (prefs.prefersDarkTheme) {
-        body.classList.add("prefers-dark-theme")
-        body.classList.remove("prefers-light-theme")
-      } else if (prefs.prefersLightTheme) {
-        body.classList.add("prefers-light-theme")
-        body.classList.remove("prefers-dark-theme")
-      } else {
-        body.classList.remove("prefers-dark-theme")
-        body.classList.remove("prefers-light-theme")
-      }
-    }
+    body.style.textAlign = prefs.textAlignment
+    body.style.fontFamily = prefs.fontFamily
+    document.documentElement.lang = prefs.language
   }, [])
 
-  // Apply settings on initial load and when preferences change
+  // Save preferences to localStorage and apply them whenever they change
   useEffect(() => {
     applySettings(preferences)
-    if (typeof window !== "undefined") {
+    try {
       localStorage.setItem("accessibilityPreferences", JSON.stringify(preferences))
+    } catch (error) {
+      console.error("Failed to save accessibility preferences to localStorage:", error)
     }
   }, [preferences, applySettings])
 
-  // Reset preferences to default
+  const updatePreference = useCallback(
+    <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => {
+      setPreferences((prev) => ({
+        ...prev,
+        [key]: value,
+      }))
+    },
+    [],
+  )
+
   const resetPreferences = useCallback(() => {
     setPreferences(DEFAULT_PREFERENCES)
+    try {
+      localStorage.removeItem("accessibilityPreferences")
+    } catch (error) {
+      console.error("Failed to clear accessibility preferences from localStorage:", error)
+    }
   }, [])
 
   const value = {
     preferences,
-    setPreferences,
+    updatePreference,
     resetPreferences,
-    applySettings,
+    applySettings, // Expose applySettings for direct use if needed
   }
 
-  return <InternalAccessibilityContext.Provider value={value}>{children}</InternalAccessibilityContext.Provider>
+  return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>
 }
 
-// Custom hook to use the accessibility context
-export function useAccessibility() {
-  const context = useContext(InternalAccessibilityContext)
-  if (context === undefined) {
-    // Provide a stub context during server-side rendering
-    if (typeof window === "undefined") {
-      return {
-        preferences: DEFAULT_PREFERENCES,
-        setPreferences: () => {},
-        resetPreferences: () => {},
-        applySettings: () => {},
-      }
-    }
-    throw new Error("useAccessibility must be used within an AccessibilityProvider")
-  }
-  return context
+// Internal hook to get the raw context value (can be undefined)
+export const _useAccessibilityContextInternal = () => {
+  return useContext(AccessibilityContext)
 }
+
+// Re-export the public hook so existing imports keep working
+export { useAccessibility } from "../hooks/use-accessibility"

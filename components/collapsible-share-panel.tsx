@@ -1,96 +1,101 @@
 "use client"
+import type { ReactNode } from "react"
+import { Label } from "@/components/ui/label"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Share2, X, Search, QrCode, Mail, MessageSquare, Facebook, Twitter, Linkedin, Clipboard } from "lucide-react"
+import { Share2, X, Copy, QrCode, Search, Facebook, Twitter, Linkedin, MessageSquare, Mail, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
-import { cn } from "@/lib/utils"
+import { useClipboard } from "@/hooks/use-clipboard"
+import { useWebShare } from "@/hooks/use-web-share"
+import QRCode from "qrcode.react" // Assuming you have this installed or a similar QR code library
 
-export default function CollapsibleSharePanel() {
+interface SharePlatform {
+  name: string
+  icon: ReactNode
+  url: string
+}
+
+export function CollapsibleSharePanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [shareUrl, setShareUrl] = useState("")
-  const [qrCodeUrl, setQrCodeUrl] = useState("")
+  const [shareUrl, setShareUrl] = useState("https://cleanpro.vercel.app") // Default URL
+  const [shareTitle, setShareTitle] = useState("CleanPro - Professional Cleaning Services")
+  const [shareText, setShareText] = useState("Get your home sparkling clean with CleanPro! Book now for a fresh start.")
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setShareUrl(window.location.href)
-      // In a real app, you'd generate a QR code image from shareUrl
-      // For now, a placeholder or a simple text-based QR code link
-      setQrCodeUrl(
-        `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}`,
-      )
-    }
-  }, [])
+  const { copy, copied } = useClipboard()
+  const { share, isSupported: isWebShareSupported } = useWebShare()
 
   const togglePanel = () => setIsOpen(!isOpen)
 
-  // Close panel if ESC key is pressed
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false)
+  const handleCopyLink = () => {
+    copy(shareUrl)
+    toast({
+      title: "Link Copied!",
+      description: "The shareable link has been copied to your clipboard.",
+      duration: 2000,
+    })
+  }
+
+  const handleWebShare = async () => {
+    if (isWebShareSupported) {
+      try {
+        await share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        })
+        toast({
+          title: "Shared Successfully!",
+          description: "Content has been shared via native sharing options.",
+          duration: 2000,
+        })
+      } catch (error) {
+        console.error("Web Share API failed:", error)
+        toast({
+          title: "Sharing Failed",
+          description: "Could not share content. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        })
       }
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [])
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
+    } else {
       toast({
-        title: "Link Copied!",
-        description: "The page URL has been copied to your clipboard.",
-      })
-    } catch (err) {
-      toast({
-        title: "Failed to copy",
-        description: "Could not copy the link. Please try again.",
+        title: "Web Share Not Supported",
+        description: "Your browser does not support the Web Share API. Please use other options.",
         variant: "destructive",
+        duration: 3000,
       })
     }
   }
 
-  const handleDownloadQrCode = () => {
-    if (qrCodeUrl) {
-      const link = document.createElement("a")
-      link.href = qrCodeUrl
-      link.download = "qrcode.png"
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      toast({
-        title: "QR Code Downloaded!",
-        description: "The QR code image has been downloaded.",
-      })
-    }
-  }
-
-  const sharePlatforms = [
-    { name: "Email", icon: Mail, action: () => window.open(`mailto:?subject=Check out this page&body=${shareUrl}`) },
-    { name: "SMS", icon: MessageSquare, action: () => window.open(`sms:?body=Check out this page: ${shareUrl}`) },
+  const sharePlatforms: SharePlatform[] = [
     {
       name: "Facebook",
       icon: Facebook,
-      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`, "_blank"),
+      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`,
     },
     {
       name: "Twitter",
       icon: Twitter,
-      action: () => window.open(`https://twitter.com/intent/tweet?url=${shareUrl}&text=Check out this page`, "_blank"),
+      url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`,
     },
     {
       name: "LinkedIn",
       icon: Linkedin,
-      action: () => window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}`, "_blank"),
+      url: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}&summary=${encodeURIComponent(shareText)}`,
     },
+    {
+      name: "Email",
+      icon: Mail,
+      url: `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`,
+    },
+    { name: "SMS", icon: MessageSquare, url: `sms:?body=${encodeURIComponent(shareText + " " + shareUrl)}` },
     // Add more platforms as needed
   ]
 
@@ -99,32 +104,16 @@ export default function CollapsibleSharePanel() {
   )
 
   const panelVariants = {
-    hidden: {
-      opacity: 0,
-      y: 50,
-      scale: 0.9,
-      transition: { duration: 0.2, ease: "easeOut" },
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.3, ease: "easeOut" },
-    },
-    exit: {
-      opacity: 0,
-      y: 50,
-      scale: 0.9,
-      transition: { duration: 0.2, ease: "easeIn" },
-    },
+    hidden: { opacity: 0, scale: 0.8, y: 50, x: 50, transition: { duration: 0.2 } },
+    visible: { opacity: 1, scale: 1, y: 0, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
   }
 
   return (
     <>
       <Button
-        variant="secondary"
+        variant="outline"
         size="icon"
-        className="fixed bottom-4 right-20 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-background"
+        className="fixed bottom-4 right-20 z-50 rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         onClick={togglePanel}
         aria-label={isOpen ? "Close share panel" : "Open share panel"}
       >
@@ -134,99 +123,113 @@ export default function CollapsibleSharePanel() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className={cn(
-              "fixed bottom-4 right-4 z-50 flex h-[80vh] w-full max-w-[90vw] flex-col rounded-xl border bg-background shadow-lg sm:max-w-md",
-              "border-purple-200 bg-purple-50/50 backdrop-blur-md dark:border-purple-800 dark:bg-purple-950/50",
-            )}
-            variants={panelVariants}
+            className="fixed bottom-4 right-20 z-40 flex h-[80vh] w-full max-w-[90vw] flex-col rounded-xl border border-purple-200 bg-background shadow-lg sm:max-w-md"
             initial="hidden"
             animate="visible"
-            exit="exit"
+            exit="hidden"
+            variants={panelVariants}
             role="dialog"
             aria-modal="true"
             aria-labelledby="share-panel-title"
           >
             <div className="flex items-center justify-between p-4">
-              <h2 id="share-panel-title" className="text-xl font-bold text-purple-800 dark:text-purple-200">
+              <h2 id="share-panel-title" className="text-xl font-semibold">
                 Share This Page
               </h2>
               <Button variant="ghost" size="icon" onClick={togglePanel} aria-label="Close share panel">
-                <X className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
-            <Separator className="bg-purple-200 dark:bg-purple-800" />
+            <Separator />
 
-            <div className="p-4">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                <Input
-                  placeholder="Search platforms..."
-                  className="pl-9 pr-3"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+            <Tabs defaultValue="quick-share" className="flex-1 flex flex-col">
+              <TabsList className="grid w-full grid-cols-2 rounded-none border-b bg-transparent p-0">
+                <TabsTrigger
+                  value="quick-share"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  Quick Share
+                </TabsTrigger>
+                <TabsTrigger
+                  value="all-platforms"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  All Platforms
+                </TabsTrigger>
+              </TabsList>
 
-              <Tabs defaultValue="quick-actions" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="quick-actions">Quick Actions</TabsTrigger>
-                  <TabsTrigger value="all-platforms">All Platforms</TabsTrigger>
-                </TabsList>
-                <TabsContent value="quick-actions" className="mt-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" onClick={handleCopyLink} className="h-auto flex-col py-3 bg-transparent">
-                      <Clipboard className="mb-1 h-5 w-5" />
-                      Copy Link
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleDownloadQrCode}
-                      className="h-auto flex-col py-3 bg-transparent"
-                    >
-                      <QrCode className="mb-1 h-5 w-5" />
-                      Download QR
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => sharePlatforms[0].action()}
-                      className="h-auto flex-col py-3"
-                    >
-                      <Mail className="mb-1 h-5 w-5" />
-                      Email
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => sharePlatforms[1].action()}
-                      className="h-auto flex-col py-3"
-                    >
-                      <MessageSquare className="mb-1 h-5 w-5" />
-                      SMS
+              <TabsContent value="quick-share" className="flex-1 p-4 space-y-4 overflow-auto">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="share-url">Shareable Link</Label>
+                  <div className="flex items-center space-x-2">
+                    <Input id="share-url" value={shareUrl} readOnly className="flex-1" />
+                    <Button onClick={handleCopyLink} size="icon" aria-label="Copy link">
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-                </TabsContent>
-                <TabsContent value="all-platforms" className="mt-4">
-                  <ScrollArea className="h-[calc(80vh-250px)] pr-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {filteredPlatforms.length > 0 ? (
-                        filteredPlatforms.map((platform) => (
-                          <Button
-                            key={platform.name}
-                            variant="outline"
-                            onClick={platform.action}
-                            className="h-auto flex-col py-3 bg-transparent"
-                          >
-                            <platform.icon className="mb-1 h-5 w-5" />
-                            {platform.name}
-                          </Button>
-                        ))
-                      ) : (
-                        <p className="col-span-2 text-center text-gray-500">No platforms found.</p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={handleWebShare} disabled={!isWebShareSupported} className="h-auto py-3">
+                    <Share2 className="mr-2 h-5 w-5" /> Native Share
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      /* Implement QR code download/print */ toast({
+                        title: "QR Code Action",
+                        description: "QR code functionality to be implemented.",
+                        duration: 2000,
+                      })
+                    }}
+                    className="h-auto py-3"
+                  >
+                    <QrCode className="mr-2 h-5 w-5" /> QR Code
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-col items-center justify-center p-4">
+                  <h3 className="mb-4 text-lg font-medium">Scan QR Code</h3>
+                  <div className="rounded-lg border p-2">
+                    <QRCode value={shareUrl} size={180} level="H" renderAs="svg" />
+                  </div>
+                  <p className="mt-2 text-center text-sm text-muted-foreground">Scan this code to share the link.</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="all-platforms" className="flex-1 p-4 flex flex-col">
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search platforms..."
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    aria-label="Search sharing platforms"
+                  />
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    {filteredPlatforms.map((platform) => (
+                      <a
+                        key={platform.name}
+                        href={platform.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-2 rounded-md border p-4 text-center transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {platform.icon}
+                        <span className="text-sm font-medium">{platform.name}</span>
+                      </a>
+                    ))}
+                    {filteredPlatforms.length === 0 && (
+                      <p className="col-span-full text-center text-muted-foreground">No platforms found.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </motion.div>
         )}
       </AnimatePresence>

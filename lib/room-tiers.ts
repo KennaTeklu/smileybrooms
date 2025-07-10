@@ -26,68 +26,6 @@ export interface RoomReduction {
   description?: string
 }
 
-/**
- * Central catalogue of rooms and their available cleaning tiers.
- * Extend or update this file whenever you add new room types,
- * images, or tier structures.
- */
-
-export type CleaningTier = "ESSENTIAL CLEAN" | "STANDARD CLEAN" | "PREMIUM CLEAN" | "DEEP CLEAN"
-
-/**
- * The core data structure:
- * - key: internal room type slug
- * - value: array of supported cleaning tiers for that room
- *
- * NB: adjust the tiers to fit your actual pricing model.
- */
-export const roomTiers: Record<string, CleaningTier[]> = {
-  kitchen: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN", "DEEP CLEAN"],
-  bathroom: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN", "DEEP CLEAN"],
-  bedroom: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN", "DEEP CLEAN"],
-  livingRoom: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN", "DEEP CLEAN"],
-  diningRoom: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN"],
-  homeOffice: ["ESSENTIAL CLEAN", "STANDARD CLEAN", "PREMIUM CLEAN"],
-  laundryRoom: ["ESSENTIAL CLEAN", "STANDARD CLEAN"],
-  entryway: ["ESSENTIAL CLEAN", "STANDARD CLEAN"],
-  hallway: ["ESSENTIAL CLEAN", "STANDARD CLEAN"],
-  stairs: ["ESSENTIAL CLEAN", "STANDARD CLEAN"],
-}
-
-/**
- * Human-readable names for each room type.
- * (These show up in UI lists and headings.)
- */
-export const roomDisplayNames: Record<string, string> = {
-  kitchen: "Kitchen",
-  bathroom: "Bathroom",
-  bedroom: "Bedroom",
-  livingRoom: "Living Room",
-  diningRoom: "Dining Room",
-  homeOffice: "Home Office",
-  laundryRoom: "Laundry Room",
-  entryway: "Entryway",
-  hallway: "Hallway / Corridor",
-  stairs: "Staircase",
-}
-
-/**
- * Image paths for room thumbnails.
- * All images live in /public/images/… and are already present in the workspace.
- */
-export const roomImages: Record<string, string> = {
-  kitchen: "/images/kitchen-professional.png",
-  bathroom: "/images/bathroom-professional.png",
-  bedroom: "/images/bedroom-professional.png",
-  livingRoom: "/images/living-room-professional.png",
-  diningRoom: "/images/dining-room-professional.png",
-  homeOffice: "/images/home-office-professional.png",
-  laundryRoom: "/images/laundry-room-professional.png",
-  entryway: "/images/entryway-professional.png",
-  hallway: "/images/hallway-professional.png",
-  stairs: "/images/stairs-professional.png",
-}
-
 // Updated tiers with detailed task breakdowns from the strategic analysis
 
 export const defaultTiers: Record<string, RoomTier[]> = {
@@ -1530,19 +1468,19 @@ export function getRoomAddOns(roomType: string): RoomAddOn[] {
 
 // Helper function to get reductions for a specific room type
 // Room type to professional image mapping
-// export const roomImages: Record<string, string> = {
-//   bedroom: "/images/bedroom-professional.png",
-//   bathroom: "/images/bathroom-professional.png",
-//   kitchen: "/images/kitchen-professional.png",
-//   livingRoom: "/images/living-room-professional.png",
-//   diningRoom: "/images/dining-room-professional.png",
-//   homeOffice: "/images/home-office-professional.png",
-//   laundryRoom: "/images/laundry-room-professional.png",
-//   entryway: "/images/entryway-professional.png",
-//   hallway: "/images/hallway-professional.png",
-//   stairs: "/images/stairs-professional.png",
-//   other: "/images/bedroom-professional.png", // fallback
-// }
+export const roomImages: Record<string, string> = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  livingRoom: "/images/living-room-professional.png",
+  diningRoom: "/images/dining-room-professional.png",
+  homeOffice: "/images/home-office-professional.png",
+  laundryRoom: "/images/laundry-room-professional.png",
+  entryway: "/images/entryway-professional.png",
+  hallway: "/images/hallway-professional.png",
+  stairs: "/images/stairs-professional.png",
+  other: "/images/bedroom-professional.png", // fallback
+}
 
 // Room type to icon mapping (keeping as fallback)
 export const roomIcons: Record<string, string> = {
@@ -1560,16 +1498,16 @@ export const roomIcons: Record<string, string> = {
 }
 
 // Room type to display name mapping
-// export const roomDisplayNames: Record<string, string> = {
-//   bedroom: "Bedroom",
-//   bathroom: "Bathroom",
-//   kitchen: "Kitchen",
-//   livingRoom: "Living Room",
-//   diningRoom: "Dining Room",
-//   homeOffice: "Home Office",
-//   laundryRoom: "Laundry Room",
-//   entryway: "Entryway",
-//   hallway: "Hallway",
-//   stairs: "Stairs",
-//   other: "Other Space",
-// }
+export const roomDisplayNames: Record<string, string> = {
+  bedroom: "Bedroom",
+  bathroom: "Bathroom",
+  kitchen: "Kitchen",
+  livingRoom: "Living Room",
+  diningRoom: "Dining Room",
+  homeOffice: "Home Office",
+  laundryRoom: "Laundry Room",
+  entryway: "Entryway",
+  hallway: "Hallway",
+  stairs: "Stairs",
+  other: "Other Space",
+}
