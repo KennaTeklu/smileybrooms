@@ -130,3 +130,5 @@ export function useAccessibility() {
     trapFocus,
   }
 }
+
+// Re-export the hook from the main context file from "@/lib/accessibility-context"
