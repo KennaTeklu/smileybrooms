@@ -79,6 +79,8 @@ const DrawerDescription = React.forwardRef<
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 
+const DrawerClose = DrawerPrimitive.Close
+
 export {
   Drawer,
   DrawerPortal,
@@ -89,4 +91,5 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  DrawerClose,
 }
