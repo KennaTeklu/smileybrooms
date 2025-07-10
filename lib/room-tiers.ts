@@ -769,6 +769,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Chandelier detailed cleaning",
         "✗ Wall spot cleaning",
         "✗ Decor item individual cleaning",
+        "✗ Shoe organization",
+        "✗ Coat closet organization",
+        "✗ Door hardware polishing",
       ],
       upsellMessage:
         "Make a grander entrance with our ADVANCED CLEAN, including detailed floor mopping and baseboard dusting.",
