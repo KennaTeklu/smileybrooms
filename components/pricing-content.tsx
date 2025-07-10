@@ -1,22 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle2, ArrowRight } from "lucide-react"
-import { ServiceComparisonTable } from "@/components/service-comparison-table"
-import { getServiceFeatures } from "@/lib/service-features"
-import { getRoomTiers, roomDisplayNames, roomImages } from "@/lib/room-tiers"
-import Image from "next/image"
-import { formatCurrency } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { roomDisplayNames } from "@/lib/room-tiers"
+import { RoomCategorySection } from "@/components/room-category-section"
 
 interface PricingContentProps {
   onSelectTier: (roomType: string, tierId: string) => void
 }
 
 export function PricingContent({ onSelectTier }: PricingContentProps) {
-  const [activeTab, setActiveTab] = useState("tiers") // 'tiers' or 'custom'
+  const [activeTab, setActiveTab] = useState("tiers")
+  const [selectedRoomCategory, setSelectedRoomCategory] = useState<string | null>(null)
 
   const handleTabChange = (value: string) => {
     setActiveTab(value)
@@ -24,11 +21,11 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
 
   const handleTierSelect = (roomType: string, tierId: string) => {
     onSelectTier(roomType, tierId)
-    handleTabChange("custom") // Switch to custom plan tab after selection
+    handleTabChange("custom")
   }
 
-  // Prioritize "default" (Whole House) to appear first
-  const roomTypesOrder = ["default", ...Object.keys(roomDisplayNames).filter((key) => key !== "default")]
+  // Prepare room types for the select dropdown, excluding 'default'
+  const roomTypesForSelect = Object.keys(roomDisplayNames).filter((key) => key !== "default")
 
   return (
     <div className="w-full max-w-6xl mx-auto py-12 px-4 md:px-6">
@@ -46,65 +43,32 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
         </TabsList>
 
         <TabsContent value="tiers" className="space-y-12">
-          {roomTypesOrder.map((roomType) => {
-            const tiers = getRoomTiers(roomType)
-            const features = getServiceFeatures(roomType)
+          {/* Always render the "Whole House" (default) section first */}
+          <RoomCategorySection roomType="default" onSelectTier={handleTierSelect} />
 
-            return (
-              <section key={roomType} className="space-y-8">
-                <div className="flex flex-col md:flex-row items-center gap-6">
-                  <div className="relative w-full md:w-1/3 h-48 md:h-64 rounded-lg overflow-hidden shadow-lg">
-                    <Image
-                      src={roomImages[roomType] || "/placeholder.svg"}
-                      alt={roomDisplayNames[roomType]}
-                      layout="fill"
-                      objectFit="cover"
-                      className="transition-transform duration-300 hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex items-end">
-                      <h2 className="text-2xl font-bold text-white drop-shadow-md">
-                        {roomDisplayNames[roomType]} Cleaning
-                      </h2>
-                    </div>
-                  </div>
-                  <div className="md:w-2/3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {tiers.map((tier) => (
-                      <Card key={tier.id} className="flex flex-col justify-between">
-                        <CardHeader>
-                          <CardTitle className="text-xl">{tier.name}</CardTitle>
-                          <CardDescription>{tier.description}</CardDescription>
-                          <div className="text-3xl font-bold mt-2">{formatCurrency(tier.price)}</div>
-                          <p className="text-sm text-gray-500">{tier.timeEstimate} estimated</p>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <ul className="space-y-1 text-sm text-gray-600">
-                            {tier.features.map((feature, index) => (
-                              <li key={index} className="flex items-center">
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                          {tier.notIncludedTasks.length > 0 && (
-                            <div className="mt-2 text-xs text-gray-500">
-                              <span className="font-semibold">Not included:</span>{" "}
-                              {tier.notIncludedTasks.map((task) => task.replace("✗ ", "")).join(", ")}
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter>
-                          <Button className="w-full" onClick={() => handleTierSelect(roomType, tier.id)}>
-                            Select Tier <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-                <ServiceComparisonTable roomType={roomDisplayNames[roomType]} features={features} />
-              </section>
-            )
-          })}
+          {/* Dropdown for other room categories */}
+          <div className="mb-8 text-center">
+            <Label htmlFor="room-category-select" className="sr-only">
+              Select another room category
+            </Label>
+            <Select onValueChange={setSelectedRoomCategory} value={selectedRoomCategory || ""}>
+              <SelectTrigger id="room-category-select" className="w-full md:w-[300px] mx-auto">
+                <SelectValue placeholder="Explore individual room types" />
+              </SelectTrigger>
+              <SelectContent>
+                {roomTypesForSelect.map((roomType) => (
+                  <SelectItem key={roomType} value={roomType}>
+                    {roomDisplayNames[roomType]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Conditionally render the selected individual room category */}
+          {selectedRoomCategory && selectedRoomCategory !== "default" && (
+            <RoomCategorySection roomType={selectedRoomCategory} onSelectTier={handleTierSelect} />
+          )}
         </TabsContent>
 
         <TabsContent value="custom">
