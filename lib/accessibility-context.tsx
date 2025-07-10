@@ -125,8 +125,3 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
 export const _useAccessibilityContextInternal = () => {
   return useContext(AccessibilityContext)
 }
-
-// ───────────────────────────────────────────────────────────────  
-// Re-export the public hook so both import styles are supported.  
-// This avoids “missing export” build errors without duplicating logic.  
-export { useAccessibility } from "@/hooks/use-accessibility";

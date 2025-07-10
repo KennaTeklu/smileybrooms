@@ -19,9 +19,9 @@ export const FLOATING_LAYERS = {
   // System layers
   ACCESSIBILITY_PANEL: 80,
   TOUR_OVERLAY: 90,
-
-  // Top layers (highest)
   CHATBOT: 100,
+  MODAL_DRAWER_OVERLAY: 104, // New layer for drawer/modal overlay
+  MODAL_DRAWER: 105, // New layer for drawer/modal content, higher than chatbot
   TERMS_OVERLAY: 110,
   CRITICAL_ALERTS: 120,
 } as const
