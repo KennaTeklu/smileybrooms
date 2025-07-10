@@ -1,94 +1,79 @@
 "use client"
 
-import { useCallback, useContext } from "react"
+import { useContext, useEffect } from "react"
 import { AccessibilityContext } from "@/lib/accessibility-context"
+import { useTheme } from "next-themes"
 
-/**
- * Public hook for accessing accessibility preferences and utilities.
- *
- * It provides:
- * - `preferences`: An object containing all current accessibility settings.
- * - `updatePreference`: A function to update a specific preference.
- * - `resetPreferences`: A function to reset all preferences to default.
- * - DOM utility helpers: `announceToScreenReader`, `focusElement`, `trapFocus`.
- *
- * This hook must be used inside an `<AccessibilityProvider>` tree.
- */
 export function useAccessibility() {
-  const ctx = useContext(AccessibilityContext)
-  if (!ctx) {
-    throw new Error("useAccessibility must be used within <AccessibilityProvider>.")
+  const context = useContext(AccessibilityContext)
+  const { setTheme } = useTheme()
+
+  if (context === undefined) {
+    throw new Error("useAccessibility must be used within an AccessibilityProvider")
   }
 
-  /* ╭───────────────────────────────────────────────────────────────╮
-     │  DOM helper utilities                                         │
-     ╰───────────────────────────────────────────────────────────────╯ */
+  const { preferences, updatePreference, announceToScreenReader } = context
 
-  /** Announces a message for screen-reader users (client-only). */
-  const announceToScreenReader = useCallback((message: string, polite = true) => {
-    if (typeof window === "undefined") return
-    const el = document.createElement("div")
-    el.setAttribute("role", "status")
-    el.setAttribute("aria-live", polite ? "polite" : "assertive")
-    el.className = "sr-only" // Hidden visually, but accessible to screen readers
-    el.textContent = message
-    document.body.appendChild(el)
-    setTimeout(() => document.body.removeChild(el), 700)
-  }, [])
+  useEffect(() => {
+    const body = document.body
+    const html = document.documentElement
 
-  /** Programmatically focuses the first element that matches `selector`. */
-  const focusElement = useCallback((selector: string) => {
-    if (typeof window === "undefined") return
-    document.querySelector<HTMLElement>(selector)?.focus()
-  }, [])
-
-  /**
-   * Traps keyboard focus inside the element matched by `containerSelector`.
-   * Returns a cleanup function to remove the event listener.
-   */
-  const trapFocus = useCallback((containerSelector: string) => {
-    if (typeof window === "undefined") return () => {}
-
-    const container = document.querySelector<HTMLElement>(containerSelector)
-    if (!container) return () => {}
-
-    const focusable = container.querySelectorAll<HTMLElement>(
-      'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])',
-    )
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return
-      if (e.shiftKey) {
-        // Shift + Tab
-        if (document.activeElement === first) {
-          e.preventDefault()
-          last.focus()
-        }
-      } else {
-        // Tab
-        if (document.activeElement === last) {
-          e.preventDefault()
-          first.focus()
-        }
-      }
+    // Apply high contrast
+    if (preferences.highContrast) {
+      body.classList.add("high-contrast")
+    } else {
+      body.classList.remove("high-contrast")
     }
-    container.addEventListener("keydown", onKeyDown)
-    return () => container.removeEventListener("keydown", onKeyDown)
-  }, [])
 
-  // If context is available, return the real values with DOM utilities
-  return {
-    ...ctx,
-    announceToScreenReader,
-    focusElement,
-    trapFocus,
-  }
-}
+    // Apply large text
+    if (preferences.largeText) {
+      body.classList.add("large-text")
+    } else {
+      body.classList.remove("large-text")
+    }
 
-export type AccessibilityPreferences = {
-  highContrast: boolean
-  largeText: boolean
-  reducedMotion: boolean
+    // Apply reduced motion
+    if (preferences.reducedMotion) {
+      body.classList.add("reduced-motion")
+    } else {
+      body.classList.remove("reduced-motion")
+    }
+
+    // Apply keyboard navigation focus indicator
+    if (preferences.keyboardNavigation) {
+      body.classList.add("keyboard-navigation-enabled")
+    } else {
+      body.classList.remove("keyboard-navigation-enabled")
+    }
+
+    // Apply font family
+    body.style.fontFamily = preferences.fontFamily
+
+    // Apply line height
+    body.style.lineHeight = preferences.lineHeight.toString()
+
+    // Apply letter spacing
+    body.style.letterSpacing = `${preferences.letterSpacing}em`
+
+    // Apply text alignment
+    body.style.textAlign = preferences.textAlignment
+
+    // Apply theme based on prefersDarkTheme/prefersLightTheme
+    if (preferences.prefersDarkTheme) {
+      setTheme("dark")
+    } else if (preferences.prefersLightTheme) {
+      setTheme("light")
+    } else {
+      // Fallback to system if neither is explicitly preferred
+      setTheme("system")
+    }
+
+    // Apply custom color scheme
+    body.classList.remove("color-scheme-green", "color-scheme-blue") // Remove previous
+    if (preferences.colorScheme !== "default") {
+      body.classList.add(`color-scheme-${preferences.colorScheme}`)
+    }
+  }, [preferences, setTheme])
+
+  return context
 }

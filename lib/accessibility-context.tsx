@@ -1,7 +1,9 @@
 "use client"
 
-import type React from "react"
-import { createContext, useState, useEffect } from "react"
+import React from "react"
+
+import type { ReactNode } from "react"
+import { createContext, useState, useEffect, useCallback } from "react"
 import { useAccessibility as useAccessibilityHook } from "@/hooks/use-accessibility" // Renamed to avoid conflict
 
 interface AccessibilityPreferences {
@@ -9,13 +11,21 @@ interface AccessibilityPreferences {
   highContrast: boolean
   animationsEnabled: boolean
   keyboardNavigation: boolean
-  // Add more preferences as needed
+  prefersDarkTheme: boolean // Added for theme toggle
+  prefersLightTheme: boolean // Added for theme toggle
+  fontFamily: string // Added for font family selection
+  language: string // Added for language selection
+  lineHeight: number // Added for line height
+  letterSpacing: number // Added for letter spacing
+  textAlignment: "left" | "center" | "right" // Added for text alignment
+  colorScheme: "default" | "green" | "blue" // New: Added for custom color schemes
 }
 
 interface AccessibilityContextType {
   preferences: AccessibilityPreferences
   updatePreference: (key: keyof AccessibilityPreferences, value: any) => void
   resetPreferences: () => void
+  announceToScreenReader: (message: string, polite?: boolean) => void
 }
 
 const defaultPreferences: AccessibilityPreferences = {
@@ -23,12 +33,21 @@ const defaultPreferences: AccessibilityPreferences = {
   highContrast: false,
   animationsEnabled: true,
   keyboardNavigation: false,
+  prefersDarkTheme: false, // Default to light
+  prefersLightTheme: true,
+  fontFamily: "Inter, sans-serif",
+  language: "en",
+  lineHeight: 1.5,
+  letterSpacing: 0,
+  textAlignment: "left",
+  colorScheme: "default", // Default color scheme
 }
 
 export const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
-export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AccessibilityProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
+  const liveRegionRef = React.createRef<HTMLDivElement>()
 
   // Load preferences from local storage on mount
   useEffect(() => {
@@ -62,9 +81,29 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     setPreferences(defaultPreferences)
   }
 
+  const announceToScreenReader = useCallback((message: string, polite = false) => {
+    if (liveRegionRef.current) {
+      liveRegionRef.current.setAttribute("aria-live", polite ? "polite" : "assertive")
+      liveRegionRef.current.textContent = message
+      // Clear after a short delay to allow new announcements
+      setTimeout(() => {
+        if (liveRegionRef.current) {
+          liveRegionRef.current.textContent = ""
+        }
+      }, 1000)
+    }
+  }, [])
+
   return (
-    <AccessibilityContext.Provider value={{ preferences, updatePreference, resetPreferences }}>
+    <AccessibilityContext.Provider value={{ preferences, updatePreference, resetPreferences, announceToScreenReader }}>
       {children}
+      {/* Live region for screen reader announcements */}
+      <div
+        ref={liveRegionRef}
+        className="sr-only"
+        aria-atomic="true"
+        aria-live="polite" // Default to polite
+      />
     </AccessibilityContext.Provider>
   )
 }

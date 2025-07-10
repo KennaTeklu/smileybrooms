@@ -64,6 +64,40 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
+
+  /* Custom Color Scheme: Green */
+  body.color-scheme-green {
+    --primary: 142.1 76.2% 36.3%; /* Green */
+    --primary-foreground: 210 40% 98%;
+    --accent: 142.1 76.2% 36.3%;
+    --accent-foreground: 210 40% 98%;
+    --ring: 142.1 76.2% 36.3%;
+  }
+
+  body.color-scheme-green.dark {
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 210 40% 98%;
+    --accent: 142.1 76.2% 36.3%;
+    --accent-foreground: 210 40% 98%;
+    --ring: 142.1 76.2% 36.3%;
+  }
+
+  /* Custom Color Scheme: Blue */
+  body.color-scheme-blue {
+    --primary: 214.3 83.1% 49.6%; /* Blue */
+    --primary-foreground: 210 40% 98%;
+    --accent: 214.3 83.1% 49.6%;
+    --accent-foreground: 210 40% 98%;
+    --ring: 214.3 83.1% 49.6%;
+  }
+
+  body.color-scheme-blue.dark {
+    --primary: 214.3 83.1% 49.6%;
+    --primary-foreground: 210 40% 98%;
+    --accent: 214.3 83.1% 49.6%;
+    --accent-foreground: 210 40% 98%;
+    --ring: 214.3 83.1% 49.6%;
+  }
 }
 
 @layer base {
@@ -128,6 +162,12 @@ body.keyboard-navigation-enabled *:focus-visible {
   outline: 3px solid var(--purple-500); /* Use a strong outline color */
   outline-offset: 2px;
   border-radius: var(--radius); /* Match border-radius for consistency */
+}
+
+/* Keyboard Navigation Disabled (override default focus-visible) */
+body:not(.keyboard-navigation-enabled) *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Screen Reader Mode (visual adjustments, actual screen reader behavior is handled by ARIA) */

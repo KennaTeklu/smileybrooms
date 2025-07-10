@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   FileTypeIcon as Font,
   Languages,
+  Palette,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -24,11 +25,12 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added for Select component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useAccessibility } from "@/hooks/use-accessibility"
+import { useTranslation } from "@/contexts/translation-context" // Import useTranslation
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -36,7 +38,8 @@ export function CollapsibleSettingsPanel() {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  const { preferences, updatePreference, resetPreferences } = useAccessibility()
+  const { preferences, updatePreference, resetPreferences, announceToScreenReader } = useAccessibility()
+  const { t } = useTranslation() // Use the translation hook
 
   // Handle mounting for SSR
   useEffect(() => {
@@ -52,13 +55,17 @@ export function CollapsibleSettingsPanel() {
   })
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    "alt+a": () => setIsOpen((prev) => !prev), // Alt + A for Accessibility/Settings
-    Escape: () => setIsOpen(false),
-  })
+  useKeyboardShortcuts(
+    {
+      "alt+a": () => setIsOpen((prev) => !prev), // Alt + A for Accessibility/Settings
+      Escape: () => setIsOpen(false),
+    },
+    preferences.keyboardNavigation,
+  ) // Conditionally enable/disable shortcuts
 
   const handleReset = () => {
     resetPreferences()
+    announceToScreenReader(t("settings.reset_success_message"), true)
     setIsOpen(false) // Close panel after reset
   }
 
@@ -108,7 +115,7 @@ export function CollapsibleSettingsPanel() {
               style={{
                 boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(34, 197, 94, 0.05)",
               }}
-              aria-label={isOpen ? "Close accessibility settings" : "Open accessibility settings"}
+              aria-label={isOpen ? t("settings.close_button_label") : t("settings.open_button_label")}
             >
               {isOpen ? (
                 <ChevronRight className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -117,7 +124,9 @@ export function CollapsibleSettingsPanel() {
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">{isOpen ? "Close Settings" : "Open Settings"}</TooltipContent>
+          <TooltipContent side="right">
+            {isOpen ? t("settings.close_tooltip") : t("settings.open_tooltip")}
+          </TooltipContent>
         </Tooltip>
 
         {/* Expandable Panel */}
@@ -145,8 +154,8 @@ export function CollapsibleSettingsPanel() {
                       <Settings className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold">Accessibility Settings</h3>
-                      <p className="text-green-100 text-sm">Customize your experience</p>
+                      <h3 className="text-lg font-bold">{t("settings.title")}</h3>
+                      <p className="text-green-100 text-sm">{t("settings.subtitle")}</p>
                     </div>
                   </div>
                   <Button
@@ -154,7 +163,7 @@ export function CollapsibleSettingsPanel() {
                     size="icon"
                     onClick={() => setIsOpen(false)}
                     className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                    aria-label="Close accessibility settings panel"
+                    aria-label={t("settings.close_panel_button_label")}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -168,7 +177,7 @@ export function CollapsibleSettingsPanel() {
                   <Label htmlFor="theme-toggle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                     <Sun className="h-5 w-5 text-yellow-500" />
                     <Moon className="h-5 w-5 text-blue-500" />
-                    <span>Dark Mode</span>
+                    <span>{t("settings.dark_mode")}</span>
                   </Label>
                   <Switch
                     id="theme-toggle"
@@ -176,8 +185,9 @@ export function CollapsibleSettingsPanel() {
                     onCheckedChange={(checked) => {
                       updatePreference("prefersDarkTheme", checked)
                       updatePreference("prefersLightTheme", !checked) // Ensure light theme is opposite
+                      announceToScreenReader(t(`settings.dark_mode_status_${checked ? "enabled" : "disabled"}`), true)
                     }}
-                    aria-label="Toggle dark mode"
+                    aria-label={t("settings.toggle_dark_mode")}
                   />
                 </div>
 
@@ -188,13 +198,19 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Sparkles className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>High Contrast Mode</span>
+                    <span>{t("settings.high_contrast_mode")}</span>
                   </Label>
                   <Switch
                     id="high-contrast-toggle"
                     checked={preferences.highContrast}
-                    onCheckedChange={(checked) => updatePreference("highContrast", checked)}
-                    aria-label="Toggle high contrast mode"
+                    onCheckedChange={(checked) => {
+                      updatePreference("highContrast", checked)
+                      announceToScreenReader(
+                        t(`settings.high_contrast_status_${checked ? "enabled" : "disabled"}`),
+                        true,
+                      )
+                    }}
+                    aria-label={t("settings.toggle_high_contrast_mode")}
                   />
                 </div>
 
@@ -205,13 +221,16 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Large Text Mode</span>
+                    <span>{t("settings.large_text_mode")}</span>
                   </Label>
                   <Switch
                     id="large-text-toggle"
                     checked={preferences.largeText}
-                    onCheckedChange={(checked) => updatePreference("largeText", checked)}
-                    aria-label="Toggle large text mode"
+                    onCheckedChange={(checked) => {
+                      updatePreference("largeText", checked)
+                      announceToScreenReader(t(`settings.large_text_status_${checked ? "enabled" : "disabled"}`), true)
+                    }}
+                    aria-label={t("settings.toggle_large_text_mode")}
                   />
                 </div>
 
@@ -222,13 +241,19 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Zap className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Reduced Motion</span>
+                    <span>{t("settings.reduced_motion")}</span>
                   </Label>
                   <Switch
                     id="reduced-motion-toggle"
                     checked={preferences.reducedMotion}
-                    onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
-                    aria-label="Toggle reduced motion"
+                    onCheckedChange={(checked) => {
+                      updatePreference("reducedMotion", checked)
+                      announceToScreenReader(
+                        t(`settings.reduced_motion_status_${checked ? "enabled" : "disabled"}`),
+                        true,
+                      )
+                    }}
+                    aria-label={t("settings.toggle_reduced_motion")}
                   />
                 </div>
 
@@ -239,13 +264,19 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <ClipboardCheck className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Keyboard Navigation</span>
+                    <span>{t("settings.keyboard_navigation")}</span>
                   </Label>
                   <Switch
                     id="keyboard-nav-toggle"
                     checked={preferences.keyboardNavigation}
-                    onCheckedChange={(checked) => updatePreference("keyboardNavigation", checked)}
-                    aria-label="Toggle keyboard navigation"
+                    onCheckedChange={(checked) => {
+                      updatePreference("keyboardNavigation", checked)
+                      announceToScreenReader(
+                        t(`settings.keyboard_navigation_status_${checked ? "enabled" : "disabled"}`),
+                        true,
+                      )
+                    }}
+                    aria-label={t("settings.toggle_keyboard_navigation")}
                   />
                 </div>
 
@@ -256,21 +287,28 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Font className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Font Family</span>
+                    <span>{t("settings.font_family")}</span>
                   </Label>
                   <Select
                     value={preferences.fontFamily}
-                    onValueChange={(value) => updatePreference("fontFamily", value)}
+                    onValueChange={(value) => {
+                      updatePreference("fontFamily", value)
+                      announceToScreenReader(t("settings.font_family_changed", { font: value }), true)
+                    }}
                   >
-                    <SelectTrigger id="font-family-select" className="w-full" aria-label="Select font family">
-                      <SelectValue placeholder="Select a font" />
+                    <SelectTrigger
+                      id="font-family-select"
+                      className="w-full"
+                      aria-label={t("settings.select_font_family")}
+                    >
+                      <SelectValue placeholder={t("settings.select_a_font")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Inter, sans-serif">Inter (Default)</SelectItem>
-                      <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                      <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-                      <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                      <SelectItem value="monospace">Monospace</SelectItem>
+                      <SelectItem value="Inter, sans-serif">{t("settings.font_inter")}</SelectItem>
+                      <SelectItem value="Arial, sans-serif">{t("settings.font_arial")}</SelectItem>
+                      <SelectItem value="Verdana, sans-serif">{t("settings.font_verdana")}</SelectItem>
+                      <SelectItem value="Georgia, serif">{t("settings.font_georgia")}</SelectItem>
+                      <SelectItem value="monospace">{t("settings.font_monospace")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -279,17 +317,54 @@ export function CollapsibleSettingsPanel() {
                 <div className="space-y-2">
                   <Label htmlFor="language-select" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                     <Languages className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Language</span>
+                    <span>{t("settings.language")}</span>
                   </Label>
-                  <Select value={preferences.language} onValueChange={(value) => updatePreference("language", value)}>
-                    <SelectTrigger id="language-select" className="w-full" aria-label="Select language">
-                      <SelectValue placeholder="Select a language" />
+                  <Select
+                    value={preferences.language}
+                    onValueChange={(value) => {
+                      updatePreference("language", value)
+                      announceToScreenReader(t("settings.language_changed", { lang: value }), true)
+                    }}
+                  >
+                    <SelectTrigger id="language-select" className="w-full" aria-label={t("settings.select_language")}>
+                      <SelectValue placeholder={t("settings.select_a_language")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="de">Deutsch</SelectItem>
+                      <SelectItem value="en">{t("settings.lang_en")}</SelectItem>
+                      <SelectItem value="es">{t("settings.lang_es")}</SelectItem>
+                      <SelectItem value="fr">{t("settings.lang_fr")}</SelectItem>
+                      <SelectItem value="de">{t("settings.lang_de")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Color Scheme Selection */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="color-scheme-select"
+                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                  >
+                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>{t("settings.color_scheme")}</span>
+                  </Label>
+                  <Select
+                    value={preferences.colorScheme}
+                    onValueChange={(value) => {
+                      updatePreference("colorScheme", value as "default" | "green" | "blue")
+                      announceToScreenReader(t("settings.color_scheme_changed", { scheme: value }), true)
+                    }}
+                  >
+                    <SelectTrigger
+                      id="color-scheme-select"
+                      className="w-full"
+                      aria-label={t("settings.select_color_scheme")}
+                    >
+                      <SelectValue placeholder={t("settings.select_a_color_scheme")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">{t("settings.scheme_default")}</SelectItem>
+                      <SelectItem value="green">{t("settings.scheme_green")}</SelectItem>
+                      <SelectItem value="blue">{t("settings.scheme_blue")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -301,7 +376,9 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Line Height: {preferences.lineHeight?.toFixed(2)}</span>
+                    <span>
+                      {t("settings.line_height")}: {preferences.lineHeight?.toFixed(2)}
+                    </span>
                   </Label>
                   <Slider
                     id="line-height-slider"
@@ -309,9 +386,12 @@ export function CollapsibleSettingsPanel() {
                     max={2.0}
                     step={0.05}
                     value={[preferences.lineHeight || 1.5]} // Default to 1.5 if undefined
-                    onValueChange={(value) => updatePreference("lineHeight", value[0])}
+                    onValueChange={(value) => {
+                      updatePreference("lineHeight", value[0])
+                      announceToScreenReader(t("settings.line_height_set", { height: value[0].toFixed(2) }), true)
+                    }}
                     className="w-full"
-                    aria-label="Adjust line height"
+                    aria-label={t("settings.adjust_line_height")}
                   />
                 </div>
 
@@ -322,7 +402,9 @@ export function CollapsibleSettingsPanel() {
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
                     <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Letter Spacing: {preferences.letterSpacing?.toFixed(2)}em</span>
+                    <span>
+                      {t("settings.letter_spacing")}: {preferences.letterSpacing?.toFixed(2)}em
+                    </span>
                   </Label>
                   <Slider
                     id="letter-spacing-slider"
@@ -330,9 +412,12 @@ export function CollapsibleSettingsPanel() {
                     max={0.1}
                     step={0.005}
                     value={[preferences.letterSpacing || 0]} // Default to 0 if undefined
-                    onValueChange={(value) => updatePreference("letterSpacing", value[0])}
+                    onValueChange={(value) => {
+                      updatePreference("letterSpacing", value[0])
+                      announceToScreenReader(t("settings.letter_spacing_set", { spacing: value[0].toFixed(2) }), true)
+                    }}
                     className="w-full"
-                    aria-label="Adjust letter spacing"
+                    aria-label={t("settings.adjust_letter_spacing")}
                   />
                 </div>
 
@@ -340,33 +425,36 @@ export function CollapsibleSettingsPanel() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                     <AlignLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>Text Alignment</span>
+                    <span>{t("settings.text_alignment")}</span>
                   </Label>
                   <RadioGroup
                     value={preferences.textAlignment || "left"} // Default to "left" if undefined
-                    onValueChange={(value) => updatePreference("textAlignment", value)}
+                    onValueChange={(value) => {
+                      updatePreference("textAlignment", value)
+                      announceToScreenReader(t("settings.text_alignment_set", { alignment: value }), true)
+                    }}
                     className="flex gap-4"
-                    aria-label="Select text alignment"
+                    aria-label={t("settings.select_text_alignment")}
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="left" id="align-left" aria-label="Align text left" />
+                      <RadioGroupItem value="left" id="align-left" aria-label={t("settings.align_left")} />
                       <Label htmlFor="align-left">
                         <AlignLeft className="h-5 w-5" />
-                        <span className="sr-only">Align Left</span>
+                        <span className="sr-only">{t("settings.align_left")}</span>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="center" id="align-center" aria-label="Align text center" />
+                      <RadioGroupItem value="center" id="align-center" aria-label={t("settings.align_center")} />
                       <Label htmlFor="align-center">
                         <AlignCenter className="h-5 w-5" />
-                        <span className="sr-only">Align Center</span>
+                        <span className="sr-only">{t("settings.align_center")}</span>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="right" id="align-right" aria-label="Align text right" />
+                      <RadioGroupItem value="right" id="align-right" aria-label={t("settings.align_right")} />
                       <Label htmlFor="align-right">
                         <AlignRight className="h-5 w-5" />
-                        <span className="sr-only">Align Right</span>
+                        <span className="sr-only">{t("settings.align_right")}</span>
                       </Label>
                     </div>
                   </RadioGroup>
@@ -378,9 +466,9 @@ export function CollapsibleSettingsPanel() {
                     variant="outline"
                     className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/30 border-red-200/50 dark:border-red-800/50"
                     onClick={handleReset}
-                    aria-label="Reset all accessibility settings to default"
+                    aria-label={t("settings.reset_all_settings")}
                   >
-                    Reset All Settings
+                    {t("settings.reset_all_settings")}
                   </Button>
                 </div>
               </div>
