@@ -103,8 +103,8 @@ function PricingContent() {
         <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
           {/* Core Rooms Category */}
           <RoomCategory
-            title="CORE ROOMS"
-            description="Select the rooms you want cleaned in your home"
+            title="Choose Your Core Spaces"
+            description="Select the main rooms you want sparkling clean."
             rooms={coreRooms}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
@@ -116,8 +116,8 @@ function PricingContent() {
 
           {/* Additional Spaces Category */}
           <RoomCategory
-            title="ADDITIONAL SPACES"
-            description="Select any additional areas that need cleaning"
+            title="Enhance Your Clean"
+            description="Add extra areas for a truly comprehensive service."
             rooms={additionalSpaces}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
