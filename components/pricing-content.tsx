@@ -1,51 +1,50 @@
 "use client"
 
 import Image from "next/image"
-import { roomTiers, type RoomTier } from "@/lib/room-tiers"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { roomDisplayNames, roomImages } from "@/lib/room-tiers"
 
-type PricingContentProps = {
-  onSelect?: (tier: RoomTier) => void
-  selected?: string | null
+interface PricingContentProps {
+  /**
+   * Array of selected room keys, e.g. `['bedroom', 'bathroom']`.
+   */
+  selectedRooms?: string[]
 }
 
-export function PricingContent({ onSelect, selected }: PricingContentProps) {
+/**
+ * Grid of cards displaying a thumbnail and label for each selected room.
+ */
+export function PricingContent({ selectedRooms = [] }: PricingContentProps) {
+  if (!selectedRooms.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No rooms selected yet. Choose a room above to begin customising your clean!
+      </p>
+    )
+  }
+
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {roomTiers.map((tier) => {
-        const isActive = tier.id === selected
-        return (
-          <Card
-            key={tier.id}
-            onClick={() => onSelect?.(tier)}
-            className={cn(
-              "cursor-pointer transition-colors hover:border-primary/60",
-              isActive && "border-2 border-primary",
-            )}
-            aria-pressed={isActive}
-            role="button"
-          >
-            <CardHeader>
-              <h3 className="text-lg font-semibold">{tier.name}</h3>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4 pb-6">
-              <Image
-                src={tier.image || "/placeholder.svg"}
-                alt={`${tier.name} illustration`}
-                width={200}
-                height={140}
-                className="rounded-md object-cover"
-              />
-              <p className="text-sm text-muted-foreground">{tier.description}</p>
-              <span className="text-2xl font-bold">${tier.basePrice}</span>
-            </CardContent>
-          </Card>
-        )
-      })}
+      {selectedRooms.map((room) => (
+        <article
+          key={room}
+          className="overflow-hidden rounded-lg border bg-background shadow-sm transition-colors hover:border-primary"
+        >
+          <Image
+            src={roomImages[room] ?? roomImages.other}
+            alt={`${roomDisplayNames[room]} reference image`}
+            width={400}
+            height={220}
+            className="h-40 w-full object-cover"
+            priority
+          />
+          <div className="p-4">
+            <h3 className="text-lg font-semibold leading-none">{roomDisplayNames[room] ?? room}</h3>
+          </div>
+        </article>
+      ))}
     </div>
   )
 }
 
-// Keep existing named imports working AND provide a default export
+/*  -- allow both default & named import styles -- */
 export default PricingContent

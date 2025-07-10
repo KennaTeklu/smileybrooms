@@ -1515,3 +1515,6 @@ export const roomDisplayNames: Record<string, string> = {
   stairs: "Stairs",
   other: "Other Space",
 }
+
+// Alias so callers can `import { roomTiers } from '@/lib/room-tiers'`
+export const roomTiers = defaultTiers

@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback } from "react"
-import { _useAccessibilityContextInternal, DEFAULT_PREFERENCES } from "@/lib/accessibility-context"
+import { useCallback, useContext } from "react"
+import { AccessibilityContext } from "@/lib/accessibility-context"
 
 /**
  * Public hook for accessing accessibility preferences and utilities.
@@ -12,10 +12,14 @@ import { _useAccessibilityContextInternal, DEFAULT_PREFERENCES } from "@/lib/acc
  * - `resetPreferences`: A function to reset all preferences to default.
  * - DOM utility helpers: `announceToScreenReader`, `focusElement`, `trapFocus`.
  *
- * This hook is safe to use during server-side rendering (SSR) as it provides
- * a default stub when the context is not yet available.
+ * This hook must be used inside an `<AccessibilityProvider>` tree.
  */
 export function useAccessibility() {
+  const ctx = useContext(AccessibilityContext)
+  if (!ctx) {
+    throw new Error("useAccessibility must be used within <AccessibilityProvider>.")
+  }
+
   /* ╭───────────────────────────────────────────────────────────────╮
      │  DOM helper utilities                                         │
      ╰───────────────────────────────────────────────────────────────╯ */
@@ -74,28 +78,9 @@ export function useAccessibility() {
     return () => container.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  /* ╭───────────────────────────────────────────────────────────────╮
-     │  Context access & graceful fallback                           │
-     ╰───────────────────────────────────────────────────────────────╯ */
-
-  const context = _useAccessibilityContextInternal()
-
-  // If context is undefined (e.g., during SSR), return a safe stub
-  if (!context) {
-    const noop = () => {}
-    return {
-      preferences: DEFAULT_PREFERENCES, // Always provide default preferences
-      updatePreference: noop,
-      resetPreferences: noop,
-      announceToScreenReader,
-      focusElement,
-      trapFocus,
-    }
-  }
-
-  // If context is available, return the real values
+  // If context is available, return the real values with DOM utilities
   return {
-    ...context,
+    ...ctx,
     announceToScreenReader,
     focusElement,
     trapFocus,
