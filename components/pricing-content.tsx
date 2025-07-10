@@ -27,7 +27,8 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
     handleTabChange("custom") // Switch to custom plan tab after selection
   }
 
-  const roomTypes = Object.keys(roomDisplayNames)
+  // Prioritize "default" (Whole House) to appear first
+  const roomTypesOrder = ["default", ...Object.keys(roomDisplayNames).filter((key) => key !== "default")]
 
   return (
     <div className="w-full max-w-6xl mx-auto py-12 px-4 md:px-6">
@@ -45,7 +46,7 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
         </TabsList>
 
         <TabsContent value="tiers" className="space-y-12">
-          {roomTypes.map((roomType) => {
+          {roomTypesOrder.map((roomType) => {
             const tiers = getRoomTiers(roomType)
             const features = getServiceFeatures(roomType)
 
