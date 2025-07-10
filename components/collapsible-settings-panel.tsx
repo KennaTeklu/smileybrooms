@@ -5,16 +5,17 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Settings,
   X,
-  Sun,
-  Moon,
   Text,
   AlignLeft,
   AlignCenter,
   AlignRight,
   ChevronRight,
-  Sparkles,
   Zap,
-  ClipboardCheck,
+  Palette,
+  LineChartIcon as LineHeight,
+  LayoutListIcon as LetterSpacing,
+  Eye,
+  Accessibility,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useAccessibility } from "@/hooks/use-accessibility" // Corrected import path
+import { Separator } from "@/components/ui/separator" // Ensure Separator is imported
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -159,12 +161,11 @@ export function CollapsibleSettingsPanel() {
               </div>
 
               {/* Settings Content */}
-              <div className="p-5 flex-1 overflow-auto space-y-6">
+              <div className="p-5 flex-1 overflow-y-auto space-y-6">
                 {/* Theme Toggle */}
                 <div className="flex items-center justify-between">
                   <Label htmlFor="theme-toggle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <Sun className="h-5 w-5 text-yellow-500" />
-                    <Moon className="h-5 w-5 text-blue-500" />
+                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Dark Mode</span>
                   </Label>
                   <Switch
@@ -181,7 +182,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="high-contrast-toggle"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <Sparkles className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Eye className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>High Contrast Mode</span>
                   </Label>
                   <Switch
@@ -232,7 +233,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="keyboard-nav-toggle"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <ClipboardCheck className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Accessibility className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Keyboard Navigation</span>
                   </Label>
                   <Switch
@@ -243,13 +244,15 @@ export function CollapsibleSettingsPanel() {
                   />
                 </div>
 
+                <Separator />
+
                 {/* Line Height Slider */}
                 <div className="space-y-2">
                   <Label
                     htmlFor="line-height-slider"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <LineHeight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Line Height: {preferences.lineHeight?.toFixed(2)}</span>
                   </Label>
                   <Slider
@@ -270,7 +273,7 @@ export function CollapsibleSettingsPanel() {
                     htmlFor="letter-spacing-slider"
                     className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
                   >
-                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <LetterSpacing className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <span>Letter Spacing: {preferences.letterSpacing?.toFixed(2)}em</span>
                   </Label>
                   <Slider
@@ -320,6 +323,79 @@ export function CollapsibleSettingsPanel() {
                     </div>
                   </RadioGroup>
                 </div>
+
+                <Separator />
+
+                {/* Duplicated sections for longer scrolling */}
+                <div className="space-y-2">
+                  <Label htmlFor="theme-toggle-2" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>Another Theme Option</span>
+                  </Label>
+                  <Switch
+                    id="theme-toggle-2"
+                    checked={false} // Placeholder value
+                    onCheckedChange={() => {}} // Placeholder handler
+                    aria-label="Another theme option"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="line-height-slider-2"
+                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                  >
+                    <LineHeight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>Another Line Height: 1.20</span>
+                  </Label>
+                  <Slider
+                    id="line-height-slider-2"
+                    min={1.0}
+                    max={2.0}
+                    step={0.05}
+                    value={[1.2]} // Placeholder value
+                    onValueChange={() => {}} // Placeholder handler
+                    className="w-full"
+                    aria-label="Another line height adjustment"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <AlignLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <span>Another Text Alignment</span>
+                  </Label>
+                  <RadioGroup
+                    value="center" // Placeholder value
+                    onValueChange={() => {}} // Placeholder handler
+                    className="flex gap-4"
+                    aria-label="Another text alignment selection"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="left" id="align-left-2" />
+                      <Label htmlFor="align-left-2">
+                        <AlignLeft className="h-5 w-5" />
+                        <span className="sr-only">Align Left</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="center" id="align-center-2" />
+                      <Label htmlFor="align-center-2">
+                        <AlignCenter className="h-5 w-5" />
+                        <span className="sr-only">Align Center</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="right" id="align-right-2" />
+                      <Label htmlFor="align-right-2">
+                        <AlignRight className="h-5 w-5" />
+                        <span className="sr-only">Align Right</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <Separator />
 
                 {/* Reset Button */}
                 <div className="pt-4 border-t border-gray-200/50 dark:border-gray-800/50">

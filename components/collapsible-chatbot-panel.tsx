@@ -190,7 +190,7 @@ export function CollapsibleChatbotPanel({
                   border: "none",
                   width: "100%",
                 }}
-                scrolling="no"
+                // Removed scrolling="no" to allow browser to handle iframe scrolling
               />
             </div>
           </motion.div>
