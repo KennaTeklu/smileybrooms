@@ -46,7 +46,7 @@ type AccessibilityContextType = {
 }
 
 // Create the context
-const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
+export const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
 // Create the provider component
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
