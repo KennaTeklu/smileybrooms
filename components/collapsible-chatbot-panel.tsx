@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { usePathname } from "next/navigation"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { JotformChatbot } from "./jotform-chatbot" // Assuming this is the component for the JotForm chatbot
+import JotFormChatbot from "./jotform-chatbot" // Assuming this is the component for the JotForm chatbot
 
 // Extend Window interface for JotForm
 declare global {
@@ -154,7 +154,7 @@ export function CollapsibleChatbotPanel({
           <Separator />
           <div className="h-[400px] w-full overflow-hidden rounded-md border">
             {/* The JotFormChatbot component should handle its own scrolling if its content overflows */}
-            <JotformChatbot />
+            <JotFormChatbot />
           </div>
           <p className="text-sm text-muted-foreground">
             Ask our AI assistant any questions about our services, pricing, or booking process.
