@@ -590,6 +590,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Filing cabinet organization",
         "✗ Keyboard and peripheral cleaning",
         "✗ Monitor detailed cleaning",
+        "✗ Cable management",
+        "✗ Drawer organization",
+        "✗ Wall spot cleaning",
       ],
       upsellMessage:
         "Boost your productivity with our ADVANCED CLEAN, including detailed electronics dusting and bookshelf organization.",
