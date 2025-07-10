@@ -32,7 +32,7 @@ interface WizardProps {
   onConfigChange: (config: RoomConfig) => void
 }
 
-type WizardStep = "room-config" | "frequency" | "configuration-manager" | "address" | "review"
+type WizardStep = "frequency" | "room-config" | "configuration-manager" | "address" | "review"
 
 const STEP_TITLES = {
   "room-config": "Customize Room",
@@ -60,7 +60,7 @@ export function MultiStepCustomizationWizard({
   config,
   onConfigChange,
 }: WizardProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
+  const [currentStep, setCurrentStep] = useState<WizardStep>("frequency") // Changed initial step to "frequency"
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
@@ -132,7 +132,7 @@ export function MultiStepCustomizationWizard({
     }
   }, [selectedTier, selectedAddOns, frequencyDiscount, roomData])
 
-  const steps: WizardStep[] = ["room-config", "frequency", "configuration-manager", "address", "review"]
+  const steps: WizardStep[] = ["frequency", "room-config", "configuration-manager", "address", "review"] // Reordered steps
   const currentStepIndex = steps.indexOf(currentStep)
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === steps.length - 1
@@ -275,6 +275,12 @@ export function MultiStepCustomizationWizard({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            {currentStep === "frequency" && (
+              <div>
+                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
+              </div>
+            )}
+
             {currentStep === "room-config" && (
               <div className="space-y-6">
                 {roomData.tiers.length > 0 && (
@@ -340,12 +346,6 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {currentStep === "frequency" && (
-              <div>
-                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
               </div>
             )}
 
@@ -459,7 +459,7 @@ export function MultiStepCustomizationWizard({
 
             <div className="flex gap-2">
               {!isFirstStep && (
-                <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
+                <Button variant="outline" onClick={goToPreviousStep} className="flex-1 bg-transparent">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>

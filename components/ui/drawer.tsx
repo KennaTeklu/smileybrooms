@@ -4,6 +4,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { FLOATING_LAYERS } from "@/lib/floating-system"
 
 const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
@@ -14,13 +15,16 @@ const DrawerTrigger = DrawerPrimitive.Trigger
 
 const DrawerPortal = DrawerPrimitive.Portal
 
-const DrawerClose = DrawerPrimitive.Close
-
 const DrawerOverlay = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
-  <DrawerPrimitive.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-black/80", className)} {...props} />
+  <DrawerPrimitive.Overlay
+    ref={ref}
+    className={cn("fixed inset-0 z-[var(--z-index-modal-drawer)] bg-black/80", className)}
+    style={{ "--z-index-modal-drawer": FLOATING_LAYERS.MODAL_DRAWER } as React.CSSProperties}
+    {...props}
+  />
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
@@ -33,12 +37,12 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[99] flex h-auto max-h-[90vh] w-full max-w-lg flex-col rounded-lg border bg-background",
+        "fixed left-1/2 top-1/2 z-[var(--z-index-modal-drawer)] flex h-auto w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-background",
         className,
       )}
+      style={{ "--z-index-modal-drawer": FLOATING_LAYERS.MODAL_DRAWER } as React.CSSProperties}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
@@ -75,15 +79,17 @@ const DrawerDescription = React.forwardRef<
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 
+const DrawerClose = DrawerPrimitive.Close
+
 export {
   Drawer,
   DrawerPortal,
   DrawerOverlay,
   DrawerTrigger,
-  DrawerClose,
   DrawerContent,
   DrawerHeader,
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  DrawerClose,
 }
