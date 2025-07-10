@@ -38,7 +38,7 @@ const originalBedroomPrice = originalBasePricesMap.bedroom
 const newBedroomPriceTarget = 125.0 // The desired new price for bedroom
 const priceMultiplier = newBedroomPriceTarget / originalBedroomPrice
 
-// Function to calculate new price proportionally, rounded to 2 decimal places
+// Function to calculate new price proportionally, rounded to 2 decimal places (nearest cent)
 const calculateProportionalPrice = (originalPrice: number) => {
   return Number.parseFloat((originalPrice * priceMultiplier).toFixed(2))
 }
