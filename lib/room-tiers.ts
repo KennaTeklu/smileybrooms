@@ -26,141 +26,6 @@ export interface RoomReduction {
   description?: string
 }
 
-export interface FullHousePackage {
-  id: string
-  name: string
-  description: string
-  price: number
-  features: string[]
-  timeEstimate: string
-  includedRooms: string[]
-  detailedTasks: string[]
-  notIncludedTasks: string[]
-  upsellMessage?: string
-}
-
-// Full House Cleaning Packages
-export const fullHousePackages: FullHousePackage[] = [
-  {
-    id: "essential-full-house",
-    name: "ESSENTIAL FULL HOUSE CLEAN",
-    description: "Complete basic cleaning for your entire home",
-    price: 299.0,
-    timeEstimate: "4-6 hours",
-    features: [
-      "All bedrooms (up to 4)",
-      "All bathrooms (up to 3)",
-      "Kitchen essentials",
-      "Living areas",
-      "Basic floor care throughout",
-    ],
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "hallway", "entryway"],
-    detailedTasks: [
-      "✓ All bedrooms: Essential clean package per room",
-      "✓ All bathrooms: Essential clean package per room",
-      "✓ Kitchen: Countertops, sink, stovetop, floor sweep",
-      "✓ Living areas: Surface dusting, vacuum main areas",
-      "✓ Dining room: Table, chairs, floor vacuum",
-      "✓ Hallways: Floor vacuum, surface dusting",
-      "✓ Entryway: Floor sweep, door cleaning",
-      "✓ Trash removal throughout house",
-      "✓ Basic organization and tidying",
-    ],
-    notIncludedTasks: [
-      "✗ Deep cleaning of appliances",
-      "✗ Interior cabinet cleaning",
-      "✗ Window cleaning",
-      "✗ Baseboards and trim",
-      "✗ Light fixture deep cleaning",
-      "✗ Carpet deep cleaning",
-    ],
-    upsellMessage:
-      "Upgrade to Premium Full House for deep cleaning of appliances and detailed attention to baseboards and fixtures.",
-  },
-  {
-    id: "premium-full-house",
-    name: "PREMIUM FULL HOUSE CLEAN",
-    description: "Comprehensive deep cleaning for your entire home",
-    price: 599.0,
-    timeEstimate: "6-8 hours",
-    features: [
-      "All bedrooms (up to 4) - Premium level",
-      "All bathrooms (up to 3) - Premium level",
-      "Kitchen deep clean with appliances",
-      "Living areas with furniture care",
-      "Detailed floor care and baseboards",
-      "Window sills and light fixtures",
-    ],
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "hallway", "entryway", "stairs"],
-    detailedTasks: [
-      "✓ All bedrooms: Premium clean package per room",
-      "✓ All bathrooms: Premium clean package per room",
-      "✓ Kitchen: Deep clean including appliance exteriors, cabinet fronts",
-      "✓ Living areas: Furniture vacuuming, under furniture cleaning",
-      "✓ Dining room: Table polishing, chair detailed cleaning",
-      "✓ All floors: Detailed mopping and vacuuming",
-      "✓ Baseboards and trim throughout house",
-      "✓ Window sills and tracks",
-      "✓ Light fixture cleaning",
-      "✓ Stairs: Detailed step and handrail cleaning",
-    ],
-    notIncludedTasks: [
-      "✗ Interior appliance deep cleaning",
-      "✗ Cabinet interior organization",
-      "✗ Carpet steam cleaning",
-      "✗ Wall washing",
-      "✗ Ceiling fan disassembly",
-      "✗ Grout deep cleaning",
-    ],
-    upsellMessage:
-      "Experience the ultimate with Luxury Full House - includes appliance interiors, cabinet organization, and restoration services.",
-  },
-  {
-    id: "luxury-full-house",
-    name: "LUXURY FULL HOUSE CLEAN",
-    description: "Ultimate comprehensive cleaning and restoration for your entire home",
-    price: 1299.0,
-    timeEstimate: "8-12 hours",
-    features: [
-      "All bedrooms (up to 4) - Luxury level",
-      "All bathrooms (up to 3) - Luxury level",
-      "Kitchen complete with appliance interiors",
-      "Living areas with upholstery treatment",
-      "Floor restoration and carpet deep cleaning",
-      "Complete fixture and cabinet care",
-      "Air quality and vent cleaning",
-      "Luxury finishing touches",
-    ],
-    includedRooms: [
-      "bedroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "hallway",
-      "entryway",
-      "stairs",
-      "laundryRoom",
-      "homeOffice",
-    ],
-    detailedTasks: [
-      "✓ All bedrooms: Luxury clean package per room",
-      "✓ All bathrooms: Luxury clean package per room",
-      "✓ Kitchen: Complete including refrigerator interior, oven deep clean",
-      "✓ Living areas: Upholstery treatment, entertainment center organization",
-      "✓ All floors: Restoration, carpet steam cleaning, hardwood polishing",
-      "✓ Cabinet interiors organized throughout house",
-      "✓ All light fixtures disassembled and detailed",
-      "✓ Air vents cleaned and filters replaced",
-      "✓ Wall spot cleaning and touch-ups",
-      "✓ Luxury linen service where applicable",
-      "✓ Aromatherapy finishing treatment",
-      "✓ Laundry room and home office included",
-    ],
-    notIncludedTasks: [],
-  },
-]
-
 // Updated tiers with detailed task breakdowns from the strategic analysis
 
 export const defaultTiers: Record<string, RoomTier[]> = {
@@ -1490,4 +1355,167 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
       id: "din-r3",
       name: "No china cabinet cleaning",
       discount: 12.0,
-      description: "China cabinet will not be cleane\
+      description: "China cabinet will not be cleaned",
+    },
+    {
+      id: "din-r4",
+      name: "Skip light fixture dusting",
+      discount: 7.0,
+      description: "Light fixtures will not be dusted",
+    },
+  ],
+  homeOffice: [
+    { id: "off-r1", name: "Skip electronics dusting", discount: 10.0, description: "Electronics will not be dusted" },
+    { id: "off-r2", name: "No bookshelf cleaning", discount: 12.0, description: "Bookshelves will not be cleaned" },
+    {
+      id: "off-r3",
+      name: "Basic desk cleaning only",
+      discount: 8.0,
+      description: "Only basic desk cleaning will be performed",
+    },
+    { id: "off-r4", name: "Skip floor edges", discount: 7.0, description: "Floor edges will not be cleaned" },
+  ],
+  laundryRoom: [
+    {
+      id: "lau-r1",
+      name: "Skip appliance exteriors",
+      discount: 10.0,
+      description: "Appliance exteriors will not be cleaned",
+    },
+    { id: "lau-r2", name: "No sink cleaning", discount: 8.0, description: "Sink will not be cleaned" },
+    {
+      id: "lau-r3",
+      name: "Basic floor cleaning only",
+      discount: 7.0,
+      description: "Only basic floor cleaning will be performed",
+    },
+    { id: "lau-r4", name: "Skip cabinet fronts", discount: 6.0, description: "Cabinet fronts will not be cleaned" },
+  ],
+  entryway: [
+    {
+      id: "ent-r1",
+      name: "Basic floor cleaning only",
+      discount: 8.0,
+      description: "Only basic floor cleaning will be performed",
+    },
+    { id: "ent-r2", name: "Skip door cleaning", discount: 6.0, description: "Door will not be cleaned" },
+    {
+      id: "ent-r3",
+      name: "No console table cleaning",
+      discount: 7.0,
+      description: "Console table will not be cleaned",
+    },
+    {
+      id: "ent-r4",
+      name: "Skip mirror/artwork cleaning",
+      discount: 5.0,
+      description: "Mirrors and artwork will not be cleaned",
+    },
+  ],
+  hallway: [
+    {
+      id: "hal-r1",
+      name: "Basic floor cleaning only",
+      discount: 8.0,
+      description: "Only basic floor cleaning will be performed",
+    },
+    { id: "hal-r2", name: "Skip wall cleaning", discount: 6.0, description: "Walls will not be cleaned" },
+    { id: "hal-r3", name: "No picture frame dusting", discount: 5.0, description: "Picture frames will not be dusted" },
+    { id: "hal-r4", name: "Skip baseboard cleaning", discount: 7.0, description: "Baseboards will not be cleaned" },
+  ],
+  stairs: [
+    {
+      id: "sta-r1",
+      name: "Basic step cleaning only",
+      discount: 10.0,
+      description: "Only basic step cleaning will be performed",
+    },
+    { id: "sta-r2", name: "Skip handrail cleaning", discount: 8.0, description: "Handrail will not be cleaned" },
+    { id: "sta-r3", name: "No spindle dusting", discount: 7.0, description: "Spindles will not be dusted" },
+    { id: "sta-r4", name: "Skip stair edges", discount: 6.0, description: "Stair edges will not be cleaned" },
+  ],
+  default: [
+    {
+      id: "def-r1",
+      name: "Skip detailed dusting",
+      discount: 10.0,
+      description: "Detailed dusting will not be performed",
+    },
+    {
+      id: "def-r2",
+      name: "Basic floor cleaning only",
+      discount: 12.0,
+      description: "Only basic floor cleaning will be performed",
+    },
+    { id: "def-r3", name: "No baseboard cleaning", discount: 8.0, description: "Baseboards will not be cleaned" },
+    {
+      id: "def-r4",
+      name: "Skip hard-to-reach areas",
+      discount: 10.0,
+      description: "Hard-to-reach areas will not be cleaned",
+    },
+  ],
+}
+
+// Helper function to get tiers for a specific room type
+export function getRoomTiers(roomType: string): RoomTier[] {
+  return defaultTiers[roomType] || defaultTiers.default
+}
+
+// Helper function to get add-ons for a specific room type
+export function getRoomAddOns(roomType: string): RoomAddOn[] {
+  return defaultAddOns[roomType] || defaultAddOns.default
+}
+
+// Helper function to get reductions for a specific room type
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return defaultReductions[roomType] || defaultReductions.default
+}
+
+// Room type to professional image mapping
+export const roomImages: Record<string, string> = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  livingRoom: "/images/living-room-professional.png",
+  diningRoom: "/images/dining-room-professional.png",
+  homeOffice: "/images/home-office-professional.png",
+  laundryRoom: "/images/laundry-room-professional.png",
+  entryway: "/images/entryway-professional.png",
+  hallway: "/images/hallway-professional.png",
+  stairs: "/images/stairs-professional.png",
+  other: "/images/bedroom-professional.png", // fallback
+}
+
+// Room type to icon mapping (keeping as fallback)
+export const roomIcons: Record<string, string> = {
+  bedroom: "🛏️",
+  bathroom: "🚿",
+  kitchen: "🍳",
+  livingRoom: "🛋️",
+  diningRoom: "🍽️",
+  homeOffice: "💻",
+  laundryRoom: "🧺",
+  entryway: "🚪",
+  hallway: "🚶",
+  stairs: "🪜",
+  other: "➕",
+}
+
+// Room type to display name mapping
+export const roomDisplayNames: Record<string, string> = {
+  bedroom: "Bedroom",
+  bathroom: "Bathroom",
+  kitchen: "Kitchen",
+  livingRoom: "Living Room",
+  diningRoom: "Dining Room",
+  homeOffice: "Home Office",
+  laundryRoom: "Laundry Room",
+  entryway: "Entryway",
+  hallway: "Hallway",
+  stairs: "Stairs",
+  other: "Other Space",
+}
+
+// Alias so callers can `import { roomTiers } from '@/lib/room-tiers'`
+export const roomTiers = defaultTiers

@@ -14,7 +14,7 @@ import { Home, Calendar, Sparkles, ShoppingCart } from "lucide-react" // Import 
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
-import { Minus, PlusIcon } from "lucide-react" // Renamed Plus to PlusIcon to avoid conflict
+import { Minus, PlusIcon } from "lucide-react" // Renamed Plus to avoid conflict
 import { useCart } from "@/lib/cart-context" // Import useCart
 import { toast } from "@/components/ui/use-toast" // Import toast
 
@@ -35,6 +35,54 @@ interface PriceCalculatorProps {
   }) => void
   onAddToCart?: () => void
 }
+
+// Add these new interfaces and data at the top after the existing interfaces
+interface FullHousePackage {
+  id: string
+  name: string
+  description: string
+  basePrice: number
+  includedRooms: string[]
+  tier: "essential" | "premium" | "luxury"
+}
+
+const fullHousePackages: FullHousePackage[] = [
+  {
+    id: "essential-full-house",
+    name: "Essential Full House Clean",
+    description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
+    basePrice: 299,
+    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"],
+    tier: "essential",
+  },
+  {
+    id: "premium-full-house",
+    name: "Premium Full House Clean",
+    description: "Thorough cleaning with attention to detail for every room",
+    basePrice: 599,
+    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice", "laundryRoom"],
+    tier: "premium",
+  },
+  {
+    id: "luxury-full-house",
+    name: "Luxury Full House Clean",
+    description: "Comprehensive deep cleaning with premium treatments throughout",
+    basePrice: 1199,
+    includedRooms: [
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "livingRoom",
+      "diningRoom",
+      "homeOffice",
+      "laundryRoom",
+      "entryway",
+      "hallway",
+      "stairs",
+    ],
+    tier: "luxury",
+  },
+]
 
 // Define the room types and their base prices
 const roomTypes = roomConfig.roomTypes
@@ -223,6 +271,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
   const [isAddingToCart, setIsAddingToCart] = useState(false) // New loading state for add to cart
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
+  const [showRoomDetails, setShowRoomDetails] = useState<Record<string, boolean>>({})
 
   const { addItem } = useCart() // Use the cart context
 
@@ -232,7 +282,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   // Calculate the total price whenever selections change
   useEffect(() => {
     calculatePrice()
-  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
+  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency, selectedPackage])
 
   // Function to increment room count
   const incrementRoom = (roomId: string) => {
@@ -254,14 +304,23 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
   // Function to calculate the total price
   const calculatePrice = () => {
-    // Calculate base price from selected rooms
     let basePrice = 0
-    Object.entries(selectedRooms).forEach(([roomId, count]) => {
-      const room = roomTypes.find((r) => r.id === roomId)
-      if (room) {
-        basePrice += room.basePrice * count
+
+    // If a full house package is selected, use its base price
+    if (selectedPackage) {
+      const pkg = fullHousePackages.find((p) => p.id === selectedPackage)
+      if (pkg) {
+        basePrice = pkg.basePrice
       }
-    })
+    } else {
+      // Calculate base price from selected rooms (existing logic)
+      Object.entries(selectedRooms).forEach(([roomId, count]) => {
+        const room = roomTypes.find((r) => r.id === roomId)
+        if (room) {
+          basePrice += room.basePrice * count
+        }
+      })
+    }
 
     // Apply service type multiplier
     const serviceMultiplier = serviceType === "standard" ? 1 : 1.5
@@ -311,9 +370,9 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     }
   }
 
-  // Function to check if any rooms are selected
+  // Function to check if any rooms are selected or package is selected
   const hasSelectedRooms = () => {
-    return Object.values(selectedRooms).some((count) => count > 0)
+    return selectedPackage !== null || Object.values(selectedRooms).some((count) => count > 0)
   }
 
   // Function to toggle section expansion
@@ -324,6 +383,28 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   // Check if a section is expanded
   const isSectionExpanded = (section: string) => {
     return expandedSections.includes(section)
+  }
+
+  // Function to toggle room details
+  const toggleRoomDetails = (packageId: string) => {
+    setShowRoomDetails((prev) => ({
+      ...prev,
+      [packageId]: !prev[packageId],
+    }))
+  }
+
+  // Function to handle package selection
+  const handlePackageSelect = (packageId: string) => {
+    const selectedPackageItem = fullHousePackages.find((p) => p.id === packageId)
+    if (selectedPackageItem) {
+      setSelectedPackage(packageId)
+      // Auto-select rooms based on package
+      const newRooms: Record<string, number> = {}
+      roomTypes.forEach((room) => {
+        newRooms[room.id] = selectedPackageItem.includedRooms.includes(room.id) ? 1 : 0
+      })
+      setSelectedRooms(newRooms)
+    }
   }
 
   const handleAddToCartClick = async () => {
@@ -399,29 +480,193 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div className="text-center mb-4">
             <h3 className="text-lg font-medium">Standard Cleaning Service</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our standard cleaning covers all the basics to keep your space clean and tidy.
+              Choose from our full house packages or customize individual rooms
             </p>
           </div>
 
-          {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900">
+          {/* Full House Packages */}
+          <Card className="border-2 border-green-100 dark:border-green-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-blue-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
+                <Home className="h-5 w-5 mr-2 text-green-600" />
+                <h3 className="text-lg font-medium">Full House Cleaning Packages</h3>
               </div>
 
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
+              <div className="space-y-4">
+                {fullHousePackages.map((pkg) => (
+                  <div key={pkg.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="radio"
+                          id={pkg.id}
+                          name="fullHousePackage"
+                          checked={selectedPackage === pkg.id}
+                          onChange={() => handlePackageSelect(pkg.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor={pkg.id} className="cursor-pointer">
+                            <h4 className="font-semibold text-lg">{pkg.name}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{pkg.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-2xl font-bold text-green-600">${pkg.basePrice}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleRoomDetails(pkg.id)}
+                                className="text-xs"
+                              >
+                                {showRoomDetails[pkg.id] ? "Hide Details" : "Show Details"}
+                              </Button>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Room Details Dropdown */}
+                    {showRoomDetails[pkg.id] && (
+                      <div className="mt-4 pt-4 border-t">
+                        <h5 className="font-medium mb-3">Included Rooms & Services:</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {pkg.includedRooms.map((roomId) => {
+                            const room = roomTypes.find((r) => r.id === roomId)
+                            if (!room) return null
+
+                            return (
+                              <div
+                                key={roomId}
+                                className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPackage === pkg.id}
+                                  readOnly
+                                  className="text-green-600"
+                                />
+                                <div className="flex items-center space-x-2">
+                                  <div className="p-1 rounded bg-green-100 dark:bg-green-900/30">{room.icon}</div>
+                                  <div>
+                                    <span className="font-medium">{room.name}</span>
+                                    <div className="text-xs text-gray-500">
+                                      {pkg.tier === "essential" && "Essential Clean"}
+                                      {pkg.tier === "premium" && "Premium Clean"}
+                                      {pkg.tier === "luxury" && "Luxury Clean"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Package Benefits */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+                          <h6 className="font-medium text-blue-800 dark:text-blue-200 mb-2">{pkg.name} Benefits:</h6>
+                          <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                            {pkg.tier === "essential" && (
+                              <>
+                                <li>• Surface cleaning and basic maintenance</li>
+                                <li>• Floor vacuuming and light mopping</li>
+                                <li>• Bathroom and kitchen essentials</li>
+                                <li>• Trash removal and basic tidying</li>
+                              </>
+                            )}
+                            {pkg.tier === "premium" && (
+                              <>
+                                <li>• Everything in Essential plus:</li>
+                                <li>• Detailed cleaning of all surfaces</li>
+                                <li>• Appliance exterior cleaning</li>
+                                <li>• Baseboard and window sill attention</li>
+                                <li>• Under-furniture cleaning</li>
+                              </>
+                            )}
+                            {pkg.tier === "luxury" && (
+                              <>
+                                <li>• Everything in Premium plus:</li>
+                                <li>• Deep cleaning and sanitization</li>
+                                <li>• Interior appliance cleaning</li>
+                                <li>• Detailed organization services</li>
+                                <li>• Premium finishing touches</li>
+                              </>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={() => {
+                    setSelectedPackage(null)
+                    setSelectedRooms((prev) => {
+                      const newRooms: Record<string, number> = {}
+                      roomTypes.forEach((room) => {
+                        newRooms[room.id] = 0
+                      })
+                      return newRooms
+                    })
+                  }}
+                >
+                  Or Customize Individual Rooms Below
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Collapsible Sections */}
+          {/* Individual Room Selection - Only show if no package selected */}
+          {!selectedPackage && (
+            <Card className="border-2 border-blue-100 dark:border-blue-900">
+              <CardContent className="pt-6">
+                <div className="flex items-center mb-4">
+                  <Home className="h-5 w-5 mr-2 text-blue-600" />
+                  <h3 className="text-lg font-medium">Custom Room Selection</h3>
+                </div>
+
+                <RoomConfigurator
+                  selectedRooms={selectedRooms}
+                  setSelectedRooms={setSelectedRooms}
+                  serviceType={serviceType}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show selected package summary */}
+          {selectedPackage && (
+            <Card className="border-2 border-green-100 dark:border-green-900 bg-green-50 dark:bg-green-900/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-green-800 dark:text-green-200">
+                      {fullHousePackages.find((p) => p.id === selectedPackage)?.name} Selected
+                    </h3>
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      {fullHousePackages.find((p) => p.id === selectedPackage)?.includedRooms.length} rooms included
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPackage(null)}
+                    className="text-green-700 border-green-300"
+                  >
+                    Change Package
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Rest of the existing collapsible sections remain the same */}
           <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
+            {/* Frequency Selection - existing code */}
             <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -470,7 +715,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </AccordionContent>
             </AccordionItem>
 
-            {/* Cleanliness Level */}
+            {/* Cleanliness Level - existing code */}
             <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -499,27 +744,191 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div className="text-center mb-4">
             <h3 className="text-lg font-medium">Premium Detailing Service</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our premium service includes deep cleaning and attention to detail for a thorough clean.
+              Choose from our full house packages or customize individual rooms
             </p>
           </div>
 
-          {/* Room Selection - Always visible */}
+          {/* Full House Packages */}
           <Card className="border-2 border-purple-100 dark:border-purple-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Home className="h-5 w-5 mr-2 text-purple-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
+                <h3 className="text-lg font-medium">Full House Cleaning Packages</h3>
               </div>
 
-              <RoomConfigurator
-                selectedRooms={selectedRooms}
-                setSelectedRooms={setSelectedRooms}
-                serviceType={serviceType}
-              />
+              <div className="space-y-4">
+                {fullHousePackages.map((pkg) => (
+                  <div key={pkg.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="radio"
+                          id={pkg.id}
+                          name="fullHousePackage"
+                          checked={selectedPackage === pkg.id}
+                          onChange={() => handlePackageSelect(pkg.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor={pkg.id} className="cursor-pointer">
+                            <h4 className="font-semibold text-lg">{pkg.name}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{pkg.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-2xl font-bold text-purple-600">${pkg.basePrice}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleRoomDetails(pkg.id)}
+                                className="text-xs"
+                              >
+                                {showRoomDetails[pkg.id] ? "Hide Details" : "Show Details"}
+                              </Button>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Room Details Dropdown */}
+                    {showRoomDetails[pkg.id] && (
+                      <div className="mt-4 pt-4 border-t">
+                        <h5 className="font-medium mb-3">Included Rooms & Services:</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {pkg.includedRooms.map((roomId) => {
+                            const room = roomTypes.find((r) => r.id === roomId)
+                            if (!room) return null
+
+                            return (
+                              <div
+                                key={roomId}
+                                className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPackage === pkg.id}
+                                  readOnly
+                                  className="text-purple-600"
+                                />
+                                <div className="flex items-center space-x-2">
+                                  <div className="p-1 rounded bg-purple-100 dark:bg-purple-900/30">{room.icon}</div>
+                                  <div>
+                                    <span className="font-medium">{room.name}</span>
+                                    <div className="text-xs text-gray-500">
+                                      {pkg.tier === "essential" && "Essential Clean"}
+                                      {pkg.tier === "premium" && "Premium Clean"}
+                                      {pkg.tier === "luxury" && "Luxury Clean"}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Package Benefits */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+                          <h6 className="font-medium text-blue-800 dark:text-blue-200 mb-2">{pkg.name} Benefits:</h6>
+                          <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                            {pkg.tier === "essential" && (
+                              <>
+                                <li>• Surface cleaning and basic maintenance</li>
+                                <li>• Floor vacuuming and light mopping</li>
+                                <li>• Bathroom and kitchen essentials</li>
+                                <li>• Trash removal and basic tidying</li>
+                              </>
+                            )}
+                            {pkg.tier === "premium" && (
+                              <>
+                                <li>• Everything in Essential plus:</li>
+                                <li>• Detailed cleaning of all surfaces</li>
+                                <li>• Appliance exterior cleaning</li>
+                                <li>• Baseboard and window sill attention</li>
+                                <li>• Under-furniture cleaning</li>
+                              </>
+                            )}
+                            {pkg.tier === "luxury" && (
+                              <>
+                                <li>• Everything in Premium plus:</li>
+                                <li>• Deep cleaning and sanitization</li>
+                                <li>• Interior appliance cleaning</li>
+                                <li>• Detailed organization services</li>
+                                <li>• Premium finishing touches</li>
+                              </>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={() => {
+                    setSelectedPackage(null)
+                    setSelectedRooms((prev) => {
+                      const newRooms: Record<string, number> = {}
+                      roomTypes.forEach((room) => {
+                        newRooms[room.id] = 0
+                      })
+                      return newRooms
+                    })
+                  }}
+                >
+                  Or Customize Individual Rooms Below
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Collapsible Sections */}
+          {/* Individual Room Selection - Only show if no package selected */}
+          {!selectedPackage && (
+            <Card className="border-2 border-purple-100 dark:border-purple-900">
+              <CardContent className="pt-6">
+                <div className="flex items-center mb-4">
+                  <Home className="h-5 w-5 mr-2 text-purple-600" />
+                  <h3 className="text-lg font-medium">Custom Room Selection</h3>
+                </div>
+
+                <RoomConfigurator
+                  selectedRooms={selectedRooms}
+                  setSelectedRooms={setSelectedRooms}
+                  serviceType={serviceType}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show selected package summary */}
+          {selectedPackage && (
+            <Card className="border-2 border-purple-100 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-purple-800 dark:text-purple-200">
+                      {fullHousePackages.find((p) => p.id === selectedPackage)?.name} Selected
+                    </h3>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                      {fullHousePackages.find((p) => p.id === selectedPackage)?.includedRooms.length} rooms included
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedPackage(null)}
+                    className="text-purple-700 border-purple-300"
+                  >
+                    Change Package
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Rest of the existing collapsible sections remain the same */}
           <Accordion type="single" collapsible className="w-full space-y-4">
             {/* Frequency Selection */}
             <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
@@ -602,8 +1011,17 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div>
             <h3 className="text-lg font-medium">Estimated Price</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
-              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+              {selectedPackage ? (
+                <>
+                  {fullHousePackages.find((p) => p.id === selectedPackage)?.name}
+                  {serviceType === "detailing" && " (Premium Detailing)"}
+                </>
+              ) : (
+                <>
+                  {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
+                  {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
+                </>
+              )}
             </p>
           </div>
           <div className="text-right">
@@ -624,8 +1042,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         {onAddToCart && (
           <div className="mt-4">
             <Button
-              onClick={handleAddToCartClick} // Use the new handler
-              disabled={!hasSelectedRooms() || !isServiceAvailable || isAddingToCart} // Disable if adding
+              onClick={handleAddToCartClick}
+              disabled={!hasSelectedRooms() || !isServiceAvailable || isAddingToCart}
               className="w-full"
             >
               {isAddingToCart ? (
