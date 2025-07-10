@@ -35,7 +35,7 @@ const defaultPreferences: AccessibilityPreferences = {
   keyboardNavigation: false,
   prefersDarkTheme: false, // Default to light
   prefersLightTheme: true,
-  fontFamily: "Inter, sans-serif",
+  fontFamily: "Inter, sans-sans-serif", // Corrected typo
   language: "en",
   lineHeight: 1.5,
   letterSpacing: 0,
