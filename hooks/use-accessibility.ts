@@ -1,42 +1,50 @@
 "use client"
 
 import { useCallback } from "react"
-import {
-  accessibilityPreferenceKeys,
-  type AccessibilityPreferenceKey,
-} from "@/lib/accessibility-keys" /* helper with the union of keys */
-import { useAccessibility as useAccessibilityContext } from "@/lib/accessibility-context"
+import { _useAccessibilityContextInternal, DEFAULT_PREFERENCES } from "@/lib/accessibility-context"
 
 /**
- * High-level accessibility hook used throughout the app.
+ * Public hook for accessing accessibility preferences and utilities.
  *
- * • Returns `preferences`, `updatePreference`, `resetPreferences`
- * • Exposes DOM-helpers (`announceToScreenReader`, `focusElement`, `trapFocus`)
- * • Falls back to a harmless stub when rendered outside the provider
- *   (e.g. during SSG) so prerendering never crashes.
+ * It provides:
+ * - `preferences`: An object containing all current accessibility settings.
+ * - `updatePreference`: A function to update a specific preference.
+ * - `resetPreferences`: A function to reset all preferences to default.
+ * - DOM utility helpers: `announceToScreenReader`, `focusElement`, `trapFocus`.
+ *
+ * This hook is safe to use during server-side rendering (SSR) as it provides
+ * a default stub when the context is not yet available.
  */
 export function useAccessibility() {
   /* ╭───────────────────────────────────────────────────────────────╮
      │  DOM helper utilities                                         │
      ╰───────────────────────────────────────────────────────────────╯ */
+
+  /** Announces a message for screen-reader users (client-only). */
   const announceToScreenReader = useCallback((message: string, polite = true) => {
     if (typeof window === "undefined") return
     const el = document.createElement("div")
     el.setAttribute("role", "status")
     el.setAttribute("aria-live", polite ? "polite" : "assertive")
-    el.className = "sr-only"
+    el.className = "sr-only" // Hidden visually, but accessible to screen readers
     el.textContent = message
     document.body.appendChild(el)
     setTimeout(() => document.body.removeChild(el), 700)
   }, [])
 
+  /** Programmatically focuses the first element that matches `selector`. */
   const focusElement = useCallback((selector: string) => {
     if (typeof window === "undefined") return
     document.querySelector<HTMLElement>(selector)?.focus()
   }, [])
 
+  /**
+   * Traps keyboard focus inside the element matched by `containerSelector`.
+   * Returns a cleanup function to remove the event listener.
+   */
   const trapFocus = useCallback((containerSelector: string) => {
     if (typeof window === "undefined") return () => {}
+
     const container = document.querySelector<HTMLElement>(containerSelector)
     if (!container) return () => {}
 
@@ -48,9 +56,18 @@ export function useAccessibility() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return
-      if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-        e.preventDefault()
-        ;(e.shiftKey ? last : first).focus()
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        // Tab
+        if (document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
     container.addEventListener("keydown", onKeyDown)
@@ -60,75 +77,27 @@ export function useAccessibility() {
   /* ╭───────────────────────────────────────────────────────────────╮
      │  Context access & graceful fallback                           │
      ╰───────────────────────────────────────────────────────────────╯ */
-  const ctx = useAccessibilityContext?.()
 
-  /* ---------- Stub for SSR / outside-provider renders ------------ */
-  if (!ctx) {
+  const context = _useAccessibilityContextInternal()
+
+  // If context is undefined (e.g., during SSR), return a safe stub
+  if (!context) {
     const noop = () => {}
     return {
-      /* expected API for panels */
-      preferences: Object.fromEntries(accessibilityPreferenceKeys.map((k) => [k, false])) as Record<
-        AccessibilityPreferenceKey,
-        boolean
-      >,
+      preferences: DEFAULT_PREFERENCES, // Always provide default preferences
       updatePreference: noop,
       resetPreferences: noop,
-
-      /* helpers */
       announceToScreenReader,
       focusElement,
       trapFocus,
     }
   }
 
-  /* ---------- Build the preferences object from real context ---- */
-  const preferences: Record<AccessibilityPreferenceKey, boolean> = {
-    highContrast: ctx.highContrast,
-    largeText: ctx.fontSize >= 125,
-    reducedMotion: !ctx.animations,
-    screenReader: ctx.screenReaderMode,
-    voiceControl: ctx.voiceControl ?? false,
-    keyboardOnly: ctx.keyboardNavigation,
-    prefersDarkTheme: ctx.language === "dark",
-    prefersLightTheme: ctx.language === "light",
-  }
-
-  /* Map preference-key → their respective setter in context */
-  const setters: Partial<Record<AccessibilityPreferenceKey, (val: boolean) => void>> = {
-    highContrast: ctx.toggleHighContrast,
-    largeText: (val) => ctx.setFontSize(val ? 125 : 100),
-    reducedMotion: (val) => ctx.toggleAnimations(!val),
-    screenReader: ctx.toggleScreenReaderMode,
-    voiceControl: ctx.toggleVoiceControl ?? (() => {}),
-    keyboardOnly: ctx.toggleKeyboardNavigation,
-    prefersDarkTheme: (val) => {
-      if (val) {
-        ctx.setLanguage("dark")
-      }
-    },
-    prefersLightTheme: (val) => {
-      if (val) {
-        ctx.setLanguage("light")
-      }
-    },
-  }
-
-  const updatePreference = (key: AccessibilityPreferenceKey, value: boolean) => {
-    const setter = setters[key]
-    if (setter) setter(value)
-  }
-
+  // If context is available, return the real values
   return {
-    /* panels rely on these three keys */
-    preferences,
-    updatePreference,
-    resetPreferences: ctx.resetAccessibilitySettings,
-
-    /* helpers */
+    ...context,
     announceToScreenReader,
     focusElement,
     trapFocus,
   }
 }
-
-// Re-export the hook from the main context file from "@/lib/accessibility-context"

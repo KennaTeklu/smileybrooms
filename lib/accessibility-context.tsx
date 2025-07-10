@@ -21,7 +21,7 @@ type AccessibilityContextType = {
   applySettings: (prefs: AccessibilityPreferences) => void
 }
 
-const DEFAULT_PREFERENCES: AccessibilityPreferences = {
+export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   highContrast: false,
   largeText: false,
   reducedMotion: false,
@@ -34,23 +34,41 @@ const DEFAULT_PREFERENCES: AccessibilityPreferences = {
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
-export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>(DEFAULT_PREFERENCES)
+// Helper to get initial state from localStorage
+const getInitialState = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === "undefined") return defaultValue
+  try {
+    const saved = localStorage.getItem(key)
+    return saved ? (JSON.parse(saved) as T) : defaultValue
+  } catch (error) {
+    console.error(`Error loading preference ${key} from localStorage:`, error)
+    return defaultValue
+  }
+}
 
-  // Load preferences from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedPreferences = localStorage.getItem("accessibilityPreferences")
-      if (savedPreferences) {
-        const parsed = JSON.parse(savedPreferences) as AccessibilityPreferences
-        setPreferences((prev) => ({ ...prev, ...parsed })) // Merge to ensure new defaults are included
-      }
-    } catch (error) {
-      console.error("Failed to load accessibility preferences from localStorage:", error)
-    }
+export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
+  const [preferences, setPreferences] = useState<AccessibilityPreferences>(() => {
+    const saved = getInitialState("accessibilityPreferences", DEFAULT_PREFERENCES)
+    // Merge saved preferences with default to ensure new keys are included
+    return { ...DEFAULT_PREFERENCES, ...saved }
+  })
+
+  // Apply settings to document body
+  const applySettings = useCallback((prefs: AccessibilityPreferences) => {
+    const body = document.body
+    if (!body) return
+
+    body.classList.toggle("high-contrast", prefs.highContrast)
+    body.classList.toggle("large-text", prefs.largeText)
+    body.classList.toggle("reduced-motion", prefs.reducedMotion)
+    body.classList.toggle("screen-reader-mode", prefs.screenReaderMode)
+    body.classList.toggle("keyboard-navigation-enabled", prefs.keyboardNavigation)
+    body.style.textAlign = prefs.textAlignment
+    body.style.fontFamily = prefs.fontFamily
+    document.documentElement.lang = prefs.language
   }, [])
 
-  // Apply settings to document body and save to localStorage whenever preferences change
+  // Save preferences to localStorage and apply them whenever they change
   useEffect(() => {
     applySettings(preferences)
     try {
@@ -58,7 +76,7 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
     } catch (error) {
       console.error("Failed to save accessibility preferences to localStorage:", error)
     }
-  }, [preferences])
+  }, [preferences, applySettings])
 
   const updatePreference = useCallback(
     <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => {
@@ -79,61 +97,17 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
     }
   }, [])
 
-  const applySettings = useCallback((prefs: AccessibilityPreferences) => {
-    const body = document.body
-    if (!body) return
-
-    // High Contrast
-    body.classList.toggle("high-contrast", prefs.highContrast)
-
-    // Large Text
-    body.classList.toggle("large-text", prefs.largeText)
-
-    // Reduced Motion
-    body.classList.toggle("reduced-motion", prefs.reducedMotion)
-
-    // Screen Reader Mode
-    body.classList.toggle("screen-reader-mode", prefs.screenReaderMode)
-
-    // Keyboard Navigation
-    body.classList.toggle("keyboard-navigation-enabled", prefs.keyboardNavigation)
-
-    // Text Alignment
-    body.style.textAlign = prefs.textAlignment
-
-    // Font Family
-    body.style.fontFamily = prefs.fontFamily
-
-    // Language
-    document.documentElement.lang = prefs.language
-  }, [])
-
   const value = {
     preferences,
     updatePreference,
     resetPreferences,
-    applySettings,
+    applySettings, // Expose applySettings for direct use if needed
   }
 
   return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>
 }
 
-export const useAccessibility = () => {
-  const context = useContext(AccessibilityContext)
-  if (context === undefined) {
-    // Provide a stub for SSR or when used outside the provider
-    return {
-      preferences: DEFAULT_PREFERENCES,
-      updatePreference: () => {
-        /* no-op */
-      },
-      resetPreferences: () => {
-        /* no-op */
-      },
-      applySettings: () => {
-        /* no-op */
-      },
-    }
-  }
-  return context
+// Internal hook to get the raw context value (can be undefined)
+export const _useAccessibilityContextInternal = () => {
+  return useContext(AccessibilityContext)
 }
