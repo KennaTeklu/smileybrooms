@@ -4,12 +4,13 @@ import { useCallback } from "react"
 import { _useAccessibilityContextInternal, DEFAULT_PREFERENCES } from "@/lib/accessibility-context"
 
 /**
- * Public hook for accessing accessibility preferences and DOM helpers.
+ * Public hook for reading / updating accessibility preferences
+ * and for a handful of helpful DOM-utilities.
  */
 export function useAccessibility() {
-  /* ───────────────────────── DOM helpers ───────────────────────── */
+  /* ──────────────────  DOM helpers  ────────────────── */
 
-  /** Announces a message for screen-reader users (client-only). */
+  /** Announce a message for screen-reader users (client-only). */
   const announceToScreenReader = useCallback((message: string, polite = true) => {
     if (typeof window === "undefined") return
     const el = document.createElement("div")
@@ -21,15 +22,15 @@ export function useAccessibility() {
     setTimeout(() => document.body.removeChild(el), 700)
   }, [])
 
-  /** Programmatically focuses the first element that matches `selector`. */
+  /** Focus the first element that matches the supplied selector. */
   const focusElement = useCallback((selector: string) => {
     if (typeof window === "undefined") return
     document.querySelector<HTMLElement>(selector)?.focus()
   }, [])
 
   /**
-   * Traps keyboard focus inside the element matched by `containerSelector`.
-   * Returns a cleanup function.
+   * Trap keyboard focus inside the element matched by
+   * `containerSelector`; returns a cleanup function.
    */
   const trapFocus = useCallback((containerSelector: string) => {
     if (typeof window === "undefined") return () => {}
@@ -46,28 +47,30 @@ export function useAccessibility() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return
       if (e.shiftKey) {
-        // Shift+Tab
+        // Shift + Tab
         if (document.activeElement === first) {
           e.preventDefault()
           last.focus()
         }
       } else {
-        // Tab
+        // Tab forward
         if (document.activeElement === last) {
           e.preventDefault()
           first.focus()
         }
       }
     }
+
     container.addEventListener("keydown", onKeyDown)
     return () => container.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  /* ─────────────────────── Context fallback ────────────────────── */
+  /* ─────────────  Context access with SSR fallback  ───────────── */
 
   const context = _useAccessibilityContextInternal()
 
   if (!context) {
+    // During SSR or if provider is missing: expose safe stubs
     const noop = () => {}
     return {
       preferences: DEFAULT_PREFERENCES,
