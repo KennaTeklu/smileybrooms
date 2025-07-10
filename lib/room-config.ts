@@ -29,3 +29,8 @@ export const roomConfigs: RoomConfig[] = Object.keys(roomDisplayNames).map((key)
     })),
   }
 })
+
+/* ------------------------------------------------------------------ */
+/* NEW: Provide a backwards-compatibility alias expected elsewhere.   */
+/* ------------------------------------------------------------------ */
+export const roomConfig = roomConfigs // ✅ alias for legacy imports
