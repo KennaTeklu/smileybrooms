@@ -26,7 +26,135 @@ export interface RoomReduction {
   description?: string
 }
 
-// Updated tiers with detailed task breakdowns from the strategic analysis
+// Define the tiers for each room type
+// These prices are for the "Essential Clean" equivalent
+export const roomTiers = {
+  bedroom: [
+    { id: "bedroom-essential", name: "Essential Clean", description: "Basic dusting and vacuuming.", price: 125.0 },
+    { id: "bedroom-advanced", name: "Advanced Clean", description: "Deep cleaning including under-bed.", price: 250.0 },
+    {
+      id: "bedroom-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning and organization.",
+      price: 375.0,
+    },
+  ],
+  bathroom: [
+    { id: "bathroom-essential", name: "Essential Clean", description: "Sink, counter, and toilet.", price: 100.0 },
+    { id: "bathroom-advanced", name: "Advanced Clean", description: "Includes shower/tub and floor.", price: 200.0 },
+    {
+      id: "bathroom-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including grout.",
+      price: 300.0,
+    },
+  ],
+  kitchen: [
+    { id: "kitchen-essential", name: "Essential Clean", description: "Counters, sink, and stovetop.", price: 150.0 },
+    {
+      id: "kitchen-advanced",
+      name: "Advanced Clean",
+      description: "Includes appliance exteriors and microwave.",
+      price: 300.0,
+    },
+    {
+      id: "kitchen-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including oven and fridge interior.",
+      price: 450.0,
+    },
+  ],
+  livingRoom: [
+    {
+      id: "livingRoom-essential",
+      name: "Essential Clean",
+      description: "Surface dusting and floor vacuum.",
+      price: 130.0,
+    },
+    {
+      id: "livingRoom-advanced",
+      name: "Advanced Clean",
+      description: "Includes furniture vacuuming and under-furniture.",
+      price: 260.0,
+    },
+    {
+      id: "livingRoom-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including upholstery spot treatment.",
+      price: 390.0,
+    },
+  ],
+  diningRoom: [
+    { id: "diningRoom-essential", name: "Essential Clean", description: "Table and surface dusting.", price: 90.0 },
+    {
+      id: "diningRoom-advanced",
+      name: "Advanced Clean",
+      description: "Includes chair cleaning and floor.",
+      price: 180.0,
+    },
+    {
+      id: "diningRoom-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including decor.",
+      price: 270.0,
+    },
+  ],
+  homeOffice: [
+    { id: "homeOffice-essential", name: "Essential Clean", description: "Desk and surface dusting.", price: 110.0 },
+    {
+      id: "homeOffice-advanced",
+      name: "Advanced Clean",
+      description: "Includes electronics dusting and floor.",
+      price: 220.0,
+    },
+    {
+      id: "homeOffice-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including book shelves.",
+      price: 330.0,
+    },
+  ],
+  laundryRoom: [
+    { id: "laundryRoom-essential", name: "Essential Clean", description: "Surface wipe down and floor.", price: 70.0 },
+    { id: "laundryRoom-advanced", name: "Advanced Clean", description: "Includes appliance exteriors.", price: 140.0 },
+    {
+      id: "laundryRoom-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including lint trap.",
+      price: 210.0,
+    },
+  ],
+  entryway: [
+    { id: "entryway-essential", name: "Essential Clean", description: "Floor and surface dusting.", price: 60.0 },
+    { id: "entryway-advanced", name: "Advanced Clean", description: "Includes shoe rack organization.", price: 120.0 },
+    {
+      id: "entryway-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including coat closet.",
+      price: 180.0,
+    },
+  ],
+  hallway: [
+    { id: "hallway-essential", name: "Essential Clean", description: "Floor and baseboard dusting.", price: 50.0 },
+    { id: "hallway-advanced", name: "Advanced Clean", description: "Includes wall spot cleaning.", price: 100.0 },
+    {
+      id: "hallway-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including art work.",
+      price: 150.0,
+    },
+  ],
+  stairs: [
+    { id: "stairs-essential", name: "Essential Clean", description: "Vacuuming and railing wipe.", price: 80.0 },
+    { id: "stairs-advanced", name: "Advanced Clean", description: "Includes individual step cleaning.", price: 160.0 },
+    {
+      id: "stairs-premium",
+      name: "Premium Clean",
+      description: "Full detailed cleaning including risers.",
+      price: 240.0,
+    },
+  ],
+}
 
 export const defaultTiers: Record<string, RoomTier[]> = {
   bedroom: [
@@ -1425,12 +1553,6 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
       discount: 7.0,
       description: "Console table will not be cleaned",
     },
-    {
-      id: "ent-r4",
-      name: "Skip mirror/artwork cleaning",
-      discount: 5.0,
-      description: "Mirrors and artwork will not be cleaned",
-    },
   ],
   hallway: [
     {
@@ -1474,8 +1596,9 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
 }
 
 // Helper function to get tiers for a specific room type
-export function getRoomTiers(roomType: string): RoomTier[] {
-  return defaultTiers[roomType] || defaultTiers.default
+export function getRoomTiers(roomType: string) {
+  // Ensure the roomType exists in roomTiers, otherwise return an empty array or default
+  return roomTiers[roomType as keyof typeof roomTiers] || []
 }
 
 // Helper function to get add-ons for a specific room type
@@ -1488,7 +1611,7 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
   return defaultReductions[roomType] || defaultReductions.default
 }
 
-// Room type to professional image mapping
+// Define images for each room type
 export const roomImages: Record<string, string> = {
   bedroom: "/images/bedroom-professional.png",
   bathroom: "/images/bathroom-professional.png",
@@ -1500,7 +1623,8 @@ export const roomImages: Record<string, string> = {
   entryway: "/images/entryway-professional.png",
   hallway: "/images/hallway-professional.png",
   stairs: "/images/stairs-professional.png",
-  other: "/images/bedroom-professional.png", // fallback
+  // Add a default image if a room type doesn't have a specific one
+  default: "/placeholder.svg?height=140&width=200",
 }
 
 // Room type to icon mapping (keeping as fallback)
@@ -1534,4 +1658,4 @@ export const roomDisplayNames: Record<string, string> = {
 }
 
 // Alias so callers can `import { roomTiers } from '@/lib/room-tiers'`
-export const roomTiers = defaultTiers
+export const roomTiersAlias = roomTiers

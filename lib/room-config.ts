@@ -1,73 +1,132 @@
-import { roomIcons, roomDisplayNames, roomImages } from "@/lib/room-tiers"
+import { roomImages } from "@/lib/room-tiers"
+import {
+  Home,
+  Bath,
+  Utensils,
+  Sofa,
+  BookOpen,
+  WashingMachineIcon as Laundry,
+  DoorOpen,
+  Waypoints,
+  StepBackIcon as Stairs,
+} from "lucide-react"
 
 export interface RoomType {
   id: string
   name: string
-  icon: string
+  icon: JSX.Element
   basePrice: number
   image: string
+  description: string
 }
 
-// Define the original base prices from the previous summary's roomConfig.ts
-// This map includes all rooms that were explicitly in the `roomPrices` object or `roomTypes` array.
-const originalBasePricesMap: Record<string, number> = {
-  master_bedroom: 54.28,
+// Original base prices (before proportional adjustment)
+const originalBasePrices = {
   bedroom: 35.42,
-  bathroom: 43.63,
-  kitchen: 54.8,
-  living_room: 31.37,
-  dining_room: 25.63,
-  office: 19.53, // Corresponds to home_office in new structure
-  playroom: 25.64,
-  mudroom: 21.73,
-  laundry_room: 13.46,
-  sunroom: 22.25,
-  guest_room: 35.42,
-  garage: 83.99,
-  // For rooms that were not explicitly in the old roomConfig.ts,
-  // we'll use their 'Essential Clean' price from room-tiers.ts as their "original" base
-  // to ensure they also get proportionally scaled.
-  entryway: 15.0, // From room-tiers.ts essential
-  hallway: 15.0, // From room-tiers.ts essential
-  stairs: 20.0, // From room-tiers.ts essential
-  other: 25.0, // From room-tiers.ts default essential
+  bathroom: 30.0,
+  kitchen: 45.0,
+  livingRoom: 40.0,
+  diningRoom: 25.0,
+  homeOffice: 33.0,
+  laundryRoom: 20.0,
+  entryway: 18.0,
+  hallway: 15.0,
+  stairs: 24.0,
 }
 
-// Calculate the multiplier based on the bedroom price change
-const originalBedroomPrice = originalBasePricesMap.bedroom
-const newBedroomPriceTarget = 125.0 // The desired new price for bedroom
-const priceMultiplier = newBedroomPriceTarget / originalBedroomPrice
+// Target bedroom price for "Essential Clean"
+const targetBedroomPrice = 125.0
 
-// Function to calculate new price proportionally, rounded to 2 decimal places (nearest cent)
-const calculateProportionalPrice = (originalPrice: number) => {
-  return Number.parseFloat((originalPrice * priceMultiplier).toFixed(2))
+// Calculate the multiplier based on the bedroom price increase
+const multiplier = targetBedroomPrice / originalBasePrices.bedroom
+
+// Function to calculate new price, rounded to nearest cent
+const calculateNewPrice = (originalPrice: number) => {
+  return Number.parseFloat((originalPrice * multiplier).toFixed(2))
 }
 
-// Construct the updated roomTypes array
-const updatedRoomTypes: RoomType[] = Object.keys(roomDisplayNames).map((roomId) => {
-  let originalPrice = originalBasePricesMap[roomId]
-  // Handle mapping for 'office' to 'home_office'
-  if (roomId === "home_office" && !originalPrice) {
-    originalPrice = originalBasePricesMap.office
-  }
-  // Fallback for any room not explicitly in originalBasePricesMap,
-  // using a generic default if no specific original price is found.
-  // This ensures all rooms are scaled.
-  if (!originalPrice) {
-    console.warn(`Original price not found for ${roomId}. Using a default base for scaling.`)
-    originalPrice = 25.0 // A generic default if no specific original price is found
-  }
-
-  const newPrice = calculateProportionalPrice(originalPrice)
-
-  return {
-    id: roomId,
-    name: roomDisplayNames[roomId],
-    icon: roomIcons[roomId],
-    basePrice: newPrice,
-    image: roomImages[roomId],
-  }
-})
+const roomTypes = [
+  {
+    id: "bedroom",
+    name: "Bedroom",
+    icon: <Home className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.bedroom),
+    image: roomImages.bedroom,
+    description: "Sleeping area, including dusting, vacuuming, and bed making.",
+  },
+  {
+    id: "bathroom",
+    name: "Bathroom",
+    icon: <Bath className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.bathroom),
+    image: roomImages.bathroom,
+    description: "Toilet, sink, shower, and floor cleaning.",
+  },
+  {
+    id: "kitchen",
+    name: "Kitchen",
+    icon: <Utensils className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.kitchen),
+    image: roomImages.kitchen,
+    description: "Countertops, sink, stovetop, and appliance exteriors.",
+  },
+  {
+    id: "livingRoom",
+    name: "Living Room",
+    icon: <Sofa className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.livingRoom),
+    image: roomImages.livingRoom,
+    description: "Dusting, vacuuming, and general tidying of common areas.",
+  },
+  {
+    id: "diningRoom",
+    name: "Dining Room",
+    icon: <Sofa className="h-6 w-6" />, // Reusing Sofa icon, consider a specific one if available
+    basePrice: calculateNewPrice(originalBasePrices.diningRoom),
+    image: roomImages.diningRoom,
+    description: "Table, chairs, and floor cleaning.",
+  },
+  {
+    id: "homeOffice",
+    name: "Home Office",
+    icon: <BookOpen className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.homeOffice),
+    image: roomImages.homeOffice,
+    description: "Desk, shelves, and floor cleaning.",
+  },
+  {
+    id: "laundryRoom",
+    name: "Laundry Room",
+    icon: <Laundry className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.laundryRoom),
+    image: roomImages.laundryRoom,
+    description: "Surfaces, floor, and appliance exteriors.",
+  },
+  {
+    id: "entryway",
+    name: "Entryway",
+    icon: <DoorOpen className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.entryway),
+    image: roomImages.entryway,
+    description: "Floor, surfaces, and general tidying.",
+  },
+  {
+    id: "hallway",
+    name: "Hallway",
+    icon: <Waypoints className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.hallway),
+    image: roomImages.hallway,
+    description: "Floor, baseboards, and wall spot cleaning.",
+  },
+  {
+    id: "stairs",
+    name: "Stairs",
+    icon: <Stairs className="h-6 w-6" />,
+    basePrice: calculateNewPrice(originalBasePrices.stairs),
+    image: roomImages.stairs,
+    description: "Vacuuming, railing wipe, and step cleaning.",
+  },
+]
 
 export const roomConfig = {
   serviceFee: 50,
@@ -80,11 +139,11 @@ export const roomConfig = {
     annually: 2.56,
     vip_daily: 7.5,
   },
-  roomTypes: updatedRoomTypes,
+  roomTypes: roomTypes,
   // initialRoomConfigs can be derived from roomTypes if needed, or removed if not used elsewhere
   // For now, let's keep it consistent with the previous structure, but derived.
   initialRoomConfigs: Object.fromEntries(
-    updatedRoomTypes.map((roomType) => [
+    roomTypes.map((roomType) => [
       roomType.id,
       {
         roomName: roomType.name,

@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils"
 import { roomConfig } from "@/lib/room-config"
 import PricingContent from "@/components/pricing-content" // Default export
 import PriceCalculator from "@/components/price-calculator" // Default export
+import { ServiceComparisonTable } from "@/components/service-comparison-table" // Import ServiceComparisonTable
 import { Home, Sparkles, Calculator } from "lucide-react"
+import { getServiceFeatures } from "@/lib/service-features" // Import getServiceFeatures
 
 export default function PricingPage() {
   const [selectedTab, setSelectedTab] = useState("tiers") // 'tiers' or 'custom-plan'
@@ -65,19 +67,25 @@ export default function PricingPage() {
           </Card>
 
           {selectedRoomType && (
-            <Card>
-              <CardContent className="pt-6">
-                <h2 className="text-xl font-semibold mb-4 text-center">
-                  Cleaning Tiers for {roomConfig.roomTypes.find((r) => r.id === selectedRoomType)?.name}
-                </h2>
-                <PricingContent roomType={selectedRoomType} onSelect={handleTierSelect} />
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardContent className="pt-6">
+                  <h2 className="text-xl font-semibold mb-4 text-center">
+                    Cleaning Tiers for {roomConfig.roomTypes.find((r) => r.id === selectedRoomType)?.name}
+                  </h2>
+                  <PricingContent roomType={selectedRoomType} onSelect={handleTierSelect} />
+                </CardContent>
+              </Card>
+              <ServiceComparisonTable
+                roomType={roomConfig.roomTypes.find((r) => r.id === selectedRoomType)?.name || ""}
+                features={getServiceFeatures(selectedRoomType)}
+              />
+            </>
           )}
 
           {!selectedRoomType && (
             <div className="text-center text-muted-foreground p-8 border rounded-lg">
-              Please select a room type above to view its cleaning tiers.
+              Please select a room type above to view its cleaning tiers and features.
             </div>
           )}
         </TabsContent>
