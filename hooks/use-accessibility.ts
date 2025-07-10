@@ -1,23 +1,83 @@
-;/ "",6CRaceeeeeffimmnoooprrrssttttuux{{}}
-import { useAccessibilityContext } from "../context/accessibility-context"
+"use client"
+
+import { useCallback } from "react"
+import { useAccessibility as useAccessibilityContext } from "@/lib/accessibility-context"
 
 /**
- * A hook that provides access to the accessibility context.
+ * Public hook consumed by any component that needs:
+ *  – global accessibility settings/state
+ *  – convenience helpers for announcing text, focusing elements, or trapping focus
  *
- * It includes the accessibility settings and utility functions.
+ * The hook is safe to call during SSR/ISR because it falls back to a
+ * no-op stub when the real context is not yet available.
  */
-export const useAccessibility = () => {
-  const context = useAccessibilityContext()
+export function useAccessibility() {
+  /* ------------------------------------------------------------------ */
+  /* DOM-utility helpers                                                 */
+  /* ------------------------------------------------------------------ */
+
+  /** Announce a message for screen-reader users (client-only). */
+  const announceToScreenReader = useCallback((message: string, polite = true) => {
+    if (typeof window === "undefined") return
+
+    const node = document.createElement("div")
+    node.setAttribute("aria-live", polite ? "polite" : "assertive")
+    node.setAttribute("aria-atomic", "true")
+    node.className = "sr-only"
+    node.textContent = message
+    document.body.appendChild(node)
+
+    setTimeout(() => {
+      document.body.removeChild(node)
+    }, 700)
+  }, [])
+
+  /** Programmatically focus the first element that matches `selector`. */
+  const focusElement = useCallback((selector: string) => {
+    if (typeof window === "undefined") return
+    document.querySelector<HTMLElement>(selector)?.focus()
+  }, [])
 
   /**
-   * When the hook is rendered on the server (during static generation) or
-   * somewhere outside the provider, we fall back to a no-op stub so that
-   * prerendering never crashes. The real values will be supplied after
-   * hydration on the client.
+   * Trap keyboard focus inside the element matched by `containerSelector`.
+   * Returns a cleanup function.
    */
-  if (context === undefined) {
+  const trapFocus = useCallback((containerSelector: string) => {
+    if (typeof window === "undefined") return () => {}
+
+    const container = document.querySelector<HTMLElement>(containerSelector)
+    if (!container) return () => {}
+
+    const focusable = container.querySelectorAll<HTMLElement>(
+      'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])',
+    )
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return
+      if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+      }
+    }
+
+    container.addEventListener("keydown", handleTab)
+    return () => container.removeEventListener("keydown", handleTab)
+  }, [])
+
+  /* ------------------------------------------------------------------ */
+  /* Context-derived accessibility state & setters                       */
+  /* ------------------------------------------------------------------ */
+
+  const ctx = useAccessibilityContext?.()
+
+  /* If the hook is invoked during prerendering (no provider yet),
+     expose a harmless stub so the tree can render on the server.       */
+  if (!ctx) {
     const noop = () => {}
-    const stub = {
+
+    return {
       /* visual toggles */
       highContrast: false,
       toggleHighContrast: noop,
@@ -52,95 +112,19 @@ export const useAccessibility = () => {
 
       /* reset */
       resetAccessibilitySettings: noop,
-    }
 
-    return {
-      ...stub,
+      /* helpers */
       announceToScreenReader,
       focusElement,
       trapFocus,
     }
   }
 
+  /* Normal (client) case: merge helpers with real context data */
   return {
-    ...context,
+    ...ctx,
     announceToScreenReader,
     focusElement,
     trapFocus,
-  }
-
-  /**
-   * Announces a message to the screen reader.
-   *
-   * @param message The message to announce.
-   */
-  function announceToScreenReader(message: string) {
-    const announcementElement = document.createElement("div")
-    announcementElement.setAttribute("aria-live", "assertive") /* 'assertive' ensures immediate announcement */
-    announcementElement.style.position = "absolute"
-    announcementElement.style.opacity = "0"
-    announcementElement.style.pointerEvents = "none"
-    announcementElement.textContent = message
-    document.body.appendChild(announcementElement)
-
-    // Remove the element after a short delay
-    setTimeout(() => {
-      document.body.removeChild(announcementElement)
-    }, 500)
-  }
-
-  /**
-   * Programmatically focuses an element.
-   *
-   * @param elementId The ID of the element to focus.
-   */
-  function focusElement(elementId: string) {
-    const element = document.getElementById(elementId)
-    if (element) {
-      element.focus()
-    }
-  }
-
-  /**
-   * Traps focus within a given element.
-   *
-   * @param elementId The ID of the element to trap focus within.
-   */
-  function trapFocus(elementId: string) {
-    const element = document.getElementById(elementId)
-    if (!element) return
-
-    const focusableElements = element.querySelectorAll<HTMLElement>(
-      'a[href], button, input, textarea, select, details,[tabindex]:not([tabindex="-1"])',
-    )
-    const firstFocusableElement = focusableElements[0]
-    const lastFocusableElement = focusableElements[focusableElements.length - 1]
-
-    if (!firstFocusableElement) return
-
-    // Automatically focus the first focusable element when the trap is activated
-    firstFocusableElement.focus()
-
-    element.addEventListener("keydown", (e) => {
-      const isTabPressed = e.key === "Tab" || e.keyCode === 9
-
-      if (!isTabPressed) {
-        return
-      }
-
-      if (e.shiftKey) {
-        // If Shift + Tab
-        if (document.activeElement === firstFocusableElement) {
-          lastFocusableElement.focus()
-          e.preventDefault()
-        }
-      } else {
-        // If Tab
-        if (document.activeElement === lastFocusableElement) {
-          firstFocusableElement.focus()
-          e.preventDefault()
-        }
-      }
-    })
   }
 }
