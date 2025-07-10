@@ -39,7 +39,19 @@ export function RoomCategorySection({ roomType, onSelectTier }: RoomCategorySect
               <CardHeader>
                 <CardTitle className="text-xl">{tier.name}</CardTitle>
                 <CardDescription>{tier.description}</CardDescription>
-                <div className="text-3xl font-bold mt-2">{formatCurrency(tier.price)}</div>
+                <div className="mt-2">
+                  {tier.originalPrice && (
+                    <p className="text-sm text-gray-500 line-through">{formatCurrency(tier.originalPrice)}</p>
+                  )}
+                  <div className="text-3xl font-bold text-green-600">{formatCurrency(tier.price)}</div>
+                  {tier.savings && (
+                    <p className="text-sm text-green-500 font-semibold">
+                      {"Save "}
+                      {formatCurrency(tier.savings)}
+                      {"!"}
+                    </p>
+                  )}
+                </div>
                 <p className="text-sm text-gray-500">{tier.timeEstimate} estimated</p>
               </CardHeader>
               <CardContent className="space-y-2">

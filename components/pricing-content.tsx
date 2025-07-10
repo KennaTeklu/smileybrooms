@@ -48,12 +48,12 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
 
           {/* Dropdown for other room categories */}
           <div className="mb-8 text-center">
-            <Label htmlFor="room-category-select" className="sr-only">
-              Select another room category
+            <Label htmlFor="room-category-select" className="text-lg font-semibold mb-2 block">
+              Or explore individual room types:
             </Label>
             <Select onValueChange={setSelectedRoomCategory} value={selectedRoomCategory || ""}>
               <SelectTrigger id="room-category-select" className="w-full md:w-[300px] mx-auto">
-                <SelectValue placeholder="Explore individual room types" />
+                <SelectValue placeholder="Select a room type" />
               </SelectTrigger>
               <SelectContent>
                 {roomTypesForSelect.map((roomType) => (
