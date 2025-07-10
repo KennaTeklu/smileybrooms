@@ -497,6 +497,9 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ China/glassware cleaning",
         "✗ Cabinet interior organization",
         "✗ Chandelier detailed cleaning",
+        "✗ Wall spot cleaning",
+        "✗ Upholstery spot treatment",
+        "✗ Decor item individual cleaning",
       ],
       upsellMessage:
         "For a more polished dining experience, our ADVANCED CLEAN includes table polishing and detailed chair cleaning.",
