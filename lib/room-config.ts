@@ -1,83 +1,83 @@
-import {
-  Home,
-  Bath,
-  Utensils,
-  Sofa,
-  Coffee,
-  Monitor,
-  WashingMachineIcon as Laundry,
-  DoorOpen,
-  Waypoints,
-  StepBackIcon as Stairs,
-} from "lucide-react"
-import { defaultTiers } from "./room-tiers" // Import defaultTiers
-
-// Calculate the multiplier based on the new bedroom essential price
-const oldBedroomBasePrice = 35.42 // This was the original base price in room-config.ts
-const newBedroomEssentialPrice = defaultTiers.bedroom[0].price // 125.00
-const priceMultiplier = newBedroomEssentialPrice / oldBedroomBasePrice
+import { roomDisplayNames, roomIcons, defaultTiers } from "./room-tiers"
 
 export const roomConfig = {
   roomTypes: [
     {
       id: "bedroom",
-      name: "Bedroom",
-      basePrice: Number.parseFloat((35.42 * priceMultiplier).toFixed(2)), // Original: 35.42
-      icon: <Home className="h-5 w-5" />,
+      name: roomDisplayNames.bedroom,
+      icon: roomIcons.bedroom,
+      basePrice: defaultTiers.bedroom.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 125.0, // Updated
+      description: "Sleeping areas, including master and guest bedrooms.",
     },
     {
       id: "bathroom",
-      name: "Bathroom",
-      basePrice: Number.parseFloat((38.25 * priceMultiplier).toFixed(2)), // Original: 38.25
-      icon: <Bath className="h-5 w-5" />,
+      name: roomDisplayNames.bathroom,
+      icon: roomIcons.bathroom,
+      basePrice: defaultTiers.bathroom.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 100.0, // Updated
+      description: "Full bathrooms, half baths, and powder rooms.",
     },
     {
       id: "kitchen",
-      name: "Kitchen",
-      basePrice: Number.parseFloat((43.75 * priceMultiplier).toFixed(2)), // Original: 43.75
-      icon: <Utensils className="h-5 w-5" />,
+      name: roomDisplayNames.kitchen,
+      icon: roomIcons.kitchen,
+      basePrice: defaultTiers.kitchen.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 150.0, // Updated
+      description: "Main cooking and food preparation areas.",
     },
     {
-      id: "living_room",
-      name: "Living Room",
-      basePrice: Number.parseFloat((30.0 * priceMultiplier).toFixed(2)), // Original: 30.00
-      icon: <Sofa className="h-5 w-5" />,
+      id: "living_room", // Changed from livingRoom to living_room for consistency with price-calculator
+      name: roomDisplayNames.livingRoom,
+      icon: roomIcons.livingRoom,
+      basePrice: defaultTiers.livingRoom.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 130.0, // Updated
+      description: "Main living and entertainment spaces.",
     },
     {
-      id: "dining_room",
-      name: "Dining Room",
-      basePrice: Number.parseFloat((25.0 * priceMultiplier).toFixed(2)), // Original: 25.00
-      icon: <Coffee className="h-5 w-5" />,
+      id: "dining_room", // Changed from diningRoom to dining_room for consistency with price-calculator
+      name: roomDisplayNames.diningRoom,
+      icon: roomIcons.diningRoom,
+      basePrice: defaultTiers.diningRoom.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 90.0, // Updated
+      description: "Formal or informal dining areas.",
     },
     {
-      id: "home_office",
-      name: "Home Office",
-      basePrice: Number.parseFloat((25.0 * priceMultiplier).toFixed(2)), // Original: 25.00
-      icon: <Monitor className="h-5 w-5" />,
+      id: "home_office", // Changed from homeOffice to home_office
+      name: roomDisplayNames.homeOffice,
+      icon: roomIcons.homeOffice,
+      basePrice: defaultTiers.homeOffice.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 110.0, // Updated
+      description: "Dedicated workspaces or studies.",
     },
     {
-      id: "laundry_room",
-      name: "Laundry Room",
-      basePrice: Number.parseFloat((20.0 * priceMultiplier).toFixed(2)), // Original: 20.00
-      icon: <Laundry className="h-5 w-5" />,
+      id: "laundry_room", // Changed from laundryRoom to laundry_room
+      name: roomDisplayNames.laundryRoom,
+      icon: roomIcons.laundryRoom,
+      basePrice: defaultTiers.laundryRoom.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 70.0, // Updated
+      description: "Areas with washer and dryer.",
     },
     {
       id: "entryway",
-      name: "Entryway",
-      basePrice: Number.parseFloat((15.0 * priceMultiplier).toFixed(2)), // Original: 15.00
-      icon: <DoorOpen className="h-5 w-5" />,
+      name: roomDisplayNames.entryway,
+      icon: roomIcons.entryway,
+      basePrice: defaultTiers.entryway.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 60.0, // Updated
+      description: "Main entrance areas and foyers.",
     },
     {
       id: "hallway",
-      name: "Hallway",
-      basePrice: Number.parseFloat((15.0 * priceMultiplier).toFixed(2)), // Original: 15.00
-      icon: <Waypoints className="h-5 w-5" />,
+      name: roomDisplayNames.hallway,
+      icon: roomIcons.hallway,
+      basePrice: defaultTiers.hallway.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 50.0, // Updated
+      description: "Connecting passages between rooms.",
     },
     {
       id: "stairs",
-      name: "Stairs",
-      basePrice: Number.parseFloat((20.0 * priceMultiplier).toFixed(2)), // Original: 20.00
-      icon: <Stairs className="h-5 w-5" />,
+      name: roomDisplayNames.stairs,
+      icon: roomIcons.stairs,
+      basePrice: defaultTiers.stairs.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 80.0, // Updated
+      description: "Staircases and landings.",
+    },
+    {
+      id: "other",
+      name: roomDisplayNames.other,
+      icon: roomIcons.other,
+      basePrice: defaultTiers.default.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 25.0, // Using default essential price
+      description: "Any other custom space not listed.",
     },
   ],
 }

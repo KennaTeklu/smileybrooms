@@ -11,15 +11,30 @@ import PriceCalculator from "@/components/price-calculator"
 import { ServiceComparisonTable } from "@/components/service-comparison-table"
 import { Home, Sparkles, Calculator } from "lucide-react"
 import { getServiceFeatures } from "@/lib/service-features"
+import type { RoomTier } from "@/lib/room-tiers" // Import RoomTier type
 
 export default function PricingPage() {
-  const [selectedTab, setSelectedTab] = useState("tiers") // 'tiers' or 'custom-plan'
-  const [selectedRoomType, setSelectedRoomType] = useState<string | null>(null) // e.g., 'bedroom', 'bathroom'
+  const [selectedTab, setSelectedTab] = useState("tiers")
+  const [selectedRoomType, setSelectedRoomType] = useState<string | null>(null)
+  const [calculatorInitialRooms, setCalculatorInitialRooms] = useState<Record<string, number>>({})
+  const [calculatorInitialServiceType, setCalculatorInitialServiceType] = useState<"standard" | "detailing">("standard")
 
-  // Function to handle tier selection (optional, if you want to do something when a tier is clicked)
-  const handleTierSelect = (tier: any) => {
-    console.log("Selected Tier:", tier)
-    // You could navigate to a detailed page, or pre-fill the calculator here
+  const handleTierSelect = (tier: RoomTier) => {
+    // Find the room ID based on the tier's name (e.g., "Bedroom Essential Clean" -> "bedroom")
+    const roomNameFromTier = tier.name.split(" ")[0].toLowerCase()
+    const roomTypeId =
+      roomConfig.roomTypes.find((r) => r.name.toLowerCase().includes(roomNameFromTier))?.id || selectedRoomType
+
+    if (roomTypeId) {
+      setCalculatorInitialRooms({ [roomTypeId]: 1 }) // Set count to 1 for the selected room
+
+      let serviceType: "standard" | "detailing" = "standard"
+      if (tier.name.includes("ADVANCED") || tier.name.includes("PREMIUM") || tier.name.includes("LUXURY")) {
+        serviceType = "detailing"
+      }
+      setCalculatorInitialServiceType(serviceType)
+      setSelectedTab("custom-plan") // Switch to the custom plan tab
+    }
   }
 
   return (
@@ -97,7 +112,10 @@ export default function PricingPage() {
               Select individual rooms, frequency, and cleanliness level to get a custom quote.
             </p>
           </div>
-          <PriceCalculator />
+          <PriceCalculator
+            initialSelectedRooms={calculatorInitialRooms}
+            initialServiceType={calculatorInitialServiceType}
+          />
         </TabsContent>
       </Tabs>
     </div>

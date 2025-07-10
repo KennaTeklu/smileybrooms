@@ -34,6 +34,8 @@ interface PriceCalculatorProps {
     recurringInterval: "week" | "month" | "year"
   }) => void
   onAddToCart?: () => void
+  initialSelectedRooms?: Record<string, number> // New prop for initial rooms
+  initialServiceType?: "standard" | "detailing" // New prop for initial service type
 }
 
 interface FullHousePackage {
@@ -251,9 +253,17 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
   )
 }
 
-export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
+export default function PriceCalculator({
+  onCalculationComplete,
+  onAddToCart,
+  initialSelectedRooms = {},
+  initialServiceType = "standard",
+}: PriceCalculatorProps) {
   // State for selected rooms
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(() => {
+    if (Object.keys(initialSelectedRooms).length > 0) {
+      return initialSelectedRooms
+    }
     const initialRooms: Record<string, number> = {}
     roomTypes.forEach((room) => {
       initialRooms[room.id] = 0
@@ -262,7 +272,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
   })
 
   // State for other selections
-  const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
+  const [serviceType, setServiceType] = useState<"standard" | "detailing">(initialServiceType)
   const [frequency, setFrequency] = useState("one_time")
   const [paymentFrequency, setPaymentFrequency] = useState("per_service")
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
@@ -277,6 +287,15 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
   // Media query for responsive design
   const isMobile = useMediaQuery("(max-width: 768px)")
+
+  // Effect to update state when initial props change (e.g., from tier selection)
+  useEffect(() => {
+    if (Object.keys(initialSelectedRooms).length > 0) {
+      setSelectedRooms(initialSelectedRooms)
+      setSelectedPackage(null) // Clear package selection if individual rooms are set
+    }
+    setServiceType(initialServiceType)
+  }, [initialSelectedRooms, initialServiceType])
 
   // Calculate the total price whenever selections change
   useEffect(() => {
@@ -471,7 +490,11 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
+      <Tabs
+        defaultValue={initialServiceType}
+        value={serviceType}
+        onValueChange={(value) => setServiceType(value as "standard" | "detailing")}
+      >
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="standard" className="text-sm md:text-base">
             Standard Cleaning
