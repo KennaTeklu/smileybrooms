@@ -1,5 +1,3 @@
-// Define the room tiers, add-ons, and reductions for the room configurator
-
 export interface RoomTier {
   id: string
   name: string
@@ -7,9 +5,9 @@ export interface RoomTier {
   price: number
   features: string[]
   timeEstimate: string
-  detailedTasks: string[] // New field for detailed task breakdown
-  notIncludedTasks: string[] // New field for tasks not included
-  upsellMessage?: string // New field for upselling
+  detailedTasks: string[]
+  notIncludedTasks: string[]
+  upsellMessage?: string
 }
 
 export interface RoomAddOn {
@@ -26,8 +24,7 @@ export interface RoomReduction {
   description?: string
 }
 
-// Updated tiers with detailed task breakdowns from the strategic analysis
-
+// Updated bedroom tiers with the detailed breakdown from the user's specification
 export const defaultTiers: Record<string, RoomTier[]> = {
   bedroom: [
     {
@@ -35,8 +32,8 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for lightly used rooms",
       price: 125.0,
-      timeEstimate: "20 minutes",
-      features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
+      timeEstimate: "60 minutes",
+      features: ["Floor vacuuming", "Bed making", "Wall cleaning", "Basic organizing"],
       detailedTasks: [
         "✓ Floor vacuuming (main area) - Central carpet/hardwood",
         "✓ Floor vacuuming (corners & edges) - Baseboards, tight spaces",
@@ -52,22 +49,30 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Basic dresser organizing - Top surface, remove items",
         "✓ Light fixture dusting - Ceiling fan or overhead light",
       ],
-      notIncludedTasks: [], // All tasks are included in the detailed breakdown
-      upsellMessage: "For a more thorough clean including under-bed areas and baseboards, consider our ADVANCED CLEAN.",
+      notIncludedTasks: [
+        "✗ Deep vacuuming with multiple passes",
+        "✗ Mattress steaming and sanitization",
+        "✗ Closet organization",
+        "✗ Electronics cleaning",
+        "✗ Window treatment cleaning",
+        "✗ Air vent cleaning",
+      ],
+      upsellMessage:
+        "For deeper cleaning including mattress steaming and closet organization, consider our PREMIUM CLEAN.",
     },
     {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
       description: "Thorough cleaning for regular maintenance",
       price: 245.0,
-      timeEstimate: "60 minutes",
+      timeEstimate: "120 minutes",
       features: [
         "Includes Essential Clean",
-        "Under-bed extended reach",
-        "Closet organization (visible items)",
-        "Baseboard spotlight",
-        "Window sill cleaning",
-        "Light fixture dusting",
+        "Deep vacuuming",
+        "Mattress steaming",
+        "Closet organization",
+        "Electronics cleaning",
+        "Window treatments",
       ],
       detailedTasks: [
         "✓ Floor deep vacuuming (main area) - Multiple passes, spot treatment",
@@ -86,29 +91,31 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✓ Light fixture deep clean - Disassemble, clean, reassemble",
         "✓ Air vent cleaning - Remove, wash, reinstall",
       ],
-      notIncludedTasks: [],
+      notIncludedTasks: [
+        "✗ Floor restoration and polishing",
+        "✗ Professional mattress treatment with UV",
+        "✗ Walk-in closet complete organization",
+        "✗ Wardrobe steaming service",
+        "✗ Furniture restoration",
+        "✗ Air quality service",
+      ],
       upsellMessage:
-        "Achieve maximum freshness with our LUXURY CLEAN, covering every detail from mattress to ceiling fan.",
+        "Achieve maximum freshness with our LUXURY CLEAN, featuring professional treatments and complete restoration.",
     },
     {
       id: "bedroom-luxury",
       name: "LUXURY CLEAN",
       description: "Comprehensive cleaning for maximum freshness",
       price: 485.0,
-      timeEstimate: "180 minutes",
+      timeEstimate: "240 minutes",
       features: [
         "Includes Premium Clean",
-        "Mattress deep vacuum & flip",
-        "Light fixture interior cleaning",
-        "Aroma mist treatment",
-        "Wall spot cleaning",
-        "Furniture polishing",
-        "Ceiling fan detailed cleaning",
-        "Closet deep organization",
-        "Under furniture detailed cleaning",
-        "Air vent cleaning",
-        "Door and doorframe cleaning",
-        "Picture frame dusting",
+        "Floor restoration",
+        "Professional mattress treatment",
+        "Complete closet organization",
+        "Wardrobe steaming",
+        "Furniture restoration",
+        "Air quality service",
       ],
       detailedTasks: [
         "✓ Floor restoration (hardwood) - Deep clean, polish, protect",
@@ -1051,9 +1058,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
 }
 
-// Keep all the existing add-ons and reductions data...
 export const defaultAddOns: Record<string, RoomAddOn[]> = {
-  // ... existing add-ons data remains the same
   bedroom: [
     {
       id: "bed-1",

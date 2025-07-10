@@ -3,18 +3,17 @@
 import Image from "next/image"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { roomTiers } from "@/lib/room-tiers" // Import the correct roomTiers
+import { defaultTiers } from "@/lib/room-tiers"
 
 type PricingContentProps = {
-  onSelect?: (tier: (typeof roomTiers)[0]) => void // Use typeof roomTiers to infer type
+  onSelect?: (tier: any) => void
   selected?: string | null
 }
 
 export function PricingContent({ onSelect, selected }: PricingContentProps) {
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {roomTiers.bedroom.map((tier) => {
-        // Access the bedroom tiers specifically
+      {defaultTiers.bedroom.map((tier) => {
         const isActive = tier.id === selected
         return (
           <Card
@@ -32,14 +31,14 @@ export function PricingContent({ onSelect, selected }: PricingContentProps) {
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4 pb-6">
               <Image
-                src={tier.image || "/placeholder.svg"} // Assuming tier.image exists or fallback
+                src="/images/bedroom-professional.png"
                 alt={`${tier.name} illustration`}
                 width={200}
                 height={140}
                 className="rounded-md object-cover"
               />
               <p className="text-sm text-muted-foreground">{tier.description}</p>
-              <span className="text-2xl font-bold">${tier.price.toFixed(2)}</span> {/* Use tier.price */}
+              <span className="text-2xl font-bold">${tier.price.toFixed(2)}</span>
             </CardContent>
           </Card>
         )
@@ -48,5 +47,4 @@ export function PricingContent({ onSelect, selected }: PricingContentProps) {
   )
 }
 
-// Keep existing named imports working AND provide a default export
 export default PricingContent

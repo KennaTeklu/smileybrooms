@@ -1,65 +1,59 @@
 "use client"
 
-import type React from "react"
-import { createContext, useState, useEffect } from "react"
-import { useAccessibility as useAccessibilityHook } from "@/hooks/use-accessibility" // Renamed to avoid conflict
+import { createContext, useState, useEffect, type ReactNode } from "react"
 
-interface AccessibilityPreferences {
-  fontSize: "small" | "medium" | "large"
+export interface AccessibilityPreferences {
   highContrast: boolean
-  animationsEnabled: boolean
+  largeText: boolean
+  reducedMotion: boolean
+  screenReader: boolean
   keyboardNavigation: boolean
-  // Add more preferences as needed
 }
 
 interface AccessibilityContextType {
   preferences: AccessibilityPreferences
-  updatePreference: (key: keyof AccessibilityPreferences, value: any) => void
+  updatePreference: (key: keyof AccessibilityPreferences, value: boolean) => void
   resetPreferences: () => void
 }
 
+export const AccessibilityContext = createContext<AccessibilityContextType | null>(null)
+
 const defaultPreferences: AccessibilityPreferences = {
-  fontSize: "medium",
   highContrast: false,
-  animationsEnabled: true,
+  largeText: false,
+  reducedMotion: false,
+  screenReader: false,
   keyboardNavigation: false,
 }
 
-export const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
+interface AccessibilityProviderProps {
+  children: ReactNode
+}
 
-export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AccessibilityProvider({ children }: AccessibilityProviderProps) {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
 
-  // Load preferences from local storage on mount
   useEffect(() => {
-    try {
-      const storedPreferences = localStorage.getItem("accessibilityPreferences")
-      if (storedPreferences) {
-        setPreferences(JSON.parse(storedPreferences))
+    // Load preferences from localStorage on mount
+    const saved = localStorage.getItem("accessibility-preferences")
+    if (saved) {
+      try {
+        setPreferences(JSON.parse(saved))
+      } catch (error) {
+        console.error("Failed to parse accessibility preferences:", error)
       }
-    } catch (error) {
-      console.error("Failed to load accessibility preferences from local storage:", error)
     }
   }, [])
 
-  // Save preferences to local storage whenever they change
-  useEffect(() => {
-    try {
-      localStorage.setItem("accessibilityPreferences", JSON.stringify(preferences))
-    } catch (error) {
-      console.error("Failed to save accessibility preferences to local storage:", error)
-    }
-  }, [preferences])
-
-  const updatePreference = (key: keyof AccessibilityPreferences, value: any) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
+  const updatePreference = (key: keyof AccessibilityPreferences, value: boolean) => {
+    const newPreferences = { ...preferences, [key]: value }
+    setPreferences(newPreferences)
+    localStorage.setItem("accessibility-preferences", JSON.stringify(newPreferences))
   }
 
   const resetPreferences = () => {
     setPreferences(defaultPreferences)
+    localStorage.removeItem("accessibility-preferences")
   }
 
   return (
@@ -68,6 +62,3 @@ export const AccessibilityProvider: React.FC<{ children: React.ReactNode }> = ({
     </AccessibilityContext.Provider>
   )
 }
-
-// Re-export the hook for convenience
-export const useAccessibility = useAccessibilityHook
