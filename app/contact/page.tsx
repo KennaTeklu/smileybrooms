@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link" // Import Link from next/link
 
 import { useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
@@ -202,7 +203,14 @@ export default function ContactPage() {
                     onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
                   />
                   <Label htmlFor="terms" className="text-sm">
-                    I agree to the terms and conditions and privacy policy
+                    I agree to the{" "}
+                    <Link href="/terms" className="text-primary hover:underline">
+                      terms and conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-primary hover:underline">
+                      privacy policy
+                    </Link>
                   </Label>
                 </div>
 
