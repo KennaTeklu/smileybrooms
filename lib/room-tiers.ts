@@ -26,78 +26,138 @@ export interface RoomReduction {
   description?: string
 }
 
-// New interface for bundled packages
-export interface ServicePackage {
+export interface FullHousePackage {
   id: string
   name: string
   description: string
-  basePrice: number
-  discountPercentage: number
+  price: number
+  features: string[]
   timeEstimate: string
   includedRooms: string[]
-  optionalRooms: string[]
-  features: string[]
-  packageType: "essential" | "premium" | "luxury"
+  detailedTasks: string[]
+  notIncludedTasks: string[]
+  upsellMessage?: string
 }
 
-// Service packages for full house cleaning
-export const servicePackages: ServicePackage[] = [
+// Full House Cleaning Packages
+export const fullHousePackages: FullHousePackage[] = [
   {
     id: "essential-full-house",
-    name: "Essential Full House Clean",
-    description: "Complete basic cleaning for your entire home with customizable room selection",
-    basePrice: 299.0,
-    discountPercentage: 15, // 15% discount when booking full package
+    name: "ESSENTIAL FULL HOUSE CLEAN",
+    description: "Complete basic cleaning for your entire home",
+    price: 299.0,
     timeEstimate: "4-6 hours",
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom"], // Always included
-    optionalRooms: ["diningRoom", "homeOffice", "laundryRoom", "entryway", "hallway", "stairs"], // Can be added/removed
     features: [
-      "Professional cleaning team",
-      "All basic cleaning supplies included",
-      "Satisfaction guarantee",
-      "Flexible scheduling",
-      "15% package discount",
+      "All bedrooms (up to 4)",
+      "All bathrooms (up to 3)",
+      "Kitchen essentials",
+      "Living areas",
+      "Basic floor care throughout",
     ],
-    packageType: "essential",
+    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "hallway", "entryway"],
+    detailedTasks: [
+      "✓ All bedrooms: Essential clean package per room",
+      "✓ All bathrooms: Essential clean package per room",
+      "✓ Kitchen: Countertops, sink, stovetop, floor sweep",
+      "✓ Living areas: Surface dusting, vacuum main areas",
+      "✓ Dining room: Table, chairs, floor vacuum",
+      "✓ Hallways: Floor vacuum, surface dusting",
+      "✓ Entryway: Floor sweep, door cleaning",
+      "✓ Trash removal throughout house",
+      "✓ Basic organization and tidying",
+    ],
+    notIncludedTasks: [
+      "✗ Deep cleaning of appliances",
+      "✗ Interior cabinet cleaning",
+      "✗ Window cleaning",
+      "✗ Baseboards and trim",
+      "✗ Light fixture deep cleaning",
+      "✗ Carpet deep cleaning",
+    ],
+    upsellMessage:
+      "Upgrade to Premium Full House for deep cleaning of appliances and detailed attention to baseboards and fixtures.",
   },
   {
     id: "premium-full-house",
-    name: "Premium Full House Clean",
-    description: "Thorough deep cleaning for your entire home with premium services",
-    basePrice: 599.0,
-    discountPercentage: 20, // 20% discount when booking full package
+    name: "PREMIUM FULL HOUSE CLEAN",
+    description: "Comprehensive deep cleaning for your entire home",
+    price: 599.0,
     timeEstimate: "6-8 hours",
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"],
-    optionalRooms: ["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"],
     features: [
-      "Professional cleaning team",
-      "Premium cleaning supplies",
-      "Deep cleaning services",
-      "Satisfaction guarantee",
-      "Priority scheduling",
-      "20% package discount",
+      "All bedrooms (up to 4) - Premium level",
+      "All bathrooms (up to 3) - Premium level",
+      "Kitchen deep clean with appliances",
+      "Living areas with furniture care",
+      "Detailed floor care and baseboards",
+      "Window sills and light fixtures",
     ],
-    packageType: "premium",
+    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "hallway", "entryway", "stairs"],
+    detailedTasks: [
+      "✓ All bedrooms: Premium clean package per room",
+      "✓ All bathrooms: Premium clean package per room",
+      "✓ Kitchen: Deep clean including appliance exteriors, cabinet fronts",
+      "✓ Living areas: Furniture vacuuming, under furniture cleaning",
+      "✓ Dining room: Table polishing, chair detailed cleaning",
+      "✓ All floors: Detailed mopping and vacuuming",
+      "✓ Baseboards and trim throughout house",
+      "✓ Window sills and tracks",
+      "✓ Light fixture cleaning",
+      "✓ Stairs: Detailed step and handrail cleaning",
+    ],
+    notIncludedTasks: [
+      "✗ Interior appliance deep cleaning",
+      "✗ Cabinet interior organization",
+      "✗ Carpet steam cleaning",
+      "✗ Wall washing",
+      "✗ Ceiling fan disassembly",
+      "✗ Grout deep cleaning",
+    ],
+    upsellMessage:
+      "Experience the ultimate with Luxury Full House - includes appliance interiors, cabinet organization, and restoration services.",
   },
   {
     id: "luxury-full-house",
-    name: "Luxury Full House Clean",
-    description: "Complete luxury cleaning experience with white-glove service",
-    basePrice: 999.0,
-    discountPercentage: 25, // 25% discount when booking full package
+    name: "LUXURY FULL HOUSE CLEAN",
+    description: "Ultimate comprehensive cleaning and restoration for your entire home",
+    price: 1299.0,
     timeEstimate: "8-12 hours",
-    includedRooms: ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"],
-    optionalRooms: ["laundryRoom", "entryway", "hallway", "stairs"],
     features: [
-      "Professional cleaning team",
-      "Luxury cleaning supplies",
-      "Complete restoration services",
-      "Satisfaction guarantee",
-      "VIP scheduling",
-      "25% package discount",
-      "Post-service inspection",
+      "All bedrooms (up to 4) - Luxury level",
+      "All bathrooms (up to 3) - Luxury level",
+      "Kitchen complete with appliance interiors",
+      "Living areas with upholstery treatment",
+      "Floor restoration and carpet deep cleaning",
+      "Complete fixture and cabinet care",
+      "Air quality and vent cleaning",
+      "Luxury finishing touches",
     ],
-    packageType: "luxury",
+    includedRooms: [
+      "bedroom",
+      "bathroom",
+      "kitchen",
+      "livingRoom",
+      "diningRoom",
+      "hallway",
+      "entryway",
+      "stairs",
+      "laundryRoom",
+      "homeOffice",
+    ],
+    detailedTasks: [
+      "✓ All bedrooms: Luxury clean package per room",
+      "✓ All bathrooms: Luxury clean package per room",
+      "✓ Kitchen: Complete including refrigerator interior, oven deep clean",
+      "✓ Living areas: Upholstery treatment, entertainment center organization",
+      "✓ All floors: Restoration, carpet steam cleaning, hardwood polishing",
+      "✓ Cabinet interiors organized throughout house",
+      "✓ All light fixtures disassembled and detailed",
+      "✓ Air vents cleaned and filters replaced",
+      "✓ Wall spot cleaning and touch-ups",
+      "✓ Luxury linen service where applicable",
+      "✓ Aromatherapy finishing treatment",
+      "✓ Laundry room and home office included",
+    ],
+    notIncludedTasks: [],
   },
 ]
 
@@ -1430,68 +1490,4 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
       id: "din-r3",
       name: "No china cabinet cleaning",
       discount: 12.0,
-      description: "China cabinet will not be cleaned",
-    },
-    {
-      id: "din-r4",
-      name: "Skip light fixture dusting",
-      discount: 7.0,
-      description: "Light fixtures will not be dusted",
-    },
-  ],
-  homeOffice: [
-    { id: "off-r1", name: "Skip electronics dusting", discount: 10.0, description: "Electronics will not be dusted" },
-    { id: "off-r2", name: "No bookshelf cleaning", discount: 12.0, description: "Bookshelves will not be cleaned" },
-    {
-      id: "off-r3",
-      name: "Basic desk cleaning only",
-      discount: 8.0,
-      description: "Only basic desk cleaning will be performed",
-    },
-    { id: "off-r4", name: "Skip floor edges", discount: 7.0, description: "Floor edges will not be cleaned" },
-  ],
-  laundryRoom: [
-    {
-      id: "lau-r1",
-      name: "Skip appliance exteriors",
-      discount: 10.0,
-      description: "Appliance exteriors will not be cleaned",
-    },
-    { id: "lau-r2", name: "No sink cleaning", discount: 8.0, description: "Sink will not be cleaned" },
-    {
-      id: "lau-r3",
-      name: "Basic floor cleaning only",
-      discount: 7.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    { id: "lau-r4", name: "Skip cabinet fronts", discount: 6.0, description: "Cabinet fronts will not be cleaned" },
-  ],
-  entryway: [
-    {
-      id: "ent-r1",
-      name: "Basic floor cleaning only",
-      discount: 8.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    { id: "ent-r2", name: "Skip door cleaning", discount: 6.0, description: "Door will not be cleaned" },
-    {
-      id: "ent-r3",
-      name: "No console table cleaning",
-      discount: 7.0,
-      description: "Console table will not be cleaned",
-    },
-    {
-      id: "ent-r4",
-      name: "Skip mirror/artwork cleaning",
-      discount: 5.0,
-      description: "Mirrors and artwork will not be cleaned",
-    },
-  ],
-  hallway: [
-    {
-      id: "hal-r1",
-      name: "Basic floor cleaning only",
-      discount: 8.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    \
+      description: "China cabinet will not be cleane\
