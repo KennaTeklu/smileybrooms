@@ -1,50 +1,42 @@
 "use client"
 
 import { useCallback } from "react"
+import {
+  accessibilityPreferenceKeys,
+  type AccessibilityPreferenceKey,
+} from "@/lib/accessibility-keys" /* helper with the union of keys */
 import { useAccessibility as useAccessibilityContext } from "@/lib/accessibility-context"
 
 /**
- * Public hook consumed by any component that needs:
- *  – global accessibility settings/state
- *  – convenience helpers for announcing text, focusing elements, or trapping focus
+ * High-level accessibility hook used throughout the app.
  *
- * The hook is safe to call during SSR/ISR because it falls back to a
- * no-op stub when the real context is not yet available.
+ * • Returns `preferences`, `updatePreference`, `resetPreferences`
+ * • Exposes DOM-helpers (`announceToScreenReader`, `focusElement`, `trapFocus`)
+ * • Falls back to a harmless stub when rendered outside the provider
+ *   (e.g. during SSG) so prerendering never crashes.
  */
 export function useAccessibility() {
-  /* ------------------------------------------------------------------ */
-  /* DOM-utility helpers                                                 */
-  /* ------------------------------------------------------------------ */
-
-  /** Announce a message for screen-reader users (client-only). */
+  /* ╭───────────────────────────────────────────────────────────────╮
+     │  DOM helper utilities                                         │
+     ╰───────────────────────────────────────────────────────────────╯ */
   const announceToScreenReader = useCallback((message: string, polite = true) => {
     if (typeof window === "undefined") return
-
-    const node = document.createElement("div")
-    node.setAttribute("aria-live", polite ? "polite" : "assertive")
-    node.setAttribute("aria-atomic", "true")
-    node.className = "sr-only"
-    node.textContent = message
-    document.body.appendChild(node)
-
-    setTimeout(() => {
-      document.body.removeChild(node)
-    }, 700)
+    const el = document.createElement("div")
+    el.setAttribute("role", "status")
+    el.setAttribute("aria-live", polite ? "polite" : "assertive")
+    el.className = "sr-only"
+    el.textContent = message
+    document.body.appendChild(el)
+    setTimeout(() => document.body.removeChild(el), 700)
   }, [])
 
-  /** Programmatically focus the first element that matches `selector`. */
   const focusElement = useCallback((selector: string) => {
     if (typeof window === "undefined") return
     document.querySelector<HTMLElement>(selector)?.focus()
   }, [])
 
-  /**
-   * Trap keyboard focus inside the element matched by `containerSelector`.
-   * Returns a cleanup function.
-   */
   const trapFocus = useCallback((containerSelector: string) => {
     if (typeof window === "undefined") return () => {}
-
     const container = document.querySelector<HTMLElement>(containerSelector)
     if (!container) return () => {}
 
@@ -54,64 +46,33 @@ export function useAccessibility() {
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
 
-    const handleTab = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return
       if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
         e.preventDefault()
         ;(e.shiftKey ? last : first).focus()
       }
     }
-
-    container.addEventListener("keydown", handleTab)
-    return () => container.removeEventListener("keydown", handleTab)
+    container.addEventListener("keydown", onKeyDown)
+    return () => container.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  /* ------------------------------------------------------------------ */
-  /* Context-derived accessibility state & setters                       */
-  /* ------------------------------------------------------------------ */
-
+  /* ╭───────────────────────────────────────────────────────────────╮
+     │  Context access & graceful fallback                           │
+     ╰───────────────────────────────────────────────────────────────╯ */
   const ctx = useAccessibilityContext?.()
 
-  /* If the hook is invoked during prerendering (no provider yet),
-     expose a harmless stub so the tree can render on the server.       */
+  /* ---------- Stub for SSR / outside-provider renders ------------ */
   if (!ctx) {
     const noop = () => {}
-
     return {
-      /* visual toggles */
-      highContrast: false,
-      toggleHighContrast: noop,
-      grayscale: false,
-      toggleGrayscale: noop,
-      invertColors: false,
-      toggleInvertColors: noop,
-      animations: true,
-      toggleAnimations: noop,
-      screenReaderMode: false,
-      toggleScreenReaderMode: noop,
-      linkHighlight: false,
-      toggleLinkHighlight: noop,
-      keyboardNavigation: false,
-      toggleKeyboardNavigation: noop,
-
-      /* typography */
-      fontSize: 100,
-      setFontSize: noop,
-      lineHeight: 1.5,
-      setLineHeight: noop,
-      letterSpacing: 0,
-      setLetterSpacing: noop,
-      textAlignment: "left" as const,
-      setTextAlignment: noop,
-      fontFamily: "sans" as const,
-      setFontFamily: noop,
-
-      /* language */
-      language: "en" as const,
-      setLanguage: noop,
-
-      /* reset */
-      resetAccessibilitySettings: noop,
+      /* expected API for panels */
+      preferences: Object.fromEntries(accessibilityPreferenceKeys.map((k) => [k, false])) as Record<
+        AccessibilityPreferenceKey,
+        boolean
+      >,
+      updatePreference: noop,
+      resetPreferences: noop,
 
       /* helpers */
       announceToScreenReader,
@@ -120,9 +81,50 @@ export function useAccessibility() {
     }
   }
 
-  /* Normal (client) case: merge helpers with real context data */
+  /* ---------- Build the preferences object from real context ---- */
+  const preferences: Record<AccessibilityPreferenceKey, boolean> = {
+    highContrast: ctx.highContrast,
+    largeText: ctx.fontSize >= 125,
+    reducedMotion: !ctx.animations,
+    screenReader: ctx.screenReaderMode,
+    voiceControl: ctx.voiceControl ?? false,
+    keyboardOnly: ctx.keyboardNavigation,
+    prefersDarkTheme: ctx.language === "dark",
+    prefersLightTheme: ctx.language === "light",
+  }
+
+  /* Map preference-key → their respective setter in context */
+  const setters: Partial<Record<AccessibilityPreferenceKey, (val: boolean) => void>> = {
+    highContrast: ctx.toggleHighContrast,
+    largeText: (val) => ctx.setFontSize(val ? 125 : 100),
+    reducedMotion: (val) => ctx.toggleAnimations(!val),
+    screenReader: ctx.toggleScreenReaderMode,
+    voiceControl: ctx.toggleVoiceControl ?? (() => {}),
+    keyboardOnly: ctx.toggleKeyboardNavigation,
+    prefersDarkTheme: (val) => {
+      if (val) {
+        ctx.setLanguage("dark")
+      }
+    },
+    prefersLightTheme: (val) => {
+      if (val) {
+        ctx.setLanguage("light")
+      }
+    },
+  }
+
+  const updatePreference = (key: AccessibilityPreferenceKey, value: boolean) => {
+    const setter = setters[key]
+    if (setter) setter(value)
+  }
+
   return {
-    ...ctx,
+    /* panels rely on these three keys */
+    preferences,
+    updatePreference,
+    resetPreferences: ctx.resetAccessibilitySettings,
+
+    /* helpers */
     announceToScreenReader,
     focusElement,
     trapFocus,
