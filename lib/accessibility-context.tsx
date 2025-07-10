@@ -126,7 +126,6 @@ export const _useAccessibilityContextInternal = () => {
   return useContext(AccessibilityContext)
 }
 
-// Re-export the public hook so older imports like
-// `import { useAccessibility } from "@/lib/accessibility-context"`
-// continue to work without breaking.
-export { useAccessibility } from "@/hooks/use-accessibility"
+// Re-export so older imports like
+// `import { useAccessibility } from "@/lib/accessibility-context"` keep working.
+export { useAccessibility } from "../hooks/use-accessibility"
