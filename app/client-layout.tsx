@@ -53,3 +53,5 @@ export function ClientRootLayout({
     </QueryClientProvider>
   )
 }
+
+export default ClientRootLayout

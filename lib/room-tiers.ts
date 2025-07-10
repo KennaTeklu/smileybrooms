@@ -1,16 +1,46 @@
-// Define the room tiers, add-ons, and reductions for the room configurator
-
 export interface RoomTier {
   id: string
   name: string
-  description: string
-  price: number
-  features: string[]
-  timeEstimate: string
-  detailedTasks: string[] // New field for detailed task breakdown
-  notIncludedTasks: string[] // New field for tasks not included
-  upsellMessage?: string // New field for upselling
+  image: string
+  priceMultiplier: number
 }
+
+/**
+ * A simple catalogue of room tiers used throughout the pricing flow.
+ * Images already exist in /public/images.
+ */
+export const roomTiers: RoomTier[] = [
+  {
+    id: "bedroom",
+    name: "Bedroom",
+    image: "/images/bedroom-professional.png",
+    priceMultiplier: 1.0,
+  },
+  {
+    id: "kitchen",
+    name: "Kitchen",
+    image: "/images/kitchen-professional.png",
+    priceMultiplier: 1.3,
+  },
+  {
+    id: "bathroom",
+    name: "Bathroom",
+    image: "/images/bathroom-professional.png",
+    priceMultiplier: 1.4,
+  },
+  {
+    id: "living-room",
+    name: "Living Room",
+    image: "/images/living-room-professional.png",
+    priceMultiplier: 1.2,
+  },
+  {
+    id: "office",
+    name: "Home Office",
+    image: "/images/home-office-professional.png",
+    priceMultiplier: 1.15,
+  },
+]
 
 export interface RoomAddOn {
   id: string
@@ -1517,4 +1547,4 @@ export const roomDisplayNames: Record<string, string> = {
 }
 
 // Alias so callers can `import { roomTiers } from '@/lib/room-tiers'`
-export const roomTiers = defaultTiers
+// export const roomTiers = defaultTiers

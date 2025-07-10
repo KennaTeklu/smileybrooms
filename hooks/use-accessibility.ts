@@ -86,3 +86,9 @@ export function useAccessibility() {
     trapFocus,
   }
 }
+
+export type AccessibilityPreferences = {
+  highContrast: boolean
+  largeText: boolean
+  reducedMotion: boolean
+}

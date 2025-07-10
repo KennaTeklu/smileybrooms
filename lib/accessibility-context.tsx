@@ -1,42 +1,43 @@
 "use client"
 
-import type React from "react"
-import { createContext, useState } from "react"
-import type { ReactNode } from "react"
-import { useAccessibility } from "../hooks/use-accessibility"
+import * as React from "react"
+import type { AccessibilityPreferences } from "@/hooks/use-accessibility"
+import { useLocalStorage } from "@/hooks/use-local-storage" // already present in the repo
 
-export type AccessibilityPreferences = {
-  highContrast: boolean
-  largeText: boolean
-}
-
-export interface AccessibilityContextValue {
+/* ---------- Context value ---------- */
+type AccessibilityContextValue = {
   preferences: AccessibilityPreferences
-  setPreferences: React.Dispatch<React.SetStateAction<AccessibilityPreferences>>
+  setPreferences: (prefs: AccessibilityPreferences) => void
 }
 
-/**
- * Internal context object.  Only exported so the hook can consume it.
- */
-export const AccessibilityContext = createContext<AccessibilityContextValue | null>(null)
+/* ---------- Defaults ---------- */
+const defaultPreferences: AccessibilityPreferences = {
+  highContrast: false,
+  largeText: false,
+  reducedMotion: false,
+}
 
-/**
- * Provider mounted near the root of the tree (e.g. in `app/layout.tsx`).
- */
-export function AccessibilityProvider({ children }: { children: ReactNode }) {
-  const [preferences, setPreferences] = useState<AccessibilityPreferences>({
-    highContrast: false,
-    largeText: false,
-  })
+/* ---------- Context & Provider ---------- */
+export const AccessibilityContext = React.createContext<AccessibilityContextValue>({
+  preferences: defaultPreferences,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setPreferences: () => {},
+})
 
-  const value: AccessibilityContextValue = { preferences, setPreferences }
+export function AccessibilityProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [preferences, setPreferences] = useLocalStorage<AccessibilityPreferences>(
+    "sb-accessibility-preferences",
+    defaultPreferences,
+  )
+
+  const value = React.useMemo(() => ({ preferences, setPreferences }), [preferences])
 
   return <AccessibilityContext.Provider value={value}>{children}</AccessibilityContext.Provider>
 }
 
-/**
- * Re-export the public hook so consumers can either
- * `import { useAccessibility } from '@/lib/accessibility-context'`
- * or from `'@/hooks/use-accessibility'` – both work.
- */
-export { useAccessibility }
+/* ---------- Re-export hook for backwards compatibility ---------- */
+export { useAccessibility } from "@/hooks/use-accessibility"

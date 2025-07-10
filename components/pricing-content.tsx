@@ -1,50 +1,30 @@
 "use client"
 
 import Image from "next/image"
-import { roomDisplayNames, roomImages } from "@/lib/room-tiers"
+import { Card, CardContent } from "@/components/ui/card"
+import { roomTiers } from "@/lib/room-tiers"
 
-interface PricingContentProps {
-  /**
-   * Array of selected room keys, e.g. `['bedroom', 'bathroom']`.
-   */
-  selectedRooms?: string[]
-}
-
-/**
- * Grid of cards displaying a thumbnail and label for each selected room.
- */
-export function PricingContent({ selectedRooms = [] }: PricingContentProps) {
-  if (!selectedRooms.length) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No rooms selected yet. Choose a room above to begin customising your clean!
-      </p>
-    )
-  }
-
+export function PricingContent() {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {selectedRooms.map((room) => (
-        <article
-          key={room}
-          className="overflow-hidden rounded-lg border bg-background shadow-sm transition-colors hover:border-primary"
-        >
-          <Image
-            src={roomImages[room] ?? roomImages.other}
-            alt={`${roomDisplayNames[room]} reference image`}
-            width={400}
-            height={220}
-            className="h-40 w-full object-cover"
-            priority
-          />
-          <div className="p-4">
-            <h3 className="text-lg font-semibold leading-none">{roomDisplayNames[room] ?? room}</h3>
-          </div>
-        </article>
+    <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {roomTiers.map((tier) => (
+        <Card key={tier.id} className="transition hover:shadow-lg">
+          <CardContent className="p-4 flex flex-col items-center text-center space-y-3">
+            <Image
+              src={tier.image || "/placeholder.svg"}
+              alt={`${tier.name} illustration`}
+              width={160}
+              height={120}
+              className="object-contain rounded"
+            />
+            <h3 className="text-lg font-semibold">{tier.name}</h3>
+            <p className="text-sm text-muted-foreground">Multiplier: {tier.priceMultiplier.toFixed(2)}&times;</p>
+          </CardContent>
+        </Card>
       ))}
-    </div>
+    </section>
   )
 }
 
-/*  -- allow both default & named import styles -- */
+/* Export both styles to satisfy every importer */
 export default PricingContent
