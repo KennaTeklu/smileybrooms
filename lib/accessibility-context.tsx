@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 export type AccessibilityPreferences = {
   highContrast: boolean
@@ -50,7 +50,7 @@ const getInitialState = <T,>(key: string, defaultValue: T): T => {
   }
 }
 
-export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
+export const AccessibilityProvider = ({ children }: { ReactNode }) => {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(() => {
     const saved = getInitialState("accessibilityPreferences", DEFAULT_PREFERENCES)
     // Merge saved preferences with default to ensure new keys are included
