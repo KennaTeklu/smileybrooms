@@ -16,7 +16,15 @@ import { AccessibilityContext } from "@/lib/accessibility-context"
  */
 export function useAccessibility() {
   const ctx = useContext(AccessibilityContext)
+  if (!ctx) {
+    throw new Error("useAccessibility must be used within <AccessibilityProvider>.")
+  }
 
+  /* ╭───────────────────────────────────────────────────────────────╮
+     │  DOM helper utilities                                         │
+     ╰───────────────────────────────────────────────────────────────╯ */
+
+  /** Announces a message for screen-reader users (client-only). */
   const announceToScreenReader = useCallback((message: string, polite = true) => {
     if (typeof window === "undefined") return
     const el = document.createElement("div")
@@ -28,11 +36,16 @@ export function useAccessibility() {
     setTimeout(() => document.body.removeChild(el), 700)
   }, [])
 
+  /** Programmatically focuses the first element that matches `selector`. */
   const focusElement = useCallback((selector: string) => {
     if (typeof window === "undefined") return
     document.querySelector<HTMLElement>(selector)?.focus()
   }, [])
 
+  /**
+   * Traps keyboard focus inside the element matched by `containerSelector`.
+   * Returns a cleanup function to remove the event listener.
+   */
   const trapFocus = useCallback((containerSelector: string) => {
     if (typeof window === "undefined") return () => {}
 
@@ -65,24 +78,6 @@ export function useAccessibility() {
     return () => container.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  if (!ctx) {
-    // Return a stub for SSR compatibility
-    return {
-      preferences: {
-        highContrast: false,
-        largeText: false,
-        reducedMotion: false,
-        screenReader: false,
-        keyboardNavigation: false,
-      },
-      updatePreference: () => {},
-      resetPreferences: () => {},
-      announceToScreenReader,
-      focusElement,
-      trapFocus,
-    }
-  }
-
   // If context is available, return the real values with DOM utilities
   return {
     ...ctx,
@@ -96,6 +91,4 @@ export type AccessibilityPreferences = {
   highContrast: boolean
   largeText: boolean
   reducedMotion: boolean
-  screenReader: boolean
-  keyboardNavigation: boolean
 }
