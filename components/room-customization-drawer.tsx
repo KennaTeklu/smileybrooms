@@ -153,7 +153,7 @@ export function RoomCustomizationDrawer({
   const progressValue = ((currentStepIndex + 1) / wizardSteps.length) * 100
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange}>
+    <Drawer open={isOpen} onOpenChange={onOpenChange} dismissible={false}>
       <DrawerContent className="h-[90vh] flex flex-col">
         <DrawerHeader className="px-4 pt-4 pb-2 border-b">
           <DrawerTitle className="text-2xl font-bold">Customize {roomDisplayNames[roomType] || "Room"}</DrawerTitle>

@@ -1,242 +1,149 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Contact, Home, Building2 } from "lucide-react"
-import { roomDisplayNames, roomImages } from "@/lib/room-tiers"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { RoomCategory } from "@/components/room-category"
-import { RequestQuoteButton } from "@/components/request-quote-button"
-import { useToast } from "@/hooks/use-toast"
-import { useCart } from "@/lib/cart-context"
-import { useRoomContext, type RoomConfig } from "@/lib/room-context"
-import Image from "next/image"
 
-function PricingContent() {
-  const { toast } = useToast()
-  const { addItem } = useCart()
-  const [activeTab, setActiveTab] = useState("standard")
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardTitle } from "@/components/ui/card"
+import { Plus, Minus, Trash2, Settings } from "lucide-react"
+import { formatCurrency } from "@/lib/utils"
+import { RoomCategory } from "./room-category"
+import { useRoomContext } from "@/lib/room-context"
+import { RoomCustomizationDrawer } from "./room-customization-drawer"
+import { roomDisplayNames, roomIcons } from "@/lib/room-tiers" // Import roomDisplayNames and roomIcons
 
-  const {
-    roomCounts,
-    roomConfigs,
-    selectedRoomForMap,
-    updateRoomCount,
-    updateRoomConfig,
-    setSelectedRoomForMap,
-    getSelectedRoomTypes,
-  } = useRoomContext()
+interface RoomConfiguratorProps {
+  panelType?: "simple" | "enhanced" | "wizard"
+}
 
-  const [serviceFee, setServiceFee] = useState(25)
+export function PricingContent({ panelType = "enhanced" }: RoomConfiguratorProps) {
+  const [isCustomizationDrawerOpen, setIsCustomizationDrawerOpen] = useState(false)
+  const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<string | null>(null)
 
-  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
-  const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } =
+    useRoomContext()
 
-  const handleRoomCountChange = (roomType: string, count: number) => {
-    const newCount = Math.max(0, count)
-    updateRoomCount(roomType, newCount)
+  const selectedRoomTypes = getSelectedRoomTypes()
+  const totalPrice = getTotalPrice()
 
-    if (newCount > 0 && (roomCounts[roomType] || 0) === 0) {
-      if (!selectedRoomForMap) {
-        setSelectedRoomForMap(roomType)
-      }
-    }
-
-    if (newCount === 0 && (roomCounts[roomType] || 0) > 0) {
-      if (selectedRoomForMap === roomType) {
-        const activeRooms = Object.entries(roomCounts)
-          .filter(([key, currentCount]) => key !== roomType && currentCount > 0)
-          .map(([key]) => key)
-        setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
-      }
-    }
+  const handleOpenCustomization = (roomType: string) => {
+    setCurrentRoomToCustomize(roomType)
+    setIsCustomizationDrawerOpen(true)
   }
 
-  const handleRoomConfigChange = (roomType: string, config: RoomConfig) => {
+  const handleCloseCustomization = () => {
+    setCurrentRoomToCustomize(null)
+    setIsCustomizationDrawerOpen(false)
+  }
+
+  const handleConfigChange = (roomType: string, config: any) => {
     updateRoomConfig(roomType, config)
   }
 
-  const getRoomConfig = (roomType: string): RoomConfig => {
-    return (
-      roomConfigs[roomType] || {
-        roomName: roomType,
-        selectedTier: "ESSENTIAL CLEAN",
-        selectedAddOns: [],
-        selectedReductions: [],
-        basePrice: 25,
-        tierUpgradePrice: 0,
-        addOnsPrice: 0,
-        reductionsPrice: 0,
-        totalPrice: 25,
-      }
-    )
-  }
-
-  const getActiveRoomConfigs = () => {
-    return getSelectedRoomTypes()
-  }
-
-  useEffect(() => {
-    const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
-    if (totalRooms <= 2) {
-      setServiceFee(25)
-    } else if (totalRooms <= 5) {
-      setServiceFee(35)
-    } else {
-      setServiceFee(45)
-    }
-  }, [roomCounts])
-
   return (
-    <main className="container mx-auto px-4 pt-2">
-      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
-        <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
-          <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
-            <Home className="h-4 w-4" aria-hidden="true" />
-            <span>Residential Services</span>
-          </TabsTrigger>
-          <TabsTrigger value="detailing" className="flex items-center gap-2" aria-controls="detailing-tab">
-            <Building2 className="h-4 w-4" aria-hidden="true" />
-            <span>Commercial Services</span>
-          </TabsTrigger>
-        </TabsList>
+    <div className="container mx-auto p-4 pb-32">
+      <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
 
-        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
-          {/* Core Rooms Category */}
-          <RoomCategory
-            title="Choose Your Core Spaces"
-            description="Select the main rooms you want sparkling clean."
-            rooms={coreRooms}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
-            variant="primary"
-            onRoomSelect={setSelectedRoomForMap}
-          />
+      <div className="grid grid-cols-1 gap-6 mb-8">
+        <RoomCategory
+          title="Common Areas"
+          description="Select and customize your living spaces."
+          rooms={["living_room", "dining_room", "hallway", "entryway", "stairs"]}
+          roomCounts={roomCounts}
+          onRoomCountChange={updateRoomCount}
+          onRoomConfigChange={updateRoomConfig}
+          getRoomConfig={(roomType) => roomConfigs[roomType]}
+          variant="primary"
+          onRoomSelect={handleOpenCustomization} // Pass handleOpenCustomization for direct customization
+        />
 
-          {/* Additional Spaces Category */}
-          <RoomCategory
-            title="Enhance Your Clean"
-            description="Add extra areas for a truly comprehensive service."
-            rooms={additionalSpaces}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
-            variant="secondary"
-            onRoomSelect={setSelectedRoomForMap}
-          />
+        <RoomCategory
+          title="Private Spaces"
+          description="Customize your bedrooms and bathrooms."
+          rooms={["bedroom", "bathroom", "home_office", "laundry_room"]}
+          roomCounts={roomCounts}
+          onRoomCountChange={updateRoomCount}
+          onRoomConfigChange={updateRoomConfig}
+          getRoomConfig={(roomType) => roomConfigs[roomType]}
+          variant="secondary"
+          onRoomSelect={handleOpenCustomization}
+        />
 
-          {/* Custom Space Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
-                  <Contact className="h-5 w-5" aria-hidden="true" />
-                </span>
-                CUSTOM SPACES
-              </CardTitle>
-              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                <div className="text-4xl mb-4" aria-hidden="true">
-                  🏠
-                </div>
-                <h3 className="font-medium text-xl mb-2">Other Space</h3>
-                <p className="text-gray-500 mb-4 text-center max-w-md">
-                  Have a unique space that needs cleaning? Contact us for a custom quote.
-                </p>
-                <RequestQuoteButton showIcon={true} />
-              </div>
-            </CardContent>
-          </Card>
+        <RoomCategory
+          title="Specialty Areas"
+          description="For kitchens and other unique spaces."
+          rooms={["kitchen"]}
+          roomCounts={roomCounts}
+          onRoomCountChange={updateRoomCount}
+          onRoomConfigChange={updateRoomConfig}
+          getRoomConfig={(roomType) => roomConfigs[roomType]}
+          variant="primary"
+          onRoomSelect={handleOpenCustomization}
+        />
+      </div>
 
-          {/* Selected Rooms Summary */}
-          {getActiveRoomConfigs().length > 0 && (
-            <Card className="shadow-sm">
-              <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                    ✓
-                  </span>
-                  SELECTED ROOMS
-                </CardTitle>
-                <CardDescription>
-                  You have selected {getActiveRoomConfigs().length} room{getActiveRoomConfigs().length !== 1 ? "s" : ""}
-                  . Click "Customize" on any room to configure cleaning options and add to cart.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {getActiveRoomConfigs().map((roomType) => (
-                    <div
-                      key={roomType}
-                      className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
-                    >
-                      <div className="relative w-24 h-24 mb-2">
-                        {roomImages[roomType] && (
-                          <Image
-                            src={roomImages[roomType] || "/placeholder.svg"}
-                            alt={roomDisplayNames[roomType]}
-                            layout="fill"
-                            objectFit="cover"
-                            className="rounded-lg"
-                          />
-                        )}
+      {/* Selected Rooms Summary */}
+      {selectedRoomTypes.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold mb-4">Your Selected Rooms</h3>
+          <div className="space-y-4">
+            {selectedRoomTypes.map((roomType) => {
+              const count = roomCounts[roomType]
+              const config = roomConfigs[roomType]
+              return (
+                <Card key={roomType}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{roomIcons[roomType] || "🏠"}</span>
+                      <div>
+                        <CardTitle className="text-lg">{roomDisplayNames[roomType]}</CardTitle>
+                        <p className="text-sm text-gray-600">
+                          {config.selectedTier}
+                          {config.selectedAddOns.length > 0 && ` + ${config.selectedAddOns.length} add-on(s)`}
+                          {config.selectedReductions.length > 0 &&
+                            ` - ${config.selectedReductions.length} reduction(s)`}
+                        </p>
+                        <p className="text-sm font-medium">
+                          {formatCurrency(config.totalPrice)} x {count} = {formatCurrency(config.totalPrice * count)}
+                        </p>
                       </div>
-                      <span className="font-medium text-sm text-center">
-                        {roomDisplayNames[roomType]} ({roomCounts[roomType]})
-                      </span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="icon" onClick={() => updateRoomCount(roomType, count - 1)}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="font-medium w-6 text-center">{count}</span>
+                      <Button variant="outline" size="icon" onClick={() => updateRoomCount(roomType, count + 1)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => handleOpenCustomization(roomType)}>
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => updateRoomCount(roomType, 0)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="implementation-notes">
-              <AccordionTrigger className="font-bold text-gray-500">IMPLEMENTATION NOTES</AccordionTrigger>
-              <AccordionContent>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>
-                    <strong>ROOM SELECTION:</strong> Select rooms above, then click "Customize" to configure each room
-                  </li>
-                  <li>
-                    <strong>GUIDED CHECKOUT:</strong> Multi-step wizard guides you through all configuration options
-                  </li>
-                  <li>
-                    <strong>TIER STACKING:</strong> Combine multiple tiers per room for customized cleaning
-                  </li>
-                  <li>
-                    <strong>SERVICE INHERITANCE:</strong> Higher tiers include all lower-tier services
-                  </li>
-                  <li>
-                    <strong>CUSTOM PRESETS:</strong> Save frequent configurations for future use
-                  </li>
-                </ol>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
+      <div className="flex justify-between items-center text-2xl font-bold mb-8">
+        <span>Total Estimated Price:</span>
+        <span>{formatCurrency(totalPrice)}</span>
+      </div>
 
-        <TabsContent value="detailing" id="detailing-tab" role="tabpanel">
-          <Card>
-            <CardHeader>
-              <CardTitle>Commercial Services</CardTitle>
-              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Content for commercial services will be implemented in future rounds.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </main>
+      {/* Customization Drawer */}
+      {currentRoomToCustomize && (
+        <RoomCustomizationDrawer
+          isOpen={isCustomizationDrawerOpen}
+          onOpenChange={setIsCustomizationDrawerOpen}
+          roomType={currentRoomToCustomize}
+          roomConfig={roomConfigs[currentRoomToCustomize]}
+          onSave={handleConfigChange}
+        />
+      )}
+    </div>
   )
 }
-
-export default PricingContent
-export { PricingContent }
