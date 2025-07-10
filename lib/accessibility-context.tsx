@@ -1,95 +1,176 @@
 "use client"
 
-import React from "react"
+import type React from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { useTheme } from "next-themes"
+import { useToast } from "@/components/ui/use-toast"
 
-import type { ReactNode } from "react"
-import { createContext, useState, useEffect, useCallback } from "react"
-import { useAccessibility as useAccessibilityHook } from "@/hooks/use-accessibility" // Renamed to avoid conflict
-
-interface AccessibilityPreferences {
-  fontSize: "small" | "medium" | "large"
+// Define the structure for accessibility preferences
+export type AccessibilityPreferences = {
+  prefersDarkTheme: boolean
+  prefersLightTheme: boolean
   highContrast: boolean
-  animationsEnabled: boolean
+  largeText: boolean
+  reducedMotion: boolean
   keyboardNavigation: boolean
-  prefersDarkTheme: boolean // Added for theme toggle
-  prefersLightTheme: boolean // Added for theme toggle
-  fontFamily: string // Added for font family selection
-  language: string // Added for language selection
-  lineHeight: number // Added for line height
-  letterSpacing: number // Added for letter spacing
-  textAlignment: "left" | "center" | "right" // Added for text alignment
-  colorScheme: "default" | "green" | "blue" // New: Added for custom color schemes
+  fontFamily: string
+  language: string
+  colorScheme: "default" | "green" | "blue"
+  lineHeight: number
+  letterSpacing: number
+  textAlignment: "left" | "center" | "right"
 }
 
-interface AccessibilityContextType {
+// Define default preferences
+const defaultPreferences: AccessibilityPreferences = {
+  prefersDarkTheme: false,
+  prefersLightTheme: true,
+  highContrast: false,
+  largeText: false,
+  reducedMotion: false,
+  keyboardNavigation: false,
+  fontFamily: "Inter, sans-serif",
+  language: "en",
+  colorScheme: "default",
+  lineHeight: 1.5,
+  letterSpacing: 0,
+  textAlignment: "left",
+}
+
+// Define the context type
+type AccessibilityContextType = {
   preferences: AccessibilityPreferences
-  updatePreference: (key: keyof AccessibilityPreferences, value: any) => void
+  updatePreference: <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => void
   resetPreferences: () => void
   announceToScreenReader: (message: string, polite?: boolean) => void
 }
 
-const defaultPreferences: AccessibilityPreferences = {
-  fontSize: "medium",
-  highContrast: false,
-  animationsEnabled: true,
-  keyboardNavigation: false,
-  prefersDarkTheme: false, // Default to light
-  prefersLightTheme: true,
-  fontFamily: "Inter, sans-sans-serif", // Corrected typo
-  language: "en",
-  lineHeight: 1.5,
-  letterSpacing: 0,
-  textAlignment: "left",
-  colorScheme: "default", // Default color scheme
-}
+// Create the context
+const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
 
-export const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
-
-export const AccessibilityProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+// Create the provider component
+export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = useState<AccessibilityPreferences>(defaultPreferences)
-  const liveRegionRef = React.createRef<HTMLDivElement>()
+  const { setTheme } = useTheme()
+  const { toast } = useToast()
 
   // Load preferences from local storage on mount
   useEffect(() => {
     try {
       const storedPreferences = localStorage.getItem("accessibilityPreferences")
       if (storedPreferences) {
-        setPreferences(JSON.parse(storedPreferences))
+        const parsedPreferences: AccessibilityPreferences = JSON.parse(storedPreferences)
+        setPreferences((prev) => ({ ...prev, ...parsedPreferences }))
       }
     } catch (error) {
       console.error("Failed to load accessibility preferences from local storage:", error)
     }
   }, [])
 
-  // Save preferences to local storage whenever they change
+  // Apply preferences to document.documentElement and body
   useEffect(() => {
-    try {
-      localStorage.setItem("accessibilityPreferences", JSON.stringify(preferences))
-    } catch (error) {
-      console.error("Failed to save accessibility preferences to local storage:", error)
+    if (typeof document !== "undefined") {
+      // Apply theme
+      setTheme(preferences.prefersDarkTheme ? "dark" : "light")
+
+      // Apply high contrast
+      if (preferences.highContrast) {
+        document.body.classList.add("high-contrast")
+      } else {
+        document.body.classList.remove("high-contrast")
+      }
+
+      // Apply large text
+      document.documentElement.style.setProperty("--accessibility-font-scale", preferences.largeText ? "1.2" : "1")
+      if (preferences.largeText) {
+        document.body.classList.add("large-text")
+      } else {
+        document.body.classList.remove("large-text")
+      }
+
+      // Apply reduced motion
+      if (preferences.reducedMotion) {
+        document.body.classList.add("motion-reduced")
+      } else {
+        document.body.classList.remove("motion-reduced")
+      }
+
+      // Apply keyboard navigation focus indicators
+      if (preferences.keyboardNavigation) {
+        document.body.classList.add("keyboard-navigation-active")
+      } else {
+        document.body.classList.remove("keyboard-navigation-active")
+      }
+
+      // Apply font family
+      document.documentElement.style.setProperty("--accessibility-font-family", preferences.fontFamily)
+
+      // Apply color scheme
+      document.documentElement.classList.remove("theme-green", "theme-blue")
+      if (preferences.colorScheme === "green") {
+        document.documentElement.classList.add("theme-green")
+      } else if (preferences.colorScheme === "blue") {
+        document.documentElement.classList.add("theme-blue")
+      }
+
+      // Apply line height
+      document.documentElement.style.setProperty("--accessibility-line-height", preferences.lineHeight.toString())
+
+      // Apply letter spacing
+      document.documentElement.style.setProperty("--accessibility-letter-spacing", `${preferences.letterSpacing}em`)
+
+      // Apply text alignment
+      document.documentElement.style.setProperty("--accessibility-text-align", preferences.textAlignment)
     }
-  }, [preferences])
+  }, [preferences, setTheme])
 
-  const updatePreference = (key: keyof AccessibilityPreferences, value: any) => {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
-
-  const resetPreferences = () => {
-    setPreferences(defaultPreferences)
-  }
-
-  const announceToScreenReader = useCallback((message: string, polite = false) => {
-    if (liveRegionRef.current) {
-      liveRegionRef.current.setAttribute("aria-live", polite ? "polite" : "assertive")
-      liveRegionRef.current.textContent = message
-      // Clear after a short delay to allow new announcements
-      setTimeout(() => {
-        if (liveRegionRef.current) {
-          liveRegionRef.current.textContent = ""
+  // Update a specific preference and save to local storage
+  const updatePreference = useCallback(
+    <K extends keyof AccessibilityPreferences>(key: K, value: AccessibilityPreferences[K]) => {
+      setPreferences((prev) => {
+        const newPreferences = { ...prev, [key]: value }
+        try {
+          localStorage.setItem("accessibilityPreferences", JSON.stringify(newPreferences))
+        } catch (error) {
+          console.error("Failed to save accessibility preferences to local storage:", error)
+          toast({
+            title: "Error saving settings",
+            description: "Could not save your accessibility preferences. Please try again.",
+            variant: "destructive",
+          })
         }
+        return newPreferences
+      })
+    },
+    [toast],
+  )
+
+  // Reset all preferences to default
+  const resetPreferences = useCallback(() => {
+    setPreferences(defaultPreferences)
+    try {
+      localStorage.removeItem("accessibilityPreferences")
+    } catch (error) {
+      console.error("Failed to clear accessibility preferences from local storage:", error)
+      toast({
+        title: "Error resetting settings",
+        description: "Could not reset your accessibility preferences. Please try again.",
+        variant: "destructive",
+      })
+    }
+    // Ensure theme is reset correctly
+    setTheme(defaultPreferences.prefersDarkTheme ? "dark" : "light")
+  }, [setTheme, toast])
+
+  // Announce messages to screen readers
+  const announceToScreenReader = useCallback((message: string, polite = false) => {
+    const liveRegion = document.getElementById("accessibility-live-region")
+    if (liveRegion) {
+      liveRegion.setAttribute("aria-live", polite ? "polite" : "assertive")
+      liveRegion.textContent = message
+      // Clear after a short delay
+      setTimeout(() => {
+        liveRegion.textContent = ""
       }, 1000)
     }
   }, [])
@@ -98,15 +179,16 @@ export const AccessibilityProvider: React.FC<{ children: ReactNode }> = ({ child
     <AccessibilityContext.Provider value={{ preferences, updatePreference, resetPreferences, announceToScreenReader }}>
       {children}
       {/* Live region for screen reader announcements */}
-      <div
-        ref={liveRegionRef}
-        className="sr-only"
-        aria-atomic="true"
-        aria-live="polite" // Default to polite
-      />
+      <div id="accessibility-live-region" aria-live="polite" className="sr-only" role="status"></div>
     </AccessibilityContext.Provider>
   )
 }
 
-// Re-export the hook for convenience
-export const useAccessibility = useAccessibilityHook
+// Custom hook to use the accessibility context
+export function useAccessibility() {
+  const context = useContext(AccessibilityContext)
+  if (context === undefined) {
+    throw new Error("useAccessibility must be used within an AccessibilityProvider")
+  }
+  return context
+}
