@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { AnimatePresence } from "framer-motion"
 import ContactStep from "@/components/checkout/contact-step"
@@ -27,9 +27,15 @@ const steps = [
 export default function CheckoutPage() {
   const { cart } = useCart()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentStepParam = searchParams.get("step") || "contact"
   const { toast } = useToast()
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
+  const stepOrder = ["contact", "address", "payment", "review"]
+  const stepNames = ["Contact", "Address", "Payment", "Review"]
+  const currentStepIndex = stepOrder.indexOf(currentStepParam) + 1 // 1-indexed
+
+  const [currentStep, setCurrentStep] = useState<CheckoutStepId>(currentStepParam as CheckoutStepId)
   const [completedSteps, setCompletedSteps] = useState<CheckoutStepId[]>([])
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     contact: {
@@ -97,8 +103,12 @@ export default function CheckoutPage() {
     }
   }, [])
 
-  const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
-  const progress = ((currentStepIndex + 1) / steps.length) * 100
+  useEffect(() => {
+    // Redirect to 'contact' if an invalid step is provided
+    if (currentStepIndex === 0 && currentStepParam !== "contact") {
+      router.replace("/checkout?step=contact")
+    }
+  }, [currentStepParam, currentStepIndex, router])
 
   const handleSaveStepData = useCallback(
     (stepId: CheckoutStepId, data: any) => {
@@ -117,29 +127,36 @@ export default function CheckoutPage() {
   )
 
   const handleNext = useCallback(() => {
-    const nextStepIndex = currentStepIndex + 1
-    if (nextStepIndex < steps.length) {
-      setCurrentStep(steps[nextStepIndex].id)
+    const nextStepIndex = stepOrder.indexOf(currentStep) + 1
+    if (nextStepIndex < stepOrder.length) {
+      setCurrentStep(stepOrder[nextStepIndex] as CheckoutStepId)
+      router.replace(`/checkout?step=${stepOrder[nextStepIndex]}`)
     }
-  }, [currentStepIndex])
+  }, [currentStep, stepOrder, router])
 
   const handlePrevious = useCallback(() => {
-    const prevStepIndex = currentStepIndex - 1
+    const prevStepIndex = stepOrder.indexOf(currentStep) - 1
     if (prevStepIndex >= 0) {
-      setCurrentStep(steps[prevStepIndex].id)
+      setCurrentStep(stepOrder[prevStepIndex] as CheckoutStepId)
+      router.replace(`/checkout?step=${stepOrder[prevStepIndex]}`)
     }
-  }, [currentStepIndex])
+  }, [currentStep, stepOrder, router])
 
   const handleStepClick = useCallback(
     (stepId: CheckoutStepId) => {
-      const stepIndex = steps.findIndex((step) => step.id === stepId)
+      const stepIndex = stepOrder.indexOf(stepId)
       // Allow navigating to any previous completed step or the immediate next step
-      if (stepIndex < currentStepIndex || (stepIndex === currentStepIndex && completedSteps.includes(stepId))) {
+      if (
+        stepIndex < stepOrder.indexOf(currentStep) ||
+        (stepIndex === stepOrder.indexOf(currentStep) && completedSteps.includes(stepId))
+      ) {
         setCurrentStep(stepId)
-      } else if (stepIndex === currentStepIndex + 1) {
+        router.replace(`/checkout?step=${stepId}`)
+      } else if (stepIndex === stepOrder.indexOf(currentStep) + 1) {
         // Allow moving to the next step if the current one is completed
         if (completedSteps.includes(currentStep)) {
           setCurrentStep(stepId)
+          router.replace(`/checkout?step=${stepId}`)
         } else {
           toast({
             title: "Please complete current step",
@@ -149,12 +166,8 @@ export default function CheckoutPage() {
         }
       }
     },
-    [currentStep, currentStepIndex, completedSteps, toast],
+    [currentStep, stepOrder, completedSteps, toast, router],
   )
-
-  if (cart.items.length === 0) {
-    return null // Will redirect via useEffect
-  }
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -194,6 +207,10 @@ export default function CheckoutPage() {
     }
   }
 
+  if (cart.items.length === 0) {
+    return null // Will redirect via useEffect
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -213,9 +230,9 @@ export default function CheckoutPage() {
 
             {/* Progress Bar */}
             <div className="max-w-md mx-auto mb-8">
-              <Progress value={progress} className="h-2 mb-4" />
+              <Progress value={((stepOrder.indexOf(currentStep) + 1) / stepOrder.length) * 100} className="h-2 mb-4" />
               <p className="text-sm text-muted-foreground">
-                Step {currentStepIndex + 1} of {steps.length}
+                Step {stepOrder.indexOf(currentStep) + 1} of {stepOrder.length}
               </p>
             </div>
           </div>
@@ -229,7 +246,7 @@ export default function CheckoutPage() {
                 const Icon = step.icon
                 const isActive = step.id === currentStep
                 const isCompleted = completedSteps.includes(step.id)
-                const isClickable = index <= currentStepIndex || isCompleted
+                const isClickable = index <= stepOrder.indexOf(currentStep) || isCompleted
 
                 return (
                   <button
