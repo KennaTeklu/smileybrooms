@@ -13,6 +13,8 @@ export type AccessibilityPreferences = {
   language: string
   prefersDarkTheme: boolean // Added for explicit theme preference
   prefersLightTheme: boolean // Added for explicit theme preference
+  lineHeight: number
+  letterSpacing: number
   // Add other preferences as needed
 }
 
@@ -34,6 +36,8 @@ export const DEFAULT_PREFERENCES: AccessibilityPreferences = {
   language: "en",
   prefersDarkTheme: false, // Default to light theme preference
   prefersLightTheme: true, // Default to light theme preference
+  lineHeight: 1.5, // 1.0–2.0   (1.5 = browser default)
+  letterSpacing: 0, // em units (0 = normal)
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined)
@@ -69,6 +73,9 @@ export const AccessibilityProvider = ({ children }: { children: ReactNode }) => 
     body.classList.toggle("keyboard-navigation-enabled", prefs.keyboardNavigation)
     body.classList.toggle("prefers-dark-theme", prefs.prefersDarkTheme) // Apply dark theme class
     body.classList.toggle("prefers-light-theme", prefs.prefersLightTheme) // Apply light theme class
+
+    body.style.lineHeight = String(prefs.lineHeight)
+    body.style.letterSpacing = `${prefs.letterSpacing}em`
 
     body.style.textAlign = prefs.textAlignment
     body.style.fontFamily = prefs.fontFamily

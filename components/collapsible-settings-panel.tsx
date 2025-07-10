@@ -153,8 +153,8 @@ export function CollapsibleSettingsPanel() {
                     </Label>
                     <RadioGroup
                       id="text-alignment"
-                      value={preferences.textAlign}
-                      onValueChange={(value) => updatePreference("textAlign", value as "left" | "center" | "right")}
+                      value={preferences.textAlignment}
+                      onValueChange={(value) => updatePreference("textAlignment", value as "left" | "center" | "right")}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
