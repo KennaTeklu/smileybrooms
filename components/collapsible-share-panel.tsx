@@ -418,7 +418,7 @@ export function CollapsibleSharePanel() {
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className="fixed z-[998] bottom-4 right-20" // Fixed positioning at bottom-right
+        className="fixed z-[998] bottom-4 right-4 sm:right-4 md:right-4" // Fixed positioning at bottom-right, responsive margin
         initial="hidden"
         animate="visible"
         exit="hidden"
