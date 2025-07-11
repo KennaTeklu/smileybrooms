@@ -404,8 +404,8 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
             if (serviceType === "standard") {
               tierPrice = tiers.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 0
             } else {
-              // "detailing" service type maps to "PREMIUM CLEAN" for individual rooms
-              tierPrice = tiers.find((t) => t.name === "PREMIUM CLEAN")?.price || 0
+              // "detailing" service type now maps to "LUXURY CLEAN" for individual rooms
+              tierPrice = tiers.find((t) => t.name === "LUXURY CLEAN")?.price || 0
             }
             total += tierPrice * count
           }

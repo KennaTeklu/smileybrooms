@@ -52,11 +52,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Light fixture dusting - Ceiling fan or overhead light",
       ],
       notIncludedTasks: [],
-      upsellMessage: "For a more thorough clean including under-bed areas and baseboards, consider our ADVANCED CLEAN.",
+      upsellMessage: "For a more thorough clean including under-bed areas and baseboards, consider our PREMIUM CLEAN.",
     },
     {
-      id: "bedroom-advanced",
-      name: "ADVANCED CLEAN",
+      id: "bedroom-premium", // Renamed from bedroom-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for regular maintenance",
       price: 220.0,
       timeEstimate: "60 minutes",
@@ -90,13 +90,13 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Achieve maximum freshness with our LUXURY CLEAN, covering every detail from mattress to ceiling fan.",
     },
     {
-      id: "bedroom-premium",
-      name: "PREMIUM CLEAN",
+      id: "bedroom-luxury", // Renamed from bedroom-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for maximum freshness",
       price: 380.0,
       timeEstimate: "180 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Mattress deep vacuum & flip",
         "Light fixture interior cleaning",
         "Aroma mist treatment",
@@ -115,7 +115,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Under-bed complete organization - Storage boxes, seasonal items, labeling",
         "Mattress professional treatment - UV sanitization, deep steam",
         "Pillow restoration service - Wash, fluff, allergen treatment",
-        "Bed frame restoration - Wood polish, hardware tightening",
+        "Bed frame restoration - Wood conditioning, hardware tightening",
         "Luxury linen service - Egyptian cotton, pressed, hotel-style",
         "Wall restoration (per wall x4) - Wash, touch-up",
         "Walk-in closet organization - Complete system, seasonal rotation",
@@ -166,11 +166,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Exhaust fan cleaning",
         "✗ Mold/mildew treatment",
       ],
-      upsellMessage: "For a deeper clean of your shower/tub and toilet, upgrade to our ADVANCED CLEAN.",
+      upsellMessage: "For a deeper clean of your shower/tub and toilet, upgrade to our PREMIUM CLEAN.",
     },
     {
-      id: "bathroom-advanced",
-      name: "ADVANCED CLEAN",
+      id: "bathroom-premium", // Renamed from bathroom-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for regular bathrooms",
       price: 250.0,
       timeEstimate: "75 minutes",
@@ -207,16 +207,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Water quality optimization",
       ],
       upsellMessage:
-        "Experience the ultimate bathroom refresh with our PREMIUM CLEAN, covering every detail from grout to cabinet interiors.",
+        "Experience the ultimate bathroom refresh with our LUXURY CLEAN, covering every detail from grout to cabinet interiors.",
     },
     {
-      id: "bathroom-premium",
-      name: "PREMIUM CLEAN",
+      id: "bathroom-luxury", // Renamed from bathroom-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for master bathrooms",
       price: 420.0,
       timeEstimate: "225 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Toilet complete restoration",
         "Shower system optimization",
         "Spa amenity setup",
@@ -280,11 +280,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Pantry organization",
       ],
       upsellMessage:
-        "For a more comprehensive kitchen clean, including appliance exteriors and microwave interior, choose our ADVANCED CLEAN.",
+        "For a more comprehensive kitchen clean, including appliance exteriors and microwave interior, choose our PREMIUM CLEAN.",
     },
     {
-      id: "kitchen-advanced",
-      name: "ADVANCED CLEAN",
+      id: "kitchen-premium", // Renamed from kitchen-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for regular kitchens",
       price: 280.0,
       timeEstimate: "90 minutes",
@@ -323,16 +323,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Lighting & electrical service",
       ],
       upsellMessage:
-        "For a truly spotless kitchen, our PREMIUM CLEAN offers deep cleaning of your oven, refrigerator interior, and more!",
+        "For a truly spotless kitchen, our LUXURY CLEAN offers deep cleaning of your oven, refrigerator interior, and more!",
     },
     {
-      id: "kitchen-premium",
-      name: "PREMIUM CLEAN",
+      id: "kitchen-luxury", // Renamed from kitchen-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for gourmet kitchens",
       price: 480.0,
       timeEstimate: "270 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Countertop professional service",
         "Sink professional restoration",
         "Oven professional service",
@@ -397,11 +397,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Furniture polishing",
       ],
       upsellMessage:
-        "For a more thorough clean including furniture vacuuming and under-furniture areas, consider our ADVANCED CLEAN.",
+        "For a more thorough clean including furniture vacuuming and under-furniture areas, consider our PREMIUM CLEAN.",
     },
     {
-      id: "livingroom-advanced",
-      name: "ADVANCED CLEAN",
+      id: "livingroom-premium", // Renamed from livingroom-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for family rooms",
       price: 200.0,
       timeEstimate: "75 minutes",
@@ -435,16 +435,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Furniture polishing",
       ],
       upsellMessage:
-        "For the ultimate living room transformation, our PREMIUM CLEAN offers upholstery spot treatment, detailed ceiling fan cleaning, and more!",
+        "For the ultimate living room transformation, our LUXURY CLEAN offers upholstery spot treatment, detailed ceiling fan cleaning, and more!",
     },
     {
-      id: "livingroom-premium",
-      name: "PREMIUM CLEAN",
+      id: "livingroom-luxury", // Renamed from livingroom-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for entertainment areas",
       price: 340.0,
       timeEstimate: "225 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Upholstery spot treatment",
         "Ceiling fan detailed cleaning",
         "Window sill detailing",
@@ -502,11 +502,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Decor item individual cleaning",
       ],
       upsellMessage:
-        "For a more polished dining experience, our ADVANCED CLEAN includes table polishing and detailed chair cleaning.",
+        "For a more polished dining experience, our PREMIUM CLEAN includes table polishing and detailed chair cleaning.",
     },
     {
-      id: "diningroom-advanced",
-      name: "ADVANCED CLEAN",
+      id: "diningroom-premium", // Renamed from diningroom-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for regular dining rooms",
       price: 140.0,
       timeEstimate: "60 minutes",
@@ -535,16 +535,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Decor item individual cleaning",
       ],
       upsellMessage:
-        "Transform your dining room into a sparkling haven with our PREMIUM CLEAN, featuring chandelier cleaning and fine china care!",
+        "Transform your dining room into a sparkling haven with our LUXURY CLEAN, featuring chandelier cleaning and fine china care!",
     },
     {
-      id: "diningroom-premium",
-      name: "PREMIUM CLEAN",
+      id: "diningroom-luxury", // Renamed from diningroom-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for formal dining rooms",
       price: 240.0,
       timeEstimate: "180 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "China/glassware cleaning",
         "Cabinet interior organization",
         "Chandelier detailed cleaning",
@@ -595,11 +595,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Wall spot cleaning",
       ],
       upsellMessage:
-        "Boost your productivity with our ADVANCED CLEAN, including detailed electronics dusting and bookshelf organization.",
+        "Boost your productivity with our PREMIUM CLEAN, including detailed electronics dusting and bookshelf organization.",
     },
     {
-      id: "office-advanced",
-      name: "ADVANCED CLEAN",
+      id: "office-premium", // Renamed from office-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for home offices",
       price: 240.0,
       timeEstimate: "60 minutes",
@@ -628,16 +628,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Wall spot cleaning",
       ],
       upsellMessage:
-        "For a truly professional and organized workspace, our PREMIUM CLEAN offers comprehensive filing system and keyboard cleaning!",
+        "For a truly professional and organized workspace, our LUXURY CLEAN offers comprehensive filing system and keyboard cleaning!",
     },
     {
-      id: "office-premium",
-      name: "PREMIUM CLEAN",
+      id: "office-luxury", // Renamed from office-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for professional offices",
       price: 420.0,
       timeEstimate: "180 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Filing cabinet organization",
         "Keyboard and peripheral cleaning",
         "Monitor detailed cleaning",
@@ -685,11 +685,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Wall spot cleaning",
       ],
       upsellMessage:
-        "For a more hygienic laundry space, our ADVANCED CLEAN includes washer/dryer exterior cleaning and lint trap cleaning.",
+        "For a more hygienic laundry space, our PREMIUM CLEAN includes washer/dryer exterior cleaning and lint trap cleaning.",
     },
     {
-      id: "laundry-advanced",
-      name: "ADVANCED CLEAN",
+      id: "laundry-premium", // Renamed from laundry-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for laundry rooms",
       price: 190.0,
       timeEstimate: "45 minutes",
@@ -718,16 +718,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Wall spot cleaning",
       ],
       upsellMessage:
-        "For a truly deep clean, our PREMIUM CLEAN offers washer drum and dryer vent cleaning, plus cabinet interior organization!",
+        "For a truly deep clean, our LUXURY CLEAN offers washer drum and dryer vent cleaning, plus cabinet interior organization!",
     },
     {
-      id: "laundry-premium",
-      name: "PREMIUM CLEAN",
+      id: "laundry-luxury", // Renamed from laundry-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for laundry centers",
       price: 320.0,
       timeEstimate: "135 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Washer drum cleaning",
         "Dryer vent cleaning",
         "Cabinet interior organization",
@@ -774,11 +774,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Door hardware polishing",
       ],
       upsellMessage:
-        "Make a grander entrance with our ADVANCED CLEAN, including detailed floor mopping and baseboard dusting.",
+        "Make a grander entrance with our PREMIUM CLEAN, including detailed floor mopping and baseboard dusting.",
     },
     {
-      id: "entryway-advanced",
-      name: "ADVANCED CLEAN",
+      id: "entryway-premium", // Renamed from entryway-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for foyers",
       price: 100.0,
       timeEstimate: "30 minutes",
@@ -807,16 +807,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Door hardware polishing",
       ],
       upsellMessage:
-        "For an immaculate entryway, our PREMIUM CLEAN offers chandelier cleaning, shoe organization, and more!",
+        "For an immaculate entryway, our LUXURY CLEAN offers chandelier cleaning, shoe organization, and more!",
     },
     {
-      id: "entryway-premium",
-      name: "PREMIUM CLEAN",
+      id: "entryway-luxury", // Renamed from entryway-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for grand entrances",
       price: 160.0,
       timeEstimate: "90 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Chandelier detailed cleaning",
         "Wall spot cleaning",
         "Decor item individual cleaning",
@@ -862,11 +862,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Air vent cleaning",
       ],
       upsellMessage:
-        "For a more pristine hallway, our ADVANCED CLEAN includes detailed floor mopping and baseboard dusting.",
+        "For a more pristine hallway, our PREMIUM CLEAN includes detailed floor mopping and baseboard dusting.",
     },
     {
-      id: "hallway-advanced",
-      name: "ADVANCED CLEAN",
+      id: "hallway-premium", // Renamed from hallway-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for corridors",
       price: 90.0,
       timeEstimate: "30 minutes",
@@ -895,16 +895,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Air vent cleaning",
       ],
       upsellMessage:
-        "For a truly spotless corridor, our PREMIUM CLEAN offers deep cleaning of runners/carpets and detailed light fixture cleaning!",
+        "For a truly spotless corridor, our LUXURY CLEAN offers deep cleaning of runners/carpets and detailed light fixture cleaning!",
     },
     {
-      id: "hallway-premium",
-      name: "PREMIUM CLEAN",
+      id: "hallway-luxury", // Renamed from hallway-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for gallery hallways",
       price: 140.0,
       timeEstimate: "90 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Runner/carpet detailed cleaning",
         "Light fixture detailed cleaning",
         "Artwork/decor individual cleaning",
@@ -952,11 +952,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Decorative element cleaning",
       ],
       upsellMessage:
-        "For a more thorough staircase clean, our ADVANCED CLEAN includes detailed step and handrail cleaning.",
+        "For a more thorough staircase clean, our PREMIUM CLEAN includes detailed step and handrail cleaning.",
     },
     {
-      id: "stairs-advanced",
-      name: "ADVANCED CLEAN",
+      id: "stairs-premium", // Renamed from stairs-advanced
+      name: "PREMIUM CLEAN", // Renamed from ADVANCED CLEAN
       description: "Thorough cleaning for stairways",
       price: 120.0,
       timeEstimate: "45 minutes",
@@ -985,16 +985,16 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Decorative element cleaning",
       ],
       upsellMessage:
-        "For a truly grand staircase, our PREMIUM CLEAN offers deep carpet cleaning and detailed spindle cleaning!",
+        "For a truly grand staircase, our LUXURY CLEAN offers deep carpet cleaning and detailed spindle cleaning!",
     },
     {
-      id: "stairs-premium",
-      name: "PREMIUM CLEAN",
+      id: "stairs-luxury", // Renamed from stairs-premium
+      name: "LUXURY CLEAN", // Renamed from PREMIUM CLEAN
       description: "Comprehensive cleaning for grand staircases",
       price: 180.0,
       timeEstimate: "135 minutes",
       features: [
-        "Includes Advanced Clean",
+        "Includes Premium Clean", // Updated from Advanced Clean
         "Carpet deep cleaning",
         "Spindle detailed cleaning",
         "Stair runner detailed cleaning",
@@ -1055,11 +1055,11 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "✗ Exterior cleaning (e.g., patios, garages)",
       ],
       upsellMessage:
-        "Ready for a deeper clean? Our ADVANCED HOME CLEAN offers thorough attention to high-traffic areas and surfaces.",
+        "Ready for a deeper clean? Our PREMIUM HOME CLEAN offers thorough attention to high-traffic areas and surfaces.",
     },
     {
-      id: "default-advanced",
-      name: "ADVANCED HOME CLEAN",
+      id: "default-premium", // Renamed from default-advanced
+      name: "PREMIUM HOME CLEAN", // Renamed from ADVANCED HOME CLEAN
       description: "Our most popular choice for a truly thorough and hygienic home.",
       price: 75.0,
       timeEstimate: "60 minutes",
@@ -1103,14 +1103,14 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "For the ultimate spotless experience, our LUXURY HOME SPA leaves no detail untouched, transforming your entire home.",
     },
     {
-      id: "default-premium",
-      name: "LUXURY HOME SPA",
+      id: "default-luxury", // Renamed from default-premium
+      name: "LUXURY HOME SPA", // Renamed from LUXURY HOME SPA
       description:
         "Experience unparalleled cleanliness and a truly revitalized home, meticulously cared for from top to bottom.",
       price: 225.0,
       timeEstimate: "180 minutes",
       features: [
-        "Includes Advanced Home Clean",
+        "Includes Premium Home Clean", // Updated from Advanced Home Clean
         "Specialty surface treatment",
         "Intricate fixture detailing",
         "All hard-to-reach areas",
