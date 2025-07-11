@@ -400,9 +400,11 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
           if (roomConfigItem) {
             const tiers = getRoomTiers(roomType)
             let tierPrice = 0
+            // Map serviceType to the correct tier name for individual room pricing
             if (serviceType === "standard") {
               tierPrice = tiers.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 0
             } else {
+              // "detailing" service type maps to "PREMIUM CLEAN" for individual rooms
               tierPrice = tiers.find((t) => t.name === "PREMIUM CLEAN")?.price || 0
             }
             total += tierPrice * count
