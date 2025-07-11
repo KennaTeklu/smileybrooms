@@ -9,7 +9,7 @@ import { getRoomTiers } from "@/lib/room-tiers"
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState("tiers")
   const [initialSelectedRooms, setInitialSelectedRooms] = useState<Record<string, number>>({})
-  const [initialServiceType, setInitialServiceType] = useState<"standard" | "detailing">("standard")
+  const [initialServiceType, setInitialServiceType] = useState<"essential" | "premium" | "luxury">("essential") // Updated type
 
   const handleSelectTier = (roomType: string, tierId: string) => {
     const selectedRooms: Record<string, number> = {}
@@ -22,14 +22,15 @@ export default function PricingPage() {
     const tiers = getRoomTiers(roomType)
     const selectedTier = tiers.find((tier) => tier.id === tierId)
 
-    let serviceType: "standard" | "detailing" = "standard"
+    let serviceType: "essential" | "premium" | "luxury" = "essential" // Default
     if (selectedTier) {
       // Determine service type based on tier name
-      // "Essential Clean" maps to "standard", "Premium Clean" and "Luxury Clean" map to "detailing"
-      if (selectedTier.name.includes("ESSENTIAL CLEAN")) {
-        serviceType = "standard"
-      } else {
-        serviceType = "detailing"
+      if (selectedTier.name.includes("ESSENTIAL")) {
+        serviceType = "essential"
+      } else if (selectedTier.name.includes("PREMIUM")) {
+        serviceType = "premium"
+      } else if (selectedTier.name.includes("LUXURY")) {
+        serviceType = "luxury"
       }
     }
     setInitialServiceType(serviceType)

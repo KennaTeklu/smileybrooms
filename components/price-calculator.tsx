@@ -25,7 +25,7 @@ interface PriceCalculatorProps {
     rooms: Record<string, number>
     frequency: string
     totalPrice: number
-    serviceType: "standard" | "detailing"
+    serviceType: "essential" | "premium" | "luxury" // Updated type
     cleanlinessLevel: number
     priceMultiplier: number
     isServiceAvailable: boolean
@@ -36,7 +36,7 @@ interface PriceCalculatorProps {
   }) => void
   onAddToCart?: () => void
   initialSelectedRooms?: Record<string, number> // New prop for initial rooms
-  initialServiceType?: "standard" | "detailing" // New prop for initial service type
+  initialServiceType?: "essential" | "premium" | "luxury" // Updated type
 }
 
 interface FullHousePackage {
@@ -114,11 +114,11 @@ const fullHousePackages: FullHousePackage[] = [
   },
 ]
 
-// Define the room types and their base prices
+// Define the room types and their base prices (basePrice here is just a placeholder, actual prices come from tiers)
 const roomTypes = roomConfigs.map((cfg) => ({
   id: cfg.id,
   name: cfg.name,
-  basePrice: cfg.basePrice,
+  basePrice: cfg.basePrice, // This basePrice is not used for calculation, only for initial display if needed
   icon: roomIcons[cfg.id] ?? "➕",
 }))
 
@@ -137,7 +137,7 @@ const frequencyOptions = [
   { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
 ]
 
-// Define the payment frequency options
+// Define the payment frequency options (not directly used in price calculation, but kept for context)
 const paymentFrequencyOptions = [
   { id: "per_service", label: "Pay Per Service" },
   { id: "monthly", label: "Monthly Subscription" },
@@ -156,7 +156,7 @@ const cleanlinessMultipliers = [
 interface RoomConfiguratorProps {
   selectedRooms: Record<string, number>
   setSelectedRooms: (rooms: Record<string, number>) => void
-  serviceType: "standard" | "detailing"
+  serviceType: "essential" | "premium" | "luxury" // Updated type
   isDisabled: boolean // New prop to disable controls
 }
 
@@ -180,6 +180,21 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
         [roomId]: prev[roomId] - 1,
       }))
     }
+  }
+
+  const getPriceForRoomAndTier = (roomId: string, tierType: "essential" | "premium" | "luxury") => {
+    const tiers = getRoomTiers(roomId)
+    let tierName: string
+    if (tierType === "essential") {
+      tierName = "ESSENTIAL CLEAN"
+    } else if (tierType === "premium") {
+      tierName = "PREMIUM CLEAN"
+    } else {
+      // tierType === "luxury"
+      tierName = "LUXURY CLEAN"
+    }
+    const selectedTier = tiers.find((t) => t.name === tierName)
+    return selectedTier ? selectedTier.price : 0
   }
 
   return (
@@ -235,9 +250,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
+              <p className="text-xs text-gray-500 mt-1">${getPriceForRoomAndTier(room.id, serviceType)} per room</p>
             </div>
           ))}
       </div>
@@ -293,9 +306,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
+              <p className="text-xs text-gray-500 mt-1">${getPriceForRoomAndTier(room.id, serviceType)} per room</p>
             </div>
           ))}
       </div>
@@ -313,9 +324,9 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
   )
 }
 
-export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType = "standard" }: PriceCalculatorProps) {
+export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType = "essential" }: PriceCalculatorProps) {
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(initialSelectedRooms)
-  const [serviceType, setServiceType] = useState<"standard" | "detailing">(initialServiceType)
+  const [serviceType, setServiceType] = useState<"essential" | "premium" | "luxury">(initialServiceType) // Updated type
   const [frequency, setFrequency] = useState("one_time")
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to Average (level 2)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -355,18 +366,14 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
     const pkg = fullHousePackages.find((p) => p.id === packageId)
     if (pkg) {
       // Set service type based on package tier
-      if (pkg.tier === "essential") {
-        setServiceType("standard")
-      } else {
-        setServiceType("detailing") // Premium and Luxury packages are considered detailing
-      }
+      setServiceType(pkg.tier) // Directly use the package's tier
     }
   }, [])
 
   const handleClearPackageSelection = useCallback(() => {
     setSelectedPackage(null)
     setSelectedRooms({}) // Clear any lingering room counts
-    setServiceType("standard") // Reset to default service type
+    setServiceType("essential") // Reset to default service type
     setAppliedCoupon(null) // Clear coupon
     setCouponCode("")
     setCouponError(null)
@@ -396,19 +403,18 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
     } else {
       Object.entries(selectedRooms).forEach(([roomType, count]) => {
         if (count > 0) {
-          const roomConfigItem = roomConfigs.find((config) => config.id === roomType)
-          if (roomConfigItem) {
-            const tiers = getRoomTiers(roomType)
-            let tierPrice = 0
-            // Map serviceType to the correct tier name for individual room pricing
-            if (serviceType === "standard") {
-              tierPrice = tiers.find((t) => t.name === "ESSENTIAL CLEAN")?.price || 0
-            } else {
-              // "detailing" service type now maps to "LUXURY CLEAN" for individual rooms
-              tierPrice = tiers.find((t) => t.name === "LUXURY CLEAN")?.price || 0
-            }
-            total += tierPrice * count
+          const tiers = getRoomTiers(roomType)
+          let tierPrice = 0
+          // Map serviceType to the correct tier name for individual room pricing
+          if (serviceType === "essential") {
+            tierPrice = tiers.find((t) => t.name.includes("ESSENTIAL"))?.price || 0
+          } else if (serviceType === "premium") {
+            tierPrice = tiers.find((t) => t.name.includes("PREMIUM"))?.price || 0
+          } else {
+            // serviceType === "luxury"
+            tierPrice = tiers.find((t) => t.name.includes("LUXURY"))?.price || 0
           }
+          total += tierPrice * count
         }
       })
     }
@@ -450,7 +456,7 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
         serviceDescription = "No package selected."
       }
     } else {
-      serviceName = serviceType === "standard" ? "Standard Cleaning Service" : "Premium Detailing Service"
+      serviceName = `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)} Cleaning Service`
       serviceDescription = `Frequency: ${frequency.replace("_", " ")}. Rooms: ${Object.entries(selectedRooms)
         .filter(([, count]) => count > 0)
         .map(([roomType, count]) => `${count} ${roomDisplayNames[roomType]}`)
@@ -475,9 +481,7 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
   const currentService = useMemo(() => {
     const serviceName = selectedPackage
       ? fullHousePackages.find((p) => p.id === selectedPackage)?.name || "Full House Package"
-      : serviceType === "standard"
-        ? "Standard Cleaning Service"
-        : "Premium Detailing Service"
+      : `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)} Cleaning Service`
     return {
       name: serviceName,
       price: calculateTotalPrice,
@@ -550,41 +554,56 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
 
         {/* Service Type */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Service Type</h3>
+          <h3 className="text-lg font-semibold mb-3">Service Tier</h3>
           <RadioGroup
             value={serviceType}
-            onValueChange={(value: "standard" | "detailing") => setServiceType(value)}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            onValueChange={(value: "essential" | "premium" | "luxury") => setServiceType(value)} // Updated type
+            className="grid grid-cols-1 md:grid-cols-3 gap-4" // Changed to 3 columns
             disabled={selectedPackage !== null} // Disable if a package is selected
           >
             <Label
-              htmlFor="standard"
+              htmlFor="essential"
               className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
             >
-              <RadioGroupItem id="standard" value="standard" className="sr-only" />
+              <RadioGroupItem id="essential" value="essential" className="sr-only" />
               <div className="flex flex-col items-center space-y-1">
-                <span className="text-base font-medium">Standard Cleaning</span>
+                <span className="text-base font-medium">Essential Cleaning</span>
+                <span className="text-sm text-gray-500 text-center">Basic maintenance for a tidy home.</span>
+              </div>
+            </Label>
+            <Label
+              htmlFor="premium"
+              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
+            >
+              <RadioGroupItem id="premium" value="premium" className="sr-only" />
+              <div className="flex flex-col items-center space-y-1">
+                <span className="text-base font-medium">Premium Cleaning</span>
                 <span className="text-sm text-gray-500 text-center">
-                  Ideal for regular maintenance and light cleaning.
+                  Thorough and hygienic, our most popular choice.
                 </span>
               </div>
             </Label>
             <Label
-              htmlFor="detailing"
+              htmlFor="luxury"
               className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
             >
-              <RadioGroupItem id="detailing" value="detailing" className="sr-only" />
+              <RadioGroupItem id="luxury" value="luxury" className="sr-only" />
               <div className="flex flex-col items-center space-y-1">
-                <span className="text-base font-medium">Premium Detailing</span>
+                <span className="text-base font-medium">Luxury Cleaning</span>
                 <span className="text-sm text-gray-500 text-center">
-                  Comprehensive deep clean, perfect for initial or intensive cleaning.
+                  Unparalleled cleanliness, meticulously cared for.
                 </span>
               </div>
             </Label>
           </RadioGroup>
-          {serviceType === "standard" && (
+          {serviceType === "essential" && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
-              Consider **Premium Detailing** for a more comprehensive and intensive clean!
+              Consider **Premium Cleaning** for a more comprehensive and intensive clean!
+            </p>
+          )}
+          {serviceType === "premium" && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center">
+              For the ultimate spotless experience, consider our **Luxury Cleaning**!
             </p>
           )}
         </div>
