@@ -39,3 +39,6 @@ const ClientRootLayout = ({ children }: { children: React.ReactNode }) => {
 }
 
 export default ClientRootLayout // Default export
+
+// Also export as a named export for consumers using `import { ClientRootLayout }`
+export { ClientRootLayout }

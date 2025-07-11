@@ -150,7 +150,7 @@
 
 I will update the `price` property for each tier within the `defaultTiers` object in `lib/room-tiers.ts` to reflect the new pricing from the `update-guide.md`.
 
-```typescriptreact file="lib/room-tiers.ts"
+\`\`\`typescriptreact file="lib/room-tiers.ts"
 [v0-no-op-code-block-prefix]// Define the room tiers, add-ons, and reductions for the room configurator
 
 export interface RoomTier {
