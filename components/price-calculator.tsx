@@ -122,7 +122,7 @@ const roomTypes = roomConfigs.map((cfg) => ({
 // Define the frequency options and their discounts
 const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
-  { id: "weekly", label: "Weekly", discount: 0.15, isRecurring: true, recurringInterval: "week" },
+  { id: "weekly", label: "Weekly", discount: 0.2, isRecurring: true, recurringInterval: "week" }, // Updated discount
   { id: "biweekly", label: "Biweekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
   { id: "monthly", label: "Monthly", discount: 0.05, isRecurring: true, recurringInterval: "month" },
   { id: "semi_annual", label: "Semi-Annual", discount: 0.02, isRecurring: true, recurringInterval: "month" },
@@ -139,9 +139,11 @@ const paymentFrequencyOptions = [
 
 // Define the cleanliness level multipliers
 const cleanlinessMultipliers = [
-  { level: 1, multiplier: 0.8, label: "Basic" },
-  { level: 2, multiplier: 1.0, label: "Standard" },
-  { level: 3, multiplier: 1.2, label: "Premium" },
+  { level: 1, multiplier: 0.8, label: "Mostly Clean" },
+  { level: 2, multiplier: 1.0, label: "Average" },
+  { level: 3, multiplier: 1.2, label: "Somewhat Dirty" },
+  { level: 4, multiplier: 1.5, label: "Very Dirty" },
+  { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
 ]
 
 // PriceCalculator component implementation goes here
