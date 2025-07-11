@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { PricingContent } from "@/components/pricing-content"
-import { PriceCalculator } from "@/components/price-calculator" // Import PriceCalculator
+import { PriceCalculator } from "@/components/price-calculator"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { getRoomTiers } from "@/lib/room-tiers"
 
@@ -25,10 +25,11 @@ export default function PricingPage() {
     let serviceType: "standard" | "detailing" = "standard"
     if (selectedTier) {
       // Determine service type based on tier name
-      if (selectedTier.name.includes("PREMIUM CLEAN") || selectedTier.name.includes("ADVANCED CLEAN")) {
-        serviceType = "detailing"
-      } else {
+      // "Essential Clean" maps to "standard", "Premium Clean" and "Luxury Clean" map to "detailing"
+      if (selectedTier.name.includes("ESSENTIAL CLEAN")) {
         serviceType = "standard"
+      } else {
+        serviceType = "detailing"
       }
     }
     setInitialServiceType(serviceType)

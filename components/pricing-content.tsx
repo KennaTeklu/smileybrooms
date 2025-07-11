@@ -109,6 +109,9 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
                 </ul>
               </CardContent>
               <CardFooter className="flex justify-center">
+                {/* When selecting a package, we pass 'bedroom' as a placeholder roomType
+                    because the PriceCalculator expects a roomType to initialize,
+                    but the package itself defines the rooms. The pkg.id is the important part. */}
                 <Button onClick={() => onSelectTier("bedroom", pkg.id)}>Select Package</Button>
               </CardFooter>
             </Card>
@@ -120,8 +123,8 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
       <section>
         <h2 className="text-3xl font-bold text-center mb-8">Individual Room Pricing by Tier</h2>
         {Object.keys(roomDisplayNames).map((roomType) => {
-          // Skip 'other' as it's a generic fallback and not a specific room for tier display
-          if (roomType === "other") return null
+          // Skip 'default' and 'other' as they are not specific rooms for tier display
+          if (roomType === "default" || roomType === "other") return null
 
           const tiers = getRoomTiers(roomType)
           return (
