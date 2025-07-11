@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { roomDisplayNames } from "@/lib/room-tiers"
 import { RoomCategorySection } from "@/components/room-category-section"
+import { PriceCalculator as PriceCalculatorNamed } from "./price-calculator"
 
 interface PricingContentProps {
   onSelectTier: (roomType: string, tierId: string) => void
@@ -29,12 +30,12 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-12 px-4 md:px-6">
-      <div className="text-center space-y-4 mb-12">
-        <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">Flexible Cleaning Plans</h1>
+      <header className="text-center space-y-4 mb-12">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">Flexible Cleaning Plans</h1>
         <p className="max-w-[700px] mx-auto text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
           Choose from our pre-defined tiers or build a custom plan tailored to your needs.
         </p>
-      </div>
+      </header>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:w-[400px] mx-auto mb-8">
@@ -73,8 +74,8 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
 
         <TabsContent value="custom">
           <div className="flex justify-center">
-            {/* The PriceCalculator component will be rendered here */}
-            {/* It will receive initialSelectedRooms and initialServiceType from the parent */}
+            {/* Calculator */}
+            <PriceCalculatorNamed />
           </div>
         </TabsContent>
       </Tabs>

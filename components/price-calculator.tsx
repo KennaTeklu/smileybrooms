@@ -354,3 +354,4 @@ const PriceCalculator: React.FC<PriceCalculatorProps> = ({
 }
 
 export default PriceCalculator
+export { PriceCalculator }
