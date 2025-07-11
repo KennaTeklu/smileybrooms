@@ -1,80 +1,63 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useCallback } from "react"
 import { useAccessibility } from "@/lib/accessibility-context"
 
-// Define the shape of our translation messages
-interface Messages {
-  [key: string]: string | { [key: string]: string }
-}
+import enMessages from "../messages/en"
+import esMessages from "../messages/es"
 
-// Define the shape of the translation context
+type Messages = typeof enMessages
+type Language = "en" | "es"
+
 interface TranslationContextType {
   t: (key: string, params?: Record<string, string | number>) => string
-  currentLanguage: string
-  setLanguage: (lang: string) => void
+  currentLanguage: Language
+  setLanguage: (lang: Language) => void
 }
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined)
 
-// Load messages dynamically
-const loadMessages = async (lang: string): Promise<Messages> => {
-  try {
-    const module = await import(`../messages/${lang}.ts`)
-    return (module as { default: Messages }).default
-  } catch (error) {
-    console.error(`Failed to load messages for language: ${lang}`, error)
-    const fallback = await import(`../messages/en.ts`)
-    return (fallback as { default: Messages }).default
-  }
+// Map available languages to their message tables
+const MESSAGES: Record<Language, Messages> = {
+  en: enMessages,
+  es: esMessages,
 }
 
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { preferences, updatePreference } = useAccessibility()
-  const [messages, setMessages] = useState<Messages>({})
-  const currentLanguage = preferences.language || "en"
-
-  useEffect(() => {
-    loadMessages(currentLanguage).then(setMessages)
-  }, [currentLanguage])
+  const currentLanguage: Language = (preferences.language as Language) || "en"
 
   const t = useCallback(
-    (key: string, params?: Record<string, string | number>): string => {
-      let message: string | { [key: string]: string } | undefined = messages
+    (key: string, params?: Record<string, string | number>) => {
       const parts = key.split(".")
-
+      // Traverse the nested object safely
+      let result: any = MESSAGES[currentLanguage]
       for (const part of parts) {
-        if (typeof message === "object" && message !== null && part in message) {
-          message = (message as Messages)[part]
-        } else {
-          message = undefined
-          break
-        }
+        result = result?.[part]
+        if (result === undefined) break
       }
 
-      if (typeof message === "string") {
-        let translated = message
+      if (typeof result === "string") {
+        let translated = result
         if (params) {
-          for (const [paramKey, paramValue] of Object.entries(params)) {
-            translated = translated.replace(`{${paramKey}}`, String(paramValue))
+          for (const [k, v] of Object.entries(params)) {
+            translated = translated.replace(`{${k}}`, String(v))
           }
         }
         return translated
       }
 
-      console.warn(`Translation key "${key}" not found for language "${currentLanguage}"`)
-      return key // Return the key itself if not found
+      // Fallback: return the key itself
+      console.warn(`Missing translation for "${key}" in "${currentLanguage}"`)
+      return key
     },
-    [messages, currentLanguage],
+    [currentLanguage],
   )
 
-  const setLanguage = useCallback(
-    (lang: string) => {
-      updatePreference("language", lang)
-    },
-    [updatePreference],
-  )
+  const setLanguage = (lang: Language) => {
+    updatePreference("language", lang)
+  }
 
   return (
     <TranslationContext.Provider value={{ t, currentLanguage, setLanguage }}>{children}</TranslationContext.Provider>
@@ -82,9 +65,7 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
 }
 
 export const useTranslation = () => {
-  const context = useContext(TranslationContext)
-  if (context === undefined) {
-    throw new Error("useTranslation must be used within a TranslationProvider")
-  }
-  return context
+  const ctx = useContext(TranslationContext)
+  if (!ctx) throw new Error("useTranslation must be used within TranslationProvider")
+  return ctx
 }

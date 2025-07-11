@@ -12,7 +12,7 @@ const messages = {
     post_construction: "Post-Construcción",
     phone: "Teléfono",
     email: "Correo Electrónico",
-    hours: "Horas",
+    hours: "Horario",
     all_rights_reserved: "Todos los derechos reservados.",
   },
   settings: {
@@ -39,8 +39,8 @@ const messages = {
     language_label: "Idioma",
     language_english: "Inglés",
     language_spanish: "Español",
-    reset_button: "Restablecer Todas las Configuraciones",
-    reset_success: "Configuraciones restablecidas a los valores predeterminados.",
+    reset_button: "Restablecer Configuraciones",
+    reset_success: "Configuraciones restablecidas.",
     close_button_label: "Cerrar panel de configuración",
     open_button_label: "Abrir panel de configuración",
     close_tooltip: "Cerrar Configuración",
@@ -67,14 +67,14 @@ const messages = {
     qr_code_alt_text: "Código QR para compartir",
     qr_code_aria_label: "Código QR para compartir esta página",
     native_share: "Compartir Nativo",
-    native_share_button: "Compartir usando el diálogo nativo",
+    native_share_button: "Compartir mediante diálogo nativo",
     facebook_button: "Compartir en Facebook",
     twitter_button: "Compartir en X (Twitter)",
     linkedin_button: "Compartir en LinkedIn",
     whatsapp_button: "Compartir en WhatsApp",
-    email_button: "Compartir por Correo Electrónico",
+    email_button: "Compartir por Correo",
     sms_button: "Compartir por SMS",
   },
-}
+} as const
 
 export default messages

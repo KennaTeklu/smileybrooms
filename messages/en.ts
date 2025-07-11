@@ -30,10 +30,10 @@ const messages = {
     font_size_small: "Small",
     font_size_medium: "Medium",
     font_size_large: "Large",
-    high_contrast_label: "High Contrast Mode",
+    high_contrast_label: "High-Contrast Mode",
     high_contrast_description: "Enhance color contrast for readability.",
     animations_label: "Reduce Animations",
-    animations_description: "Minimize motion effects for sensitive users.",
+    animations_description: "Minimise motion effects for sensitive users.",
     keyboard_navigation_label: "Keyboard Navigation Focus",
     keyboard_navigation_description: "Highlight interactive elements for keyboard users.",
     language_label: "Language",
@@ -75,6 +75,6 @@ const messages = {
     email_button: "Share via Email",
     sms_button: "Share via SMS",
   },
-}
+} as const
 
 export default messages
