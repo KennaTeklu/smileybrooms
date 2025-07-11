@@ -177,3 +177,5 @@ export function BookingTimeline({ onDateSelected, onTimeSelected, selectedDate, 
     </Card>
   )
 }
+
+export default BookingTimeline
