@@ -81,3 +81,5 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
     </div>
   )
 }
+
+export default PricingContent
