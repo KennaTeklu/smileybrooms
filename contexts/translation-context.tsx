@@ -21,13 +21,12 @@ const TranslationContext = createContext<TranslationContextType | undefined>(und
 // Load messages dynamically
 const loadMessages = async (lang: string): Promise<Messages> => {
   try {
-    const module = await import(`../messages/${lang}.json`)
-    return module.default
+    const module = await import(`../messages/${lang}.ts`)
+    return (module as { default: Messages }).default
   } catch (error) {
     console.error(`Failed to load messages for language: ${lang}`, error)
-    // Fallback to English if loading fails
-    const defaultModule = await import(`../messages/en.json`)
-    return defaultModule.default
+    const fallback = await import(`../messages/en.ts`)
+    return (fallback as { default: Messages }).default
   }
 }
 
