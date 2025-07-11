@@ -1375,191 +1375,6 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
   ],
 }
 
-export const defaultReductions: Record<string, RoomReduction[]> = {
-  bedroom: [
-    { id: "bed-r1", name: "Skip mirror cleaning", discount: 5.0, description: "Mirrors will not be cleaned" },
-    {
-      id: "bed-r2",
-      name: "Limit to 2 furniture pieces",
-      discount: 8.0,
-      description: "Only 2 furniture pieces will be cleaned",
-    },
-    {
-      id: "bed-r3",
-      name: "No under-bed cleaning",
-      discount: 10.0,
-      description: "Area under the bed will not be cleaned",
-    },
-    {
-      id: "bed-r4",
-      name: "Basic surface dusting only",
-      discount: 7.0,
-      description: "Only basic dusting will be performed",
-    },
-  ],
-  bathroom: [
-    { id: "bath-r1", name: "Skip shower/tub cleaning", discount: 15.0, description: "Shower/tub will not be cleaned" },
-    {
-      id: "bath-r2",
-      name: "Basic toilet cleaning only",
-      discount: 8.0,
-      description: "Only basic toilet cleaning will be performed",
-    },
-    { id: "bath-r3", name: "Skip floor mopping", discount: 10.0, description: "Floor will not be mopped" },
-    { id: "bath-r4", name: "No cabinet cleaning", discount: 5.0, description: "Cabinets will not be cleaned" },
-  ],
-  kitchen: [
-    {
-      id: "kit-r1",
-      name: "Skip appliance exteriors",
-      discount: 12.0,
-      description: "Appliance exteriors will not be cleaned",
-    },
-    {
-      id: "kit-r2",
-      name: "Basic countertop cleaning only",
-      discount: 10.0,
-      description: "Only basic countertop cleaning will be performed",
-    },
-    { id: "kit-r3", name: "No floor mopping", discount: 15.0, description: "Floor will not be mopped" },
-    {
-      id: "kit-r4",
-      name: "Skip sink deep cleaning",
-      discount: 8.0,
-      description: "Sink will receive only basic cleaning",
-    },
-  ],
-  livingRoom: [
-    {
-      id: "liv-r1",
-      name: "Skip under furniture",
-      discount: 12.0,
-      description: "Areas under furniture will not be cleaned",
-    },
-    {
-      id: "liv-r2",
-      name: "Basic vacuum only (no edges)",
-      discount: 10.0,
-      description: "Only basic vacuuming will be performed",
-    },
-    { id: "liv-r3", name: "No electronics dusting", discount: 8.0, description: "Electronics will not be dusted" },
-    {
-      id: "liv-r4",
-      name: "Skip decor item cleaning",
-      discount: 7.0,
-      description: "Decorative items will not be cleaned",
-    },
-  ],
-  diningRoom: [
-    { id: "din-r1", name: "Skip chair cleaning", discount: 10.0, description: "Chairs will not be cleaned" },
-    {
-      id: "din-r2",
-      name: "Basic table cleaning only",
-      discount: 8.0,
-      description: "Only basic table cleaning will be performed",
-    },
-    {
-      id: "din-r3",
-      name: "No china cabinet cleaning",
-      discount: 12.0,
-      description: "China cabinet will not be cleaned",
-    },
-    {
-      id: "din-r4",
-      name: "Skip light fixture dusting",
-      discount: 7.0,
-      description: "Light fixtures will not be dusted",
-    },
-  ],
-  homeOffice: [
-    { id: "off-r1", name: "Skip electronics dusting", discount: 10.0, description: "Electronics will not be dusted" },
-    { id: "off-r2", name: "No bookshelf cleaning", discount: 12.0, description: "Bookshelves will not be cleaned" },
-    {
-      id: "off-r3",
-      name: "Basic desk cleaning only",
-      discount: 8.0,
-      description: "Only basic desk cleaning will be performed",
-    },
-    { id: "off-r4", name: "Skip floor edges", discount: 7.0, description: "Floor edges will not be cleaned" },
-  ],
-  laundryRoom: [
-    {
-      id: "lau-r1",
-      name: "Skip appliance exteriors",
-      discount: 10.0,
-      description: "Appliance exteriors will not be cleaned",
-    },
-    { id: "lau-r2", name: "No sink cleaning", discount: 8.0, description: "Sink will not be cleaned" },
-    {
-      id: "lau-r3",
-      name: "Basic floor cleaning only",
-      discount: 7.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    { id: "lau-r4", name: "Skip cabinet fronts", discount: 6.0, description: "Cabinet fronts will not be cleaned" },
-  ],
-  entryway: [
-    {
-      id: "ent-r1",
-      name: "Basic floor cleaning only",
-      discount: 8.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    { id: "ent-r2", name: "Skip door cleaning", discount: 6.0, description: "Door will not be cleaned" },
-    {
-      id: "ent-r3",
-      name: "No console table cleaning",
-      discount: 7.0,
-      description: "Console table will not be cleaned",
-    },
-    {
-      id: "ent-r4",
-      name: "Skip mirror/artwork cleaning",
-      discount: 5.0,
-      description: "Mirrors and artwork will not be cleaned",
-    },
-  ],
-  hallway: [
-    {
-      id: "hal-r1",
-      name: "Basic floor cleaning only",
-      discount: 8.0,
-      description: "Only basic floor cleaning will be performed",
-    },
-    { id: "hal-r2", name: "Skip wall cleaning", discount: 6.0, description: "Walls will not be cleaned" },
-    { id: "hal-r3", name: "No picture frame dusting", discount: 5.0, description: "Picture frames will not be dusted" },
-    { id: "hal-r4", name: "Skip baseboard cleaning", discount: 7.0, description: "Baseboards will not be cleaned" },
-  ],
-  stairs: [
-    {
-      id: "sta-r1",
-      name: "Basic step cleaning only",
-      discount: 10.0,
-      description: "Only basic step cleaning will be performed",
-    },
-    { id: "sta-r2", name: "Skip handrail cleaning", discount: 8.0, description: "Handrail will not be cleaned" },
-    { id: "sta-r3", name: "No spindle dusting", discount: 7.0, description: "Spindles will not be dusted" },
-    { id: "sta-r4", name: "Skip stair edges", discount: 6.0, description: "Stair edges will not be cleaned" },
-  ],
-  default: [
-    {
-      id: "def-1",
-      name: "Detailed dusting of all surfaces",
-      price: 15.0,
-      description: "Comprehensive dusting of all surfaces",
-    },
-    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
-    {
-      id: "def-3",
-      name: "Ceiling corner cobweb removal",
-      price: 8.0,
-      description: "Removal of cobwebs from ceiling corners",
-    },
-    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
-    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
-  ],
-}
-
 // Helper function to get tiers for a specific room type
 export function getRoomTiers(roomType: string): RoomTier[] {
   return defaultTiers[roomType] || defaultTiers.default
@@ -1618,4 +1433,18 @@ export const roomDisplayNames: Record<string, string> = {
   hallway: "Hallway",
   stairs: "Stairs",
   other: "Other Space",
+}
+
+export const defaultReductions: Record<string, RoomReduction[]> = {
+  bedroom: [],
+  bathroom: [],
+  kitchen: [],
+  livingRoom: [],
+  diningRoom: [],
+  homeOffice: [],
+  laundryRoom: [],
+  entryway: [],
+  hallway: [],
+  stairs: [],
+  default: [],
 }

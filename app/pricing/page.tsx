@@ -37,14 +37,37 @@ export default function PricingPage() {
     setActiveTab("custom") // Switch to the custom plan tab
   }
 
+  // This function will be called by PriceCalculator when calculation is complete
+  const handleCalculationComplete = (data: {
+    rooms: Record<string, number>
+    frequency: string
+    totalPrice: number
+    serviceType: "essential" | "premium" | "luxury"
+    cleanlinessLevel: number
+    priceMultiplier: number
+    isServiceAvailable: boolean
+    addressId: string
+    paymentFrequency: "per_service" | "monthly" | "yearly"
+    isRecurring: boolean
+    recurringInterval: "week" | "month" | "year"
+  }) => {
+    console.log("Price calculation complete:", data)
+    // Here you can use the calculated data, e.g., update a summary,
+    // store it in context, or trigger other actions.
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <PricingContent onSelectTier={handleSelectTier} />
         <TabsContent value="custom">
           <div className="flex justify-center py-12 px-4 md:px-6">
-            {/* Render the PriceCalculator here, passing initial props */}
-            <PriceCalculator initialSelectedRooms={initialSelectedRooms} initialServiceType={initialServiceType} />
+            {/* Render the PriceCalculator here, passing initial props and the callback */}
+            <PriceCalculator
+              initialSelectedRooms={initialSelectedRooms}
+              initialServiceType={initialServiceType}
+              onCalculationComplete={handleCalculationComplete}
+            />
           </div>
         </TabsContent>
       </Tabs>

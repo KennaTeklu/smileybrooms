@@ -32,7 +32,7 @@ interface PriceCalculatorProps {
     addressId: string
     paymentFrequency: "per_service" | "monthly" | "yearly"
     isRecurring: boolean
-    recurringInterval: "week" | "month" | "year"
+    recurringInterval: "week" | "month" | "year" | null // Added null for one-time
   }) => void
   onAddToCart?: () => void
   initialSelectedRooms?: Record<string, number> // New prop for initial rooms
@@ -130,14 +130,14 @@ const ADDITIONAL_ROOM_IDS = roomTypes.map((room) => room.id).filter((id) => !COR
 const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
   { id: "weekly", label: "Weekly", discount: 0.2, isRecurring: true, recurringInterval: "week" }, // Updated discount to 20%
-  { id: "biweekly", label: "Biweekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
+  { id: "biweekly", label: "Bi-Weekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
   { id: "monthly", label: "Monthly", discount: 0.05, isRecurring: true, recurringInterval: "month" },
   { id: "semi_annual", label: "Semi-Annual", discount: 0.02, isRecurring: true, recurringInterval: "month" },
   { id: "annually", label: "Annual", discount: 0.01, isRecurring: true, recurringInterval: "year" },
   { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
 ]
 
-// Define the payment frequency options (not directly used in price calculation, but kept for context)
+// Define the payment frequency options
 const paymentFrequencyOptions = [
   { id: "per_service", label: "Pay Per Service" },
   { id: "monthly", label: "Monthly Subscription" },
@@ -324,10 +324,15 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
   )
 }
 
-export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType = "essential" }: PriceCalculatorProps) {
+export function PriceCalculator({
+  onCalculationComplete,
+  initialSelectedRooms = {},
+  initialServiceType = "essential",
+}: PriceCalculatorProps) {
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(initialSelectedRooms)
   const [serviceType, setServiceType] = useState<"essential" | "premium" | "luxury">(initialServiceType) // Updated type
   const [frequency, setFrequency] = useState("one_time")
+  const [paymentFrequency, setPaymentFrequency] = useState("per_service") // New state for payment frequency
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to Average (level 2)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
@@ -420,9 +425,9 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
     }
 
     // Apply frequency discount/premium (applies to both individual rooms and packages)
-    const selectedFrequency = frequencyOptions.find((opt) => opt.id === frequency)
-    if (selectedFrequency) {
-      total *= 1 - selectedFrequency.discount
+    const selectedFrequencyOption = frequencyOptions.find((opt) => opt.id === frequency)
+    if (selectedFrequencyOption) {
+      total *= 1 - selectedFrequencyOption.discount
     }
 
     // Apply cleanliness level modifier (applies to both individual rooms and packages)
@@ -436,6 +441,42 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
 
     return Math.max(0, total) // Ensure total doesn't go below zero
   }, [selectedRooms, serviceType, frequency, cleanlinessLevel, selectedPackage, appliedCoupon])
+
+  // Call onCalculationComplete when relevant dependencies change
+  useEffect(() => {
+    if (onCalculationComplete) {
+      const selectedFrequencyOption = frequencyOptions.find((opt) => opt.id === frequency)
+      const cleanlinessModifier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1.0
+      const effectivePriceMultiplier = (1 - (selectedFrequencyOption?.discount || 0)) * cleanlinessModifier
+
+      onCalculationComplete({
+        rooms: selectedPackage
+          ? fullHousePackages
+              .find((p) => p.id === selectedPackage)
+              ?.includedRooms.reduce((acc, room) => ({ ...acc, [room]: (acc[room] || 0) + 1 }), {}) || {}
+          : selectedRooms,
+        frequency,
+        totalPrice: calculateTotalPrice,
+        serviceType,
+        cleanlinessLevel,
+        priceMultiplier: effectivePriceMultiplier,
+        isServiceAvailable: true, // Placeholder, would depend on actual service area logic
+        addressId: "default-address", // Placeholder, would come from user's address selection
+        paymentFrequency,
+        isRecurring: selectedFrequencyOption?.isRecurring || false,
+        recurringInterval: selectedFrequencyOption?.recurringInterval || null,
+      })
+    }
+  }, [
+    calculateTotalPrice,
+    selectedRooms,
+    frequency,
+    serviceType,
+    cleanlinessLevel,
+    selectedPackage,
+    paymentFrequency,
+    onCalculationComplete,
+  ])
 
   const handleAddToCart = () => {
     let serviceName: string
@@ -625,6 +666,25 @@ export function PriceCalculator({ initialSelectedRooms = {}, initialServiceType 
               <SelectItem value="semi_annual">Semi-Annual (2% off)</SelectItem>
               <SelectItem value="annually">Annual (1% off)</SelectItem>
               <SelectItem value="vip_daily">VIP Daily (25% off)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator />
+
+        {/* Payment Frequency */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Payment Frequency</h3>
+          <Select value={paymentFrequency} onValueChange={setPaymentFrequency}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select payment frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              {paymentFrequencyOptions.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
