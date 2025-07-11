@@ -15,9 +15,9 @@ import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
 import { roomConfigs } from "@/lib/room-config"
 import { ServiceDetailsModal } from "@/components/service-details-modal"
-import { roomDisplayNames, getRoomTiers, roomIcons } from "@/lib/room-tiers" // Added roomIcons
+import { roomDisplayNames, getRoomTiers, roomIcons } from "@/lib/room-tiers"
 import { useCart } from "@/lib/cart-context"
-import { Input } from "@/components/ui/input" // Import Input component
+import { Input } from "@/components/ui/input"
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -122,6 +122,10 @@ const roomTypes = roomConfigs.map((cfg) => ({
   icon: roomIcons[cfg.id] ?? "➕",
 }))
 
+// Define core and additional room IDs for explicit filtering
+const CORE_ROOM_IDS = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]
+const ADDITIONAL_ROOM_IDS = roomTypes.map((room) => room.id).filter((id) => !CORE_ROOM_IDS.includes(id))
+
 // Define the frequency options and their discounts
 const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
@@ -186,7 +190,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
         {roomTypes
-          .filter((room) => ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"].includes(room.id))
+          .filter((room) => CORE_ROOM_IDS.includes(room.id)) // Use CORE_ROOM_IDS
           .map((room) => (
             <div
               key={room.id}
@@ -244,7 +248,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {roomTypes
-          .filter((room) => !["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"].includes(room.id))
+          .filter((room) => ADDITIONAL_ROOM_IDS.includes(room.id)) // Use ADDITIONAL_ROOM_IDS
           .map((room) => (
             <div
               key={room.id}

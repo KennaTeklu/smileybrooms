@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { PricingContent } from "@/components/pricing-content"
-import { PriceCalculator } from "@/components/price-calculator"
+import { PriceCalculator } from "@/components/price-calculator" // Import PriceCalculator
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { getRoomTiers } from "@/lib/room-tiers"
 
@@ -13,7 +13,9 @@ export default function PricingPage() {
 
   const handleSelectTier = (roomType: string, tierId: string) => {
     const selectedRooms: Record<string, number> = {}
-    selectedRooms[roomType] = 1 // Set the selected room count to 1 for the chosen room
+    // When a tier is selected, set the count for that room type to 1
+    // This ensures the PriceCalculator starts with the selected room pre-filled
+    selectedRooms[roomType] = 1
 
     setInitialSelectedRooms(selectedRooms)
 
@@ -39,6 +41,7 @@ export default function PricingPage() {
         <PricingContent onSelectTier={handleSelectTier} />
         <TabsContent value="custom">
           <div className="flex justify-center py-12 px-4 md:px-6">
+            {/* Render the PriceCalculator here, passing initial props */}
             <PriceCalculator initialSelectedRooms={initialSelectedRooms} initialServiceType={initialServiceType} />
           </div>
         </TabsContent>
