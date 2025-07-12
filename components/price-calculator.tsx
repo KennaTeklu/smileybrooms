@@ -16,12 +16,13 @@ import {
   getRoomReductions,
   fullHousePackages,
   type RoomAddOn,
-  defaultTiers, // Declare the defaultTiers variable
+  defaultTiers,
 } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
 import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { RoomVisualization } from "./room-visualization" // Import the RoomVisualization component
+import { RoomVisualization } from "./room-visualization"
+import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS
 
 interface PriceCalculatorProps {
   initialSelectedRooms?: Record<string, number>
@@ -140,13 +141,10 @@ export function PriceCalculator({
   }
 
   const handleApplyCoupon = () => {
-    // Simple coupon logic for demonstration
-    if (couponCode.toLowerCase() === "smiley20") {
-      setCouponDiscount(0.2) // 20% discount
-      setAppliedCoupon("SMILEY20")
-    } else if (couponCode.toLowerCase() === "firstclean10") {
-      setCouponDiscount(0.1) // 10% discount
-      setAppliedCoupon("FIRSTCLEAN10")
+    const coupon = VALID_COUPONS.find((c) => c.code.toLowerCase() === couponCode.toLowerCase())
+    if (coupon) {
+      setCouponDiscount(coupon.discount)
+      setAppliedCoupon(coupon.code)
     } else {
       setCouponDiscount(0)
       setAppliedCoupon(null)
