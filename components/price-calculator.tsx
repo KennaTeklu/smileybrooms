@@ -58,10 +58,10 @@ const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
   { id: "weekly", label: "Weekly", discount: 0.2, isRecurring: true, recurringInterval: "week" }, // Updated discount to 20%
   { id: "biweekly", label: "Bi-Weekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
-  { id: "monthly", label: "Monthly", discount: 0.05, isRecurring: true, recurringInterval: "month" },
-  { id: "semi_annual", label: "Semi-Annual", discount: 0.02, isRecurring: true, recurringInterval: "month" },
-  { id: "annually", label: "Annual", discount: 0.01, isRecurring: true, recurringInterval: "year" },
-  { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
+  { id: "monthly", label: "Monthly (5% off)", discount: 0.05, isRecurring: true, recurringInterval: "month" },
+  { id: "semi_annual", label: "Semi-Annual (2% off)", discount: 0.02, isRecurring: true, recurringInterval: "month" },
+  { id: "annually", label: "Annual (1% off)", discount: 0.01, isRecurring: true, recurringInterval: "year" },
+  { id: "vip_daily", label: "VIP Daily (25% off)", discount: 0.25, isRecurring: true, recurringInterval: "week" },
 ]
 
 // Define the payment frequency options
