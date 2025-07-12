@@ -23,6 +23,8 @@ import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { RoomVisualization } from "./room-visualization"
 import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS
+import { useCart } from "@/lib/cart-context" // Import useCart
+import { useRouter } from "next/navigation" // Import useRouter
 
 interface PriceCalculatorProps {
   initialSelectedRooms?: Record<string, number>
@@ -61,6 +63,9 @@ export function PriceCalculator({
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
   const [addressId, setAddressId] = useState("") // Placeholder for address ID
   const [isServiceAvailable, setIsServiceAvailable] = useState(true) // Placeholder for service availability
+
+  const { addItem, clearCart } = useCart() // Use cart context
+  const router = useRouter() // Use router for navigation
 
   // Effect to initialize selected tiers based on initialServiceType
   useEffect(() => {
@@ -271,6 +276,39 @@ export function PriceCalculator({
   const selectedAddOnsDetailsForVisualization = (selectedAddOns[roomTypeForVisualization] || [])
     .map((id) => getRoomAddOns(roomTypeForVisualization).find((ao) => ao.id === id))
     .filter(Boolean) as RoomAddOn[]
+
+  const handleProceedToCheckout = () => {
+    // Clear existing cart items to ensure only the new custom service is added
+    clearCart()
+
+    // Construct a single CartItem representing the entire custom cleaning service
+    const customServiceItem = {
+      id: `custom-cleaning-${Date.now()}`, // Unique ID for this custom service instance
+      name: "Custom Cleaning Service",
+      price: totalPrice,
+      quantity: 1,
+      image: "/custom-cleaning-service-icon.png", // Placeholder image
+      sourceSection: "price-calculator",
+      paymentFrequency: paymentFrequency,
+      metadata: {
+        rooms: selectedRooms,
+        selectedTierIds: selectedTierIds,
+        selectedAddOns: selectedAddOns,
+        selectedReductions: selectedReductions,
+        frequency: frequency,
+        cleanlinessLevel: cleanlinessLevel,
+        priceMultiplier: priceMultiplier,
+        isRecurring: isRecurring,
+        recurringInterval: isRecurring ? recurringInterval : undefined,
+        appliedCoupon: appliedCoupon,
+        couponDiscount: couponDiscount,
+        serviceType: currentServiceType,
+      },
+    }
+
+    addItem(customServiceItem)
+    router.push("/checkout")
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-lg">
@@ -534,7 +572,7 @@ export function PriceCalculator({
           <span>Estimated Total:</span>
           <span>{formatCurrency(totalPrice)}</span>
         </div>
-        <Button className="w-full" size="lg">
+        <Button className="w-full" size="lg" onClick={handleProceedToCheckout}>
           Proceed to Checkout
         </Button>
       </CardFooter>

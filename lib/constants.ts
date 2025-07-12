@@ -7,10 +7,10 @@ export const PHONE_NUMBER = "+1 (800) 555-0123"
 
 // Coupon codes and their discounts
 export const VALID_COUPONS = [
-  { code: "SMILEY20", discount: 0.2, description: "20% off your entire service" },
-  { code: "FIRSTCLEAN10", discount: 0.1, description: "10% off your first cleaning" },
-  { code: "WELCOMEHOME", discount: 0.15, description: "15% off for new customers" },
-  { code: "SPRINGCLEAN", discount: 0.25, description: "25% off seasonal cleaning" },
+  { code: "V0DISCOUNT", type: "percentage" as const, value: 0.15, maxDiscount: 50 }, // 15% off, max $50
+  { code: "FREECLEAN", type: "fixed" as const, value: 25 }, // $25 off
+  { code: "SMILEY20", type: "percentage" as const, value: 0.2 }, // 20% off
+  { code: "FIRSTCLEAN10", type: "percentage" as const, value: 0.1 }, // 10% off
 ]
 
 // Other general constants

@@ -4,6 +4,7 @@ import { createContext, useContext, useReducer, type ReactNode, useEffect } from
 import { useToast } from "@/components/ui/use-toast"
 // Import the new matching utilities
 import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
+import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS from constants
 
 export type CartItem = {
   id: string
@@ -43,12 +44,6 @@ const initialState: CartState = {
   couponDiscount: 0,
 }
 
-// Define valid coupons and their effects
-const VALID_COUPONS: { [key: string]: { type: "percentage" | "fixed"; value: number; maxDiscount?: number } } = {
-  V0DISCOUNT: { type: "percentage", value: 0.15, maxDiscount: 50 }, // 15% off, max $50
-  FREECLEAN: { type: "fixed", value: 25 }, // $25 off
-}
-
 const calculateCartTotals = (
   items: CartItem[],
   couponCode: string | null,
@@ -57,15 +52,17 @@ const calculateCartTotals = (
   let couponDiscount = 0
   let finalPrice = subtotalPrice
 
-  if (couponCode && VALID_COUPONS[couponCode.toUpperCase()]) {
-    const coupon = VALID_COUPONS[couponCode.toUpperCase()]
-    if (coupon.type === "percentage") {
-      couponDiscount = subtotalPrice * coupon.value
-      if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
-        couponDiscount = coupon.maxDiscount
+  if (couponCode) {
+    const coupon = VALID_COUPONS.find((c) => c.code.toUpperCase() === couponCode.toUpperCase())
+    if (coupon) {
+      if (coupon.type === "percentage") {
+        couponDiscount = subtotalPrice * coupon.value
+        if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+          couponDiscount = coupon.maxDiscount
+        }
+      } else if (coupon.type === "fixed") {
+        couponDiscount = coupon.value
       }
-    } else if (coupon.type === "fixed") {
-      couponDiscount = coupon.value
     }
     finalPrice = Math.max(0, subtotalPrice - couponDiscount) // Ensure price doesn't go below zero
   }
@@ -81,6 +78,23 @@ const calculateCartTotals = (
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
+      // For custom cleaning services, we always replace the cart content
+      if (action.payload.id.startsWith("custom-cleaning-")) {
+        const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+          [action.payload], // Only the new custom item
+          state.couponCode,
+        )
+        return {
+          ...state,
+          items: [action.payload],
+          totalItems,
+          subtotalPrice,
+          totalPrice,
+          couponDiscount,
+        }
+      }
+
+      // For other items, use existing logic
       const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
       let updatedItems: CartItem[]
 
@@ -283,7 +297,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const applyCoupon = (couponCode: string): boolean => {
-    if (VALID_COUPONS[couponCode.toUpperCase()]) {
+    if (VALID_COUPONS.some((c) => c.code.toUpperCase() === couponCode.toUpperCase())) {
       dispatch({ type: "APPLY_COUPON", payload: couponCode })
       if (toast) {
         toast({
