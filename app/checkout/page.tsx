@@ -13,7 +13,7 @@ import AddressStep from "@/components/checkout/address-step"
 import PaymentStep from "@/components/checkout/payment-step"
 import ReviewStep from "@/components/checkout/review-step"
 import type { CheckoutData } from "@/lib/types"
-import { FormProgress } from "@/components/form-progress" // Import FormProgress
+import { FormProgress } from "@/components/form-progress"
 
 type CheckoutStepId = "contact" | "address" | "payment" | "review"
 
@@ -30,7 +30,7 @@ export default function CheckoutPage() {
   const { toast } = useToast()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
-  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({}) // Changed to Record<string, boolean> for FormProgress
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({})
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     contact: {
       firstName: "",
@@ -108,7 +108,6 @@ export default function CheckoutPage() {
   }, [])
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
-  // Progress calculation for the simple bar (if still used) or for general display
   const progressValue = (Object.keys(completedSteps).length / steps.length) * 100
 
   const handleSaveStepData = useCallback((stepId: CheckoutStepId, data: any) => {
@@ -144,10 +143,8 @@ export default function CheckoutPage() {
       const stepIndex = steps.findIndex((step) => step.id === stepId)
       // Allow navigating to any previous completed step or the immediate next step
       if (stepIndex < currentStepIndex || completedSteps[stepId]) {
-        // Allow clicking on completed steps
         setCurrentStep(stepId)
       } else if (stepIndex === currentStepIndex + 1) {
-        // Allow moving to the next step if the current one is completed
         if (completedSteps[currentStep]) {
           setCurrentStep(stepId)
         } else {
