@@ -1,69 +1,30 @@
-"use client"
-
-import { useState } from "react"
+import { Suspense } from "react"
 import { PricingContent } from "@/components/pricing-content"
-import { PriceCalculator } from "@/components/price-calculator"
-import { FloatingCartSummary } from "@/components/floating-cart-summary" // Import the new component
+import { PricingFloatingElements } from "@/components/pricing-floating-elements"
+import { FloatingCartSummary } from "@/components/floating-cart-summary" // Import FloatingCartSummary
 
 export default function PricingPage() {
-  const [activeTab, setActiveTab] = useState("tiers")
-  const [initialSelectedRooms, setInitialSelectedRooms] = useState<Record<string, number>>({})
-  const [initialServiceType, setInitialServiceType] = useState<"essential" | "premium" | "luxury">("essential") // Updated type
-
-  // This function is passed to PricingContent and then to PriceCalculator.
-  // The PriceCalculator component handles adding items to the cart internally
-  // using the useCart hook, so we don't need to explicitly handle onSelectTier here
-  // for cart updates.
-  const handleSelectTier = (roomType: string, tierId: string) => {
-    // This function is primarily for passing down to PriceCalculator
-    // PriceCalculator will handle the actual state updates and cart additions
-    console.log(`Selected tier ${tierId} for room ${roomType}`)
-  }
-
-  // This function will be called by PriceCalculator when calculation is complete
-  const handleCalculationComplete = (data: {
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "essential" | "premium" | "luxury"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    addressId: string
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-    isRecurring: boolean
-    recurringInterval: "week" | "month" | "year"
-  }) => {
-    console.log("Price calculation complete:", data)
-    // Here you can use the calculated data, e.g., update a summary,
-    // store it in context, or trigger other actions.
-  }
-
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-950">
-      <main className="flex-1 py-12">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-5xl">
-              Flexible Cleaning Plans
-            </h1>
-            <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-              Choose from our pre-defined packages or build your own custom plan.
-            </p>
-          </div>
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* The PricingContent component is for displaying the package and individual room options */}
-            <PricingContent onSelectTier={handleSelectTier} />
-            {/* The PriceCalculator component is for the interactive building of the custom plan */}
-            <PriceCalculator
-              initialSelectedRooms={initialSelectedRooms}
-              initialServiceType={initialServiceType}
-              onCalculationComplete={handleCalculationComplete}
-            />
-          </div>
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 md:py-20">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">
+            Flexible Cleaning Plans
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Choose the perfect cleaning service tailored to your needs. Get an instant quote and book online!
+          </p>
         </div>
-      </main>
-      {/* Add the floating cart summary */}
+
+        <Suspense fallback={<div>Loading pricing options...</div>}>
+          <PricingContent />
+        </Suspense>
+      </div>
+
+      {/* Floating elements for cart and other actions */}
+      <PricingFloatingElements />
+
+      {/* Floating Cart Summary */}
       <FloatingCartSummary />
     </div>
   )

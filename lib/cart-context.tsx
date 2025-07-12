@@ -1,326 +1,268 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import type React from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
-// Import the new matching utilities
-import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
-import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS from constants
 
-export type CartItem = {
+interface CartItem {
   id: string
   name: string
   price: number
-  priceId?: string // Made optional as it might not always be present for custom items
   quantity: number
   image?: string
-  sourceSection?: string
-  metadata?: Record<string, any>
-  paymentFrequency?: "per_service" | "monthly" | "yearly"
+  description?: string
+  metadata?: Record<string, any> // For custom cleaning details
 }
 
-type CartState = {
+interface CartState {
   items: CartItem[]
-  totalItems: number
-  subtotalPrice: number // Renamed from totalPrice to subtotalPrice
-  totalPrice: number // New field for total after discounts/taxes
-  couponCode: string | null
+  subtotal: number
+  tax: number
   couponDiscount: number
+  appliedCoupon: string | null
+  total: number
 }
 
-type CartAction =
-  | { type: "ADD_ITEM"; payload: CartItem }
-  | { type: "REMOVE_ITEM"; payload: string }
-  | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
-  | { type: "CLEAR_CART" }
-  | { type: "APPLY_COUPON"; payload: string }
-  | { type: "SET_CART"; payload: CartState } // New action for loading from localStorage
-
-const initialState: CartState = {
-  items: [],
-  totalItems: 0,
-  subtotalPrice: 0,
-  totalPrice: 0,
-  couponCode: null,
-  couponDiscount: 0,
-}
-
-const calculateCartTotals = (
-  items: CartItem[],
-  couponCode: string | null,
-): { totalItems: number; subtotalPrice: number; totalPrice: number; couponDiscount: number } => {
-  const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
-  let couponDiscount = 0
-  let finalPrice = subtotalPrice
-
-  if (couponCode) {
-    const coupon = VALID_COUPONS.find((c) => c.code.toUpperCase() === couponCode.toUpperCase())
-    if (coupon) {
-      if (coupon.type === "percentage") {
-        couponDiscount = subtotalPrice * coupon.value
-        if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
-          couponDiscount = coupon.maxDiscount
-        }
-      } else if (coupon.type === "fixed") {
-        couponDiscount = coupon.value
-      }
-    }
-    finalPrice = Math.max(0, subtotalPrice - couponDiscount) // Ensure price doesn't go below zero
-  }
-
-  return {
-    totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
-    subtotalPrice,
-    totalPrice: finalPrice,
-    couponDiscount,
-  }
-}
-
-const cartReducer = (state: CartState, action: CartAction): CartState => {
-  switch (action.type) {
-    case "ADD_ITEM": {
-      // For custom cleaning services, we always replace the cart content
-      if (action.payload.id.startsWith("custom-cleaning-")) {
-        const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
-          [action.payload], // Only the new custom item
-          state.couponCode,
-        )
-        return {
-          ...state,
-          items: [action.payload],
-          totalItems,
-          subtotalPrice,
-          totalPrice,
-          couponDiscount,
-        }
-      }
-
-      // For other items, use existing logic
-      const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
-      let updatedItems: CartItem[]
-
-      if (similarItemIndex >= 0) {
-        updatedItems = state.items.map((item, index) => {
-          if (index === similarItemIndex) {
-            return { ...item, quantity: item.quantity + action.payload.quantity }
-          }
-          return item
-        })
-      } else {
-        const itemSignature = getItemSignature(action.payload)
-        const enhancedItem = {
-          ...action.payload,
-          id: action.payload.id.includes("custom-cleaning") ? `custom-cleaning-${itemSignature}` : action.payload.id,
-        }
-        updatedItems = [...state.items, enhancedItem]
-      }
-
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
-
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-      }
-    }
-
-    case "REMOVE_ITEM": {
-      const updatedItems = state.items.filter((item) => item.id !== action.payload)
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
-
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-      }
-    }
-
-    case "UPDATE_QUANTITY": {
-      const updatedItems = state.items.map((item) => {
-        if (item.id === action.payload.id) {
-          return { ...item, quantity: action.payload.quantity }
-        }
-        return item
-      })
-
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
-
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-      }
-    }
-
-    case "APPLY_COUPON": {
-      const newCouponCode = action.payload.toUpperCase()
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(state.items, newCouponCode)
-
-      return {
-        ...state,
-        couponCode: newCouponCode,
-        couponDiscount,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-      }
-    }
-
-    case "CLEAR_CART":
-      return initialState
-
-    case "SET_CART": // For loading from localStorage
-      return action.payload
-
-    default:
-      return state
-  }
-}
-
-type CartContextType = {
+interface CartContextType {
   cart: CartState
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
+  addItem: (item: CartItem) => void
   removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
+  updateItemQuantity: (id: string, quantity: number) => void
   clearCart: () => void
-  applyCoupon: (couponCode: string) => boolean // Returns true if coupon is valid
+  applyCoupon: (code: string) => Promise<boolean>
+  removeCoupon: () => void
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, dispatch] = useReducer(cartReducer, initialState)
-  const { toast } = useToast()
+const calculateCartTotals = (items: CartItem[], appliedCoupon: string | null, couponDiscountValue: number) => {
+  let subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  // Load cart from localStorage on initial render
+  // Apply coupon discount to subtotal
+  let effectiveCouponDiscount = 0
+  if (appliedCoupon && couponDiscountValue > 0) {
+    effectiveCouponDiscount = Math.min(subtotal, couponDiscountValue) // Ensure discount doesn't exceed subtotal
+    subtotal -= effectiveCouponDiscount
+  }
+
+  const taxRate = 0.08 // 8% tax
+  const tax = subtotal * taxRate
+  const total = subtotal + tax
+
+  return {
+    subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0), // Original subtotal before coupon
+    tax,
+    couponDiscount: effectiveCouponDiscount,
+    total,
+  }
+}
+
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { toast } = useToast()
+  const [cart, setCart] = useState<CartState>({
+    items: [],
+    subtotal: 0,
+    tax: 0,
+    couponDiscount: 0,
+    appliedCoupon: null,
+    total: 0,
+  })
+
+  // Load cart from localStorage on initial mount
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem("cart")
+      const savedCart = localStorage.getItem("smiley-brooms-cart")
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart) as CartState
-        // Recalculate totals to ensure consistency with current coupon logic
-        const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+        const parsedCart = JSON.parse(savedCart)
+        // Recalculate totals to ensure consistency with current logic
+        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
           parsedCart.items,
-          parsedCart.couponCode,
+          parsedCart.appliedCoupon,
+          parsedCart.couponDiscount,
         )
-        dispatch({
-          type: "SET_CART",
-          payload: {
-            ...parsedCart,
-            totalItems,
-            subtotalPrice,
-            totalPrice,
-            couponDiscount,
-          },
-        })
+        setCart({ ...parsedCart, subtotal, tax, couponDiscount, total })
       }
     } catch (error) {
-      console.error("Error loading cart from localStorage:", error)
-      dispatch({ type: "CLEAR_CART" })
+      console.error("Failed to load cart from localStorage", error)
+      // Clear corrupted data if any
+      localStorage.removeItem("smiley-brooms-cart")
     }
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error saving cart",
-          description: "There was an error saving your cart. Please try again.",
-          variant: "destructive",
-        })
-      }
-    }
-  }, [cart, toast])
+    localStorage.setItem("smiley-brooms-cart", JSON.stringify(cart))
+  }, [cart])
 
-  const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-    dispatch({
-      type: "ADD_ITEM",
-      payload: { ...item, quantity: item.quantity || 1 },
+  const updateCartTotals = useCallback(
+    (currentItems: CartItem[], currentCoupon: string | null, currentCouponDiscount: number) => {
+      const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+        currentItems,
+        currentCoupon,
+        currentCouponDiscount,
+      )
+      setCart((prev) => ({
+        ...prev,
+        subtotal: prev.items.reduce((sum, item) => sum + item.price * item.quantity, 0), // Keep original subtotal
+        tax,
+        couponDiscount,
+        total,
+      }))
+    },
+    [cart.items],
+  ) // Dependency on cart.items to ensure recalculation when items change
+
+  const addItem = useCallback(
+    (item: CartItem) => {
+      setCart((prev) => {
+        const existingItemIndex = prev.items.findIndex((i) => i.id === item.id)
+        let updatedItems: CartItem[]
+
+        if (existingItemIndex > -1) {
+          updatedItems = prev.items.map((i, index) =>
+            index === existingItemIndex ? { ...i, quantity: i.quantity + item.quantity } : i,
+          )
+        } else {
+          updatedItems = [...prev.items, item]
+        }
+
+        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+          updatedItems,
+          prev.appliedCoupon,
+          prev.couponDiscount,
+        )
+        return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
+      })
+      toast({
+        title: "Item Added to Cart",
+        description: `${item.name} has been added.`,
+      })
+    },
+    [toast],
+  )
+
+  const removeItem = useCallback(
+    (id: string) => {
+      setCart((prev) => {
+        const updatedItems = prev.items.filter((item) => item.id !== id)
+        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+          updatedItems,
+          prev.appliedCoupon,
+          prev.couponDiscount,
+        )
+        return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
+      })
+      toast({
+        title: "Item Removed",
+        description: "The item has been removed from your cart.",
+        variant: "destructive",
+      })
+    },
+    [toast],
+  )
+
+  const updateItemQuantity = useCallback((id: string, quantity: number) => {
+    setCart((prev) => {
+      const updatedItems = prev.items
+        .map((item) => (item.id === id ? { ...item, quantity } : item))
+        .filter((item) => item.quantity > 0) // Remove if quantity drops to 0 or less
+
+      const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+        updatedItems,
+        prev.appliedCoupon,
+        prev.couponDiscount,
+      )
+      return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
     })
+  }, [])
 
-    if (toast) {
-      toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart`,
-        duration: 3000,
+  const clearCart = useCallback(() => {
+    setCart({
+      items: [],
+      subtotal: 0,
+      tax: 0,
+      couponDiscount: 0,
+      appliedCoupon: null,
+      total: 0,
+    })
+    toast({
+      title: "Cart Cleared",
+      description: "Your shopping cart has been emptied.",
+    })
+  }, [toast])
+
+  const applyCoupon = useCallback(
+    async (code: string): Promise<boolean> => {
+      // Simulate API call for coupon validation
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          let discountValue = 0
+          let isValid = false
+          switch (code.toUpperCase()) {
+            case "SMILEY10":
+              discountValue = cart.subtotal * 0.1 // 10% off subtotal
+              isValid = true
+              break
+            case "WELCOME25":
+              discountValue = 25 // $25 off
+              isValid = true
+              break
+            case "FRESHSTART":
+              discountValue = cart.subtotal * 0.15 // 15% off
+              isValid = true
+              break
+            default:
+              isValid = false
+          }
+
+          if (isValid) {
+            setCart((prev) => {
+              const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+                prev.items,
+                code.toUpperCase(),
+                discountValue,
+              )
+              return { ...prev, appliedCoupon: code.toUpperCase(), couponDiscount, subtotal, tax, total }
+            })
+            resolve(true)
+          } else {
+            resolve(false)
+          }
+        }, 500) // Simulate network delay
       })
-    }
-  }
+    },
+    [cart.subtotal], // Depend on subtotal to calculate percentage discounts correctly
+  )
 
-  const removeItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id })
-
-    if (toast) {
-      toast({
-        title: "Removed from cart",
-        description: "Item has been removed from your cart",
-        duration: 3000,
-      })
-    }
-  }
-
-  const updateQuantity = (id: string, quantity: number) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
-  }
-
-  const clearCart = () => {
-    dispatch({ type: "CLEAR_CART" })
-
-    if (toast) {
-      toast({
-        title: "Cart cleared",
-        description: "All items have been removed from your cart",
-        duration: 3000,
-      })
-    }
-  }
-
-  const applyCoupon = (couponCode: string): boolean => {
-    if (VALID_COUPONS.some((c) => c.code.toUpperCase() === couponCode.toUpperCase())) {
-      dispatch({ type: "APPLY_COUPON", payload: couponCode })
-      if (toast) {
-        toast({
-          title: "Coupon Applied!",
-          description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
-          variant: "success",
+  const removeCoupon = useCallback(async () => {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        setCart((prev) => {
+          const { subtotal, tax, couponDiscount, total } = calculateCartTotals(prev.items, null, 0)
+          return { ...prev, appliedCoupon: null, couponDiscount, subtotal, tax, total }
         })
-      }
-      return true
-    } else {
-      if (toast) {
-        toast({
-          title: "Invalid Coupon",
-          description: `The coupon code "${couponCode}" is not valid.`,
-          variant: "destructive",
-        })
-      }
-      return false
-    }
-  }
+        resolve()
+      }, 300)
+    })
+  }, [])
+
+  // Recalculate totals when items or coupon state changes
+  useEffect(() => {
+    updateCartTotals(cart.items, cart.appliedCoupon, cart.couponDiscount)
+  }, [cart.items, cart.appliedCoupon, cart.couponDiscount, updateCartTotals])
 
   return (
-    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart, applyCoupon }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        addItem,
+        removeItem,
+        updateItemQuantity,
+        clearCart,
+        applyCoupon,
+        removeCoupon,
+      }}
+    >
       {children}
     </CartContext.Provider>
   )
