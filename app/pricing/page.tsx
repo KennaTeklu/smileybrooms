@@ -3,38 +3,21 @@
 import { useState } from "react"
 import { PricingContent } from "@/components/pricing-content"
 import { PriceCalculator } from "@/components/price-calculator"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { getRoomTiers } from "@/lib/room-tiers"
+import { FloatingCartSummary } from "@/components/floating-cart-summary" // Import the new component
 
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState("tiers")
   const [initialSelectedRooms, setInitialSelectedRooms] = useState<Record<string, number>>({})
   const [initialServiceType, setInitialServiceType] = useState<"essential" | "premium" | "luxury">("essential") // Updated type
 
+  // This function is passed to PricingContent and then to PriceCalculator.
+  // The PriceCalculator component handles adding items to the cart internally
+  // using the useCart hook, so we don't need to explicitly handle onSelectTier here
+  // for cart updates.
   const handleSelectTier = (roomType: string, tierId: string) => {
-    const selectedRooms: Record<string, number> = {}
-    // When a tier is selected, set the count for that room type to 1
-    // This ensures the PriceCalculator starts with the selected room pre-filled
-    selectedRooms[roomType] = 1
-
-    setInitialSelectedRooms(selectedRooms)
-
-    const tiers = getRoomTiers(roomType)
-    const selectedTier = tiers.find((tier) => tier.id === tierId)
-
-    let serviceType: "essential" | "premium" | "luxury" = "essential" // Default
-    if (selectedTier) {
-      // Determine service type based on tier name
-      if (selectedTier.name.includes("ESSENTIAL")) {
-        serviceType = "essential"
-      } else if (selectedTier.name.includes("PREMIUM")) {
-        serviceType = "premium"
-      } else if (selectedTier.name.includes("LUXURY")) {
-        serviceType = "luxury"
-      }
-    }
-    setInitialServiceType(serviceType)
-    setActiveTab("custom") // Switch to the custom plan tab
+    // This function is primarily for passing down to PriceCalculator
+    // PriceCalculator will handle the actual state updates and cart additions
+    console.log(`Selected tier ${tierId} for room ${roomType}`)
   }
 
   // This function will be called by PriceCalculator when calculation is complete
@@ -57,20 +40,31 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <PricingContent onSelectTier={handleSelectTier} />
-        <TabsContent value="custom">
-          <div className="flex justify-center py-12 px-4 md:px-6">
-            {/* Render the PriceCalculator here, passing initial props and the callback */}
+    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-950">
+      <main className="flex-1 py-12">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-5xl">
+              Flexible Cleaning Plans
+            </h1>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+              Choose from our pre-defined packages or build your own custom plan.
+            </p>
+          </div>
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* The PricingContent component is for displaying the package and individual room options */}
+            <PricingContent onSelectTier={handleSelectTier} />
+            {/* The PriceCalculator component is for the interactive building of the custom plan */}
             <PriceCalculator
               initialSelectedRooms={initialSelectedRooms}
               initialServiceType={initialServiceType}
               onCalculationComplete={handleCalculationComplete}
             />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </main>
+      {/* Add the floating cart summary */}
+      <FloatingCartSummary />
     </div>
   )
 }
