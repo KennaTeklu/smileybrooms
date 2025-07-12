@@ -15,9 +15,10 @@ import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
 import { roomConfigs } from "@/lib/room-config"
 import { ServiceDetailsModal } from "@/components/service-details-modal"
-import { roomDisplayNames, getRoomTiers, roomIcons } from "@/lib/room-tiers"
+import { roomDisplayNames, getRoomTiers, roomIcons, getRoomReductions, fullHousePackages } from "@/lib/room-tiers" // Import fullHousePackages and getRoomReductions
 import { useCart } from "@/lib/cart-context"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox" // Import Checkbox for reductions
 
 // Define the types for the calculator props
 interface PriceCalculatorProps {
@@ -33,86 +34,12 @@ interface PriceCalculatorProps {
     paymentFrequency: "per_service" | "monthly" | "yearly"
     isRecurring: boolean
     recurringInterval: "week" | "month" | "year" | null // Added null for one-time
+    selectedReductions: Record<string, string[]> // New prop for selected reductions
   }) => void
   onAddToCart?: () => void
   initialSelectedRooms?: Record<string, number> // New prop for initial rooms
   initialServiceType?: "essential" | "premium" | "luxury" // Updated type
 }
-
-interface FullHousePackage {
-  id: string
-  name: string
-  description: string
-  originalPrice: number // Added original price for display
-  basePrice: number // This is the advertised package price (already discounted)
-  includedRooms: string[]
-  tier: "essential" | "premium" | "luxury"
-}
-
-const fullHousePackages: FullHousePackage[] = [
-  {
-    id: "essential-full-house",
-    name: "Essential Full House Clean",
-    description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
-    originalPrice: 1620,
-    basePrice: 1458, // Discounted price from guide
-    includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "entryway",
-    ],
-    tier: "essential",
-  },
-  {
-    id: "premium-full-house",
-    name: "Premium Full House Clean",
-    description: "Thorough cleaning with attention to detail for every room",
-    originalPrice: 2880,
-    basePrice: 2592, // Discounted price from guide
-    includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "homeOffice",
-      "laundryRoom",
-    ],
-    tier: "premium",
-  },
-  {
-    id: "luxury-full-house",
-    name: "Luxury Full House Clean",
-    description: "Comprehensive deep cleaning with premium treatments throughout",
-    originalPrice: 4680,
-    basePrice: 4212, // Discounted price from guide
-    includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "homeOffice",
-      "laundryRoom",
-      "entryway",
-      "hallway",
-      "stairs",
-    ],
-    tier: "luxury",
-  },
-]
 
 // Define the room types and their base prices (basePrice here is just a placeholder, actual prices come from tiers)
 const roomTypes = roomConfigs.map((cfg) => ({
@@ -336,6 +263,7 @@ export function PriceCalculator({
   const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to Average (level 2)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
+  const [selectedReductions, setSelectedReductions] = useState<Record<string, string[]>>({}) // New state for reductions
   const { addToCart } = useCart()
 
   // Coupon states
@@ -351,6 +279,7 @@ export function PriceCalculator({
     setAppliedCoupon(null) // Reset coupon when initial props change
     setCouponCode("")
     setCouponError(null)
+    setSelectedReductions({}) // Reset reductions
   }, [initialSelectedRooms, initialServiceType])
 
   const handleRoomCountChange = useCallback((roomType: string, change: number) => {
@@ -358,6 +287,7 @@ export function PriceCalculator({
       const newCount = (prev[roomType] || 0) + change
       if (newCount < 0) return prev // Prevent negative counts
       setSelectedPackage(null) // Deselect package if individual rooms are adjusted
+      setSelectedReductions({}) // Clear reductions if rooms change
       return { ...prev, [roomType]: newCount }
     })
   }, [])
@@ -368,6 +298,7 @@ export function PriceCalculator({
     setAppliedCoupon(null) // Clear coupon when package is selected
     setCouponCode("")
     setCouponError(null)
+    setSelectedReductions({}) // Clear reductions when package is selected
     const pkg = fullHousePackages.find((p) => p.id === packageId)
     if (pkg) {
       // Set service type based on package tier
@@ -382,6 +313,7 @@ export function PriceCalculator({
     setAppliedCoupon(null) // Clear coupon
     setCouponCode("")
     setCouponError(null)
+    setSelectedReductions({}) // Clear reductions
   }, [])
 
   const handleApplyCoupon = useCallback(() => {
@@ -396,6 +328,23 @@ export function PriceCalculator({
       setAppliedCoupon(null)
     }
   }, [couponCode])
+
+  const handleReductionChange = useCallback((roomType: string, reductionId: string, isChecked: boolean) => {
+    setSelectedReductions((prev) => {
+      const currentReductions = prev[roomType] || []
+      if (isChecked) {
+        return {
+          ...prev,
+          [roomType]: [...currentReductions, reductionId],
+        }
+      } else {
+        return {
+          ...prev,
+          [roomType]: currentReductions.filter((id) => id !== reductionId),
+        }
+      }
+    })
+  }, [])
 
   const calculateTotalPrice = useMemo(() => {
     let total = 0
@@ -434,13 +383,24 @@ export function PriceCalculator({
     const cleanlinessModifier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1.0
     total *= cleanlinessModifier
 
+    // Apply reductions
+    Object.entries(selectedReductions).forEach(([roomType, reductionIds]) => {
+      const availableReductions = getRoomReductions(roomType)
+      reductionIds.forEach((reductionId) => {
+        const reduction = availableReductions.find((r) => r.id === reductionId)
+        if (reduction) {
+          total -= reduction.discount * (selectedRooms[roomType] || 0) // Apply discount per room
+        }
+      })
+    })
+
     // Apply coupon discount
     if (appliedCoupon) {
       total *= 1 - appliedCoupon.discount
     }
 
     return Math.max(0, total) // Ensure total doesn't go below zero
-  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, selectedPackage, appliedCoupon])
+  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, selectedPackage, appliedCoupon, selectedReductions])
 
   // Call onCalculationComplete when relevant dependencies change
   useEffect(() => {
@@ -462,9 +422,10 @@ export function PriceCalculator({
         priceMultiplier: effectivePriceMultiplier,
         isServiceAvailable: true, // Placeholder, would depend on actual service area logic
         addressId: "default-address", // Placeholder, would come from user's address selection
-        paymentFrequency,
+        paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
         isRecurring: selectedFrequencyOption?.isRecurring || false,
         recurringInterval: selectedFrequencyOption?.recurringInterval || null,
+        selectedReductions, // Pass selected reductions
       })
     }
   }, [
@@ -476,6 +437,7 @@ export function PriceCalculator({
     selectedPackage,
     paymentFrequency,
     onCalculationComplete,
+    selectedReductions,
   ])
 
   const handleAddToCart = () => {
@@ -529,6 +491,17 @@ export function PriceCalculator({
       type: serviceType,
     }
   }, [serviceType, calculateTotalPrice, selectedPackage])
+
+  const roomsWithReductions = useMemo(() => {
+    return Object.entries(selectedRooms)
+      .filter(([, count]) => count > 0)
+      .map(([roomType]) => ({
+        id: roomType,
+        name: roomDisplayNames[roomType],
+        reductions: getRoomReductions(roomType),
+      }))
+      .filter((room) => room.reductions.length > 0)
+  }, [selectedRooms])
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
@@ -714,6 +687,38 @@ export function PriceCalculator({
             {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier.toFixed(1)})
           </p>
         </div>
+
+        <Separator />
+
+        {/* Reductions Section */}
+        {roomsWithReductions.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Optional Reductions</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Deselect services you don't need for a reduced price.
+            </p>
+            {roomsWithReductions.map((room) => (
+              <div key={room.id} className="mb-4">
+                <h4 className="font-medium text-md mb-2">{room.name} Reductions:</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {room.reductions.map((reduction) => (
+                    <div key={reduction.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`${room.id}-${reduction.id}`}
+                        checked={selectedReductions[room.id]?.includes(reduction.id) || false}
+                        onCheckedChange={(checked) => handleReductionChange(room.id, reduction.id, checked as boolean)}
+                      />
+                      <Label htmlFor={`${room.id}-${reduction.id}`} className="flex flex-col text-sm font-normal">
+                        <span>{reduction.name}</span>
+                        <span className="text-xs text-gray-500">- {formatCurrency(reduction.discount)}</span>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Separator />
 

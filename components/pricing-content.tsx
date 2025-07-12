@@ -3,63 +3,13 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { roomDisplayNames, getRoomTiers } from "@/lib/room-tiers"
+import { roomDisplayNames, getRoomTiers, fullHousePackages } from "@/lib/room-tiers" // Import fullHousePackages
 import { formatCurrency } from "@/lib/utils"
 import { CheckCircle } from "lucide-react"
 
 interface PricingContentProps {
   onSelectTier: (roomType: string, tierId: string) => void
 }
-
-// Data for Full House Packages (copied from price-calculator for consistency)
-const fullHousePackages = [
-  {
-    id: "essential-full-house",
-    name: "Essential Full House Clean",
-    description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
-    originalPrice: 1620,
-    basePrice: 1458, // Discounted price from guide
-    includedRooms: ["3 Bedrooms", "2 Bathrooms", "1 Kitchen", "1 Living Room", "1 Dining Room", "1 Entryway"],
-    tier: "essential",
-  },
-  {
-    id: "premium-full-house",
-    name: "Premium Full House Clean",
-    description: "Thorough cleaning with attention to detail for every room",
-    originalPrice: 2880,
-    basePrice: 2592, // Discounted price from guide
-    includedRooms: [
-      "3 Bedrooms",
-      "2 Bathrooms",
-      "1 Kitchen",
-      "1 Living Room",
-      "1 Dining Room",
-      "1 Home Office",
-      "1 Laundry Room",
-    ],
-    tier: "premium",
-  },
-  {
-    id: "luxury-full-house",
-    name: "Luxury Full House Clean",
-    description: "Comprehensive deep cleaning with premium treatments throughout",
-    originalPrice: 4680,
-    basePrice: 4212, // Discounted price from guide
-    includedRooms: [
-      "3 Bedrooms",
-      "2 Bathrooms",
-      "1 Kitchen",
-      "1 Living Room",
-      "1 Dining Room",
-      "1 Home Office",
-      "1 Laundry Room",
-      "1 Entryway",
-      "1 Hallway",
-      "1 Stairs",
-    ],
-    tier: "luxury",
-  },
-]
 
 export function PricingContent({ onSelectTier }: PricingContentProps) {
   return (
@@ -103,7 +53,7 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
                   </li>
                   {pkg.includedRooms.map((room, index) => (
                     <li key={index} className="flex items-center gap-2 ml-6">
-                      - {room}
+                      - {roomDisplayNames[room] || room}
                     </li>
                   ))}
                 </ul>
