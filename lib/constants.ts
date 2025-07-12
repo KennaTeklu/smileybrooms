@@ -8,9 +8,9 @@ export const PHONE_NUMBER = "+1 (800) 555-0123"
 // Coupon codes and their discounts
 export const VALID_COUPONS = [
   { code: "V0DISCOUNT", type: "percentage" as const, value: 0.15, maxDiscount: 50 }, // 15% off, max $50
-  { code: "FREECLEAN", type: "fixed" as const, value: 25 }, // $25 off
-  { code: "SMILEY20", type: "percentage" as const, value: 0.2 }, // 20% off
-  { code: "FIRSTCLEAN10", type: "percentage" as const, value: 0.1 }, // 10% off
+  { code: "FREECLEAN25", type: "fixed", value: 25 }, // $25 off
+  { code: "SMILEY20", type: "percentage", value: 0.2, maxDiscount: 50 }, // 20% off, max $50
+  { code: "FIRSTCLEAN10", type: "percentage", value: 0.1 }, // 10% off
 ]
 
 // Other general constants
@@ -61,6 +61,7 @@ export const DEFAULT_ACCESSIBILITY_SETTINGS = {
 // Stripe related constants
 export const STRIPE_CURRENCY = "usd"
 export const STRIPE_MIN_AMOUNT = 0.5 // Minimum amount for Stripe payments in USD
+export const STRIPE_API_VERSION = "2024-06-20"
 
 // Email related constants
 export const EMAIL_SENDER = "no-reply@smileybrooms.com"

@@ -22,9 +22,9 @@ import { formatCurrency } from "@/lib/utils"
 import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { RoomVisualization } from "./room-visualization"
-import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS
-import { useCart } from "@/lib/cart-context" // Import useCart
-import { useRouter } from "next/navigation" // Import useRouter
+import { VALID_COUPONS } from "@/lib/constants"
+import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
 
 interface PriceCalculatorProps {
   initialSelectedRooms?: Record<string, number>
@@ -63,9 +63,10 @@ export function PriceCalculator({
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
   const [addressId, setAddressId] = useState("") // Placeholder for address ID
   const [isServiceAvailable, setIsServiceAvailable] = useState(true) // Placeholder for service availability
+  const [isProcessing, setIsProcessing] = useState(false) // New state for loading indicator
 
-  const { addItem, clearCart } = useCart() // Use cart context
-  const router = useRouter() // Use router for navigation
+  const { addItem, clearCart } = useCart()
+  const router = useRouter()
 
   // Effect to initialize selected tiers based on initialServiceType
   useEffect(() => {
@@ -278,6 +279,7 @@ export function PriceCalculator({
     .filter(Boolean) as RoomAddOn[]
 
   const handleProceedToCheckout = () => {
+    setIsProcessing(true) // Start processing state
     // Clear existing cart items to ensure only the new custom service is added
     clearCart()
 
@@ -308,7 +310,11 @@ export function PriceCalculator({
 
     addItem(customServiceItem)
     router.push("/checkout")
+    // Note: isProcessing will likely remain true as the page redirects before it can be set to false.
+    // This is acceptable for a full page redirect.
   }
+
+  const isCheckoutButtonDisabled = isProcessing || totalPrice <= 0 || Object.keys(selectedRooms).length === 0
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-lg">
@@ -572,8 +578,15 @@ export function PriceCalculator({
           <span>Estimated Total:</span>
           <span>{formatCurrency(totalPrice)}</span>
         </div>
-        <Button className="w-full" size="lg" onClick={handleProceedToCheckout}>
-          Proceed to Checkout
+        <Button className="w-full" size="lg" onClick={handleProceedToCheckout} disabled={isCheckoutButtonDisabled}>
+          {isProcessing ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
+              Adding to Cart...
+            </>
+          ) : (
+            "Proceed to Checkout"
+          )}
         </Button>
       </CardFooter>
     </Card>
