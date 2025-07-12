@@ -120,7 +120,7 @@ export default function CartPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>{formatCurrency(cart.subtotal)}</span>
+                  <span>{formatCurrency(cart.rawSubtotal)}</span>
                 </div>
                 {cart.couponDiscount > 0 && (
                   <div className="flex justify-between text-green-600 font-medium">
@@ -128,6 +128,10 @@ export default function CartPage() {
                     <span>-{formatCurrency(cart.couponDiscount)}</span>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span>Subtotal after discount:</span>
+                  <span>{formatCurrency(cart.subtotalAfterDiscount)}</span>
+                </div>
                 <div className="flex justify-between">
                   <span>Tax (8%):</span>
                   <span>{formatCurrency(cart.tax)}</span>

@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
+import { VALID_COUPONS } from "@/lib/constants" // Import VALID_COUPONS
 
 interface CartItem {
   id: string
@@ -16,11 +17,12 @@ interface CartItem {
 
 interface CartState {
   items: CartItem[]
-  subtotal: number
-  tax: number
+  rawSubtotal: number // Sum of item prices * quantities, BEFORE any discounts
   couponDiscount: number
   appliedCoupon: string | null
-  total: number
+  subtotalAfterDiscount: number // rawSubtotal - couponDiscount
+  tax: number
+  total: number // subtotalAfterDiscount + tax
 }
 
 interface CartContextType {
@@ -35,24 +37,35 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const calculateCartTotals = (items: CartItem[], appliedCoupon: string | null, couponDiscountValue: number) => {
-  let subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+const calculateCartTotals = (
+  items: CartItem[],
+  appliedCouponCode: string | null,
+  couponValue: number, // This will be the value from VALID_COUPONS
+  couponType: "percentage" | "fixed" | null, // This will be the type from VALID_COUPONS
+): { rawSubtotal: number; couponDiscount: number; subtotalAfterDiscount: number; tax: number; total: number } => {
+  const rawSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  let calculatedCouponDiscount = 0
 
-  // Apply coupon discount to subtotal
-  let effectiveCouponDiscount = 0
-  if (appliedCoupon && couponDiscountValue > 0) {
-    effectiveCouponDiscount = Math.min(subtotal, couponDiscountValue) // Ensure discount doesn't exceed subtotal
-    subtotal -= effectiveCouponDiscount
+  if (appliedCouponCode && couponType && couponValue) {
+    if (couponType === "percentage") {
+      calculatedCouponDiscount = rawSubtotal * (couponValue / 100)
+    } else if (couponType === "fixed") {
+      calculatedCouponDiscount = couponValue
+    }
+    // Ensure discount doesn't make subtotal negative
+    calculatedCouponDiscount = Math.min(calculatedCouponDiscount, rawSubtotal)
   }
 
+  const subtotalAfterDiscount = rawSubtotal - calculatedCouponDiscount
   const taxRate = 0.08 // 8% tax
-  const tax = subtotal * taxRate
-  const total = subtotal + tax
+  const tax = subtotalAfterDiscount * taxRate
+  const total = subtotalAfterDiscount + tax
 
   return {
-    subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0), // Original subtotal before coupon
+    rawSubtotal,
+    couponDiscount: calculatedCouponDiscount,
+    subtotalAfterDiscount,
     tax,
-    couponDiscount: effectiveCouponDiscount,
     total,
   }
 }
@@ -61,10 +74,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast()
   const [cart, setCart] = useState<CartState>({
     items: [],
-    subtotal: 0,
-    tax: 0,
+    rawSubtotal: 0,
     couponDiscount: 0,
     appliedCoupon: null,
+    subtotalAfterDiscount: 0,
+    tax: 0,
     total: 0,
   })
 
@@ -73,14 +87,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const savedCart = localStorage.getItem("smiley-brooms-cart")
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart)
+        const parsedCart = JSON.parse(savedCart) as CartState
         // Recalculate totals to ensure consistency with current logic
-        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+        // Find the coupon details from VALID_COUPONS if one was applied
+        const appliedCouponDetails = parsedCart.appliedCoupon
+          ? VALID_COUPONS.find((c) => c.code === parsedCart.appliedCoupon)
+          : null
+
+        const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
           parsedCart.items,
           parsedCart.appliedCoupon,
-          parsedCart.couponDiscount,
+          appliedCouponDetails?.value || 0,
+          appliedCouponDetails?.type || null,
         )
-        setCart({ ...parsedCart, subtotal, tax, couponDiscount, total })
+        setCart({ ...parsedCart, rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total })
       }
     } catch (error) {
       console.error("Failed to load cart from localStorage", error)
@@ -95,22 +115,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart])
 
   const updateCartTotals = useCallback(
-    (currentItems: CartItem[], currentCoupon: string | null, currentCouponDiscount: number) => {
-      const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+    (currentItems: CartItem[], currentAppliedCoupon: string | null) => {
+      const appliedCouponDetails = currentAppliedCoupon
+        ? VALID_COUPONS.find((c) => c.code === currentAppliedCoupon)
+        : null
+
+      const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
         currentItems,
-        currentCoupon,
-        currentCouponDiscount,
+        currentAppliedCoupon,
+        appliedCouponDetails?.value || 0,
+        appliedCouponDetails?.type || null,
       )
       setCart((prev) => ({
         ...prev,
-        subtotal: prev.items.reduce((sum, item) => sum + item.price * item.quantity, 0), // Keep original subtotal
-        tax,
+        rawSubtotal,
         couponDiscount,
+        subtotalAfterDiscount,
+        tax,
         total,
       }))
     },
-    [cart.items],
-  ) // Dependency on cart.items to ensure recalculation when items change
+    [], // No dependencies needed as it takes all necessary data as arguments
+  )
 
   const addItem = useCallback(
     (item: CartItem) => {
@@ -126,12 +152,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedItems = [...prev.items, item]
         }
 
-        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+        // Recalculate totals immediately after items change
+        const appliedCouponDetails = prev.appliedCoupon
+          ? VALID_COUPONS.find((c) => c.code === prev.appliedCoupon)
+          : null
+        const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
           updatedItems,
           prev.appliedCoupon,
-          prev.couponDiscount,
+          appliedCouponDetails?.value || 0,
+          appliedCouponDetails?.type || null,
         )
-        return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
+
+        return { ...prev, items: updatedItems, rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total }
       })
       toast({
         title: "Item Added to Cart",
@@ -145,12 +177,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     (id: string) => {
       setCart((prev) => {
         const updatedItems = prev.items.filter((item) => item.id !== id)
-        const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+
+        // Recalculate totals immediately after items change
+        const appliedCouponDetails = prev.appliedCoupon
+          ? VALID_COUPONS.find((c) => c.code === prev.appliedCoupon)
+          : null
+        const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
           updatedItems,
           prev.appliedCoupon,
-          prev.couponDiscount,
+          appliedCouponDetails?.value || 0,
+          appliedCouponDetails?.type || null,
         )
-        return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
+
+        return { ...prev, items: updatedItems, rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total }
       })
       toast({
         title: "Item Removed",
@@ -167,22 +206,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .map((item) => (item.id === id ? { ...item, quantity } : item))
         .filter((item) => item.quantity > 0) // Remove if quantity drops to 0 or less
 
-      const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
+      // Recalculate totals immediately after items change
+      const appliedCouponDetails = prev.appliedCoupon ? VALID_COUPONS.find((c) => c.code === prev.appliedCoupon) : null
+      const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
         updatedItems,
         prev.appliedCoupon,
-        prev.couponDiscount,
+        appliedCouponDetails?.value || 0,
+        appliedCouponDetails?.type || null,
       )
-      return { ...prev, items: updatedItems, subtotal, tax, couponDiscount, total }
+
+      return { ...prev, items: updatedItems, rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total }
     })
   }, [])
 
   const clearCart = useCallback(() => {
     setCart({
       items: [],
-      subtotal: 0,
-      tax: 0,
+      rawSubtotal: 0,
       couponDiscount: 0,
       appliedCoupon: null,
+      subtotalAfterDiscount: 0,
+      tax: 0,
       total: 0,
     })
     toast({
@@ -193,63 +237,44 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyCoupon = useCallback(
     async (code: string): Promise<boolean> => {
-      // Simulate API call for coupon validation
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          let discountValue = 0
-          let isValid = false
-          switch (code.toUpperCase()) {
-            case "SMILEY10":
-              discountValue = cart.subtotal * 0.1 // 10% off subtotal
-              isValid = true
-              break
-            case "WELCOME25":
-              discountValue = 25 // $25 off
-              isValid = true
-              break
-            case "FRESHSTART":
-              discountValue = cart.subtotal * 0.15 // 15% off
-              isValid = true
-              break
-            default:
-              isValid = false
-          }
+      const coupon = VALID_COUPONS.find((c) => c.code.toUpperCase() === code.toUpperCase())
 
-          if (isValid) {
-            setCart((prev) => {
-              const { subtotal, tax, couponDiscount, total } = calculateCartTotals(
-                prev.items,
-                code.toUpperCase(),
-                discountValue,
-              )
-              return { ...prev, appliedCoupon: code.toUpperCase(), couponDiscount, subtotal, tax, total }
-            })
-            resolve(true)
-          } else {
-            resolve(false)
-          }
-        }, 500) // Simulate network delay
-      })
+      if (coupon) {
+        setCart((prev) => {
+          const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
+            prev.items,
+            coupon.code,
+            coupon.value,
+            coupon.type,
+          )
+          return { ...prev, appliedCoupon: coupon.code, couponDiscount, rawSubtotal, subtotalAfterDiscount, tax, total }
+        })
+        return true
+      } else {
+        return false
+      }
     },
-    [cart.subtotal], // Depend on subtotal to calculate percentage discounts correctly
+    [], // No dependencies needed as it uses VALID_COUPONS and current cart state
   )
 
   const removeCoupon = useCallback(async () => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        setCart((prev) => {
-          const { subtotal, tax, couponDiscount, total } = calculateCartTotals(prev.items, null, 0)
-          return { ...prev, appliedCoupon: null, couponDiscount, subtotal, tax, total }
-        })
-        resolve()
-      }, 300)
+    setCart((prev) => {
+      const { rawSubtotal, couponDiscount, subtotalAfterDiscount, tax, total } = calculateCartTotals(
+        prev.items,
+        null,
+        0,
+        null,
+      )
+      return { ...prev, appliedCoupon: null, couponDiscount, rawSubtotal, subtotalAfterDiscount, tax, total }
     })
   }, [])
 
   // Recalculate totals when items or coupon state changes
+  // This useEffect is now less critical as totals are recalculated on each item/coupon action,
+  // but it can serve as a fallback or for initial load consistency.
   useEffect(() => {
-    updateCartTotals(cart.items, cart.appliedCoupon, cart.couponDiscount)
-  }, [cart.items, cart.appliedCoupon, cart.couponDiscount, updateCartTotals])
+    updateCartTotals(cart.items, cart.appliedCoupon)
+  }, [cart.items, cart.appliedCoupon, updateCartTotals])
 
   return (
     <CartContext.Provider

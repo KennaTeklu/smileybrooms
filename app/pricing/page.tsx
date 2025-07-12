@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { PricingContent } from "@/components/pricing-content"
 import { PricingFloatingElements } from "@/components/pricing-floating-elements"
-import { FloatingCartSummary } from "@/components/floating-cart-summary" // Import FloatingCartSummary
+import FloatingCartSummary from "@/components/floating-cart-summary" // Import FloatingCartSummary
 
 export default function PricingPage() {
   return (
