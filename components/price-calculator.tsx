@@ -10,17 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
   roomDisplayNames,
   getRoomTiers,
   getRoomAddOns,
@@ -33,9 +22,10 @@ import { formatCurrency } from "@/lib/utils"
 import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { RoomVisualization } from "./room-visualization"
-import { VALID_COUPONS } from "@/lib/constants"
+import { VALID_COUPONS, LS_PRICE_CALCULATOR_STATE } from "@/lib/constants" // Import LS_PRICE_CALCULATOR_STATE
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast" // Ensure useToast is imported
 
 interface PriceCalculatorProps {
   initialSelectedRooms?: Record<string, number>
@@ -60,40 +50,118 @@ export function PriceCalculator({
   initialServiceType = "essential",
   onCalculationComplete,
 }: PriceCalculatorProps) {
-  const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(initialSelectedRooms)
+  const { toast } = useToast()
+  const { addItem, clearCart } = useCart()
+  const router = useRouter()
+
+  const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({})
   const [selectedTierIds, setSelectedTierIds] = useState<Record<string, string>>({})
   const [selectedAddOns, setSelectedAddOns] = useState<Record<string, string[]>>({})
   const [selectedReductions, setSelectedReductions] = useState<Record<string, string[]>>({})
   const [frequency, setFrequency] = useState("one-time")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState(50) // 0-100 scale
+  const [cleanlinessLevel, setCleanlinessLevel] = useState(50)
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringInterval, setRecurringInterval] = useState<"week" | "month" | "year">("month")
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
-  const [addressId, setAddressId] = useState("") // Placeholder for address ID
-  const [isServiceAvailable, setIsServiceAvailable] = useState(true) // Placeholder for service availability
-  const [isProcessing, setIsProcessing] = useState(false) // State for loading indicator
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false) // State for alert dialog
+  const [addressId, setAddressId] = useState("")
+  const [isServiceAvailable, setIsServiceAvailable] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const { addItem, clearCart } = useCart()
-  const router = useRouter()
-
-  // Effect to initialize selected tiers based on initialServiceType
+  // Effect for initial load from localStorage or initial props
   useEffect(() => {
-    const initialTiers: Record<string, string> = {}
-    Object.keys(selectedRooms).forEach((roomType) => {
-      const tiers = getRoomTiers(roomType)
-      const defaultTier = tiers.find((tier) => tier.name.includes(initialServiceType.toUpperCase()))
-      if (defaultTier) {
-        initialTiers[roomType] = defaultTier.id
-      } else if (tiers.length > 0) {
-        initialTiers[roomType] = tiers[0].id // Fallback to first tier if specific not found
+    try {
+      const savedState = localStorage.getItem(LS_PRICE_CALCULATOR_STATE)
+      if (savedState) {
+        const parsedState = JSON.parse(savedState)
+        setSelectedRooms(parsedState.selectedRooms || {})
+        setSelectedTierIds(parsedState.selectedTierIds || {})
+        setSelectedAddOns(parsedState.selectedAddOns || {})
+        setSelectedReductions(parsedState.selectedReductions || {})
+        setFrequency(parsedState.frequency || "one-time")
+        setCleanlinessLevel(parsedState.cleanlinessLevel || 50)
+        setCouponCode(parsedState.couponCode || "")
+        setAppliedCoupon(parsedState.appliedCoupon || null)
+        setCouponDiscount(parsedState.couponDiscount || 0)
+        setIsRecurring(parsedState.isRecurring || false)
+        setRecurringInterval(parsedState.recurringInterval || "month")
+        setPaymentFrequency(parsedState.paymentFrequency || "per_service")
+      } else {
+        // If no saved state, use initial props and set default tiers
+        setSelectedRooms(initialSelectedRooms)
+        const initialTiers: Record<string, string> = {}
+        Object.keys(initialSelectedRooms).forEach((roomType) => {
+          const tiers = getRoomTiers(roomType)
+          const defaultTier = tiers.find((tier) => tier.name.includes(initialServiceType.toUpperCase()))
+          if (defaultTier) {
+            initialTiers[roomType] = defaultTier.id
+          } else if (tiers.length > 0) {
+            initialTiers[roomType] = tiers[0].id
+          }
+        })
+        setSelectedTierIds(initialTiers)
       }
-    })
-    setSelectedTierIds(initialTiers)
-  }, [initialSelectedRooms, initialServiceType, selectedRooms])
+    } catch (error) {
+      console.error("Failed to load price calculator state from localStorage", error)
+      // Fallback to initial props if loading fails
+      setSelectedRooms(initialSelectedRooms)
+      const initialTiers: Record<string, string> = {}
+      Object.keys(initialSelectedRooms).forEach((roomType) => {
+        const tiers = getRoomTiers(roomType)
+        const defaultTier = tiers.find((tier) => tier.name.includes(initialServiceType.toUpperCase()))
+        if (defaultTier) {
+          initialTiers[roomType] = defaultTier.id
+        } else if (tiers.length > 0) {
+          initialTiers[roomType] = tiers[0].id
+        }
+      })
+      setSelectedTierIds(initialTiers)
+    }
+  }, [initialSelectedRooms, initialServiceType]) // This effect runs only once on mount
+
+  // Effect to save state to localStorage whenever relevant state changes
+  useEffect(() => {
+    try {
+      const stateToSave = {
+        selectedRooms,
+        selectedTierIds,
+        selectedAddOns,
+        selectedReductions,
+        frequency,
+        cleanlinessLevel,
+        couponCode,
+        appliedCoupon,
+        couponDiscount,
+        isRecurring,
+        recurringInterval,
+        paymentFrequency,
+      }
+      localStorage.setItem(LS_PRICE_CALCULATOR_STATE, JSON.stringify(stateToSave))
+    } catch (error) {
+      console.error("Failed to save price calculator state to localStorage", error)
+      toast({
+        title: "Error saving progress",
+        description: "Your selections could not be saved automatically.",
+        variant: "destructive",
+      })
+    }
+  }, [
+    selectedRooms,
+    selectedTierIds,
+    selectedAddOns,
+    selectedReductions,
+    frequency,
+    cleanlinessLevel,
+    couponCode,
+    appliedCoupon,
+    couponDiscount,
+    isRecurring,
+    recurringInterval,
+    paymentFrequency,
+    toast,
+  ])
 
   const handleRoomCountChange = (roomType: string, change: number) => {
     setSelectedRooms((prev) => {
@@ -163,10 +231,20 @@ export function PriceCalculator({
     if (coupon) {
       setCouponDiscount(coupon.discount)
       setAppliedCoupon(coupon.code)
+      toast({
+        title: "Coupon Applied!",
+        description: `Coupon "${coupon.code.toUpperCase()}" has been applied.`,
+        variant: "success",
+      })
+      setCouponCode("") // Clear the input field after successful application
     } else {
       setCouponDiscount(0)
       setAppliedCoupon(null)
-      alert("Invalid coupon code!")
+      toast({
+        title: "Invalid Coupon",
+        description: `The coupon code "${couponCode}" is not valid.`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -290,10 +368,17 @@ export function PriceCalculator({
     .map((id) => getRoomAddOns(roomTypeForVisualization).find((ao) => ao.id === id))
     .filter(Boolean) as RoomAddOn[]
 
-  const handleConfirmCheckout = () => {
-    setIsProcessing(true) // Start processing state
-    setIsAlertDialogOpen(false) // Close the dialog
+  const handleProceedToCheckout = () => {
+    if (Object.keys(selectedRooms).length === 0) {
+      toast({
+        title: "No Rooms Selected",
+        description: "Please select at least one room to proceed.",
+        variant: "destructive",
+      })
+      return
+    }
 
+    setIsProcessing(true)
     // Clear existing cart items to ensure only the new custom service is added
     clearCart()
 
@@ -322,10 +407,12 @@ export function PriceCalculator({
       },
     }
 
-    addItem(customServiceItem)
-    router.push("/checkout")
-    // Note: isProcessing will likely remain true as the page redirects before it can be set to false.
-    // This is acceptable for a full page redirect.
+    addItem(customServiceItem) // This will trigger a toast from CartProvider
+
+    // Give a small delay for the toast to show before redirecting
+    setTimeout(() => {
+      router.push("/checkout")
+    }, 500) // 500ms delay
   }
 
   const isCheckoutButtonDisabled = isProcessing || totalPrice <= 0 || Object.keys(selectedRooms).length === 0
@@ -592,36 +679,16 @@ export function PriceCalculator({
           <span>Estimated Total:</span>
           <span>{formatCurrency(totalPrice)}</span>
         </div>
-        <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-          <AlertDialogTrigger asChild>
-            <Button className="w-full" size="lg" disabled={isCheckoutButtonDisabled}>
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-                  Adding to Cart...
-                </>
-              ) : (
-                "Proceed to Checkout"
-              )}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Your Custom Cleaning Plan</AlertDialogTitle>
-              <AlertDialogDescription>
-                You are about to add a custom cleaning service to your cart for{" "}
-                <span className="font-bold">{formatCurrency(totalPrice)}</span>. This will replace any existing items in
-                your cart. Do you wish to proceed?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmCheckout} disabled={isProcessing}>
-                {isProcessing ? "Processing..." : "Confirm & Proceed"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button className="w-full" size="lg" onClick={handleProceedToCheckout} disabled={isCheckoutButtonDisabled}>
+          {isProcessing ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
+              Adding to Cart...
+            </>
+          ) : (
+            "Proceed to Checkout"
+          )}
+        </Button>
       </CardFooter>
     </Card>
   )
