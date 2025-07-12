@@ -14,18 +14,18 @@ import {
   getRoomTiers,
   getRoomAddOns,
   getRoomReductions,
-  fullHousePackages,
+  fullHousePackages, // Import this
   type RoomAddOn,
-  defaultTiers,
+  // defaultTiers, // No longer needed directly here, imported via constants
 } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
 import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { RoomVisualization } from "./room-visualization"
-import { VALID_COUPONS, LS_PRICE_CALCULATOR_STATE } from "@/lib/constants" // Import LS_PRICE_CALCULATOR_STATE
+import { VALID_COUPONS, LS_PRICE_CALCULATOR_STATE, defaultTiers } from "@/lib/constants" // Import LS_PRICE_CALCULATOR_STATE and defaultTiers
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast" // Ensure useToast is imported
+import { useToast } from "@/components/ui/use-toast"
 
 interface PriceCalculatorProps {
   initialSelectedRooms?: Record<string, number>
@@ -69,6 +69,7 @@ export function PriceCalculator({
   const [addressId, setAddressId] = useState("")
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null) // New state for selected package
 
   // Effect for initial load from localStorage or initial props
   useEffect(() => {
@@ -88,6 +89,7 @@ export function PriceCalculator({
         setIsRecurring(parsedState.isRecurring || false)
         setRecurringInterval(parsedState.recurringInterval || "month")
         setPaymentFrequency(parsedState.paymentFrequency || "per_service")
+        setSelectedPackageId(parsedState.selectedPackageId || null) // Load selected package
       } else {
         // If no saved state, use initial props and set default tiers
         setSelectedRooms(initialSelectedRooms)
@@ -137,6 +139,7 @@ export function PriceCalculator({
         isRecurring,
         recurringInterval,
         paymentFrequency,
+        selectedPackageId, // Save selected package
       }
       localStorage.setItem(LS_PRICE_CALCULATOR_STATE, JSON.stringify(stateToSave))
     } catch (error) {
@@ -160,6 +163,7 @@ export function PriceCalculator({
     isRecurring,
     recurringInterval,
     paymentFrequency,
+    selectedPackageId, // Add selectedPackageId to dependencies
     toast,
   ])
 
@@ -196,12 +200,14 @@ export function PriceCalculator({
           setSelectedTierIds((prevTiers) => ({ ...prevTiers, [roomType]: tiers[0].id }))
         }
       }
+      setSelectedPackageId(null) // Reset package selection if individual rooms are changed
       return newRooms
     })
   }
 
   const handleTierChange = (roomType: string, tierId: string) => {
     setSelectedTierIds((prev) => ({ ...prev, [roomType]: tierId }))
+    setSelectedPackageId(null) // Reset package selection if tier is changed
   }
 
   const handleAddOnToggle = (roomType: string, addOnId: string) => {
@@ -213,6 +219,7 @@ export function PriceCalculator({
         return { ...prev, [roomType]: [...currentAddOns, addOnId] }
       }
     })
+    setSelectedPackageId(null) // Reset package selection if add-ons are changed
   }
 
   const handleReductionToggle = (roomType: string, reductionId: string) => {
@@ -224,6 +231,7 @@ export function PriceCalculator({
         return { ...prev, [roomType]: [...currentReductions, reductionId] }
       }
     })
+    setSelectedPackageId(null) // Reset package selection if reductions are changed
   }
 
   const handleApplyCoupon = () => {
@@ -245,6 +253,32 @@ export function PriceCalculator({
         description: `The coupon code "${couponCode}" is not valid.`,
         variant: "destructive",
       })
+    }
+  }
+
+  const handlePackageSelect = (packageId: string) => {
+    const selectedPackage = fullHousePackages.find((pkg) => pkg.id === packageId)
+    if (selectedPackage) {
+      const newSelectedRooms: Record<string, number> = {}
+      const newSelectedTierIds: Record<string, string> = {}
+
+      selectedPackage.includedRooms.forEach((room) => {
+        newSelectedRooms[room.type] = room.count
+        newSelectedTierIds[room.type] = room.defaultTierId
+      })
+
+      setSelectedRooms(newSelectedRooms)
+      setSelectedTierIds(newSelectedTierIds)
+      setSelectedAddOns({}) // Clear add-ons when selecting a package
+      setSelectedReductions({}) // Clear reductions
+      setCleanlinessLevel(50) // Reset cleanliness
+      setFrequency("one-time") // Reset frequency
+      setCouponCode("") // Clear coupon
+      setAppliedCoupon(null)
+      setCouponDiscount(0)
+      setIsRecurring(false)
+      setPaymentFrequency("per_service")
+      setSelectedPackageId(packageId)
     }
   }
 
@@ -356,7 +390,10 @@ export function PriceCalculator({
   ])
 
   const roomTypes = Object.keys(roomDisplayNames).filter(
-    (key) => key !== "default" && key !== "other" && !fullHousePackages.some((pkg) => pkg.includedRooms.includes(key)),
+    (key) =>
+      key !== "default" &&
+      key !== "other" &&
+      !fullHousePackages.some((pkg) => pkg.includedRooms.some((r) => r.type === key)),
   )
 
   // Get the first selected room type for visualization, or 'default' if none selected
@@ -404,6 +441,7 @@ export function PriceCalculator({
         appliedCoupon: appliedCoupon,
         couponDiscount: couponDiscount,
         serviceType: currentServiceType,
+        selectedPackageId: selectedPackageId, // Include selected package ID in metadata
       },
     }
 
@@ -427,7 +465,40 @@ export function PriceCalculator({
       </CardHeader>
       <CardContent className="grid gap-8 md:grid-cols-2">
         <div className="space-y-6">
-          <h3 className="text-xl font-semibold">1. Select Rooms & Quantity</h3>
+          <h3 className="text-xl font-semibold">0. Choose a Full House Package (Optional)</h3>
+          <div className="grid gap-4 md:grid-cols-1">
+            {fullHousePackages.map((pkg) => (
+              <Card
+                key={pkg.id}
+                className={`cursor-pointer transition-all ${
+                  selectedPackageId === pkg.id
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+                onClick={() => handlePackageSelect(pkg.id)}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{pkg.description}</p>
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="font-medium">Includes:</p>
+                    <ul className="list-disc list-inside ml-4">
+                      {pkg.includedRooms.map((room, index) => (
+                        <li key={index} className="capitalize">
+                          {room.count} {roomDisplayNames[room.type]} (
+                          {getRoomTiers(room.type).find((t) => t.id === room.defaultTierId)?.name || "Default"})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Separator />
+          <h3 className="text-xl font-semibold">1. Select Rooms & Quantity (or customize your package)</h3>
           <div className="grid grid-cols-2 gap-4">
             {roomTypes.map((roomType) => (
               <div key={roomType} className="flex items-center justify-between p-3 border rounded-md">

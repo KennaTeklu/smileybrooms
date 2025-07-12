@@ -1,6 +1,37 @@
 // Define the room tiers, add-ons, and reductions for the room configurator
 
-export interface RoomTier {
+import { defaultTiers } from "./constants"
+
+export type RoomTier = {
+  id: string
+  name: string
+  description: string
+  price: number
+  timeEstimate: string
+}
+
+export type RoomAddOn = {
+  id: string
+  name: string
+  description: string
+  price: number
+}
+
+export type RoomReduction = {
+  id: string
+  name: string
+  description: string
+  discount: number
+}
+
+export type FullHousePackage = {
+  id: string
+  name: string
+  description: string
+  includedRooms: { type: string; count: number; defaultTierId: string }[]
+}
+
+export interface RoomTier_old {
   id: string
   name: string
   description: string
@@ -12,21 +43,21 @@ export interface RoomTier {
   upsellMessage?: string // New field for upselling
 }
 
-export interface RoomAddOn {
+export interface RoomAddOn_old {
   id: string
   name: string
   price: number
   description?: string
 }
 
-export interface RoomReduction {
+export interface RoomReduction_old {
   id: string
   name: string
   discount: number
   description?: string
 }
 
-export interface FullHousePackage {
+export interface FullHousePackage_old {
   id: string
   name: string
   description: string
@@ -39,71 +70,330 @@ export interface FullHousePackage {
 // Centralized Full House Packages Data
 export const fullHousePackages: FullHousePackage[] = [
   {
-    id: "essential-full-house",
-    name: "Essential Full House Clean",
-    description: "Basic cleaning for your entire home - perfect for maintenance cleaning",
-    originalPrice: 1620,
-    basePrice: 1458, // Discounted price from guide
+    id: "small-home-package",
+    name: "Small Home Package",
+    description: "Ideal for apartments or small houses (up to 2 bedrooms, 1 bathroom).",
     includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "entryway",
+      { type: "livingRoom", count: 1, defaultTierId: "essential-living" },
+      { type: "kitchen", count: 1, defaultTierId: "essential-kitchen" },
+      { type: "bathroom", count: 1, defaultTierId: "essential-bathroom" },
+      { type: "bedroom", count: 2, defaultTierId: "essential-bedroom" },
     ],
-    tier: "essential",
   },
   {
-    id: "premium-full-house",
-    name: "Premium Full House Clean",
-    description: "Thorough cleaning with attention to detail for every room",
-    originalPrice: 2880,
-    basePrice: 2592, // Discounted price from guide
+    id: "medium-home-package",
+    name: "Medium Home Package",
+    description: "Perfect for average-sized homes (up to 3 bedrooms, 2 bathrooms).",
     includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "homeOffice",
-      "laundryRoom",
+      { type: "livingRoom", count: 1, defaultTierId: "premium-living" },
+      { type: "kitchen", count: 1, defaultTierId: "premium-kitchen" },
+      { type: "bathroom", count: 2, defaultTierId: "premium-bathroom" },
+      { type: "bedroom", count: 3, defaultTierId: "premium-bedroom" },
+      { type: "diningRoom", count: 1, defaultTierId: "premium-dining" },
     ],
-    tier: "premium",
   },
   {
-    id: "luxury-full-house",
-    name: "Luxury Full House Clean",
-    description: "Comprehensive deep cleaning with premium treatments throughout",
-    originalPrice: 4680,
-    basePrice: 4212, // Discounted price from guide
+    id: "large-home-package",
+    name: "Large Home Package",
+    description: "Comprehensive cleaning for larger residences (4+ bedrooms, 3+ bathrooms).",
     includedRooms: [
-      "bedroom",
-      "bedroom",
-      "bedroom",
-      "bathroom",
-      "bathroom",
-      "kitchen",
-      "livingRoom",
-      "diningRoom",
-      "homeOffice",
-      "laundryRoom",
-      "entryway",
-      "hallway",
-      "stairs",
+      { type: "livingRoom", count: 1, defaultTierId: "luxury-living" },
+      { type: "kitchen", count: 1, defaultTierId: "luxury-kitchen" },
+      { type: "bathroom", count: 3, defaultTierId: "luxury-bathroom" },
+      { type: "bedroom", count: 4, defaultTierId: "luxury-bedroom" },
+      { type: "diningRoom", count: 1, defaultTierId: "luxury-dining" },
+      { type: "homeOffice", count: 1, defaultTierId: "luxury-office" },
     ],
-    tier: "luxury",
   },
 ]
 
+// Define tiers for each room type
+const roomTiers: Record<string, RoomTier[]> = {
+  livingRoom: [
+    {
+      id: "essential-living",
+      name: "Essential Living Room Clean",
+      description: "Dusting, vacuuming, surface wipe-down.",
+      price: 50,
+      timeEstimate: "30 minutes",
+    },
+    {
+      id: "premium-living",
+      name: "Premium Living Room Clean",
+      description: "Essential + deep vacuuming, furniture polishing, window sills.",
+      price: 75,
+      timeEstimate: "45 minutes",
+    },
+    {
+      id: "luxury-living",
+      name: "Luxury Living Room Clean",
+      description: "Premium + carpet shampoo, wall spot cleaning, detailed decor dusting.",
+      price: 100,
+      timeEstimate: "60 minutes",
+    },
+  ],
+  kitchen: [
+    {
+      id: "essential-kitchen",
+      name: "Essential Kitchen Clean",
+      description: "Countertops, sink, exterior of appliances, floor sweep/mop.",
+      price: 80,
+      timeEstimate: "45 minutes",
+    },
+    {
+      id: "premium-kitchen",
+      name: "Premium Kitchen Clean",
+      description: "Essential + microwave interior, cabinet exteriors, backsplash.",
+      price: 120,
+      timeEstimate: "75 minutes",
+    },
+    {
+      id: "luxury-kitchen",
+      name: "Luxury Kitchen Clean",
+      description: "Premium + oven interior, refrigerator interior, grout cleaning.",
+      price: 160,
+      timeEstimate: "120 minutes",
+    },
+  ],
+  bathroom: [
+    {
+      id: "essential-bathroom",
+      name: "Essential Bathroom Clean",
+      description: "Toilet, sink, shower/tub, floor, mirror.",
+      price: 60,
+      timeEstimate: "30 minutes",
+    },
+    {
+      id: "premium-bathroom",
+      name: "Premium Bathroom Clean",
+      description: "Essential + grout scrub, cabinet exteriors, light fixtures.",
+      price: 90,
+      timeEstimate: "45 minutes",
+    },
+    {
+      id: "luxury-bathroom",
+      name: "Luxury Bathroom Clean",
+      description: "Premium + deep tile cleaning, shower glass restoration, vent cleaning.",
+      price: 120,
+      timeEstimate: "60 minutes",
+    },
+  ],
+  bedroom: [
+    {
+      id: "essential-bedroom",
+      name: "Essential Bedroom Clean",
+      description: "Dusting, vacuuming, surface wipe-down.",
+      price: 40,
+      timeEstimate: "25 minutes",
+    },
+    {
+      id: "premium-bedroom",
+      name: "Premium Bedroom Clean",
+      description: "Essential + bed making, mirror cleaning, light organizing.",
+      price: 60,
+      timeEstimate: "40 minutes",
+    },
+    {
+      id: "luxury-bedroom",
+      name: "Luxury Bedroom Clean",
+      description: "Premium + linen change, closet tidying, detailed dusting of decor.",
+      price: 80,
+      timeEstimate: "55 minutes",
+    },
+  ],
+  diningRoom: [
+    {
+      id: "essential-dining",
+      name: "Essential Dining Room Clean",
+      description: "Table wipe-down, floor vacuum/mop, dusting.",
+      price: 45,
+      timeEstimate: "25 minutes",
+    },
+    {
+      id: "premium-dining",
+      name: "Premium Dining Room Clean",
+      description: "Essential + chair wipe-down, light fixture dusting, window sills.",
+      price: 65,
+      timeEstimate: "40 minutes",
+    },
+    {
+      id: "luxury-dining",
+      name: "Luxury Dining Room Clean",
+      description: "Premium + detailed furniture polishing, wall spot cleaning.",
+      price: 85,
+      timeEstimate: "55 minutes",
+    },
+  ],
+  homeOffice: [
+    {
+      id: "essential-office",
+      name: "Essential Home Office Clean",
+      description: "Desk wipe-down, floor vacuum, dusting.",
+      price: 40,
+      timeEstimate: "25 minutes",
+    },
+    {
+      id: "premium-office",
+      name: "Premium Home Office Clean",
+      description: "Essential + monitor wipe, keyboard/mouse wipe, light organizing.",
+      price: 60,
+      timeEstimate: "40 minutes",
+    },
+    {
+      id: "luxury-office",
+      name: "Luxury Home Office Clean",
+      description: "Premium + detailed dusting of electronics, cable management tidying.",
+      price: 80,
+      timeEstimate: "55 minutes",
+    },
+  ],
+  hallway: [
+    {
+      id: "essential-hallway",
+      name: "Essential Hallway Clean",
+      description: "Floor vacuum/mop, dusting of surfaces.",
+      price: 25,
+      timeEstimate: "15 minutes",
+    },
+    {
+      id: "premium-hallway",
+      name: "Premium Hallway Clean",
+      description: "Essential + baseboard wipe, light fixture dusting.",
+      price: 35,
+      timeEstimate: "25 minutes",
+    },
+  ],
+  entryway: [
+    {
+      id: "essential-entryway",
+      name: "Essential Entryway Clean",
+      description: "Floor sweep/mop, dusting of surfaces.",
+      price: 20,
+      timeEstimate: "10 minutes",
+    },
+    {
+      id: "premium-entryway",
+      name: "Premium Entryway Clean",
+      description: "Essential + shoe mat shake-out, door wipe-down.",
+      price: 30,
+      timeEstimate: "20 minutes",
+    },
+  ],
+  laundryRoom: [
+    {
+      id: "essential-laundry",
+      name: "Essential Laundry Room Clean",
+      description: "Floor sweep/mop, surface wipe-down.",
+      price: 30,
+      timeEstimate: "15 minutes",
+    },
+    {
+      id: "premium-laundry",
+      name: "Premium Laundry Room Clean",
+      description: "Essential + exterior of washer/dryer wipe, sink clean.",
+      price: 45,
+      timeEstimate: "25 minutes",
+    },
+  ],
+  stairs: [
+    {
+      id: "essential-stairs",
+      name: "Essential Stairs Clean",
+      description: "Vacuuming/sweeping stairs.",
+      price: 35,
+      timeEstimate: "20 minutes",
+    },
+    {
+      id: "premium-stairs",
+      name: "Premium Stairs Clean",
+      description: "Essential + railing wipe-down, dusting of banisters.",
+      price: 50,
+      timeEstimate: "35 minutes",
+    },
+  ],
+  other: [
+    {
+      id: "essential-other",
+      name: "Essential Other Area Clean",
+      description: "General cleaning for miscellaneous spaces.",
+      price: 30,
+      timeEstimate: "20 minutes",
+    },
+  ],
+  default: defaultTiers.default, // Fallback for visualization
+}
+
+// Define add-ons for each room type
+const roomAddOns: Record<string, RoomAddOn[]> = {
+  livingRoom: [
+    { id: "window-cleaning", name: "Window Cleaning", description: "Interior window cleaning.", price: 25 },
+    {
+      id: "upholstery-cleaning",
+      name: "Upholstery Cleaning",
+      description: "Spot cleaning for fabric furniture.",
+      price: 40,
+    },
+  ],
+  kitchen: [
+    { id: "oven-interior", name: "Oven Interior Clean", description: "Deep cleaning of oven interior.", price: 30 },
+    {
+      id: "fridge-interior",
+      name: "Fridge Interior Clean",
+      description: "Deep cleaning of refrigerator interior.",
+      price: 25,
+    },
+    {
+      id: "cabinet-interior",
+      name: "Cabinet Interior Clean",
+      description: "Cleaning inside kitchen cabinets.",
+      price: 50,
+    },
+  ],
+  bathroom: [
+    { id: "grout-scrub", name: "Grout Scrub", description: "Deep scrubbing of tile grout.", price: 20 },
+    {
+      id: "mold-mildew-treatment",
+      name: "Mold & Mildew Treatment",
+      description: "Targeted treatment for mold/mildew.",
+      price: 35,
+    },
+  ],
+  bedroom: [
+    { id: "linen-change", name: "Linen Change", description: "Changing bed linens (customer provides).", price: 10 },
+    { id: "closet-tidying", name: "Closet Tidying", description: "Light organization of closet contents.", price: 30 },
+  ],
+  homeOffice: [
+    {
+      id: "monitor-wipe",
+      name: "Monitor & Keyboard Wipe",
+      description: "Gentle cleaning of electronics surfaces.",
+      price: 15,
+    },
+    {
+      id: "cable-management",
+      name: "Cable Management Tidying",
+      description: "Light organization of desk cables.",
+      price: 20,
+    },
+  ],
+  // Add-ons for other rooms can be defined here
+}
+
+// Define reductions for each room type
+const roomReductions: Record<string, RoomReduction[]> = {
+  livingRoom: [{ id: "no-carpet", name: "No Carpet", description: "No carpeted areas in living room.", discount: 10 }],
+  kitchen: [
+    { id: "small-kitchen", name: "Small Kitchen", description: "Kitchen is smaller than average.", discount: 15 },
+  ],
+  bathroom: [
+    { id: "half-bath", name: "Half Bath", description: "Bathroom is a half-bath (toilet & sink only).", discount: 20 },
+  ],
+  bedroom: [{ id: "no-closet", name: "No Closet", description: "Bedroom has no closet.", discount: 5 }],
+  // Reductions for other rooms can be defined here
+}
+
 // Define the tiers for each room type with detailed information
-export const defaultTiers: Record<string, RoomTier[]> = {
+export const defaultTiers_old: Record<string, RoomTier_old[]> = {
   bedroom: [
     {
       id: "bedroom-essential",
@@ -1231,7 +1521,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
 }
 
 // Sample data for add-ons
-export const defaultAddOns: Record<string, RoomAddOn[]> = {
+export const defaultAddOns_old: Record<string, RoomAddOn_old[]> = {
   bedroom: [
     { id: "bed-a1", name: "Linen change", price: 15.0, description: "Fresh linens will be provided and used" },
     { id: "bed-a2", name: "Pillow fluffing", price: 10.0, description: "Pillows will be fluffed and arranged" },
@@ -1294,7 +1584,7 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
 }
 
 // Sample data for reductions
-export const defaultReductions: Record<string, RoomReduction[]> = {
+export const defaultReductions_old: Record<string, RoomReduction_old[]> = {
   bedroom: [
     { id: "bed-r1", name: "Skip mirror cleaning", discount: 5.0, description: "Mirrors will not be cleaned" },
     {
@@ -1394,19 +1684,46 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
   ],
 }
 
-// Helper function to get tiers for a specific room type
+export const roomDisplayNames: Record<string, string> = {
+  livingRoom: "Living Room",
+  kitchen: "Kitchen",
+  bathroom: "Bathroom",
+  bedroom: "Bedroom",
+  diningRoom: "Dining Room",
+  homeOffice: "Home Office",
+  hallway: "Hallway",
+  entryway: "Entryway",
+  laundryRoom: "Laundry Room",
+  stairs: "Stairs",
+  other: "Other Area",
+  default: "Default Room", // For visualization fallback
+}
+
 export function getRoomTiers(roomType: string): RoomTier[] {
+  return roomTiers[roomType] || []
+}
+
+export function getRoomAddOns(roomType: string): RoomAddOn[] {
+  return roomAddOns[roomType] || []
+}
+
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return roomReductions[roomType] || []
+}
+
+// Helper function to get tiers for a specific room type
+export function getRoomTiers_old(roomType: string): RoomTier_old[] {
   return defaultTiers[roomType] || defaultTiers.default
 }
 
 // Helper function to get add-ons for a specific room type
-export function getRoomAddOns(roomType: string): RoomAddOn[] {
-  return defaultAddOns[roomType] || defaultAddOns.default
+export function getRoomAddOns_old(roomType: string): RoomAddOn_old[] {
+  return defaultAddOns_old[roomType] || defaultAddOns_old.default
 }
 
 // Helper function to get reductions for a specific room type
-export function getRoomReductions(roomType: string): RoomReduction[] {
-  return defaultReductions[roomType] || defaultReductions.default
+export function getRoomReductions_old(roomType: string): RoomReduction_old[] {
+  return defaultReductions_old[roomType] || defaultReductions_old.default
 }
 
 // Room type to professional image mapping
@@ -1439,20 +1756,4 @@ export const roomIcons: Record<string, string> = {
   stairs: "🪜",
   other: "➕",
   default: "🏠",
-}
-
-// Room type to display name mapping
-export const roomDisplayNames: Record<string, string> = {
-  bedroom: "Bedroom",
-  bathroom: "Bathroom",
-  kitchen: "Kitchen",
-  livingRoom: "Living Room",
-  diningRoom: "Dining Room",
-  homeOffice: "Home Office",
-  laundryRoom: "Laundry Room",
-  entryway: "Entryway",
-  hallway: "Hallway",
-  stairs: "Stairs",
-  other: "Other Space",
-  default: "General Home",
 }
