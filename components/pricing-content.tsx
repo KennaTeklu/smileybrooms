@@ -4,8 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { roomDisplayNames, getRoomTiers, fullHousePackages } from "@/lib/room-tiers" // Import fullHousePackages
+import type { FullHousePackage } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
 import { CheckCircle } from "lucide-react"
+
+// 👇 NEW – ensure we never run .map on undefined
+const safePackages: FullHousePackage[] = Array.isArray(fullHousePackages) ? fullHousePackages : []
 
 interface PricingContentProps {
   onSelectTier: (roomType: string, tierId: string) => void
@@ -32,7 +36,7 @@ export function PricingContent({ onSelectTier }: PricingContentProps) {
       <section className="mb-12">
         <h2 className="text-3xl font-bold text-center mb-8">Full House Cleaning Packages</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {fullHousePackages.map((pkg) => (
+          {safePackages.map((pkg) => (
             <Card key={pkg.id} className="flex flex-col justify-between">
               <CardHeader>
                 <CardTitle className="text-center">{pkg.name}</CardTitle>
