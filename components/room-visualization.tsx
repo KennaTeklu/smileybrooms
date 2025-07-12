@@ -7,22 +7,64 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
+import { roomImages, type RoomTier, type RoomAddOn } from "@/lib/room-tiers" // Import RoomTier and RoomAddOn types
 
 interface RoomVisualizationProps {
   roomType: string
-  selectedTier: string
-  selectedAddOns?: string[]
+  selectedTierDetails?: RoomTier // Changed to accept full tier details
+  selectedAddOnsDetails?: RoomAddOn[] // Changed to accept full add-on details
 }
 
-export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] }: RoomVisualizationProps) {
+export function RoomVisualization({
+  roomType,
+  selectedTierDetails,
+  selectedAddOnsDetails = [],
+}: RoomVisualizationProps) {
   const [activeView, setActiveView] = useState("2d")
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [hoveredArea, setHoveredArea] = useState<string | null>(null)
+  const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null)
 
-  // Room areas based on room type
+  // Mapping of abstract area IDs to keywords found in detailedTasks
+  const areaKeywords: Record<string, string[]> = {
+    floor: ["floor", "vacuum", "sweep", "mop", "carpet", "hardwood"],
+    bed: ["bed", "mattress", "pillow", "under-bed", "linen"],
+    nightstand: ["nightstand"],
+    dresser: ["dresser"],
+    closet: ["closet", "wardrobe"],
+    shower: ["shower", "tub"],
+    toilet: ["toilet"],
+    sink: ["sink"],
+    mirror: ["mirror"],
+    counters: ["countertop", "counter"],
+    stove: ["stovetop", "oven", "range hood"],
+    refrigerator: ["refrigerator"],
+    cabinets: ["cabinet"],
+    sofa: ["sofa", "furniture", "upholstery"],
+    coffeeTable: ["coffee table"],
+    tvStand: ["tv stand", "electronics", "entertainment center"],
+    bookshelf: ["bookshelf"],
+    table: ["table"], // dining table
+    chairs: ["chair"], // dining chairs
+    sideboard: ["sideboard"],
+    desk: ["desk"],
+    chair: ["chair"], // office chair
+    washer: ["washer"],
+    dryer: ["dryer"],
+    consoleTable: ["console table"],
+    coatRack: ["coat rack", "coat closet"],
+    artwork: ["artwork", "picture frame"],
+    steps: ["steps", "stair"],
+    handrail: ["handrail"],
+  }
+
+  // Room areas based on room type (abstract coordinates, will overlay on image)
   const getRoomAreas = (type: string) => {
-    switch (type.toLowerCase()) {
+    // Normalize type to match keys in roomImages and roomDisplayNames
+    const normalizedType = type.replace(/\s/g, "").toLowerCase()
+
+    switch (normalizedType) {
       case "bedroom":
         return [
           { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
@@ -48,13 +90,53 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
           { id: "refrigerator", name: "Refrigerator", x: 50, y: 50, width: 100, height: 90 },
           { id: "cabinets", name: "Cabinets", x: 160, y: 50, width: 150, height: 40 },
         ]
-      case "living room":
+      case "livingroom":
         return [
           { id: "floor", name: "Floor", x: 50, y: 200, width: 400, height: 250 },
           { id: "sofa", name: "Sofa", x: 100, y: 100, width: 250, height: 80 },
           { id: "coffeeTable", name: "Coffee Table", x: 150, y: 200, width: 150, height: 60 },
           { id: "tvStand", name: "TV Stand", x: 400, y: 100, width: 100, height: 40 },
           { id: "bookshelf", name: "Bookshelf", x: 50, y: 50, width: 80, height: 150 },
+        ]
+      case "diningroom":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 400, height: 200 },
+          { id: "table", name: "Dining Table", x: 100, y: 100, width: 250, height: 100 },
+          { id: "chairs", name: "Chairs", x: 80, y: 80, width: 300, height: 150 },
+          { id: "sideboard", name: "Sideboard", x: 400, y: 50, width: 80, height: 100 },
+        ]
+      case "homeoffice":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "desk", name: "Desk", x: 100, y: 100, width: 200, height: 80 },
+          { id: "chair", name: "Chair", x: 150, y: 180, width: 100, height: 60 },
+          { id: "bookshelf", name: "Bookshelf", x: 320, y: 50, width: 80, height: 150 },
+        ]
+      case "laundryroom":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "washer", name: "Washer", x: 100, y: 50, width: 80, height: 100 },
+          { id: "dryer", name: "Dryer", x: 200, y: 50, width: 80, height: 100 },
+          { id: "sink", name: "Sink", x: 300, y: 50, width: 80, height: 80 },
+          { id: "counter", name: "Counter", x: 50, y: 160, width: 400, height: 40 },
+        ]
+      case "entryway":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "consoleTable", name: "Console Table", x: 100, y: 100, width: 150, height: 60 },
+          { id: "mirror", name: "Mirror", x: 120, y: 50, width: 100, height: 40 },
+          { id: "coatRack", name: "Coat Rack", x: 300, y: 50, width: 50, height: 150 },
+        ]
+      case "hallway":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 400, height: 200 },
+          { id: "consoleTable", name: "Console Table", x: 100, y: 100, width: 150, height: 60 },
+          { id: "artwork", name: "Artwork", x: 300, y: 50, width: 80, height: 100 },
+        ]
+      case "stairs":
+        return [
+          { id: "steps", name: "Steps", x: 50, y: 100, width: 200, height: 300 },
+          { id: "handrail", name: "Handrail", x: 250, y: 50, width: 50, height: 350 },
         ]
       default:
         return [
@@ -64,20 +146,46 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
     }
   }
 
-  // Get cleaning areas based on tier
-  const getCleaningAreas = (tier: string, roomType: string) => {
-    const allAreas = getRoomAreas(roomType).map((area) => area.id)
+  // Determine if an area is included in cleaning based on tier details and add-ons
+  const isAreaIncluded = (areaId: string) => {
+    if (!selectedTierDetails) return false
 
-    switch (tier) {
-      case "PREMIUM":
-        return allAreas
-      case "DEEP CLEAN":
-        return allAreas.filter((area) => area !== "closet" && area !== "bookshelf")
-      case "QUICK CLEAN":
-      default:
-        return allAreas.filter((area) => ["floor", "counters", "sink", "bed"].includes(area))
-    }
+    const detailedTasks = selectedTierDetails.detailedTasks.map((task) => task.toLowerCase())
+    const notIncludedTasks = selectedTierDetails.notIncludedTasks.map((task) => task.toLowerCase())
+
+    // Check if any keyword for the area is present in detailedTasks
+    const keywords = areaKeywords[areaId] || []
+    const isCoveredByTier = keywords.some((keyword) => detailedTasks.some((task) => task.includes(keyword)))
+
+    // Check if any keyword for the area is present in notIncludedTasks
+    const isExcludedByTier = keywords.some((keyword) => notIncludedTasks.some((task) => task.includes(keyword)))
+
+    // Check if the area is explicitly added via add-ons
+    const isCoveredByAddOn = selectedAddOnsDetails.some((addOn) =>
+      keywords.some((keyword) => addOn.name.toLowerCase().includes(keyword)),
+    )
+
+    // An area is included if it's covered by the tier AND not explicitly excluded, OR if it's covered by an add-on.
+    return (isCoveredByTier && !isExcludedByTier) || isCoveredByAddOn
   }
+
+  // Load background image
+  useEffect(() => {
+    setIsLoading(true)
+    const img = new Image()
+    img.crossOrigin = "anonymous" // Important for CORS when drawing on canvas
+    const imagePath = roomImages[roomType] || "/cozy-reading-nook.png"
+    img.src = imagePath
+    img.onload = () => {
+      setBackgroundImage(img)
+      setIsLoading(false)
+    }
+    img.onerror = () => {
+      console.error("Failed to load image:", img.src)
+      setBackgroundImage(null) // Clear image on error
+      setIsLoading(false)
+    }
+  }, [roomType])
 
   // Draw the room visualization
   useEffect(() => {
@@ -87,32 +195,38 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    setIsLoading(true)
-
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Draw room outline
-    ctx.strokeStyle = "#ccc"
-    ctx.lineWidth = 2
-    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40)
+    // Draw background image if loaded
+    if (backgroundImage) {
+      ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height)
+    } else {
+      // Fallback if image fails to load or is not available
+      ctx.fillStyle = "#f0f0f0" // Light gray background
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = "#666"
+      ctx.font = "20px sans-serif"
+      ctx.textAlign = "center"
+      ctx.fillText("Image not available", canvas.width / 2, canvas.height / 2)
+    }
 
-    // Get room areas and cleaning areas
+    // Get room areas
     const roomAreas = getRoomAreas(roomType)
-    const cleaningAreas = getCleaningAreas(selectedTier, roomType)
 
-    // Draw room areas
+    // Draw room areas as overlays
     roomAreas.forEach((area) => {
-      const isIncluded = cleaningAreas.includes(area.id) || selectedAddOns?.includes(area.id)
+      const isIncluded = isAreaIncluded(area.id)
       const isHovered = hoveredArea === area.id
 
+      // Use a semi-transparent fill to show the background image
       ctx.fillStyle = isIncluded
         ? isHovered
-          ? "rgba(34, 197, 94, 0.7)"
-          : "rgba(34, 197, 94, 0.4)"
+          ? "rgba(34, 197, 94, 0.5)" // Green for included, slightly more opaque on hover
+          : "rgba(34, 197, 94, 0.3)" // Green for included
         : isHovered
-          ? "rgba(203, 213, 225, 0.7)"
-          : "rgba(203, 213, 225, 0.3)"
+          ? "rgba(203, 213, 225, 0.5)" // Gray for not included, slightly more opaque on hover
+          : "rgba(203, 213, 225, 0.2)" // Gray for not included
 
       ctx.strokeStyle = isIncluded ? "#16a34a" : "#94a3b8"
       ctx.lineWidth = isHovered ? 3 : 1
@@ -126,8 +240,6 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
       ctx.textAlign = "center"
       ctx.fillText(area.name, area.x + area.width / 2, area.y + area.height / 2)
     })
-
-    setIsLoading(false)
 
     // Add mouse move event listener for hover effects
     const handleMouseMove = (e: MouseEvent) => {
@@ -153,7 +265,7 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
     return () => {
       canvas.removeEventListener("mousemove", handleMouseMove)
     }
-  }, [roomType, selectedTier, selectedAddOns, hoveredArea])
+  }, [roomType, selectedTierDetails, selectedAddOnsDetails, hoveredArea, backgroundImage]) // Re-run when backgroundImage or tier/add-on details change
 
   return (
     <Card className="w-full">
@@ -186,15 +298,15 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
 
           <TabsContent value="2d" className="relative">
             {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-950/80 z-10">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
               </div>
             )}
             <div className="relative">
               <canvas ref={canvasRef} width={500} height={400} className="w-full h-auto border rounded-md"></canvas>
               <div className="absolute bottom-2 right-2 flex gap-2">
-                <Badge variant="outline" className="bg-white">
-                  {selectedTier}
+                <Badge variant="outline" className="bg-white dark:bg-gray-800">
+                  {selectedTierDetails?.name || "No Tier Selected"}
                 </Badge>
               </div>
             </div>
@@ -204,22 +316,25 @@ export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] 
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-4 h-4 bg-green-400 rounded-sm"></div>
-                <span className="text-sm">Included in {selectedTier}</span>
+                <span className="text-sm">Included in {selectedTierDetails?.name || "selected tier"}</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {getRoomAreas(roomType).map((area) => {
-                  const isIncluded =
-                    getCleaningAreas(selectedTier, roomType).includes(area.id) || selectedAddOns?.includes(area.id)
+                  const isIncluded = isAreaIncluded(area.id)
 
                   return (
                     <div
                       key={area.id}
                       className={`p-2 border rounded-md flex items-center gap-2 ${
-                        isIncluded ? "border-green-500 bg-green-50" : "border-gray-200"
+                        isIncluded
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                          : "border-gray-200 dark:border-gray-800"
                       }`}
                     >
-                      <div className={`w-3 h-3 rounded-full ${isIncluded ? "bg-green-500" : "bg-gray-300"}`}></div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${isIncluded ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
+                      ></div>
                       <span>{area.name}</span>
                     </div>
                   )

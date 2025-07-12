@@ -543,7 +543,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Light fixtures disassemble + crystal clean - Remove covers, clean fixtures, polish crystals",
         "Carpet spot treatment + deodorize - Treat carpet spots, apply deodorizer",
         "Wall spot cleaning - Spot clean any visible marks or smudges on walls",
-        "Air vent cleaning - Remove vent covers, clean inside and out",
+        "Air vent cleaning - Remove air vent covers, clean inside and out",
         "Furniture polishing - Polish wood furniture, condition leather",
       ],
       notIncludedTasks: [],
@@ -995,7 +995,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
         "Artwork individual clean + level - Individually clean and level all artwork on walls",
         "Door hardware polish + hinges - Polish door handles, knobs, and hinges",
         "Ceiling corner cobweb + dust removal - Remove cobwebs and dust from all ceiling corners",
-        "Air vent cleaning - Remove vent covers, clean inside and out",
+        "Air vent cleaning - Remove air vent covers, clean inside and out",
       ],
       notIncludedTasks: [],
     },
@@ -1230,6 +1230,69 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
 }
 
+// Sample data for add-ons
+export const defaultAddOns: Record<string, RoomAddOn[]> = {
+  bedroom: [
+    { id: "bed-a1", name: "Linen change", price: 15.0, description: "Fresh linens will be provided and used" },
+    { id: "bed-a2", name: "Pillow fluffing", price: 10.0, description: "Pillows will be fluffed and arranged" },
+  ],
+  bathroom: [
+    { id: "bath-a1", name: "Towel refresh", price: 12.0, description: "Fresh towels will be provided" },
+    { id: "bath-a2", name: "Toilet paper refill", price: 5.0, description: "Toilet paper will be refilled" },
+  ],
+  kitchen: [
+    { id: "kit-a1", name: "Dish washing", price: 20.0, description: "Dishes will be washed and put away" },
+    { id: "kit-a2", name: "Countertop sanitization", price: 10.0, description: "Countertops will be sanitized" },
+  ],
+  livingRoom: [
+    { id: "lr-a1", name: "Fireplace cleaning", price: 30.0, description: "Cleaning of fireplace and mantel" },
+    { id: "lr-a2", name: "Remote control sanitization", price: 5.0, description: "Sanitize all remote controls" },
+  ],
+  diningRoom: [
+    { id: "dr-a1", name: "Silverware polishing", price: 25.0, description: "Polishing of silverware" },
+    { id: "dr-a2", name: "Chair cushion vacuum", price: 10.0, description: "Vacuuming of dining chair cushions" },
+  ],
+  homeOffice: [
+    {
+      id: "ho-a1",
+      name: "Monitor screen cleaning",
+      price: 10.0,
+      description: "Streak-free cleaning of monitor screens",
+    },
+    {
+      id: "ho-a2",
+      name: "Keyboard & mouse sanitization",
+      price: 15.0,
+      description: "Deep cleaning and sanitization of keyboard and mouse",
+    },
+  ],
+  laundryRoom: [
+    { id: "lnd-a1", name: "Laundry folding", price: 20.0, description: "Folding and organizing of laundry" },
+    {
+      id: "lnd-a2",
+      name: "Appliance exterior polish",
+      price: 10.0,
+      description: "Polishing of washer and dryer exteriors",
+    },
+  ],
+  entryway: [
+    { id: "ew-a1", name: "Shoe rack organization", price: 15.0, description: "Organizing shoes on the rack" },
+    { id: "ew-a2", name: "Mirror streak-free clean", price: 8.0, description: "Detailed streak-free mirror cleaning" },
+  ],
+  hallway: [
+    { id: "hw-a1", name: "Artwork dusting", price: 10.0, description: "Gentle dusting of wall artwork" },
+    { id: "hw-a2", name: "Baseboard wipe-down", price: 12.0, description: "Wiping down all baseboards" },
+  ],
+  stairs: [
+    { id: "st-a1", name: "Handrail polish", price: 15.0, description: "Polishing of wooden or metal handrails" },
+    { id: "st-a2", name: "Stair runner vacuum", price: 10.0, description: "Detailed vacuuming of stair runners" },
+  ],
+  default: [
+    { id: "def-a1", name: "Window interior spot clean", price: 20.0, description: "Spot cleaning of interior windows" },
+    { id: "def-a2", name: "Pet hair removal", price: 25.0, description: "Extra vacuuming for pet hair" },
+  ],
+}
+
 // Sample data for reductions
 export const defaultReductions: Record<string, RoomReduction[]> = {
   bedroom: [
@@ -1272,14 +1335,63 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
     },
     { id: "kit-r3", name: "No floor mopping", discount: 15.0, description: "Floor will not be mopped" },
   ],
-  livingRoom: [],
-  diningRoom: [],
-  homeOffice: [],
-  laundryRoom: [],
-  entryway: [],
-  hallway: [],
-  stairs: [],
-  default: [],
+  livingRoom: [
+    { id: "lr-r1", name: "Skip furniture vacuuming", discount: 10.0, description: "Furniture will not be vacuumed" },
+    { id: "lr-r2", name: "No baseboard dusting", discount: 5.0, description: "Baseboards will not be dusted" },
+  ],
+  diningRoom: [
+    { id: "dr-r1", name: "Skip table polishing", discount: 8.0, description: "Table will not be polished" },
+    {
+      id: "dr-r2",
+      name: "No chair detailed cleaning",
+      discount: 7.0,
+      description: "Chairs will only receive basic dusting",
+    },
+  ],
+  homeOffice: [
+    { id: "ho-r1", name: "Skip electronics dusting", discount: 10.0, description: "Electronics will not be dusted" },
+    {
+      id: "ho-r2",
+      name: "No bookshelf organization",
+      discount: 12.0,
+      description: "Bookshelves will not be organized",
+    },
+  ],
+  laundryRoom: [
+    {
+      id: "lnd-r1",
+      name: "Skip washer/dryer exterior",
+      discount: 8.0,
+      description: "Washer/dryer exteriors will not be cleaned",
+    },
+    { id: "lnd-r2", name: "No lint trap cleaning", discount: 5.0, description: "Lint trap will not be cleaned" },
+  ],
+  entryway: [
+    { id: "ew-r1", name: "Skip mirror cleaning", discount: 5.0, description: "Entryway mirror will not be cleaned" },
+    {
+      id: "ew-r2",
+      name: "No console table organization",
+      discount: 7.0,
+      description: "Console table will not be organized",
+    },
+  ],
+  hallway: [
+    {
+      id: "hw-r1",
+      name: "Skip picture frame dusting",
+      discount: 5.0,
+      description: "Picture frames will not be dusted",
+    },
+    { id: "hw-r2", name: "No door cleaning", discount: 6.0, description: "Doors will not be wiped down" },
+  ],
+  stairs: [
+    { id: "st-r1", name: "Skip handrail dusting", discount: 5.0, description: "Handrails will not be dusted" },
+    { id: "st-r2", name: "No baseboard dusting", discount: 4.0, description: "Stair baseboards will not be dusted" },
+  ],
+  default: [
+    { id: "def-r1", name: "Skip general tidying", discount: 5.0, description: "General tidying will be skipped" },
+    { id: "def-r2", name: "No trash emptying", discount: 3.0, description: "Trash bins will not be emptied" },
+  ],
 }
 
 // Helper function to get tiers for a specific room type
@@ -1310,6 +1422,7 @@ export const roomImages: Record<string, string> = {
   hallway: "/images/hallway-professional.png",
   stairs: "/images/stairs-professional.png",
   other: "/placeholder.svg?height=140&width=200", // fallback
+  default: "/generic_home_cleaning.png", // Default image for general visualization
 }
 
 // Room type to icon mapping (keeping as fallback)
@@ -1325,6 +1438,7 @@ export const roomIcons: Record<string, string> = {
   hallway: "🚶",
   stairs: "🪜",
   other: "➕",
+  default: "🏠",
 }
 
 // Room type to display name mapping
@@ -1340,28 +1454,5 @@ export const roomDisplayNames: Record<string, string> = {
   hallway: "Hallway",
   stairs: "Stairs",
   other: "Other Space",
-}
-
-// Sample data for add-ons
-export const defaultAddOns: Record<string, RoomAddOn[]> = {
-  bedroom: [
-    { id: "bed-a1", name: "Linen change", price: 15.0, description: "Fresh linens will be provided and used" },
-    { id: "bed-a2", name: "Pillow fluffing", price: 10.0, description: "Pillows will be fluffed and arranged" },
-  ],
-  bathroom: [
-    { id: "bath-a1", name: "Towel refresh", price: 12.0, description: "Fresh towels will be provided" },
-    { id: "bath-a2", name: "Toilet paper refill", price: 5.0, description: "Toilet paper will be refilled" },
-  ],
-  kitchen: [
-    { id: "kit-a1", name: "Dish washing", price: 20.0, description: "Dishes will be washed and put away" },
-    { id: "kit-a2", name: "Countertop sanitization", price: 10.0, description: "Countertops will be sanitized" },
-  ],
-  livingRoom: [],
-  diningRoom: [],
-  homeOffice: [],
-  laundryRoom: [],
-  entryway: [],
-  hallway: [],
-  stairs: [],
-  default: [],
+  default: "General Home",
 }
