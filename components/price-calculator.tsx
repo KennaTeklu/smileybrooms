@@ -14,15 +14,14 @@ import {
   getRoomTiers,
   getRoomAddOns,
   getRoomReductions,
-  fullHousePackages, // Import this
+  fullHousePackages,
   type RoomAddOn,
-  // defaultTiers, // No longer needed directly here, imported via constants
 } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
 import { PlusCircle, MinusCircle, Info, CheckCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { RoomVisualization } from "./room-visualization"
-import { VALID_COUPONS, LS_PRICE_CALCULATOR_STATE, defaultTiers } from "@/lib/constants" // Import LS_PRICE_CALCULATOR_STATE and defaultTiers
+import { VALID_COUPONS, LS_PRICE_CALCULATOR_STATE, defaultTiers } from "@/lib/constants"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
@@ -60,9 +59,9 @@ export function PriceCalculator({
   const [selectedReductions, setSelectedReductions] = useState<Record<string, string[]>>({})
   const [frequency, setFrequency] = useState("one-time")
   const [cleanlinessLevel, setCleanlinessLevel] = useState(50)
-  const [couponCode, setCouponCode] = useState("")
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
-  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponCodeInput, setCouponCodeInput] = useState("") // Renamed to avoid conflict
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null) // Stores the code of the applied coupon
+  const [couponDiscountAmount, setCouponDiscountAmount] = useState(0) // Stores the monetary value of the discount
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringInterval, setRecurringInterval] = useState<"week" | "month" | "year">("month")
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
@@ -83,9 +82,9 @@ export function PriceCalculator({
         setSelectedReductions(parsedState.selectedReductions || {})
         setFrequency(parsedState.frequency || "one-time")
         setCleanlinessLevel(parsedState.cleanlinessLevel || 50)
-        setCouponCode(parsedState.couponCode || "")
-        setAppliedCoupon(parsedState.appliedCoupon || null)
-        setCouponDiscount(parsedState.couponDiscount || 0)
+        setCouponCodeInput(parsedState.couponCodeInput || "")
+        setAppliedCouponCode(parsedState.appliedCouponCode || null)
+        setCouponDiscountAmount(parsedState.couponDiscountAmount || 0)
         setIsRecurring(parsedState.isRecurring || false)
         setRecurringInterval(parsedState.recurringInterval || "month")
         setPaymentFrequency(parsedState.paymentFrequency || "per_service")
@@ -133,9 +132,9 @@ export function PriceCalculator({
         selectedReductions,
         frequency,
         cleanlinessLevel,
-        couponCode,
-        appliedCoupon,
-        couponDiscount,
+        couponCodeInput,
+        appliedCouponCode,
+        couponDiscountAmount,
         isRecurring,
         recurringInterval,
         paymentFrequency,
@@ -157,9 +156,9 @@ export function PriceCalculator({
     selectedReductions,
     frequency,
     cleanlinessLevel,
-    couponCode,
-    appliedCoupon,
-    couponDiscount,
+    couponCodeInput,
+    appliedCouponCode,
+    couponDiscountAmount,
     isRecurring,
     recurringInterval,
     paymentFrequency,
@@ -234,23 +233,67 @@ export function PriceCalculator({
     setSelectedPackageId(null) // Reset package selection if reductions are changed
   }
 
+  const calculateBasePrice = useCallback(() => {
+    let base = 0
+    Object.entries(selectedRooms).forEach(([roomType, count]) => {
+      const selectedTierId = selectedTierIds[roomType]
+      const tiers = getRoomTiers(roomType)
+      const tier = tiers.find((t) => t.id === selectedTierId)
+      if (tier) {
+        base += tier.price * count
+      }
+
+      const roomAddOns = getRoomAddOns(roomType)
+      ;(selectedAddOns[roomType] || []).forEach((addOnId) => {
+        const addOn = roomAddOns.find((a) => a.id === addOnId)
+        if (addOn) {
+          base += addOn.price * count
+        }
+      })
+
+      const roomReductions = getRoomReductions(roomType)
+      ;(selectedReductions[roomType] || []).forEach((reductionId) => {
+        const reduction = roomReductions.find((r) => r.id === reductionId)
+        if (reduction) {
+          base -= reduction.discount * count
+        }
+      })
+    })
+    return Math.max(0, base) // Ensure base price doesn't go below zero
+  }, [selectedRooms, selectedTierIds, selectedAddOns, selectedReductions])
+
   const handleApplyCoupon = () => {
-    const coupon = VALID_COUPONS.find((c) => c.code.toLowerCase() === couponCode.toLowerCase())
+    const coupon = VALID_COUPONS.find((c) => c.code.toLowerCase() === couponCodeInput.toLowerCase())
+    let calculatedDiscount = 0
+    let isValid = false
+
     if (coupon) {
-      setCouponDiscount(coupon.discount)
-      setAppliedCoupon(coupon.code)
+      isValid = true
+      const currentBasePrice = calculateBasePrice() // Calculate base price before frequency/cleanliness
+      if (coupon.type === "percentage") {
+        calculatedDiscount = currentBasePrice * (coupon.value / 100)
+      } else if (coupon.type === "fixed") {
+        calculatedDiscount = coupon.value
+      }
+      // Ensure discount doesn't exceed the current calculated price
+      calculatedDiscount = Math.min(calculatedDiscount, currentBasePrice)
+    }
+
+    if (isValid) {
+      setCouponDiscountAmount(calculatedDiscount)
+      setAppliedCouponCode(coupon?.code || null)
       toast({
         title: "Coupon Applied!",
-        description: `Coupon "${coupon.code.toUpperCase()}" has been applied.`,
+        description: `Coupon "${couponCodeInput.toUpperCase()}" has been applied.`,
         variant: "success",
       })
-      setCouponCode("") // Clear the input field after successful application
+      setCouponCodeInput("") // Clear the input field after successful application
     } else {
-      setCouponDiscount(0)
-      setAppliedCoupon(null)
+      setCouponDiscountAmount(0)
+      setAppliedCouponCode(null)
       toast({
         title: "Invalid Coupon",
-        description: `The coupon code "${couponCode}" is not valid.`,
+        description: `The coupon code "${couponCodeInput}" is not valid.`,
         variant: "destructive",
       })
     }
@@ -273,9 +316,9 @@ export function PriceCalculator({
       setSelectedReductions({}) // Clear reductions
       setCleanlinessLevel(50) // Reset cleanliness
       setFrequency("one-time") // Reset frequency
-      setCouponCode("") // Clear coupon
-      setAppliedCoupon(null)
-      setCouponDiscount(0)
+      setCouponCodeInput("") // Clear coupon input
+      setAppliedCouponCode(null) // Clear applied coupon
+      setCouponDiscountAmount(0) // Clear coupon discount amount
       setIsRecurring(false)
       setPaymentFrequency("per_service")
       setSelectedPackageId(packageId)
@@ -291,38 +334,7 @@ export function PriceCalculator({
   }, [cleanlinessLevel])
 
   const calculateTotalPrice = useCallback(() => {
-    let total = 0
-    let totalTimeEstimateMinutes = 0
-
-    // Calculate price for individual rooms
-    Object.entries(selectedRooms).forEach(([roomType, count]) => {
-      const selectedTierId = selectedTierIds[roomType]
-      const tiers = getRoomTiers(roomType)
-      const tier = tiers.find((t) => t.id === selectedTierId)
-
-      if (tier) {
-        total += tier.price * count
-        totalTimeEstimateMinutes += Number.parseInt(tier.timeEstimate.split(" ")[0]) * count // Assuming "X minutes"
-      }
-
-      // Add-ons for this room type
-      const roomAddOns = getRoomAddOns(roomType)
-      ;(selectedAddOns[roomType] || []).forEach((addOnId) => {
-        const addOn = roomAddOns.find((a) => a.id === addOnId)
-        if (addOn) {
-          total += addOn.price * count
-        }
-      })
-
-      // Reductions for this room type
-      const roomReductions = getRoomReductions(roomType)
-      ;(selectedReductions[roomType] || []).forEach((reductionId) => {
-        const reduction = roomReductions.find((r) => r.id === reductionId)
-        if (reduction) {
-          total -= reduction.discount * count
-        }
-      })
-    })
+    let total = calculateBasePrice()
 
     // Apply cleanliness level multiplier
     total *= priceMultiplier
@@ -334,11 +346,11 @@ export function PriceCalculator({
       total *= 0.9 // 10% discount for bi-weekly
     }
 
-    // Apply coupon discount
-    total *= 1 - couponDiscount
+    // Apply coupon discount (monetary value)
+    total -= couponDiscountAmount
 
     return Math.max(0, total) // Ensure total doesn't go below zero
-  }, [selectedRooms, selectedTierIds, selectedAddOns, selectedReductions, frequency, couponDiscount, priceMultiplier])
+  }, [calculateBasePrice, frequency, couponDiscountAmount, priceMultiplier])
 
   const totalPrice = calculateTotalPrice()
 
@@ -438,8 +450,8 @@ export function PriceCalculator({
         priceMultiplier: priceMultiplier,
         isRecurring: isRecurring,
         recurringInterval: isRecurring ? recurringInterval : undefined,
-        appliedCoupon: appliedCoupon,
-        couponDiscount: couponDiscount,
+        appliedCoupon: appliedCouponCode, // Use appliedCouponCode
+        couponDiscount: couponDiscountAmount, // Use couponDiscountAmount
         serviceType: currentServiceType,
         selectedPackageId: selectedPackageId, // Include selected package ID in metadata
       },
@@ -676,17 +688,19 @@ export function PriceCalculator({
                 <Input
                   id="coupon"
                   placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value)}
                 />
                 <Button onClick={handleApplyCoupon}>Apply</Button>
               </div>
-              {appliedCoupon && (
+              {appliedCouponCode && (
                 <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4" /> Coupon "{appliedCoupon}" applied!
+                  <CheckCircle className="h-4 w-4" /> Coupon "{appliedCouponCode}" applied!
                 </p>
               )}
-              {couponDiscount > 0 && <p className="text-sm text-green-600 mt-1">Discount: {couponDiscount * 100}%</p>}
+              {couponDiscountAmount > 0 && (
+                <p className="text-sm text-green-600 mt-1">Discount: {formatCurrency(couponDiscountAmount)}</p>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">

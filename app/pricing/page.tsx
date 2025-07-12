@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { PricingContent } from "@/components/pricing-content"
 import { PricingFloatingElements } from "@/components/pricing-floating-elements"
 import FloatingCartSummary from "@/components/floating-cart-summary" // Import FloatingCartSummary
+import { PriceCalculator } from "@/components/price-calculator" // Import PriceCalculator
 
 export default function PricingPage() {
   return (
@@ -17,7 +18,12 @@ export default function PricingPage() {
         </div>
 
         <Suspense fallback={<div>Loading pricing options...</div>}>
-          <PricingContent />
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* The PricingContent component is for displaying the package and individual room options */}
+            <PricingContent />
+            {/* The PriceCalculator component is for the interactive building of the custom plan */}
+            <PriceCalculator />
+          </div>
         </Suspense>
       </div>
 
