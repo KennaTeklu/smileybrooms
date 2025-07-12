@@ -10,6 +10,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   roomDisplayNames,
   getRoomTiers,
   getRoomAddOns,
@@ -63,7 +74,8 @@ export function PriceCalculator({
   const [paymentFrequency, setPaymentFrequency] = useState<"per_service" | "monthly" | "yearly">("per_service")
   const [addressId, setAddressId] = useState("") // Placeholder for address ID
   const [isServiceAvailable, setIsServiceAvailable] = useState(true) // Placeholder for service availability
-  const [isProcessing, setIsProcessing] = useState(false) // New state for loading indicator
+  const [isProcessing, setIsProcessing] = useState(false) // State for loading indicator
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false) // State for alert dialog
 
   const { addItem, clearCart } = useCart()
   const router = useRouter()
@@ -278,8 +290,10 @@ export function PriceCalculator({
     .map((id) => getRoomAddOns(roomTypeForVisualization).find((ao) => ao.id === id))
     .filter(Boolean) as RoomAddOn[]
 
-  const handleProceedToCheckout = () => {
+  const handleConfirmCheckout = () => {
     setIsProcessing(true) // Start processing state
+    setIsAlertDialogOpen(false) // Close the dialog
+
     // Clear existing cart items to ensure only the new custom service is added
     clearCart()
 
@@ -578,16 +592,36 @@ export function PriceCalculator({
           <span>Estimated Total:</span>
           <span>{formatCurrency(totalPrice)}</span>
         </div>
-        <Button className="w-full" size="lg" onClick={handleProceedToCheckout} disabled={isCheckoutButtonDisabled}>
-          {isProcessing ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-              Adding to Cart...
-            </>
-          ) : (
-            "Proceed to Checkout"
-          )}
-        </Button>
+        <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button className="w-full" size="lg" disabled={isCheckoutButtonDisabled}>
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
+                  Adding to Cart...
+                </>
+              ) : (
+                "Proceed to Checkout"
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Your Custom Cleaning Plan</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are about to add a custom cleaning service to your cart for{" "}
+                <span className="font-bold">{formatCurrency(totalPrice)}</span>. This will replace any existing items in
+                your cart. Do you wish to proceed?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmCheckout} disabled={isProcessing}>
+                {isProcessing ? "Processing..." : "Confirm & Proceed"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   )
