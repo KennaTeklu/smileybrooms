@@ -2,7 +2,7 @@
 import type React from "react"
 import { TooltipTrigger } from "@/components/ui/tooltip"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2,
@@ -48,6 +48,10 @@ interface SharePlatform {
   description: string
   popular?: boolean
   template?: string // Make template optional, but use it if present
+}
+
+interface CollapsibleSharePanelProps {
+  chatbotPanelInfo: { top: number; height: number; isExpanded: boolean }
 }
 
 const sharePlatforms: SharePlatform[] = [
@@ -190,7 +194,7 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-export function CollapsibleSharePanel() {
+export function CollapsibleSharePanel({ chatbotPanelInfo }: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -215,41 +219,12 @@ export function CollapsibleSharePanel() {
   // Calculate panel position based on scroll and viewport
   const [panelTopPosition, setPanelTopPosition] = useState<string>("20px")
 
-  const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current) return
-
-    const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
-    const documentHeight = document.documentElement.scrollHeight
-
-    const initialViewportTopOffset = 20
-    const bottomPadding = 20
-
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = Math.max(
-      documentHeight - panelRef.current.offsetHeight - bottomPadding,
-      scrollY + 20,
-    )
-
-    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
-    setPanelTopPosition(`${finalTop}px`)
-  }, [])
-
   useEffect(() => {
-    const handleScrollAndResize = () => {
-      calculatePanelPosition()
+    if (chatbotPanelInfo) {
+      const newTop = chatbotPanelInfo.top + chatbotPanelInfo.height + 1 // 1 pixel under chatbot
+      setPanelTopPosition(`${newTop}px`)
     }
-
-    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-    window.addEventListener("resize", handleScrollAndResize, { passive: true })
-
-    calculatePanelPosition()
-
-    return () => {
-      window.removeEventListener("scroll", handleScrollAndResize)
-      window.removeEventListener("resize", handleScrollAndResize)
-    }
-  }, [calculatePanelPosition])
+  }, [chatbotPanelInfo])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -401,8 +376,7 @@ export function CollapsibleSharePanel() {
         className="fixed z-[998]"
         style={{
           top: panelTopPosition,
-          // Positioned 1px to the left of the chatbot panel (assuming chatbot is ~60px wide when collapsed)
-          right: "61px",
+          right: "clamp(1rem, 3vw, 2rem)",
           width: "fit-content",
         }}
         initial={{ x: "150%" }}

@@ -15,6 +15,8 @@ declare global {
 
 interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
+  // New prop to report its own state and position
+  onChatbotPanelChange?: (info: { top: number; height: number; isExpanded: boolean }) => void
 }
 
 // Define fixed top offsets for different states
@@ -28,6 +30,7 @@ const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (6
 
 export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
+  onChatbotPanelChange, // Destructure new prop
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -36,6 +39,28 @@ export function CollapsibleChatbotPanel({
 
   const minTopOffset = 20 // Minimum distance from the top of the viewport
   const bottomPageMargin = 20 // Margin from the very bottom of the document
+
+  const documentHeight = document.documentElement.scrollHeight
+
+  let desiredTop: number
+
+  if (sharePanelInfo.expanded) {
+    // If share panel is expanded, chatbot always goes to 500px from top immediately
+    desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
+  } else if (isExpanded) {
+    // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
+    desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
+  } else {
+    // If chatbot is collapsed and share panel is not, chatbot goes to 300px from top
+    desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
+  }
+
+  // Determine the current panel height for consistent clamping of its top position
+  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
+  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
+
+  // Clamp the desiredTop within the visible document boundaries
+  const panelTopPosition = Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))
 
   useEffect(() => {
     setIsMounted(true)
@@ -85,6 +110,17 @@ export function CollapsibleChatbotPanel({
     }
   }, [isExpanded, isMounted])
 
+  // Report position and state to parent
+  useEffect(() => {
+    if (onChatbotPanelChange) {
+      onChatbotPanelChange({
+        top: panelTopPosition,
+        height: currentPanelHeight,
+        isExpanded: isExpanded,
+      })
+    }
+  }, [panelTopPosition, currentPanelHeight, isExpanded, onChatbotPanelChange])
+
   // Add this useEffect hook immediately after the existing useEffect hooks
   useEffect(() => {
     //console.log("🎯 Chatbot panel received sharePanelInfo:", sharePanelInfo)
@@ -99,28 +135,6 @@ export function CollapsibleChatbotPanel({
 
   if (!isMounted) return null
 
-  const documentHeight = document.documentElement.scrollHeight
-
-  let desiredTop: number
-
-  if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 500px from top immediately
-    desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
-  } else if (isExpanded) {
-    // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
-    desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
-  } else {
-    // If chatbot is collapsed and share panel is not, chatbot goes to 300px from top
-    desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
-  }
-
-  // Determine the current panel height for consistent clamping of its top position
-  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
-  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
-
-  // Clamp the desiredTop within the visible document boundaries
-  const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
-
   // Determine the transition duration based on share panel state
   // It's immediate (duration-0) when share panel is expanded, smooth (duration-300) otherwise.
   const topTransitionClass = sharePanelInfo.expanded ? "duration-0" : "duration-300"
@@ -130,7 +144,7 @@ export function CollapsibleChatbotPanel({
       ref={panelRef}
       // Apply transition-all and the dynamic duration class
       className={`fixed right-0 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
-      style={{ top: panelTopPosition }}
+      style={{ top: `${panelTopPosition}px` }} // Ensure 'px' is appended
     >
       <AnimatePresence initial={false}>
         {isExpanded ? (
@@ -168,7 +182,7 @@ export function CollapsibleChatbotPanel({
 
             <div className="h-[688px] w-full">
               <iframe
-                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc5838ab4"
                 title="smileybrooms.com: Customer Support Representative"
                 onLoad={() => {
                   try {
@@ -179,7 +193,7 @@ export function CollapsibleChatbotPanel({
                 }}
                 allowTransparency={true}
                 allow="geolocation; microphone; camera; fullscreen"
-                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc5838ab4?embedMode=iframe&background=1&shadow=1"
                 style={{
                   minWidth: "100%",
                   maxWidth: "100%",
