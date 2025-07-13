@@ -1,16 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from "framer-motion"
+import { Plus, Minus, Settings, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
-import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
-import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
-import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRoomContext } from "@/lib/room-context"
-import { useMultiSelection } from "@/hooks/use-multi-selection"
-import { useCart } from "@/lib/cart-context"
+import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
+import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
+import Image from "next/image"
+import { useVibration } from "@/hooks/use-vibration"
 import { toast } from "@/components/ui/use-toast"
+import { useMultiSelection } from "@/hooks/use-multi-selection" // Import the missing hook
 
 interface RoomConfig {
   roomName: string
@@ -22,6 +24,10 @@ interface RoomConfig {
   addOnsPrice: number
   reductionsPrice?: number
   totalPrice: number
+  quantity: number
+  detailedTasks: string[]
+  notIncludedTasks: string[]
+  upsellMessage: string
 }
 
 interface RoomCategoryProps {
@@ -34,11 +40,13 @@ interface RoomCategoryProps {
 
 export function RoomCategory({ title, description, rooms, variant = "primary", onRoomSelect }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig } = useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, addItem } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
-  const { addItem } = useCart()
   const [addingRoomId, setAddingRoomId] = useState<string | null>(null)
   const [initialRenderComplete, setInitialRenderComplete] = useState(false) // New state
+  const { vibrate } = useVibration()
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
+  const [addedItemName, setAddedItemName] = useState("")
 
   useEffect(() => {
     setInitialRenderComplete(true) // Set to true after the first render
@@ -66,36 +74,38 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
     setAddingRoomId(activeWizard) // Set loading state for the room being added
     try {
       // Update the room config in context
-      updateRoomConfig(activeWizard, config)
-
-      // Add the configured room to the cart
-      await new Promise((resolve) => setTimeout(resolve, 500)) // Simulate async operation
+      updateRoomCount(activeWizard, config.quantity)
       addItem({
         id: `custom-cleaning-${activeWizard}-${Date.now()}`,
         name: `${config.roomName} Cleaning`,
         price: config.totalPrice,
         priceId: "price_custom_cleaning", // Use a generic price ID for custom services
-        quantity: roomCounts[activeWizard] || 1, // Use current count or default to 1
+        quantity: config.quantity,
         image: roomImages[activeWizard] || "/placeholder.svg",
         metadata: {
           roomType: activeWizard,
           roomConfig: config,
           isRecurring: false,
           frequency: "one_time",
-          description: `${config.selectedTier} cleaning for ${config.roomName}`,
+          detailedTasks: config.detailedTasks,
+          notIncludedTasks: config.notIncludedTasks,
+          upsellMessage: config.upsellMessage,
         },
       })
 
-      // Reset this room's count after adding to cart, as it's now in the cart
-      // updateRoomCount(activeWizard, 0)
+      setAddedItemName(`${config.quantity} x ${config.roomName}`)
+      setShowSuccessNotification(true)
+      vibrate([100, 50, 100]) // Success pattern
 
-      toast({
-        title: "Item added to cart",
-        description: `${config.roomName} has been added to your cart with your customizations.`,
-        duration: 3000,
-      })
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setShowSuccessNotification(false)
+      }, 3000)
+
+      handleCloseWizard() // Close the wizard after adding to cart
     } catch (error) {
       console.error("Error adding item to cart after customization:", error)
+      vibrate(300) // Error pattern
       toast({
         title: "Failed to add to cart",
         description: "There was an error adding the item to your cart. Please try again.",
@@ -104,7 +114,6 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
       })
     } finally {
       setAddingRoomId(null) // Reset loading state
-      handleCloseWizard() // Close the wizard after adding to cart
     }
   }
 
@@ -149,6 +158,10 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
           addOnsPrice: 0,
           reductionsPrice: 0,
           totalPrice: 50,
+          quantity: 1,
+          detailedTasks: [],
+          notIncludedTasks: [],
+          upsellMessage: "",
         }
       )
     } catch (error) {
@@ -163,185 +176,270 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         addOnsPrice: 0,
         reductionsPrice: 0,
         totalPrice: 50,
+        quantity: 1,
+        detailedTasks: [],
+        notIncludedTasks: [],
+        upsellMessage: "",
       }
     }
   }
 
+  const SuccessNotification = () => (
+    <AnimatePresence>
+      {showSuccessNotification && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 50 }}
+          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">Item Added!</div>
+              <div className="text-xs opacity-90">{addedItemName} added to your cart.</div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
   return (
     <>
-      <Card className="shadow-sm">
-        <CardHeader className={getBgColor()}>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <span
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
-            >
-              {variant === "primary" ? (
-                <span className="text-lg" aria-hidden="true">
-                  🏠
-                </span>
-              ) : (
-                <span className="text-lg" aria-hidden="true">
-                  🧹
-                </span>
-              )}
-            </span>
-            {title}
-          </CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div
-            className={`grid grid-cols-2 md:grid-cols-3 ${
-              rooms.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"
-            } gap-4`}
-          >
-            {rooms.map((roomType) => (
-              <Card
-                key={roomType}
-                className={`border ${
-                  roomCounts[roomType] > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
-                } cursor-pointer overflow-hidden`}
-                onClick={() => {
-                  // Clicking the card always opens the wizard
-                  handleOpenWizard(roomType)
-                  if (onRoomSelect) {
-                    onRoomSelect(roomType)
-                  }
-                }}
+      <TooltipProvider>
+        <SuccessNotification />
+        <Card className="shadow-sm">
+          <CardHeader className={getBgColor()}>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <span
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
               >
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="w-full h-40 mb-3 relative rounded-lg overflow-hidden">
-                    {" "}
-                    {/* Changed h-24 to h-40 */}
-                    <Image
-                      src={roomImages[roomType] || roomImages.bedroom}
-                      alt={`Professional ${roomDisplayNames[roomType] || roomType} cleaning before and after`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                    />
-                  </div>
+                {variant === "primary" ? (
+                  <span className="text-lg" aria-hidden="true">
+                    🏠
+                  </span>
+                ) : (
+                  <span className="text-lg" aria-hidden="true">
+                    🧹
+                  </span>
+                )}
+              </span>
+              {title}
+            </CardTitle>
+            {/* Removed CardDescription as it was not defined in the existing code */}
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div
+              className={`grid grid-cols-2 md:grid-cols-3 ${
+                rooms.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"
+              } gap-4`}
+            >
+              {rooms.map((roomType) => {
+                const count = roomCounts[roomType] || 0
+                const config = safeGetRoomConfig(roomType)
+                const roomName = roomDisplayNames[roomType] || roomType
+                const roomImage = roomImages[roomType] || "/placeholder.svg"
 
-                  <h3 className="font-medium mb-2">{roomDisplayNames[roomType] || roomType}</h3>
+                const handleAdd = () => {
+                  updateRoomCount(roomType, count + 1)
+                  vibrate(50)
+                }
 
-                  {roomCounts[roomType] === 0 || !initialRenderComplete ? ( // Modified condition
-                    <Button
-                      id={`add-initial-${roomType}`}
-                      variant="default"
-                      size="sm"
-                      className="w-full"
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        handleOpenWizard(roomType) // Opens wizard, then add to cart on apply
-                      }}
-                      disabled={addingRoomId === roomType}
-                      aria-label={`Add 1 ${roomDisplayNames[roomType] || roomType} to cart`}
-                    >
-                      {addingRoomId === roomType ? (
-                        "Adding..."
-                      ) : (
-                        <>
-                          <ShoppingCart className="h-3 w-3 mr-1" aria-hidden="true" />
-                          Add 1 {roomDisplayNames[roomType] || roomType}
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <div className="flex flex-col gap-2 mt-3 w-full">
-                      <div className="flex items-center gap-3 justify-center">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            try {
-                              updateRoomCount(roomType, Math.max(0, (roomCounts[roomType] || 0) - 1))
-                            } catch (error) {
-                              console.error("Error decreasing room count:", error)
-                            }
-                          }}
-                          disabled={roomCounts[roomType] <= 0}
-                          className="h-8 w-8"
-                          aria-label={`Decrease ${roomDisplayNames[roomType] || roomType} count`}
-                        >
-                          <MinusCircle className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                        <span className="font-medium text-lg">{roomCounts[roomType] || 0}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            try {
-                              updateRoomCount(roomType, (roomCounts[roomType] || 0) + 1)
-                            } catch (error) {
-                              console.error("Error increasing room count:", error)
-                            }
-                          }}
-                          className="h-8 w-8"
-                          aria-label={`Increase ${roomDisplayNames[roomType] || roomType} count`}
-                        >
-                          <PlusCircle className="h-4 w-4" aria-hidden="true" />
-                        </Button>
+                const handleRemove = () => {
+                  if (count > 0) {
+                    updateRoomCount(roomType, count - 1)
+                    vibrate(50)
+                  }
+                }
+
+                const handleCustomize = () => {
+                  setActiveWizard(roomType)
+                  vibrate(50)
+                }
+
+                return (
+                  <Card
+                    key={roomType}
+                    className={`border ${
+                      count > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
+                    } cursor-pointer overflow-hidden`}
+                    onClick={() => {
+                      // Clicking the card always opens the wizard
+                      handleCustomize()
+                      if (onRoomSelect) {
+                        onRoomSelect(roomType)
+                      }
+                    }}
+                  >
+                    <CardContent className="p-4 flex flex-col items-center text-center">
+                      <div className="w-full h-40 mb-3 relative rounded-lg overflow-hidden">
+                        {" "}
+                        {/* Changed h-24 to h-40 */}
+                        <Image
+                          src={roomImage || "/placeholder.svg"}
+                          alt={`Professional ${roomName} cleaning before and after`}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        />
                       </div>
-                      <Button
-                        id={`customize-${roomType}`}
-                        variant="outline"
-                        size="sm"
-                        className="w-full bg-transparent"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleOpenWizard(roomType)
-                        }}
-                        aria-label={`Customize ${roomDisplayNames[roomType] || roomType}`}
-                      >
-                        <Settings className="h-3 w-3 mr-1" aria-hidden="true" />
-                        Customize
-                      </Button>
-                      {!isMultiSelection && (
+
+                      <h3 className="font-medium mb-2">{roomName}</h3>
+
+                      {count === 0 || !initialRenderComplete ? ( // Modified condition
                         <Button
-                          id={`add-to-cart-${roomType}`}
+                          id={`add-initial-${roomType}`}
                           variant="default"
                           size="sm"
                           className="w-full"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation()
-                            handleOpenWizard(roomType) // Opens wizard, then add to cart on apply
+                            handleCustomize() // Opens wizard, then add to cart on apply
                           }}
                           disabled={addingRoomId === roomType}
-                          aria-label={`Add ${roomDisplayNames[roomType] || roomType} to cart`}
+                          aria-label={`Add 1 ${roomName} to cart`}
                         >
                           {addingRoomId === roomType ? (
                             "Adding..."
                           ) : (
                             <>
-                              <ShoppingCart className="h-3 w-3 mr-1" aria-hidden="true" />
-                              Add to Cart
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
+                              </motion.div>
+                              Add 1 {roomName}
                             </>
                           )}
                         </Button>
+                      ) : (
+                        <div className="flex flex-col gap-2 mt-3 w-full">
+                          <div className="flex items-center gap-3 justify-center">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemove()
+                              }}
+                              disabled={count <= 0}
+                              className="h-8 w-8"
+                              aria-label={`Decrease ${roomName} count`}
+                            >
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Minus className="h-4 w-4" aria-hidden="true" />
+                              </motion.div>
+                            </Button>
+                            <span className="font-medium text-lg">{count}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAdd()
+                              }}
+                              className="h-8 w-8"
+                              aria-label={`Increase ${roomName} count`}
+                            >
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                              </motion.div>
+                            </Button>
+                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="secondary"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleCustomize()
+                                }}
+                                className="w-full flex items-center justify-center gap-2"
+                              >
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <Settings className="h-4 w-4" />
+                                </motion.div>
+                                Customize
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Adjust specific cleaning tasks and preferences for this room.
+                            </TooltipContent>
+                          </Tooltip>
+                          {!isMultiSelection && (
+                            <Button
+                              id={`add-to-cart-${roomType}`}
+                              variant="default"
+                              size="sm"
+                              className="w-full"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCustomize() // Opens wizard, then add to cart on apply
+                              }}
+                              disabled={addingRoomId === roomType}
+                              aria-label={`Add ${roomName} to cart`}
+                            >
+                              {addingRoomId === roomType ? (
+                                "Adding..."
+                              ) : (
+                                <>
+                                  <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
+                                  </motion.div>
+                                  Add to Cart
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
-      {activeWizard && (
-        <MultiStepCustomizationWizard
-          isOpen={activeWizard !== null}
-          onClose={handleCloseWizard}
-          roomType={activeWizard}
-          roomName={roomDisplayNames[activeWizard] || activeWizard}
-          roomIcon={roomImages[activeWizard] || roomImages.bedroom}
-          roomCount={roomCounts[activeWizard] || 0}
-          config={safeGetRoomConfig(activeWizard)}
-          onConfigChange={handleRoomConfigChange}
-        />
-      )}
+        {activeWizard && (
+          <MultiStepCustomizationWizard
+            isOpen={activeWizard !== null}
+            onClose={handleCloseWizard}
+            roomType={activeWizard}
+            roomName={roomDisplayNames[activeWizard] || activeWizard}
+            roomIcon={roomImages[activeWizard] || roomImages.bedroom}
+            roomCount={roomCounts[activeWizard] || 0}
+            config={safeGetRoomConfig(activeWizard)}
+            onConfigChange={handleRoomConfigChange}
+          />
+        )}
+      </TooltipProvider>
     </>
   )
 }
