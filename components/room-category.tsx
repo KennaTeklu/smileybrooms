@@ -87,7 +87,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
       })
 
       // Reset this room's count after adding to cart, as it's now in the cart
-      updateRoomCount(activeWizard, 0)
+      // updateRoomCount(activeWizard, 0)
 
       toast({
         title: "Item added to cart",

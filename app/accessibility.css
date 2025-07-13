@@ -1,86 +1,91 @@
-/* Accessibility Styles */
-
-/* Focus outline for keyboard navigation */
-:focus-visible {
-  outline: 2px solid var(--accent-color, #007bff); /* Use a variable for accent color */
-  outline-offset: 2px;
-  border-radius: 2px;
+/* High contrast mode */
+html.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --muted: #333333;
+  --muted-foreground: #ffffff;
+  --border: #ffffff;
+  --input: #333333;
+  --primary: #ffff00;
+  --primary-foreground: #000000;
+  --focus: #ffff00;
+  --focus-visible-outline: 3px solid var(--focus);
 }
 
-/* Skip link for keyboard users */
+/* Large text mode */
+html.large-text {
+  font-size: 125%;
+}
+
+html.large-text button,
+html.large-text input,
+html.large-text select,
+html.large-text textarea {
+  font-size: 1rem;
+}
+
+/* Reduced motion */
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Focus indicators */
+html.keyboard-only :focus {
+  outline: var(--focus-visible-outline);
+  outline-offset: 2px;
+}
+
+html.keyboard-only :focus:not(:focus-visible) {
+  outline: none;
+}
+
+html.keyboard-only :focus-visible {
+  outline: var(--focus-visible-outline);
+  outline-offset: 2px;
+}
+
+/* Skip links */
 .skip-link {
   position: absolute;
   top: -40px;
   left: 0;
-  background: #000;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   padding: 8px;
-  z-index: 1000;
-  transition: top 0.3s ease-in-out;
+  z-index: 100;
+  transition: top 0.2s;
 }
 
 .skip-link:focus {
   top: 0;
 }
 
-/* High Contrast Mode */
-.high-contrast {
-  filter: contrast(200%) brightness(150%);
+/* Screen reader utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-/* Grayscale Mode */
-.grayscale-mode {
-  filter: grayscale(100%);
-}
-
-/* Text Spacing */
-.text-spacing-increased p,
-.text-spacing-increased li,
-.text-spacing-increased a {
-  line-height: 1.8 !important;
-  letter-spacing: 0.12em !important;
-  word-spacing: 0.16em !important;
-}
-
-/* Larger Cursor */
-.larger-cursor {
-  cursor: url("/path/to/larger-cursor.png"), auto; /* Requires a custom cursor image */
-}
-
-/* Highlight Links */
-.highlight-links a {
-  background-color: yellow !important;
-  color: black !important;
-  padding: 2px 0;
-}
-
-/* Readability Font */
-.readability-font * {
-  font-family: "Open Sans", sans-serif !important; /* Example of a highly readable font */
-}
-
-/* Content Zoom */
-.content-zoom-110 {
-  zoom: 1.1;
-}
-.content-zoom-120 {
-  zoom: 1.2;
-}
-.content-zoom-130 {
-  zoom: 1.3;
-}
-
-/* Animations Off */
-.animations-off * {
-  transition: none !important;
-  animation: none !important;
-}
-
-/* Dark Mode (if not already handled by theme-provider) */
-.dark-mode-accessibility {
-  background-color: #1a1a1a;
-  color: #f0f0f0;
-}
-.dark-mode-accessibility a {
-  color: #90caf9; /* Lighter blue for links */
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

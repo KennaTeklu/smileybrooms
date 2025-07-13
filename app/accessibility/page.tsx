@@ -4,21 +4,15 @@ import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAccessibility } from "@/hooks/use-accessibility"
-import { useEffect } from "react"
 
 export default function AccessibilityPage() {
-  const { applyAccessibilitySettings } = useAccessibility()
-
-  useEffect(() => {
-    // Apply any saved settings on page load
-    applyAccessibilitySettings()
-  }, [applyAccessibilitySettings])
-
   return (
     <AccessibilityProvider>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-8">Accessibility Settings</h1>
+      <div className="container py-8">
+        <h1 className="text-3xl font-bold mb-2">Accessibility Features</h1>
+        <p className="text-muted-foreground mb-8">
+          Explore our enhanced accessibility features designed to make smileybrooms accessible to everyone.
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card>
@@ -35,7 +29,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full">
                 Open Display Settings
               </Button>
             </CardFooter>
@@ -55,7 +49,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full">
                 Try Voice Commands
               </Button>
             </CardFooter>
@@ -75,7 +69,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full">
                 View All Shortcuts
               </Button>
             </CardFooter>
