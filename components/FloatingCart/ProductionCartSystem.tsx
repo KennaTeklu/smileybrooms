@@ -1,9 +1,9 @@
 "use client"
 
 import { ErrorBoundary } from "react-error-boundary"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { AlertTriangle, Wifi, WifiOff, Undo2, Redo2, Save, Star } from "lucide-react"
+import { AlertTriangle, Wifi, WifiOff, Undo2, Redo2, Save, Star, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -12,6 +12,13 @@ import { useAdvancedCartFeatures } from "@/hooks/useAdvancedCartFeatures"
 import { useProductionOptimizations } from "@/hooks/useProductionOptimizations"
 import { FloatingCart } from "./index"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import { useFloatingElement } from "@/hooks/use-floating-element"
+import { useScrollDirection } from "@/hooks/use-scroll-direction"
+import { useFloatingAnimation } from "@/hooks/use-floating-animation"
+import { useOptimizedRendering } from "@/hooks/useOptimizedRendering"
+import { usePerformanceOptimization } from "@/hooks/use-performance-monitor"
+import { useRouter } from "next/navigation"
 
 interface ProductionCartSystemProps {
   className?: string
@@ -84,18 +91,18 @@ function AdvancedFeaturesPanel({
 
           {/* Undo/Redo Controls */}
           <div className="flex gap-2 mb-3">
-            <Button size="sm" variant="outline" onClick={onUndo} disabled={!canUndo} className="flex-1">
+            <Button size="sm" variant="outline" onClick={onUndo} disabled={!canUndo} className="flex-1 bg-transparent">
               <Undo2 className="h-3 w-3 mr-1" />
               Undo
             </Button>
-            <Button size="sm" variant="outline" onClick={onRedo} disabled={!canRedo} className="flex-1">
+            <Button size="sm" variant="outline" onClick={onRedo} disabled={!canRedo} className="flex-1 bg-transparent">
               <Redo2 className="h-3 w-3 mr-1" />
               Redo
             </Button>
           </div>
 
           {/* Save Cart */}
-          <Button size="sm" variant="outline" onClick={onSaveCart} className="w-full mb-3">
+          <Button size="sm" variant="outline" onClick={onSaveCart} className="w-full mb-3 bg-transparent">
             <Save className="h-3 w-3 mr-1" />
             Save Cart
           </Button>
@@ -157,23 +164,45 @@ export function ProductionCartSystem({
 }: ProductionCartSystemProps) {
   const advancedFeatures = useAdvancedCartFeatures()
   const productionOpts = useProductionOptimizations()
+  const { cartItems } = useCart()
+  const { ref, style } = useFloatingElement()
+  const scrollDirection = useScrollDirection()
+  const { animatedStyle } = useFloatingAnimation(scrollDirection)
+  const { optimizeRendering } = useOptimizedRendering()
+  const { startMonitoring, stopMonitoring } = usePerformanceOptimization()
+  const { applyProductionOptimizations } = useProductionOptimizations()
+  const router = useRouter()
   const [saveCartName, setSaveCartName] = useState("")
 
-  // Handle save cart
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+  const handleCartClick = useCallback(() => {
+    router.push("/cart")
+  }, [router])
+
   const handleSaveCart = () => {
     const name = saveCartName || `Cart ${new Date().toLocaleDateString()}`
     advancedFeatures.saveCart(name)
     setSaveCartName("")
   }
 
-  // Track analytics
+  useEffect(() => {
+    // Apply all production-ready optimizations
+    optimizeRendering()
+    applyProductionOptimizations()
+    startMonitoring()
+
+    return () => {
+      stopMonitoring()
+    }
+  }, [optimizeRendering, applyProductionOptimizations, startMonitoring, stopMonitoring])
+
   useEffect(() => {
     if (enableAnalytics) {
       advancedFeatures.trackInteraction("cart_system_loaded")
     }
   }, [enableAnalytics, advancedFeatures])
 
-  // Show offline notification
   const showOfflineAlert = enableOfflineSupport && advancedFeatures.isOffline
 
   return (
@@ -233,6 +262,28 @@ export function ProductionCartSystem({
             A/B: {localStorage.getItem("ab-test-variant") || "A"}
           </div>
         )}
+
+        {/* Floating Cart Button */}
+        <Button
+          ref={ref}
+          onClick={handleCartClick}
+          className={cn(
+            "fixed bottom-4 right-4 z-50 rounded-full p-4 shadow-lg transition-all duration-300",
+            itemCount > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+            animatedStyle,
+          )}
+          style={style}
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={`Shopping cart with ${itemCount} items`}
+        >
+          <ShoppingCart className="h-6 w-6" />
+          {itemCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+              {itemCount}
+            </span>
+          )}
+        </Button>
       </div>
     </ErrorBoundary>
   )

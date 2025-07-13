@@ -40,6 +40,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "latest",
+    "@stripe/react-stripe-js": "latest",
     "@stripe/stripe-js": "latest",
     "@tanstack/react-query": "latest",
     "ai": "latest",

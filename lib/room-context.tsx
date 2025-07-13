@@ -33,7 +33,6 @@ interface RoomContextType {
   setSelectedRoomForMap: (roomType: string | null) => void
   getTotalPrice: () => number
   getSelectedRoomTypes: () => string[]
-  resetRoomCounts: () => void // Added reset function
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined)
@@ -89,12 +88,6 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
     return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
   }, [roomCounts])
 
-  // New function to reset room counts and configs
-  const resetRoomCounts = useCallback(() => {
-    setRoomCounts({})
-    setRoomConfigs({})
-  }, [])
-
   const value = useMemo(
     () => ({
       roomCounts,
@@ -105,7 +98,6 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
       setSelectedRoomForMap,
       getTotalPrice,
       getSelectedRoomTypes,
-      resetRoomCounts, // Include in context value
     }),
     [
       roomCounts,
@@ -116,7 +108,6 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
       setSelectedRoomForMap,
       getTotalPrice,
       getSelectedRoomTypes,
-      resetRoomCounts,
     ],
   )
 

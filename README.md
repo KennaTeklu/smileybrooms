@@ -1,49 +1,176 @@
-# Smiley Brooms Windows Application
+# SmileyBrooms Cleaning Service
 
-A professional Windows desktop application for booking cleaning services.
+This is a Next.js application for SmileyBrooms, a professional cleaning service. It features a dynamic pricing calculator, a multi-step checkout process, and various accessibility and user experience enhancements.
 
 ## Features
 
-- Browse cleaning services
-- Book appointments
-- View booking history
-- Receive notifications
-- Offline support
-- Automatic updates
+- **Dynamic Pricing Calculator**: Allows users to select rooms, service types (Standard/Premium Detailing), cleaning frequency, and cleanliness level to get an estimated price.
+- **Multi-Step Checkout**: A guided checkout flow including contact information, address details, payment, and review steps.
+- **Cart Management**: Add and manage selected services in a persistent cart.
+- **Accessibility Features**: Enhanced accessibility options including a toolbar and context provider.
+- **Room Customization Wizard**: Detailed customization for each room, allowing selection of cleaning tiers, add-ons, and reductions.
+- **AI Chatbot Integration**: (If enabled) Provides AI-powered assistance.
+- **Abandonment Rescue**: (If enabled) Features to re-engage users who might abandon their cart.
+- **Responsive Design**: Optimized for various device sizes.
 
-## System Requirements
+## Getting Started
 
-- Windows 10 or later
-- .NET 6.0 Runtime
-- 100 MB free disk space
-- 4 GB RAM recommended
+### 1. Clone the repository
 
-## Installation
+\`\`\`bash
+git clone https://github.com/your-username/smileybrooms.git
+cd smileybrooms
+\`\`\`
 
-1. Download the installer from [our website](https://www.smileybrooms.com/downloads)
-2. Run the installer and follow the on-screen instructions
-3. Launch the application from the Start menu
+### 2. Install Dependencies
 
-## Development Setup
+\`\`\`bash
+npm install
+# or
+yarn install
+\`\`\`
 
-### Prerequisites
+### 3. Set up Environment Variables
 
-- Visual Studio 2022 or later
-- .NET 6.0 SDK
-- Windows 10 SDK
-- Inno Setup 6 (for building installers)
+Create a `.env.local` file in the root of your project and add the necessary environment variables.
 
-### Building the Application
+\`\`\`
+# Example environment variables (adjust as needed)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_STRIPE_PUBLISHABLE_KEY
+STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_STRIPE_WEBHOOK_SECRET
 
-1. Clone the repository
-2. Open `SmileyBroomsWindows.sln` in Visual Studio
-3. Restore NuGet packages
-4. Build the solution
+# Optional: Supabase for authentication/database
+NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET
 
-### Building the Installer
+# Optional: Upstash for Redis (e.g., for rate limiting)
+KV_REST_API_URL=YOUR_UPSTASH_REDIS_URL
+KV_REST_API_TOKEN=YOUR_UPSTASH_REDIS_TOKEN
 
-Run the `Build/BuildRelease.ps1` PowerShell script to create a release build and installer.
+# Optional: AI Chatbot
+NEXT_PUBLIC_CHATBOT_ENABLED=true
+NEXT_PUBLIC_CHATBOT_API_URL=/api/chatbot # Or your external API endpoint
 
-## License
+# Feature Flags (example)
+NEXT_PUBLIC_FEATURE_ADVANCED_CART=true
+NEXT_PUBLIC_FEATURE_ENHANCED_ACCESSIBILITY=true
+NEXT_PUBLIC_FEATURE_ABANDONMENT_RESCUE=true
+NEXT_PUBLIC_FEATURE_ROOM_VISUALIZATION=true
+NEXT_PUBLIC_FEATURE_AI_POWERED_CHATBOT=true
+NEXT_PUBLIC_FEATURE_DYNAMIC_PAYMENT_OPTIONS=true
+NEXT_PUBLIC_FEATURE_TERMS_AGREEMENT_POPUP=true
+NEXT_PUBLIC_FEATURE_DEVICE_OPTIMIZED_THEMES=true
+NEXT_PUBLIC_FEATURE_ADVANCED_SCROLL_PHYSICS=true
+NEXT_PUBLIC_FEATURE_GEOLOCATION_SERVICES=true
+NEXT_PUBLIC_FEATURE_BIOMETRIC_AUTHENTICATION=true
+NEXT_PUBLIC_FEATURE_WEB_SHARE_API=true
+NEXT_PUBLIC_FEATURE_VOICE_COMMANDS=true
+NEXT_PUBLIC_FEATURE_PERFORMANCE_MONITORING=true
+NEXT_PUBLIC_FEATURE_NETWORK_STATUS_INDICATOR=true
+NEXT_PUBLIC_FEATURE_BATTERY_STATUS_OPTIMIZATION=true
+NEXT_PUBLIC_FEATURE_VIBRATION_FEEDBACK=true
+NEXT_PUBLIC_FEATURE_KEYBOARD_SHORTCUTS=true
+NEXT_PUBLIC_FEATURE_CLIPBOARD_INTEGRATION=true
+NEXT_PUBLIC_FEATURE_DRAG_AND_DROP_SUPPORT=true
+NEXT_PUBLIC_FEATURE_FULL_HOUSE_PACKAGES=true
+NEXT_PUBLIC_FEATURE_CLEANLINESS_SLIDER=true
+NEXT_PUBLIC_FEATURE_CUSTOM_QUOTE_WIZARD=true
+NEXT_PUBLIC_FEATURE_SERVICE_COMPARISON_TABLE=true
+NEXT_PUBLIC_FEATURE_TESTIMONIALS_SECTION=true
+NEXT_PUBLIC_FEATURE_FAQ_SECTION=true
+NEXT_PUBLIC_FEATURE_HOW_IT_WORKS_SECTION=true
+NEXT_PUBLIC_FEATURE_CALL_TO_ACTION_SECTION=true
+NEXT_PUBLIC_FEATURE_FLOATING_CART_BUTTON=true
+NEXT_PUBLIC_FEATURE_ABANDONMENT_RESCUE=true
+NEXT_PUBLIC_FEATURE_CART_HEALTH_DASHBOARD=true
+NEXT_PUBLIC_FEATURE_PRODUCT_CATALOG=true
+NEXT_PUBLIC_FEATURE_SERVICE_MAP=true
+NEXT_PUBLIC_FEATURE_CLEANING_CHECKLIST=true
+NEXT_PUBLIC_FEATURE_CLEANING_TEAM_SELECTOR=true
+NEXT_PUBLIC_FEATURE_CLEANING_TIME_ESTIMATOR=true
+NEXT_PUBLIC_FEATURE_SERVICE_DETAILS_MODAL=true
+NEXT_PUBLIC_FEATURE_SERVICE_TYPE_SELECTOR=true
+NEXT_PUBLIC_FEATURE_ROOM_CONFIGURATOR=true
+NEXT_PUBLIC_FEATURE_MULTI_STEP_CUSTOMIZATION_WIZARD=true
+NEXT_PUBLIC_FEATURE_DYNAMIC_FORM_GENERATION=true
+NEXT_PUBLIC_FEATURE_CONDITIONAL_FIELDS=true
+NEXT_PUBLIC_FEATURE_FORM_VALIDATION=true
+NEXT_PUBLIC_FEATURE_MASKED_INPUTS=true
+NEXT_PUBLIC_FEATURE_ERROR_BOUNDARY=true
+NEXT_PUBLIC_FEATURE_COOKIE_CONSENT_MANAGER=true
+NEXT_PUBLIC_FEATURE_GDPR_COMPLIANCE=true
+NEXT_PUBLIC_FEATURE_TOS_GENERATOR=true
+NEXT_PUBLIC_FEATURE_CSRF_PROTECTION=true
+NEXT_PUBLIC_FEATURE_RATE_LIMITING=true
+NEXT_PUBLIC_FEATURE_HONEYPOT_TRAPS=true
+NEXT_PUBLIC_FEATURE_ANALYTICS_DASHBOARD=true
+NEXT_PUBLIC_FEATURE_USER_BEHAVIOR_TRACKING=true
+NEXT_PUBLIC_FEATURE_CONVERSION_FUNNEL_TRACKING=true
+NEXT_PUBLIC_FEATURE_A_B_TESTING=true
+NEXT_PUBLIC_FEATURE_HEATMAPS_AND_SESSION_REPLAY=true
+NEXT_PUBLIC_FEATURE_REALTIME_ANALYTICS=true
+NEXT_PUBLIC_FEATURE_CUSTOM_EVENTS=true
+NEXT_PUBLIC_FEATURE_USER_SEGMENTATION=true
+NEXT_PUBLIC_FEATURE_PREDICTIVE_ANALYTICS=true
+NEXT_PUBLIC_FEATURE_AI_DRIVEN_INSIGHTS=true
+NEXT_PUBLIC_FEATURE_DATA_EXPORT=true
+NEXT_PUBLIC_FEATURE_REPORT_GENERATION=true
+NEXT_PUBLIC_FEATURE_DASHBOARD_CUSTOMIZATION=true
+NEXT_PUBLIC_FEATURE_ALERT_NOTIFICATIONS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_CRM=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_MARKETING_AUTOMATION=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_HELP_DESK=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_PAYMENT_GATEWAYS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_ACCOUNTING_SOFTWARE=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_SCHEDULING_TOOLS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_COMMUNICATION_PLATFORMS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_SOCIAL_MEDIA=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_CLOUD_STORAGE=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_EMAIL_MARKETING=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_SMS_GATEWAYS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_VOICE_APIS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_MAP_APIS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_WEATHER_APIS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_CALENDAR_APIS=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_HR_SOFTWARE=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_INVENTORY_MANAGEMENT=true
+NEXT_PUBLIC_FEATURE_INTEGRATION_WITH_PROJECT_MANAGEMENT=true
+\`\`\`
 
-Copyright © 2023 Smiley Brooms Cleaning Services. All rights reserved.
+### 4. Run the Development Server
+
+\`\`\`bash
+npm run dev
+# or
+yarn dev
+\`\`\`
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Project Structure
+
+The project follows the Next.js App Router structure:
+
+- `app/`: Contains all routes, layouts, and pages.
+  - `(marketing)/`: Marketing pages (e.g., home, about, pricing).
+  - `(checkout)/`: Checkout flow pages.
+  - `api/`: API routes (e.g., for Stripe webhooks, chatbot).
+- `components/`: Reusable React components.
+  - `ui/`: Shadcn UI components.
+- `hooks/`: Custom React hooks.
+- `lib/`: Utility functions, constants, and business logic.
+- `public/`: Static assets like images.
+- `styles/`: Global CSS.
+
+## Deployment
+
+This project can be easily deployed to Vercel.
+
+\`\`\`bash
+vercel deploy
+\`\`\`
+
+For more details, refer to the [Next.js deployment documentation](https://nextjs.org/docs/deployment).

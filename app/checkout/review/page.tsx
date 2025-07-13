@@ -4,33 +4,35 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check } from 'lucide-react'
+import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions"
+import { CheckoutPreview } from "@/components/checkout-preview"
+import { useRoomContext } from "@/lib/room-context"
+import { toast } from "@/components/ui/use-toast"
 
 export default function ReviewPage() {
   const router = useRouter()
-  const { cart, clearCart } = useCart()
-  const { toast } = useToast()
+  const { cartItems, getTotalPrice, clearCart } = useCart()
+  const { roomCounts, roomConfigs } = useRoomContext()
 
   const [addressData, setAddressData] = useState<any>(null)
   const [paymentData, setPaymentData] = useState<any>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = getTotalPrice()
   const videoDiscount = paymentData?.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
   const tax = (subtotal - videoDiscount) * 0.08 // 8% tax
   const total = subtotal - videoDiscount + tax
 
   // Redirect if cart is empty or missing data
   useEffect(() => {
-    if (cart.items.length === 0) {
+    if (cartItems.length === 0) {
       router.push("/pricing")
       return
     }
@@ -56,7 +58,7 @@ export default function ReviewPage() {
       console.error("Failed to parse saved checkout data")
       router.push("/checkout/address")
     }
-  }, [cart.items.length, router])
+  }, [cartItems.length, router])
 
   const handleCheckout = async () => {
     if (!addressData || !paymentData) {
@@ -72,7 +74,7 @@ export default function ReviewPage() {
 
     try {
       // Prepare line items for Stripe
-      const customLineItems = cart.items.map((item) => ({
+      const customLineItems = cartItems.map((item) => ({
         name: item.name,
         amount: item.price,
         quantity: item.quantity,
@@ -136,6 +138,29 @@ export default function ReviewPage() {
     }
   }
 
+  const handlePlaceOrder = () => {
+    // Simulate order placement
+    console.log("Placing order...", { cartItems, totalPrice: getTotalPrice() })
+    // In a real application, you would send this to your backend
+    // and handle payment confirmation, order creation, etc.
+
+    // Clear the cart after successful order placement
+    clearCart()
+
+    toast({
+      title: "Order Placed!",
+      description: "Your cleaning service has been successfully booked.",
+      duration: 5000,
+      action: (
+        <Button variant="outline" onClick={() => router.push("/success")}>
+          View Confirmation
+        </Button>
+      ),
+    })
+
+    router.push("/success")
+  }
+
   useEffect(() => {
     if (!addressData || !paymentData) {
       router.replace("/checkout")
@@ -185,26 +210,16 @@ export default function ReviewPage() {
                 Order Summary
               </CardTitle>
               <CardDescription>
-                {cart.items.length} item{cart.items.length !== 1 ? "s" : ""} in your cart
+                {cartItems.length} item{cartItems.length !== 1 ? "s" : ""} in your cart
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {cart.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
-                    <div>
-                      <h4 className="font-medium">{item.name}</h4>
-                      <div className="text-sm text-gray-500 space-y-1">
-                        {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
-                        {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
-                        <p>Quantity: {item.quantity}</p>
-                      </div>
-                    </div>
-                    <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-
+              <CheckoutPreview
+                cartItems={cartItems}
+                totalPrice={getTotalPrice()}
+                roomCounts={roomCounts}
+                roomConfigs={roomConfigs}
+              />
               <Separator className="my-6" />
 
               <div className="space-y-3">
@@ -333,6 +348,10 @@ export default function ReviewPage() {
                   Complete Order - {formatCurrency(total)}
                 </>
               )}
+            </Button>
+
+            <Button onClick={handlePlaceOrder} className="w-full mt-6">
+              <CheckCircle className="mr-2 h-4 w-4" /> Place Order
             </Button>
 
             <p className="text-center text-sm text-gray-500 mt-4">

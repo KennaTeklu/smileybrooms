@@ -1,200 +1,65 @@
 "use client"
 
-import { forwardRef, useCallback, useEffect, useRef } from "react"
-import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations"
-import { usePerformanceOptimization } from "@/hooks/usePerformanceOptimization"
+import { ShoppingCart } from "lucide-react"
+import { useCart } from "@/lib/cart-context"
 import { cn } from "@/lib/utils"
-import styles from "./cart.module.css"
+import { useFloatingElement } from "@/hooks/use-floating-element"
+import { useScrollDirection } from "@/hooks/use-scroll-direction"
+import { useFloatingAnimation } from "@/hooks/use-floating-animation"
+import { useOptimizedRendering } from "@/hooks/useOptimizedRendering"
+import { usePerformanceOptimization } from "@/hooks/use-performance-monitor"
+import { useProductionOptimizations } from "@/hooks/useProductionOptimizations"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
-interface OptimizedCartButtonProps {
-  itemCount: number
-  totalPrice: number
-  onClick: () => void
-  isOpen: boolean
-  className?: string
-  disabled?: boolean
+export function OptimizedCartButton() {
+  const { cartItems } = useCart()
+  const { ref, style } = useFloatingElement()
+  const scrollDirection = useScrollDirection()
+  const { animatedStyle } = useFloatingAnimation(scrollDirection)
+  const { optimizeRendering } = useOptimizedRendering()
+  const { startMonitoring, stopMonitoring } = usePerformanceOptimization()
+  const { applyProductionOptimizations } = useProductionOptimizations()
+  const router = useRouter()
+
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+
+  const handleCartClick = () => {
+    router.push("/cart")
+  }
+
+  useEffect(() => {
+    // Apply performance optimizations
+    optimizeRendering()
+    applyProductionOptimizations()
+    startMonitoring()
+
+    return () => {
+      stopMonitoring()
+    }
+  }, [optimizeRendering, applyProductionOptimizations, startMonitoring, stopMonitoring])
+
+  return (
+    <Button
+      ref={ref}
+      onClick={handleCartClick}
+      className={cn(
+        "fixed bottom-4 right-4 z-50 rounded-full p-4 shadow-lg transition-all duration-300",
+        itemCount > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+        animatedStyle,
+      )}
+      style={style}
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={`Shopping cart with ${itemCount} items`}
+    >
+      <ShoppingCart className="h-6 w-6" />
+      {itemCount > 0 && (
+        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+          {itemCount}
+        </span>
+      )}
+    </Button>
+  )
 }
-
-export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartButtonProps>(
-  ({ itemCount, totalPrice, onClick, isOpen, className, disabled = false }, ref) => {
-    const buttonRef = useRef<HTMLButtonElement>(null)
-    const lastItemCountRef = useRef(itemCount)
-
-    // Advanced physics-based animations
-    const { animateHover, animatePress, animateFloat, animatePulse, animateBounce, getAnimatedStyle, isAnimating } =
-      useAdvancedAnimations()
-
-    // Performance monitoring
-    const { startInteractionMeasurement, endInteractionMeasurement, getAdaptiveQuality } = usePerformanceOptimization({
-      enableFPSMonitoring: true,
-      enableRenderTimeTracking: true,
-    })
-
-    // Adaptive quality based on performance
-    const quality = getAdaptiveQuality()
-    const shouldUseReducedAnimations = quality === "low"
-
-    // Handle item count changes with animation
-    useEffect(() => {
-      if (itemCount > lastItemCountRef.current && itemCount > 0) {
-        // New item added - bounce animation
-        if (!shouldUseReducedAnimations) {
-          animateBounce()
-        }
-      } else if (itemCount === 1 && lastItemCountRef.current === 0) {
-        // First item added - pulse animation
-        if (!shouldUseReducedAnimations) {
-          animatePulse()
-        }
-      }
-
-      lastItemCountRef.current = itemCount
-    }, [itemCount, animateBounce, animatePulse, shouldUseReducedAnimations])
-
-    // Floating animation when cart has items
-    useEffect(() => {
-      let floatingInterval: NodeJS.Timeout
-
-      if (itemCount > 0 && !isOpen && !shouldUseReducedAnimations) {
-        floatingInterval = setInterval(() => {
-          animateFloat(2)
-        }, 3000)
-      }
-
-      return () => {
-        if (floatingInterval) {
-          clearInterval(floatingInterval)
-        }
-      }
-    }, [itemCount, isOpen, animateFloat, shouldUseReducedAnimations])
-
-    // Optimized event handlers
-    const handleMouseEnter = useCallback(() => {
-      if (!shouldUseReducedAnimations) {
-        animateHover(true)
-      }
-    }, [animateHover, shouldUseReducedAnimations])
-
-    const handleMouseLeave = useCallback(() => {
-      if (!shouldUseReducedAnimations) {
-        animateHover(false)
-      }
-    }, [animateHover, shouldUseReducedAnimations])
-
-    const handleMouseDown = useCallback(() => {
-      startInteractionMeasurement()
-      if (!shouldUseReducedAnimations) {
-        animatePress(true)
-      }
-    }, [animatePress, startInteractionMeasurement, shouldUseReducedAnimations])
-
-    const handleMouseUp = useCallback(() => {
-      if (!shouldUseReducedAnimations) {
-        animatePress(false)
-      }
-    }, [animatePress, shouldUseReducedAnimations])
-
-    const handleClick = useCallback(() => {
-      endInteractionMeasurement()
-      onClick()
-    }, [onClick, endInteractionMeasurement])
-
-    // Haptic feedback for mobile
-    const triggerHapticFeedback = useCallback(() => {
-      if ("vibrate" in navigator && /Mobi|Android/i.test(navigator.userAgent)) {
-        navigator.vibrate(15)
-      }
-    }, [])
-
-    // Enhanced click handler with haptic feedback
-    const handleEnhancedClick = useCallback(() => {
-      triggerHapticFeedback()
-      handleClick()
-    }, [triggerHapticFeedback, handleClick])
-
-    const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
-
-    return (
-      <Button
-        ref={ref || buttonRef}
-        onClick={handleEnhancedClick}
-        disabled={disabled}
-        className={cn(styles.cartButton, className)}
-        style={{
-          ...getAnimatedStyle(),
-          backgroundColor: "var(--primary)",
-          color: "var(--primary-foreground)",
-          // Performance optimizations
-          backfaceVisibility: "hidden",
-          perspective: 1000,
-          transformStyle: "preserve-3d",
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchEnd={handleMouseUp}
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-controls="cart-panel"
-        data-testid="optimized-cart-button"
-        data-performance-quality={quality}
-        data-is-animating={isAnimating}
-      >
-        <ShoppingCart
-          className="h-5 w-5 sm:h-6 sm:w-6"
-          aria-hidden="true"
-          style={{
-            // Optimize icon rendering
-            willChange: shouldUseReducedAnimations ? "auto" : "transform",
-          }}
-        />
-
-        {itemCount > 0 && (
-          <Badge
-            className={cn(styles.cartBadge)}
-            style={{
-              backgroundColor: "var(--destructive)",
-              color: "var(--destructive-foreground)",
-              // Optimize badge rendering
-              willChange: shouldUseReducedAnimations ? "auto" : "transform, opacity",
-              animation: shouldUseReducedAnimations ? "none" : undefined,
-            }}
-            aria-label={`${itemCount} items in cart`}
-          >
-            {itemCount > 99 ? "99+" : itemCount}
-          </Badge>
-        )}
-
-        {/* High value indicator with performance optimization */}
-        {totalPrice > 200 && !shouldUseReducedAnimations && (
-          <div
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse"
-            aria-hidden="true"
-            style={{
-              willChange: "opacity",
-              backfaceVisibility: "hidden",
-            }}
-          />
-        )}
-
-        {/* Performance indicator (development only) */}
-        {process.env.NODE_ENV === "development" && (
-          <div
-            className="absolute -top-2 -left-2 w-2 h-2 rounded-full"
-            style={{
-              backgroundColor: quality === "high" ? "green" : quality === "medium" ? "yellow" : "red",
-            }}
-            title={`Performance: ${quality}`}
-          />
-        )}
-      </Button>
-    )
-  },
-)
-
-OptimizedCartButton.displayName = "OptimizedCartButton"

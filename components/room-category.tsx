@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, MinusCircle, Settings, ShoppingCart } from "lucide-react"
@@ -38,9 +38,11 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [addingRoomId, setAddingRoomId] = useState<string | null>(null)
+  const [initialRenderComplete, setInitialRenderComplete] = useState(false) // New state
 
-  // No need for initialRenderComplete here anymore, as reset is handled at page level
-  // The logic now relies purely on roomCounts from context, which is reset on page mount.
+  useEffect(() => {
+    setInitialRenderComplete(true) // Set to true after the first render
+  }, [])
 
   const handleOpenWizard = (roomType: string) => {
     try {
@@ -222,7 +224,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
 
                   <h3 className="font-medium mb-2">{roomDisplayNames[roomType] || roomType}</h3>
 
-                  {roomCounts[roomType] === 0 ? ( // This condition now relies on the reset context
+                  {roomCounts[roomType] === 0 || !initialRenderComplete ? ( // Modified condition
                     <Button
                       id={`add-initial-${roomType}`}
                       variant="default"

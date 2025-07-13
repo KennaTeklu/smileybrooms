@@ -1,37 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
-import { isClient } from "@/lib/utils"
+import PriceCalculator from "@/components/price-calculator"
+import { PriceBreakdownDetailed } from "@/components/price-breakdown-detailed"
+import { useState } from "react"
 
-// Dynamically import components that use CartProvider to prevent SSR issues
-const PriceCalculator = dynamic(() => import("@/components/price-calculator").then((mod) => mod.default), {
-  ssr: false,
-})
+export default function CalculatorPage() {
+  const [calculationData, setCalculationData] = useState<any>(null)
 
-function CalculatorLoading() {
+  const handleCalculationComplete = (data: any) => {
+    setCalculationData(data)
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="w-full h-[500px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading calculator...</p>
-        </div>
+      <h1 className="text-3xl font-bold text-center mb-8">Calculate Your Cleaning Price</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <PriceCalculator onCalculationComplete={handleCalculationComplete} />
+        {calculationData && <PriceBreakdownDetailed {...calculationData} />}
       </div>
     </div>
   )
-}
-
-export default function CalculatorPage() {
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted || !isClient()) {
-    return <CalculatorLoading />
-  }
-
-  return <PriceCalculator />
 }

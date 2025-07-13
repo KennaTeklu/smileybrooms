@@ -1,74 +1,61 @@
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, Mail, Sparkles, Star } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Download, Github, BellIcon as Vercel } from "lucide-react"
+import Link from "next/link"
 
 export default function DownloadPage() {
   return (
-    <div className="container max-w-6xl py-12 px-4 md:py-24">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Coming Soon</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          We're working hard to bring you our new download center. Sign up to be notified when it's ready.
-        </p>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16">
-        <Card>
-          <CardHeader>
-            <Sparkles className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>Premium Resources</CardTitle>
-            <CardDescription>Access professional cleaning guides and checklists</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Our downloadable resources are designed by cleaning experts to help you maintain a spotless home.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <Clock className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>Coming Soon</CardTitle>
-            <CardDescription>We're putting the finishing touches on our download center</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>
-              Our team is working diligently to create valuable resources that will enhance your cleaning experience.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <Star className="h-8 w-8 mb-2 text-primary" />
-            <CardTitle>Early Access</CardTitle>
-            <CardDescription>Be the first to know when we launch</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Sign up for our newsletter to receive early access to our premium cleaning resources and guides.</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Get Notified</CardTitle>
-          <CardDescription>We'll let you know when our download center is ready</CardDescription>
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gray-50 dark:bg-gray-900 p-4">
+      <Card className="w-full max-w-2xl text-center shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg py-8">
+          <Download className="mx-auto h-20 w-20 mb-4" />
+          <CardTitle className="text-4xl font-bold">Download Your Project</CardTitle>
+          <CardDescription className="text-blue-100">Get your generated code and deploy it anywhere.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <Input type="email" placeholder="Enter your email" />
-            </div>
-            <Button type="submit" className="w-full">
-              <Mail className="mr-2 h-4 w-4" />
-              Subscribe for Updates
+        <CardContent className="p-8 space-y-8">
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            Your v0 project is ready! You can download the code directly or deploy it to Vercel.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Button size="lg" className="w-full py-3 text-lg bg-green-600 hover:bg-green-700">
+              <Download className="mr-2 h-5 w-5" /> Download Code (ZIP)
             </Button>
-          </form>
+            <Link href="https://vercel.com/new/git" target="_blank" rel="noopener noreferrer" passHref>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full py-3 text-lg border-blue-500 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-900/20 bg-transparent"
+              >
+                <Vercel className="mr-2 h-5 w-5" /> Deploy to Vercel
+              </Button>
+            </Link>
+          </div>
+
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            <h3 className="text-xl font-semibold">Integrate with Git</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Push your code to a GitHub repository to manage versions and collaborate.
+            </p>
+            <Link href="https://github.com/new" target="_blank" rel="noopener noreferrer" passHref>
+              <Button variant="outline" className="w-full py-3 text-lg bg-transparent">
+                <Github className="mr-2 h-5 w-5" /> Create GitHub Repository
+              </Button>
+            </Link>
+          </div>
+
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            <h3 className="text-xl font-semibold">Need Help?</h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              If you encounter any issues or have questions, our support team is here to assist you.
+            </p>
+            <Link href="/contact" passHref>
+              <Button variant="link" className="w-full text-lg">
+                Contact Support
+              </Button>
+            </Link>
+          </div>
         </CardContent>
-        <CardFooter className="text-sm text-muted-foreground">
-          We respect your privacy. Unsubscribe at any time.
-        </CardFooter>
       </Card>
     </div>
   )
