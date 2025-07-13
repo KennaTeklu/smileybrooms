@@ -308,38 +308,6 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
-
-                {roomData.addOns.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-3">Add-ons</h3>
-                    <div className="space-y-2">
-                      {roomData.addOns.map((addOn, index) => (
-                        <Card
-                          key={addOn.id || index}
-                          className={`cursor-pointer transition-colors ${
-                            selectedAddOns.includes(addOn.id)
-                              ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                          }`}
-                          onClick={() => toggleAddOn(addOn.id)}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{addOn.name}</span>
-                                  {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
-                                </div>
-                                {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
-                              </div>
-                              <span className="font-medium">+${addOn.price}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -459,7 +427,7 @@ export function MultiStepCustomizationWizard({
 
             <div className="flex gap-2">
               {!isFirstStep && (
-                <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
+                <Button variant="outline" onClick={goToPreviousStep} className="flex-1 bg-transparent">
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
