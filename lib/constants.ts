@@ -1,33 +1,27 @@
-export const VALID_COUPONS = [
-  { code: "SMILEY10", type: "percentage", value: 10, description: "10% off your entire order" }, // 10%
-  { code: "WELCOME25", type: "fixed", value: 25, description: "$25 off your order" }, // $25
-  { code: "FRESHSTART", type: "percentage", value: 15, description: "15% off for new customers" }, // 15%
-]
-
-export const LS_PRICE_CALCULATOR_STATE = "priceCalculatorState"
-
-export const defaultTiers = {
-  default: [
-    {
-      id: "essential-tier",
-      name: "Essential Clean",
-      description: "Basic cleaning for everyday maintenance.",
-      price: 25.0, // Base price, adjusted by room type
-      timeEstimate: "20 minutes",
-    },
-    {
-      id: "premium-tier",
-      name: "Premium Clean",
-      description: "More detailed cleaning with extra attention to common areas.",
-      price: 75.0, // Base price, adjusted by room type
-      timeEstimate: "60 minutes",
-    },
-    {
-      id: "luxury-tier",
-      name: "Luxury Clean",
-      description: "Deep cleaning service for a spotless home.",
-      price: 225.0, // Base price, adjusted by room type
-      timeEstimate: "180 minutes",
-    },
-  ],
+export const ROOM_CONFIG = {
+  roomPrices: {
+    master_bedroom: 54.28,
+    bedroom: 35.42,
+    bathroom: 43.63,
+    kitchen: 54.8,
+    living_room: 31.37,
+    dining_room: 25.63,
+    office: 19.53,
+    playroom: 25.64,
+    mudroom: 21.73,
+    laundry_room: 13.46,
+    sunroom: 22.25,
+    guest_room: 35.42,
+    garage: 83.99,
+  },
+  frequencyMultipliers: {
+    one_time: 2.17,
+    weekly: 1.0,
+    biweekly: 1.2,
+    monthly: 1.54,
+    semi_annual: 1.92,
+    annually: 2.56,
+    vip_daily: 7.5,
+  },
+  serviceFee: 50,
 }

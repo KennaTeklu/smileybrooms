@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Logo } from "@/components/logo" // Ensure this imports the updated Logo
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
-import { useTranslation } from "@/contexts/translation-context" // Import useTranslation
 
 export function EnhancedHeader() {
   const pathname = usePathname()
@@ -17,7 +16,6 @@ export function EnhancedHeader() {
   const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const { t } = useTranslation() // Use the translation hook
 
   // Check if current page is homepage
   useEffect(() => {
@@ -80,22 +78,22 @@ export function EnhancedHeader() {
           <nav className="hidden md:flex gap-6">
             {pathname !== "/" && (
               <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-                {t("common.home")}
+                Home
               </Link>
             )}
             {pathname !== "/pricing" && (
               <Link href="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-                {t("common.pricing")}
+                Pricing
               </Link>
             )}
             {pathname !== "/about" && (
               <Link href="/about" className="text-sm font-medium transition-colors hover:text-primary">
-                {t("common.about")}
+                About
               </Link>
             )}
             {pathname !== "/contact" && (
               <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
-                {t("common.contact")}
+                Contact
               </Link>
             )}
           </nav>
@@ -115,7 +113,7 @@ export function EnhancedHeader() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden bg-transparent">
+              <Button variant="outline" size="icon" className="md:hidden">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
@@ -124,22 +122,22 @@ export function EnhancedHeader() {
               <div className="flex flex-col gap-6 pt-6">
                 {pathname !== "/" && (
                   <Link href="/" className="text-lg font-medium">
-                    {t("common.home")}
+                    Home
                   </Link>
                 )}
                 {pathname !== "/pricing" && (
                   <Link href="/pricing" className="text-lg font-medium">
-                    {t("common.pricing")}
+                    Pricing
                   </Link>
                 )}
                 {pathname !== "/about" && (
                   <Link href="/about" className="text-lg font-medium">
-                    {t("common.about")}
+                    About
                   </Link>
                 )}
                 {pathname !== "/contact" && (
                   <Link href="/contact" className="text-lg font-medium">
-                    {t("common.contact")}
+                    Contact
                   </Link>
                 )}
               </div>

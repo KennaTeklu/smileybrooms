@@ -1,37 +1,20 @@
-import { Suspense } from "react"
+import { VoiceCommandButton } from "@/components/voice/voice-command-button"
 import { PricingContent } from "@/components/pricing-content"
-import { PricingFloatingElements } from "@/components/pricing-floating-elements"
-import FloatingCartSummary from "@/components/floating-cart-summary" // Import FloatingCartSummary
-import { PriceCalculator } from "@/components/price-calculator" // Import PriceCalculator
+// RoomProvider and AddAllToCartModal are now imported and used in app/client-layout.tsx
 
 export default function PricingPage() {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 md:py-20">
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">
-            Flexible Cleaning Plans
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Choose the perfect cleaning service tailored to your needs. Get an instant quote and book online!
-          </p>
-        </div>
-
-        <Suspense fallback={<div>Loading pricing options...</div>}>
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* The PricingContent component is for displaying the package and individual room options */}
-            <PricingContent />
-            {/* The PriceCalculator component is for the interactive building of the custom plan */}
-            <PriceCalculator />
-          </div>
-        </Suspense>
+    // RoomProvider is now in app/client-layout.tsx
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col items-center justify-center mb-8">
+        <h1 className="text-3xl font-bold text-center">Pricing & Services</h1>
+        <VoiceCommandButton />
       </div>
 
-      {/* Floating elements for cart and other actions */}
-      <PricingFloatingElements />
+      <PricingContent />
 
-      {/* Floating Cart Summary */}
-      <FloatingCartSummary />
+      {/* Client components will be loaded here */}
+      {/* AddAllToCartModal is now rendered globally in app/client-layout.tsx */}
     </div>
   )
 }

@@ -129,8 +129,7 @@ export function CollapsibleChatbotPanel({
     <div
       ref={panelRef}
       // Apply transition-all and the dynamic duration class
-      // Adjusted right positioning for better mobile responsiveness
-      className={`fixed right-4 sm:right-4 md:right-4 lg:right-4 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
+      className={`fixed right-0 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
@@ -138,14 +137,12 @@ export function CollapsibleChatbotPanel({
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0, x: 20 }}
-            // Adjusted maxWidth for better responsiveness across screen sizes
-            animate={{ width: "100%", maxWidth: "90vw", sm: { maxWidth: "420px" }, opacity: 1, x: 0 }}
+            animate={{ width: "420px", opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
             style={{
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
-              maxHeight: "80vh", // Added max height for vertical responsiveness
             }}
           >
             <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20 flex items-center justify-between">
@@ -169,7 +166,7 @@ export function CollapsibleChatbotPanel({
               </Button>
             </div>
 
-            <div className="h-full w-full overflow-y-auto">
+            <div className="h-[688px] w-full">
               <iframe
                 id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
                 title="smileybrooms.com: Customer Support Representative"
@@ -186,11 +183,11 @@ export function CollapsibleChatbotPanel({
                 style={{
                   minWidth: "100%",
                   maxWidth: "100%",
-                  height: "688px", // Keep fixed height for iframe content
+                  height: "688px",
                   border: "none",
                   width: "100%",
                 }}
-                // Removed scrolling="no" to allow browser to handle iframe scrolling
+                scrolling="no"
               />
             </div>
           </motion.div>
@@ -221,3 +218,5 @@ export function CollapsibleChatbotPanel({
     </div>
   )
 }
+
+export default CollapsibleChatbotPanel

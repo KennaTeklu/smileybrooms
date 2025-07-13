@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
@@ -13,7 +14,6 @@ import AddressStep from "@/components/checkout/address-step"
 import PaymentStep from "@/components/checkout/payment-step"
 import ReviewStep from "@/components/checkout/review-step"
 import type { CheckoutData } from "@/lib/types"
-import { FormProgress } from "@/components/form-progress"
 
 type CheckoutStepId = "contact" | "address" | "payment" | "review"
 
@@ -30,7 +30,7 @@ export default function CheckoutPage() {
   const { toast } = useToast()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
-  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({})
+  const [completedSteps, setCompletedSteps] = useState<CheckoutStepId[]>([])
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     contact: {
       firstName: "",
@@ -71,33 +71,23 @@ export default function CheckoutPage() {
       const savedAddress = localStorage.getItem("checkout-address")
       const savedPayment = localStorage.getItem("checkout-payment")
 
-      const loadedContact = savedContact ? JSON.parse(savedContact) : checkoutData.contact
-      const loadedAddress = savedAddress ? JSON.parse(savedAddress) : checkoutData.address
-      const loadedPayment = savedPayment ? JSON.parse(savedPayment) : checkoutData.payment
+      setCheckoutData((prev) => ({
+        contact: savedContact ? JSON.parse(savedContact) : prev.contact,
+        address: savedAddress ? JSON.parse(savedAddress) : prev.address,
+        payment: savedPayment ? JSON.parse(savedPayment) : prev.payment,
+      }))
 
-      setCheckoutData({
-        contact: loadedContact,
-        address: loadedAddress,
-        payment: loadedPayment,
-      })
-
-      const newCompletedSteps: Record<string, boolean> = {}
-      let initialStep: CheckoutStepId = "contact"
-
-      if (savedContact) {
-        newCompletedSteps.contact = true
-        initialStep = "address"
-      }
-      if (savedAddress) {
-        newCompletedSteps.address = true
-        initialStep = "payment"
-      }
+      // Determine the last completed step to resume
       if (savedPayment) {
-        newCompletedSteps.payment = true
-        initialStep = "review"
+        setCurrentStep("review")
+        setCompletedSteps(["contact", "address", "payment"])
+      } else if (savedAddress) {
+        setCurrentStep("payment")
+        setCompletedSteps(["contact", "address"])
+      } else if (savedContact) {
+        setCurrentStep("address")
+        setCompletedSteps(["contact"])
       }
-      setCompletedSteps(newCompletedSteps)
-      setCurrentStep(initialStep)
     } catch (e) {
       console.error("Failed to load saved checkout data from localStorage", e)
       // Optionally clear corrupted data
@@ -108,21 +98,23 @@ export default function CheckoutPage() {
   }, [])
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
-  const progressValue = (Object.keys(completedSteps).length / steps.length) * 100
+  const progress = ((currentStepIndex + 1) / steps.length) * 100
 
-  const handleSaveStepData = useCallback((stepId: CheckoutStepId, data: any) => {
-    setCheckoutData((prev) => ({
-      ...prev,
-      [stepId]: data,
-    }))
-    // Persist to localStorage
-    localStorage.setItem(`checkout-${stepId}`, JSON.stringify(data))
+  const handleSaveStepData = useCallback(
+    (stepId: CheckoutStepId, data: any) => {
+      setCheckoutData((prev) => ({
+        ...prev,
+        [stepId]: data,
+      }))
+      // Persist to localStorage
+      localStorage.setItem(`checkout-${stepId}`, JSON.stringify(data))
 
-    setCompletedSteps((prev) => ({
-      ...prev,
-      [stepId]: true,
-    }))
-  }, [])
+      if (!completedSteps.includes(stepId)) {
+        setCompletedSteps((prev) => [...prev, stepId])
+      }
+    },
+    [completedSteps],
+  )
 
   const handleNext = useCallback(() => {
     const nextStepIndex = currentStepIndex + 1
@@ -142,10 +134,11 @@ export default function CheckoutPage() {
     (stepId: CheckoutStepId) => {
       const stepIndex = steps.findIndex((step) => step.id === stepId)
       // Allow navigating to any previous completed step or the immediate next step
-      if (stepIndex < currentStepIndex || completedSteps[stepId]) {
+      if (stepIndex < currentStepIndex || (stepIndex === currentStepIndex && completedSteps.includes(stepId))) {
         setCurrentStep(stepId)
       } else if (stepIndex === currentStepIndex + 1) {
-        if (completedSteps[currentStep]) {
+        // Allow moving to the next step if the current one is completed
+        if (completedSteps.includes(currentStep)) {
           setCurrentStep(stepId)
         } else {
           toast({
@@ -192,7 +185,6 @@ export default function CheckoutPage() {
             onSave={(data) => handleSaveStepData("payment", data)}
             onNext={handleNext}
             onPrevious={handlePrevious}
-            checkoutData={checkoutData}
           />
         )
       case "review":
@@ -219,19 +211,46 @@ export default function CheckoutPage() {
             <h1 className="text-4xl font-bold mb-4">Secure Checkout</h1>
             <p className="text-xl text-muted-foreground mb-8">Complete your order in just a few simple steps</p>
 
-            {/* Progress Indicator using FormProgress */}
-            <div className="max-w-2xl mx-auto mb-8">
-              <FormProgress
-                steps={steps.map((step) => ({ id: step.id, title: step.title }))}
-                currentStepId={currentStep}
-                completedSteps={completedSteps}
-                onStepClick={handleStepClick}
-                orientation="horizontal"
-                showLabels={true}
-                showPercentage={true}
-                showStepNumbers={true}
-                variant="default"
-              />
+            {/* Progress Bar */}
+            <div className="max-w-md mx-auto mb-8">
+              <Progress value={progress} className="h-2 mb-4" />
+              <p className="text-sm text-muted-foreground">
+                Step {currentStepIndex + 1} of {steps.length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Step Navigation */}
+        <div className="mb-12">
+          <div className="flex justify-center">
+            <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
+              {steps.map((step, index) => {
+                const Icon = step.icon
+                const isActive = step.id === currentStep
+                const isCompleted = completedSteps.includes(step.id)
+                const isClickable = index <= currentStepIndex || isCompleted
+
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => isClickable && handleStepClick(step.id)}
+                    disabled={!isClickable}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-full transition-all ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-md"
+                        : isCompleted
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : isClickable
+                            ? "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            : "opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    <span className="font-medium hidden sm:block">{step.title}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

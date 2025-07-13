@@ -3,12 +3,10 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-import { useTranslation } from "@/contexts/translation-context" // Import useTranslation
 
 export function EnhancedFooter() {
   const pathname = usePathname()
   const { cart } = useCart()
-  const { t } = useTranslation() // Use the translation hook
 
   const totalItems = cart.items?.length || 0
   const hasItems = totalItems > 0
@@ -40,14 +38,14 @@ export function EnhancedFooter() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold mb-4">{t("common.quick_links")}</h3>
+            <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link
                   href="/pricing"
                   className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
-                  {t("common.pricing")}
+                  Pricing
                 </Link>
               </li>
               <li>
@@ -55,7 +53,7 @@ export function EnhancedFooter() {
                   href="/about"
                   className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
-                  {t("common.about")}
+                  About Us
                 </Link>
               </li>
               <li>
@@ -63,7 +61,7 @@ export function EnhancedFooter() {
                   href="/contact"
                   className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
-                  {t("common.contact")}
+                  Contact
                 </Link>
               </li>
               <li>
@@ -71,7 +69,7 @@ export function EnhancedFooter() {
                   href="/careers"
                   className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
-                  {t("common.careers")}
+                  Careers
                 </Link>
               </li>
             </ul>
@@ -79,36 +77,36 @@ export function EnhancedFooter() {
 
           {/* Services */}
           <div>
-            <h3 className="font-semibold mb-4">{t("common.services")}</h3>
+            <h3 className="font-semibold mb-4">Services</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <span className="text-gray-600 dark:text-gray-400">{t("common.regular_cleaning")}</span>
+                <span className="text-gray-600 dark:text-gray-400">Regular Cleaning</span>
               </li>
               <li>
-                <span className="text-gray-600 dark:text-gray-400">{t("common.deep_cleaning")}</span>
+                <span className="text-gray-600 dark:text-gray-400">Deep Cleaning</span>
               </li>
               <li>
-                <span className="text-gray-600 dark:text-gray-400">{t("common.move_in_out")}</span>
+                <span className="text-gray-600 dark:text-gray-400">Move-in/Move-out</span>
               </li>
               <li>
-                <span className="text-gray-600 dark:text-gray-400">{t("common.post_construction")}</span>
+                <span className="text-gray-600 dark:text-gray-400">Post-Construction</span>
               </li>
             </ul>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h3 className="font-semibold mb-4">{t("common.contact")}</h3>
+            <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>{t("common.phone")}: (555) 123-4567</li>
-              <li>{t("common.email")}: hello@smileybrooms.com</li>
-              <li>{t("common.hours")}: Mon-Fri 8AM-6PM</li>
+              <li>Phone: (555) 123-4567</li>
+              <li>Email: hello@smileybrooms.com</li>
+              <li>Hours: Mon-Fri 8AM-6PM</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-gray-600 dark:text-gray-400">
-          <p>&copy; 2024 SmileyBrooms. {t("common.all_rights_reserved")}</p>
+          <p>&copy; 2024 SmileyBrooms. All rights reserved.</p>
         </div>
       </div>
     </footer>

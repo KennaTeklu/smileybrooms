@@ -1,14 +1,8 @@
 "use client"
 
-import { CardContent } from "@/components/ui/card"
+import type React from "react"
 
-import { CardTitle } from "@/components/ui/card"
-
-import { CardHeader } from "@/components/ui/card"
-
-import { Card } from "@/components/ui/card"
-
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Drawer,
   DrawerContent,
@@ -16,385 +10,426 @@ import {
   DrawerTitle,
   DrawerDescription,
   DrawerFooter,
+  DrawerClose,
 } from "@/components/ui/drawer"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
-import { getRoomTiers, getRoomAddOns, getRoomReductions, roomDisplayNames, roomImages } from "@/lib/room-tiers"
-import type { RoomConfig } from "@/lib/room-context"
-import Image from "next/image"
+import { formatCurrency } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator"
+import { Check, X, AlertCircle } from "lucide-react"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getMatrixServices } from "@/lib/matrix-services"
+
+interface RoomConfig {
+  roomName: string
+  selectedTier: string
+  selectedAddOns: string[]
+  basePrice: number
+  tierUpgradePrice: number
+  addOnsPrice: number
+  totalPrice: number
+}
 
 interface RoomCustomizationDrawerProps {
   isOpen: boolean
-  onOpenChange: (open: boolean) => void
+  onClose: () => void
   roomType: string
-  roomConfig: RoomConfig
-  onSave: (roomType: string, config: RoomConfig) => void
+  roomName: string
+  roomIcon: React.ReactNode
+  roomCount: number
+  config: RoomConfig
+  onConfigChange: (config: RoomConfig) => void
 }
-
-type WizardStep = "basic" | "addons" | "reductions" | "review"
-
-const wizardSteps: { id: WizardStep; title: string; description: string }[] = [
-  { id: "basic", title: "Choose Cleaning Tier", description: "Select the level of clean for your room." },
-  { id: "addons", title: "Select Add-ons", description: "Enhance your clean with additional services." },
-  { id: "reductions", title: "Choose Reductions", description: "Reduce cost by skipping certain tasks." },
-  { id: "review", title: "Review & Confirm", description: "Review your selections and total price." },
-]
 
 export function RoomCustomizationDrawer({
   isOpen,
-  onOpenChange,
+  onClose,
   roomType,
-  roomConfig,
-  onSave,
+  roomName,
+  roomIcon,
+  roomCount,
+  config,
+  onConfigChange,
 }: RoomCustomizationDrawerProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>("basic")
-  const [tempConfig, setTempConfig] = useState<RoomConfig>(roomConfig)
+  const [activeTab, setActiveTab] = useState("basic")
+  const [selectedTier, setSelectedTier] = useState(config.selectedTier)
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
+  const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
+  const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
+  const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
+  const [error, setError] = useState<string | null>(null)
+
+  const tiers = getRoomTiers(roomType) || []
+  const addOns = getRoomAddOns(roomType) || []
+  const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
+
+  const baseTier = tiers[0] || { name: "ESSENTIAL CLEAN", price: 25, description: "Basic cleaning", features: [] }
+
+  const calculatePrices = useCallback(() => {
+    try {
+      const basePrice = baseTier.price
+
+      const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
+      const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
+
+      const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
+        const addOn = addOns.find((a) => a.id === addOnId)
+        return total + (addOn?.price || 0)
+      }, 0)
+
+      const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
+        const service = matrixServices.add.find((s) => s.id === serviceId)
+        return total + (service?.price || 0)
+      }, 0)
+
+      const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
+        const service = matrixServices.remove.find((s) => s.id === serviceId)
+        return total + (service?.price || 0)
+      }, 0)
+
+      const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
+
+      return {
+        basePrice,
+        tierUpgradePrice,
+        addOnsPrice: addOnsPrice + matrixAddPrice,
+        totalPrice: Math.max(0, totalPrice),
+      }
+    } catch (err) {
+      console.error("Error calculating prices:", err)
+      setError("Error calculating prices. Please try again.")
+      return {
+        basePrice: baseTier.price,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        totalPrice: baseTier.price,
+      }
+    }
+  }, [
+    baseTier.price,
+    tiers,
+    selectedTier,
+    selectedAddOns,
+    matrixAddServices,
+    matrixRemoveServices,
+    addOns,
+    matrixServices.add,
+    matrixServices.remove,
+  ])
+
+  useEffect(() => {
+    try {
+      const prices = calculatePrices()
+      setLocalConfig({
+        ...config,
+        selectedTier,
+        selectedAddOns,
+        ...prices,
+      })
+      setError(null)
+    } catch (err) {
+      console.error("Error updating local config:", err)
+      setError("Error updating configuration. Please try again.")
+    }
+  }, [selectedTier, selectedAddOns, matrixAddServices, matrixRemoveServices, calculatePrices, config])
 
   useEffect(() => {
     if (isOpen) {
-      setTempConfig(roomConfig)
-      setCurrentStep("basic") // Reset to first step when opening
+      try {
+        setSelectedTier(config.selectedTier)
+        setSelectedAddOns([...config.selectedAddOns])
+        setMatrixAddServices([])
+        setMatrixRemoveServices([])
+        setActiveTab("basic")
+        setLocalConfig(config)
+        setError(null)
+      } catch (err) {
+        console.error("Error resetting selections:", err)
+        setError("Error loading configuration. Please try again.")
+      }
     }
-  }, [isOpen, roomConfig])
+  }, [isOpen, config])
 
-  const roomTiers = useMemo(() => getRoomTiers(roomType), [roomType])
-  const roomAddOns = useMemo(() => getRoomAddOns(roomType), [roomType])
-  const roomReductions = useMemo(() => getRoomReductions(roomType), [roomType])
-
-  const currentTier = roomTiers.find((tier) => tier.name === tempConfig.selectedTier)
-
-  const calculateTotalPrice = useMemo(() => {
-    let total = currentTier ? currentTier.price : 0
-
-    const addOnsPrice = tempConfig.selectedAddOns.reduce((sum, addOnId) => {
-      const addOn = roomAddOns.find((a) => a.id === addOnId)
-      return sum + (addOn ? addOn.price : 0)
-    }, 0)
-
-    const reductionsPrice = tempConfig.selectedReductions.reduce((sum, reductionId) => {
-      const reduction = roomReductions.find((r) => r.id === reductionId)
-      return sum + (reduction ? reduction.discount : 0)
-    }, 0)
-
-    total += addOnsPrice
-    total -= reductionsPrice
-
-    return Math.max(0, total)
-  }, [
-    tempConfig.selectedTier,
-    tempConfig.selectedAddOns,
-    tempConfig.selectedReductions,
-    roomTiers,
-    roomAddOns,
-    roomReductions,
-    currentTier,
-  ])
-
-  const handleTierChange = (tierName: string) => {
-    setTempConfig((prev) => ({
-      ...prev,
-      selectedTier: tierName,
-      basePrice: roomTiers.find((t) => t.name === tierName)?.price || 0,
-    }))
+  const handleTierChange = (tier: string) => {
+    setSelectedTier(tier)
   }
 
-  const handleAddOnToggle = (addOnId: string, checked: boolean) => {
-    setTempConfig((prev) => {
-      const newAddOns = checked ? [...prev.selectedAddOns, addOnId] : prev.selectedAddOns.filter((id) => id !== addOnId)
-      return { ...prev, selectedAddOns: newAddOns }
-    })
-  }
-
-  const handleReductionToggle = (reductionId: string, checked: boolean) => {
-    setTempConfig((prev) => {
-      const newReductions = checked
-        ? [...prev.selectedReductions, reductionId]
-        : prev.selectedReductions.filter((id) => id !== reductionId)
-      return { ...prev, selectedReductions: newReductions }
-    })
-  }
-
-  const goToNextStep = () => {
-    const currentIndex = wizardSteps.findIndex((step) => step.id === currentStep)
-    if (currentIndex < wizardSteps.length - 1) {
-      setCurrentStep(wizardSteps[currentIndex + 1].id)
+  const handleAddOnChange = (addOnId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAddOns((prev) => [...prev, addOnId])
+    } else {
+      setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
     }
   }
 
-  const goToPreviousStep = () => {
-    const currentIndex = wizardSteps.findIndex((step) => step.id === currentStep)
-    if (currentIndex > 0) {
-      setCurrentStep(wizardSteps[currentIndex - 1].id)
+  const handleMatrixAddServiceChange = (serviceId: string, checked: boolean) => {
+    if (checked) {
+      setMatrixAddServices((prev) => [...prev, serviceId])
+    } else {
+      setMatrixAddServices((prev) => prev.filter((id) => id !== serviceId))
+    }
+  }
+
+  const handleMatrixRemoveServiceChange = (serviceId: string, checked: boolean) => {
+    if (checked) {
+      setMatrixRemoveServices((prev) => [...prev, serviceId])
+    } else {
+      setMatrixRemoveServices((prev) => prev.filter((id) => id !== serviceId))
     }
   }
 
   const handleApplyChanges = () => {
-    onSave(roomType, {
-      ...tempConfig,
-      totalPrice: calculateTotalPrice,
-      addOnsPrice: roomAddOns.reduce(
-        (sum, addOn) => (tempConfig.selectedAddOns.includes(addOn.id) ? sum + addOn.price : sum),
-        0,
-      ),
-      reductionsPrice: roomReductions.reduce(
-        (sum, reduction) => (tempConfig.selectedReductions.includes(reduction.id) ? sum + reduction.discount : sum),
-        0,
-      ),
-    })
-    onOpenChange(false)
+    try {
+      onConfigChange(localConfig)
+      onClose()
+    } catch (err) {
+      console.error("Error applying changes:", err)
+      setError("Error applying changes. Please try again.")
+    }
   }
 
-  const currentStepIndex = wizardSteps.findIndex((step) => step.id === currentStep)
-  const progressValue = ((currentStepIndex + 1) / wizardSteps.length) * 100
+  const drawerTitleId = `drawer-title-${roomType}`
+  const drawerDescId = `drawer-desc-${roomType}`
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange} dismissible={false}>
-      <DrawerContent className="h-[90vh] flex flex-col">
-        <DrawerHeader className="px-4 pt-4 pb-2 border-b">
-          <DrawerTitle className="text-2xl font-bold">Customize {roomDisplayNames[roomType] || "Room"}</DrawerTitle>
-          <DrawerDescription>{wizardSteps[currentStepIndex].description}</DrawerDescription>
-          <Progress value={progressValue} className="w-full mt-4 h-2" />
-          <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {wizardSteps.map((step, index) => (
-              <span
-                key={step.id}
-                className={cn(
-                  "transition-colors duration-200",
-                  index <= currentStepIndex ? "text-blue-600 dark:text-blue-400 font-medium" : "",
-                )}
-              >
-                {step.title}
-              </span>
-            ))}
-          </div>
+    <Drawer
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={drawerTitleId}
+      aria-describedby={drawerDescId}
+    >
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader>
+          <DrawerTitle id={drawerTitleId} className="flex items-center gap-2 text-xl">
+            <span className="text-2xl" aria-hidden="true">
+              {roomIcon}
+            </span>
+            {roomName} Configuration
+          </DrawerTitle>
+          <DrawerDescription id={drawerDescId}>
+            Customize your {roomName.toLowerCase()} cleaning options
+          </DrawerDescription>
         </DrawerHeader>
 
-        <ScrollArea className="flex-1 p-4 overflow-y-auto">
-          {currentStep === "basic" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative h-64 md:h-auto rounded-lg overflow-hidden">
-                {roomImages[roomType] && (
-                  <Image
-                    src={roomImages[roomType] || "/placeholder.svg"}
-                    alt={roomDisplayNames[roomType]}
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-lg"
-                  />
-                )}
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Select Cleaning Tier</h3>
-                <RadioGroup value={tempConfig.selectedTier} onValueChange={handleTierChange} className="space-y-4">
-                  {roomTiers.map((tier) => (
-                    <div
-                      key={tier.id}
-                      className={cn(
-                        "flex flex-col p-4 border rounded-lg cursor-pointer transition-all duration-200",
-                        tempConfig.selectedTier === tier.name
-                          ? "border-blue-500 ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600",
-                      )}
-                      onClick={() => handleTierChange(tier.name)}
+        {error && (
+          <div className="mx-4 mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="px-4 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic" aria-controls="basic-tab-content">
+                Basic
+              </TabsTrigger>
+              <TabsTrigger value="advanced" aria-controls="advanced-tab-content">
+                Advanced
+              </TabsTrigger>
+              <TabsTrigger value="schedule" aria-controls="schedule-tab-content">
+                Schedule
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="overflow-y-auto h-[50vh] mt-4">
+              <TabsContent value="basic" id="basic-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Select Cleaning Tier</h3>
+                    <RadioGroup
+                      value={selectedTier}
+                      onValueChange={handleTierChange}
+                      className="space-y-4"
+                      aria-label="Cleaning tier options"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor={tier.id} className="flex items-center space-x-2 cursor-pointer">
-                          <RadioGroupItem value={tier.name} id={tier.id} className="sr-only" />
-                          <span className="text-lg font-medium">{tier.name}</span>
-                        </Label>
-                        <span className="text-lg font-bold">${tier.price.toFixed(2)}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{tier.description}</p>
-                      <div className="text-sm text-gray-700 dark:text-gray-300">
-                        <h4 className="font-semibold mb-1">Includes:</h4>
-                        <ul className="list-disc list-inside space-y-0.5">
-                          {tier.detailedTasks.map((task, index) => (
-                            <li key={index}>{task}</li>
-                          ))}
-                        </ul>
-                        {tier.notIncludedTasks && tier.notIncludedTasks.length > 0 && (
-                          <>
-                            <h4 className="font-semibold mt-2 mb-1">Not Included:</h4>
-                            <ul className="list-disc list-inside space-y-0.5 text-red-500 dark:text-red-400">
-                              {tier.notIncludedTasks.map((task, index) => (
-                                <li key={index}>{task}</li>
-                              ))}
-                            </ul>
-                          </>
-                        )}
-                      </div>
-                      {tier.upsellMessage && (
-                        <p className="mt-3 text-sm text-blue-600 dark:text-blue-400 italic">{tier.upsellMessage}</p>
-                      )}
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            </div>
-          )}
+                      {tiers.map((tier, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <RadioGroupItem value={tier.name} id={`tier-${index}`} className="mt-1" />
+                          <div className="grid gap-1.5 leading-none">
+                            <Label
+                              htmlFor={`tier-${index}`}
+                              className="text-base font-medium flex items-center justify-between"
+                            >
+                              <span>{tier.name}</span>
+                              <span>{formatCurrency(tier.price)}</span>
+                            </Label>
+                            <p className="text-sm text-muted-foreground">{tier.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
 
-          {currentStep === "addons" && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Choose Your Add-ons</h3>
-              <div className="space-y-4">
-                {roomAddOns.length > 0 ? (
-                  roomAddOns.map((addOn) => (
-                    <div key={addOn.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          id={addOn.id}
-                          checked={tempConfig.selectedAddOns.includes(addOn.id)}
-                          onCheckedChange={(checked) => handleAddOnToggle(addOn.id, !!checked)}
-                        />
-                        <Label htmlFor={addOn.id} className="text-base font-medium cursor-pointer">
-                          {addOn.name}
-                          {addOn.description && (
-                            <span className="block text-sm text-gray-500 dark:text-gray-400">{addOn.description}</span>
-                          )}
-                        </Label>
-                      </div>
-                      <span className="text-base font-semibold">${addOn.price.toFixed(2)}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 dark:text-gray-400">No specific add-ons for this room type.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "reductions" && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Select Reductions</h3>
-              <div className="space-y-4">
-                {roomReductions.length > 0 ? (
-                  roomReductions.map((reduction) => (
-                    <div key={reduction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          id={reduction.id}
-                          checked={tempConfig.selectedReductions.includes(reduction.id)}
-                          onCheckedChange={(checked) => handleReductionToggle(reduction.id, !!checked)}
-                        />
-                        <Label htmlFor={reduction.id} className="text-base font-medium cursor-pointer">
-                          {reduction.name}
-                          {reduction.description && (
-                            <span className="block text-sm text-gray-500 dark:text-gray-400">
-                              {reduction.description}
-                            </span>
-                          )}
-                        </Label>
-                      </div>
-                      <span className="text-base font-semibold text-green-600 dark:text-green-400">
-                        -${reduction.discount.toFixed(2)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 dark:text-gray-400">No specific reductions for this room type.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "review" && (
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Summary for {roomDisplayNames[roomType]}</h3>
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cleaning Tier</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {currentTier ? (
-                      <div>
-                        <p className="font-medium">{currentTier.name}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{currentTier.description}</p>
-                        <p className="text-lg font-bold mt-2">${currentTier.price.toFixed(2)}</p>
-                      </div>
-                    ) : (
-                      <p>No tier selected.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {tempConfig.selectedAddOns.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Selected Add-ons</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {tempConfig.selectedAddOns.map((addOnId) => {
-                          const addOn = roomAddOns.find((a) => a.id === addOnId)
-                          return (
-                            addOn && (
-                              <li key={addOn.id} className="flex justify-between items-center">
+                  {addOns.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Add-on Services</h3>
+                      <div className="space-y-3">
+                        {addOns.map((addOn, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`addon-${index}`}
+                              checked={selectedAddOns.includes(addOn.id)}
+                              onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked as boolean)}
+                              className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label
+                                htmlFor={`addon-${index}`}
+                                className="text-base font-medium flex items-center justify-between"
+                              >
                                 <span>{addOn.name}</span>
-                                <span className="font-medium">${addOn.price.toFixed(2)}</span>
-                              </li>
-                            )
-                          )
-                        })}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
+                                <span>+{formatCurrency(addOn.price)}</span>
+                              </Label>
+                              <p className="text-sm text-muted-foreground">{addOn.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
 
-                {tempConfig.selectedReductions.length > 0 && (
+              <TabsContent value="advanced" id="advanced-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
+                  {matrixServices.add.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Additional Services</h3>
+                      <div className="space-y-3">
+                        {matrixServices.add.map((service, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`matrix-add-${index}`}
+                              checked={matrixAddServices.includes(service.id)}
+                              onCheckedChange={(checked) =>
+                                handleMatrixAddServiceChange(service.id, checked as boolean)
+                              }
+                              className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label
+                                htmlFor={`matrix-add-${index}`}
+                                className="text-base font-medium flex items-center justify-between"
+                              >
+                                <span>{service.name}</span>
+                                <span>+{formatCurrency(service.price)}</span>
+                              </Label>
+                              <p className="text-sm text-muted-foreground">{service.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {matrixServices.remove.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Remove Services</h3>
+                      <div className="space-y-3">
+                        {matrixServices.remove.map((service, index) => (
+                          <div key={index} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`matrix-remove-${index}`}
+                              checked={matrixRemoveServices.includes(service.id)}
+                              onCheckedChange={(checked) =>
+                                handleMatrixRemoveServiceChange(service.id, checked as boolean)
+                              }
+                              className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label
+                                htmlFor={`matrix-remove-${index}`}
+                                className="text-base font-medium flex items-center justify-between"
+                              >
+                                <span>Skip {service.name}</span>
+                                <span>-{formatCurrency(service.price)}</span>
+                              </Label>
+                              <p className="text-sm text-muted-foreground">{service.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {matrixServices.add.length === 0 && matrixServices.remove.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-32 text-center">
+                      <p className="text-gray-500">No advanced options available for this room type.</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="schedule" id="schedule-tab-content" role="tabpanel" className="h-full">
+                <div className="space-y-6 py-4 pr-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Selected Reductions</CardTitle>
+                      <CardTitle>Scheduling Options</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ul className="space-y-2">
-                        {tempConfig.selectedReductions.map((reductionId) => {
-                          const reduction = roomReductions.find((r) => r.id === reductionId)
-                          return (
-                            reduction && (
-                              <li key={reduction.id} className="flex justify-between items-center">
-                                <span>{reduction.name}</span>
-                                <span className="font-medium text-green-600 dark:text-green-400">
-                                  -${reduction.discount.toFixed(2)}
-                                </span>
-                              </li>
-                            )
-                          )
-                        })}
-                      </ul>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Scheduling options will be available in the next update.
+                      </p>
                     </CardContent>
                   </Card>
-                )}
+                </div>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
 
-                <Card className="border-2 border-blue-500 dark:border-blue-700">
-                  <CardHeader>
-                    <CardTitle className="text-blue-600 dark:text-blue-400">Estimated Room Price</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                      ${calculateTotalPrice.toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+        <Separator className="my-4" />
+
+        <div className="px-4 pb-2">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-medium">Room Count:</span>
+            <span>{roomCount}</span>
+          </div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-medium">Base Price:</span>
+            <span>{formatCurrency(localConfig.basePrice)}</span>
+          </div>
+          {localConfig.tierUpgradePrice > 0 && (
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">Tier Upgrade:</span>
+              <span>+{formatCurrency(localConfig.tierUpgradePrice)}</span>
             </div>
           )}
-        </ScrollArea>
-
-        <DrawerFooter className="px-4 py-3 border-t flex justify-between items-center">
-          <Button variant="outline" onClick={goToPreviousStep} disabled={currentStepIndex === 0}>
-            Back
-          </Button>
-          {currentStep === "review" ? (
-            <Button onClick={handleApplyChanges}>Apply Changes</Button>
-          ) : (
-            <Button onClick={goToNextStep}>Next</Button>
+          {localConfig.addOnsPrice > 0 && (
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-medium">Add-ons:</span>
+              <span>+{formatCurrency(localConfig.addOnsPrice)}</span>
+            </div>
           )}
+          <Separator className="my-2" />
+          <div className="flex justify-between items-center font-bold">
+            <span>Total Per Room:</span>
+            <span>{formatCurrency(localConfig.totalPrice)}</span>
+          </div>
+          <div className="flex justify-between items-center font-bold mt-1">
+            <span>Total ({roomCount} rooms):</span>
+            <span>{formatCurrency(localConfig.totalPrice * roomCount)}</span>
+          </div>
+        </div>
+
+        <DrawerFooter className="pt-2">
+          <Button onClick={handleApplyChanges} className="w-full">
+            <Check className="mr-2 h-4 w-4" aria-hidden="true" />
+            Apply Changes
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline">
+              <X className="mr-2 h-4 w-4" aria-hidden="true" />
+              Cancel
+            </Button>
+          </DrawerClose>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

@@ -84,18 +84,18 @@ function AdvancedFeaturesPanel({
 
           {/* Undo/Redo Controls */}
           <div className="flex gap-2 mb-3">
-            <Button size="sm" variant="outline" onClick={onUndo} disabled={!canUndo} className="flex-1 bg-transparent">
+            <Button size="sm" variant="outline" onClick={onUndo} disabled={!canUndo} className="flex-1">
               <Undo2 className="h-3 w-3 mr-1" />
               Undo
             </Button>
-            <Button size="sm" variant="outline" onClick={onRedo} disabled={!canRedo} className="flex-1 bg-transparent">
+            <Button size="sm" variant="outline" onClick={onRedo} disabled={!canRedo} className="flex-1">
               <Redo2 className="h-3 w-3 mr-1" />
               Redo
             </Button>
           </div>
 
           {/* Save Cart */}
-          <Button size="sm" variant="outline" onClick={onSaveCart} className="w-full mb-3 bg-transparent">
+          <Button size="sm" variant="outline" onClick={onSaveCart} className="w-full mb-3">
             <Save className="h-3 w-3 mr-1" />
             Save Cart
           </Button>
@@ -237,5 +237,3 @@ export function ProductionCartSystem({
     </ErrorBoundary>
   )
 }
-
-export default ProductionCartSystem

@@ -1,36 +1,42 @@
-import { roomDisplayNames, getRoomTiers } from "./room-tiers"
-
-export interface RoomConfig {
-  id: string
-  name: string
-  basePrice: number
-  description: string
-  image: string
-  icon: string
-  tiers: { id: string; name: string; price: number }[]
+export const roomConfig = {
+  serviceFee: 50,
+  roomPrices: {
+    master_bedroom: 54.28,
+    bedroom: 35.42,
+    bathroom: 43.63,
+    kitchen: 54.8,
+    living_room: 31.37,
+    dining_room: 25.63,
+    office: 19.53,
+    playroom: 25.64,
+    mudroom: 21.73,
+    laundry_room: 13.46,
+    sunroom: 22.25,
+    guest_room: 35.42,
+    garage: 83.99,
+  },
+  frequencyMultipliers: {
+    one_time: 2.17,
+    weekly: 1.0,
+    biweekly: 1.2,
+    monthly: 1.54,
+    semi_annual: 1.92,
+    annually: 2.56,
+    vip_daily: 7.5,
+  },
+  roomTypes: [
+    { id: "master_bedroom", name: "Master Bedroom", basePrice: 54.28 },
+    { id: "bedroom", name: "Bedroom", basePrice: 35.42 },
+    { id: "bathroom", name: "Bathroom", basePrice: 43.63 },
+    { id: "kitchen", name: "Kitchen", basePrice: 54.8 },
+    { id: "living_room", name: "Living Room", basePrice: 31.37 },
+    { id: "dining_room", name: "Dining Room", basePrice: 25.63 },
+    { id: "office", name: "Office", basePrice: 19.53 },
+    { id: "playroom", name: "Playroom", basePrice: 25.64 },
+    { id: "mudroom", name: "Mudroom", basePrice: 21.73 },
+    { id: "laundry_room", name: "Laundry Room", basePrice: 13.46 },
+    { id: "sunroom", name: "Sunroom", basePrice: 22.25 },
+    { id: "guest_room", name: "Guest Room", basePrice: 35.42 },
+    { id: "garage", name: "Garage", basePrice: 83.99 },
+  ],
 }
-
-export const roomConfigs: RoomConfig[] = Object.keys(roomDisplayNames).map((key) => {
-  const tiers = getRoomTiers(key)
-  const essentialTier = tiers.find((tier) => tier.id.includes("essential"))
-  const basePrice = essentialTier ? essentialTier.price : 0
-
-  return {
-    id: key,
-    name: roomDisplayNames[key],
-    basePrice: basePrice,
-    description: `Configure your ${roomDisplayNames[key]} cleaning.`,
-    image: `/images/${key}-professional.png`, // Assuming images follow this pattern
-    icon: "", // Icons are not directly used here, but can be added if needed
-    tiers: tiers.map((tier) => ({
-      id: tier.id,
-      name: tier.name,
-      price: tier.price,
-    })),
-  }
-})
-
-/* ------------------------------------------------------------------ */
-/* NEW: Provide a backwards-compatibility alias expected elsewhere.   */
-/* ------------------------------------------------------------------ */
-export const roomConfig = roomConfigs // ✅ alias for legacy imports

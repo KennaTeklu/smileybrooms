@@ -1,122 +1,242 @@
 "use client"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Contact, Home, Building2 } from "lucide-react"
+import { roomDisplayNames } from "@/lib/room-tiers"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { RoomCategory } from "@/components/room-category"
+import { RequestQuoteButton } from "@/components/request-quote-button"
+import { useToast } from "@/hooks/use-toast"
+import { useCart } from "@/lib/cart-context"
+import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { roomDisplayNames, getRoomTiers, fullHousePackages } from "@/lib/room-tiers" // Import fullHousePackages
-import type { FullHousePackage } from "@/lib/room-tiers"
-import { formatCurrency } from "@/lib/utils"
-import { CheckCircle } from "lucide-react"
+function PricingContent() {
+  const { toast } = useToast()
+  const { addItem } = useCart()
+  const [activeTab, setActiveTab] = useState("standard")
 
-// 👇 NEW – ensure we never run .map on undefined
-const safePackages: FullHousePackage[] = Array.isArray(fullHousePackages) ? fullHousePackages : []
+  const {
+    roomCounts,
+    roomConfigs,
+    selectedRoomForMap,
+    updateRoomCount,
+    updateRoomConfig,
+    setSelectedRoomForMap,
+    getSelectedRoomTypes,
+  } = useRoomContext()
 
-interface PricingContentProps {
-  onSelectTier: (roomType: string, tierId: string) => void
-}
+  const [serviceFee, setServiceFee] = useState(25)
 
-export function PricingContent({ onSelectTier }: PricingContentProps) {
+  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
+  const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
+
+  const handleRoomCountChange = (roomType: string, count: number) => {
+    const newCount = Math.max(0, count)
+    updateRoomCount(roomType, newCount)
+
+    if (newCount > 0 && (roomCounts[roomType] || 0) === 0) {
+      if (!selectedRoomForMap) {
+        setSelectedRoomForMap(roomType)
+      }
+    }
+
+    if (newCount === 0 && (roomCounts[roomType] || 0) > 0) {
+      if (selectedRoomForMap === roomType) {
+        const activeRooms = Object.entries(roomCounts)
+          .filter(([key, currentCount]) => key !== roomType && currentCount > 0)
+          .map(([key]) => key)
+        setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
+      }
+    }
+  }
+
+  const handleRoomConfigChange = (roomType: string, config: RoomConfig) => {
+    updateRoomConfig(roomType, config)
+  }
+
+  const getRoomConfig = (roomType: string): RoomConfig => {
+    return (
+      roomConfigs[roomType] || {
+        roomName: roomType,
+        selectedTier: "ESSENTIAL CLEAN",
+        selectedAddOns: [],
+        selectedReductions: [],
+        basePrice: 25,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        reductionsPrice: 0,
+        totalPrice: 25,
+      }
+    )
+  }
+
+  const getActiveRoomConfigs = () => {
+    return getSelectedRoomTypes()
+  }
+
+  useEffect(() => {
+    const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
+    if (totalRooms <= 2) {
+      setServiceFee(25)
+    } else if (totalRooms <= 5) {
+      setServiceFee(35)
+    } else {
+      setServiceFee(45)
+    }
+  }, [roomCounts])
+
   return (
-    <div className="container mx-auto py-12 px-4 md:px-6">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-5xl">
-          Flexible Cleaning Plans
-        </h1>
-        <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-          Choose from our pre-defined packages or build your own custom plan.
-        </p>
-      </div>
+    <main className="container mx-auto px-4 pt-2">
+      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+        <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
+          <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
+            <Home className="h-4 w-4" aria-hidden="true" />
+            <span>Residential Services</span>
+          </TabsTrigger>
+          <TabsTrigger value="detailing" className="flex items-center gap-2" aria-controls="detailing-tab">
+            <Building2 className="h-4 w-4" aria-hidden="true" />
+            <span>Commercial Services</span>
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsList className="grid w-full grid-cols-2 mb-8">
-        <TabsTrigger value="tiers">Choose a Tier</TabsTrigger>
-        <TabsTrigger value="custom">Build Your Custom Plan</TabsTrigger>
-      </TabsList>
+        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
+          {/* Core Rooms Category */}
+          <RoomCategory
+            title="CORE ROOMS"
+            description="Select the rooms you want cleaned in your home"
+            rooms={coreRooms}
+            roomCounts={roomCounts}
+            onRoomCountChange={handleRoomCountChange}
+            onRoomConfigChange={handleRoomConfigChange}
+            getRoomConfig={getRoomConfig}
+            variant="primary"
+            onRoomSelect={setSelectedRoomForMap}
+          />
 
-      {/* Full House Packages Section */}
-      <section className="mb-12">
-        <h2 className="text-3xl font-bold text-center mb-8">Full House Cleaning Packages</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {safePackages.map((pkg) => (
-            <Card key={pkg.id} className="flex flex-col justify-between">
-              <CardHeader>
-                <CardTitle className="text-center">{pkg.name}</CardTitle>
-                <CardDescription className="text-center">{pkg.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center">
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-xl text-gray-400 line-through">{formatCurrency(pkg.originalPrice)}</span>
-                  <span className="text-4xl font-bold">{formatCurrency(pkg.basePrice)}</span>
-                </div>
-                <span className="text-sm text-green-600 dark:text-green-400 font-medium mb-4">
-                  Save {formatCurrency(pkg.originalPrice - pkg.basePrice)}!
+          {/* Additional Spaces Category */}
+          <RoomCategory
+            title="ADDITIONAL SPACES"
+            description="Select any additional areas that need cleaning"
+            rooms={additionalSpaces}
+            roomCounts={roomCounts}
+            onRoomCountChange={handleRoomCountChange}
+            onRoomConfigChange={handleRoomConfigChange}
+            getRoomConfig={getRoomConfig}
+            variant="secondary"
+            onRoomSelect={setSelectedRoomForMap}
+          />
+
+          {/* Custom Space Card */}
+          <Card className="shadow-sm">
+            <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
+                  <Contact className="h-5 w-5" aria-hidden="true" />
                 </span>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 text-left w-full px-4">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    Standard House Configuration:
-                  </li>
-                  {pkg.includedRooms.map((room, index) => (
-                    <li key={index} className="flex items-center gap-2 ml-6">
-                      - {roomDisplayNames[room] || room}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter className="flex justify-center">
-                {/* When selecting a package, we pass 'bedroom' as a placeholder roomType
-                    because the PriceCalculator expects a roomType to initialize,
-                    but the package itself defines the rooms. The pkg.id is the important part. */}
-                <Button onClick={() => onSelectTier("bedroom", pkg.id)}>Select Package</Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Individual Room Pricing Section */}
-      <section>
-        <h2 className="text-3xl font-bold text-center mb-8">Individual Room Pricing by Tier</h2>
-        {Object.keys(roomDisplayNames).map((roomType) => {
-          // Skip 'default' and 'other' as they are not specific rooms for tier display
-          if (roomType === "default" || roomType === "other") return null
-
-          const tiers = getRoomTiers(roomType)
-          return (
-            <div key={roomType} className="mb-10">
-              <h3 className="text-2xl font-semibold mb-6 text-center capitalize">
-                {roomDisplayNames[roomType]} Cleaning
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {tiers.map((tier) => (
-                  <Card key={tier.id} className="flex flex-col justify-between">
-                    <CardHeader>
-                      <CardTitle className="text-center">{tier.name}</CardTitle>
-                      <CardDescription className="text-center">{tier.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center">
-                      <span className="text-3xl font-bold mb-4">{formatCurrency(tier.price)}</span>
-                      <p className="text-sm text-gray-500 mb-4">Est. Time: {tier.timeEstimate}</p>
-                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400 text-left w-full px-4">
-                        {tier.features.map((feature, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                    <CardFooter className="flex justify-center">
-                      <Button onClick={() => onSelectTier(roomType, tier.id)}>Select Tier</Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                CUSTOM SPACES
+              </CardTitle>
+              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+                <div className="text-4xl mb-4" aria-hidden="true">
+                  🏠
+                </div>
+                <h3 className="font-medium text-xl mb-2">Other Space</h3>
+                <p className="text-gray-500 mb-4 text-center max-w-md">
+                  Have a unique space that needs cleaning? Contact us for a custom quote.
+                </p>
+                <RequestQuoteButton showIcon={true} />
               </div>
-            </div>
-          )
-        })}
-      </section>
-    </div>
+            </CardContent>
+          </Card>
+
+          {/* Selected Rooms Summary */}
+          {getActiveRoomConfigs().length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    ✓
+                  </span>
+                  SELECTED ROOMS
+                </CardTitle>
+                <CardDescription>
+                  You have selected {getActiveRoomConfigs().length} room{getActiveRoomConfigs().length !== 1 ? "s" : ""}
+                  . Click "Customize" on any room to configure cleaning options and add to cart.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {getActiveRoomConfigs().map((roomType) => (
+                    <div
+                      key={roomType}
+                      className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
+                    >
+                      <div className="text-2xl mb-2">
+                        {roomType === "bedroom" && "🛏️"}
+                        {roomType === "bathroom" && "🚿"}
+                        {roomType === "kitchen" && "🍳"}
+                        {roomType === "livingRoom" && "🛋️"}
+                        {roomType === "diningRoom" && "🍽️"}
+                        {roomType === "homeOffice" && "💻"}
+                        {roomType === "laundryRoom" && "🧺"}
+                        {roomType === "entryway" && "🚪"}
+                        {roomType === "hallway" && "🚶"}
+                        {roomType === "stairs" && "🪜"}
+                      </div>
+                      <span className="font-medium text-sm text-center">
+                        {roomDisplayNames[roomType]} ({roomCounts[roomType]})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="implementation-notes">
+              <AccordionTrigger className="font-bold text-gray-500">IMPLEMENTATION NOTES</AccordionTrigger>
+              <AccordionContent>
+                <ol className="list-decimal pl-5 space-y-2">
+                  <li>
+                    <strong>ROOM SELECTION:</strong> Select rooms above, then click "Customize" to configure each room
+                  </li>
+                  <li>
+                    <strong>GUIDED CHECKOUT:</strong> Multi-step wizard guides you through all configuration options
+                  </li>
+                  <li>
+                    <strong>TIER STACKING:</strong> Combine multiple tiers per room for customized cleaning
+                  </li>
+                  <li>
+                    <strong>SERVICE INHERITANCE:</strong> Higher tiers include all lower-tier services
+                  </li>
+                  <li>
+                    <strong>CUSTOM PRESETS:</strong> Save frequent configurations for future use
+                  </li>
+                </ol>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </TabsContent>
+
+        <TabsContent value="detailing" id="detailing-tab" role="tabpanel">
+          <Card>
+            <CardHeader>
+              <CardTitle>Commercial Services</CardTitle>
+              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Content for commercial services will be implemented in future rounds.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
   )
 }
 
 export default PricingContent
+export { PricingContent }

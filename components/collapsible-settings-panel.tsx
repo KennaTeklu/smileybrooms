@@ -1,462 +1,220 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import {
-  Settings,
-  X,
-  Sun,
-  Moon,
-  Text,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  ChevronRight,
-  Sparkles,
-  Zap,
-  ClipboardCheck,
-  FileTypeIcon as Font,
-  Languages,
-  Palette,
-} from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { useClickOutside } from "@/hooks/use-click-outside"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { useAccessibility } from "@/hooks/use-accessibility"
-import { useTranslation } from "@/contexts/translation-context"
+import { ArrowRight, Settings, Palette, Accessibility, Text, Languages } from "lucide-react"
+import { useAccessibility } from "@/lib/accessibility-context"
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-
-  const { preferences, updatePreference, resetPreferences, announceToScreenReader } = useAccessibility()
-  const { t } = useTranslation()
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  useClickOutside(panelRef, (event) => {
-    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-      return
-    }
-    setIsOpen(false)
-  })
-
-  useKeyboardShortcuts(
-    {
-      "alt+a": () => setIsOpen((prev) => !prev),
-      Escape: () => setIsOpen(false),
-    },
-    preferences.keyboardNavigation,
-  )
+  const { preferences, updatePreference, resetPreferences } = useAccessibility()
 
   const handleReset = () => {
     resetPreferences()
-    announceToScreenReader(t("settings.reset_success_message"), true)
-    setIsOpen(false)
   }
 
-  const panelVariants = {
-    hidden: { opacity: 0, x: "-100%", scale: 0.8, originX: 0, originY: 1 },
-    visible: { opacity: 1, x: "0%", scale: 1, transition: { type: "spring", damping: 25, stiffness: 300 } },
-    exit: { opacity: 0, x: "-100%", scale: 0.8, transition: { type: "spring", damping: 25, stiffness: 300 } },
-  }
+  const languageOptions = [
+    { value: "en", label: "English" },
+    { value: "es", label: "Español" },
+    { value: "fr", label: "Français" },
+    { value: "de", label: "Deutsch" },
+  ]
 
-  const buttonVariants = {
-    hidden: { opacity: 0, x: -20, scale: 0.8, transition: { type: "spring", damping: 25, stiffness: 300 } },
-    visible: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", damping: 25, stiffness: 300 } },
-  }
+  const fontFamilyOptions = [
+    { value: "Inter, sans-serif", label: "Default (Inter)" },
+    { value: "Arial, sans-serif", label: "Arial" },
+    { value: "Georgia, serif", label: "Georgia" },
+    { value: "monospace", label: "Monospace" },
+  ]
 
-  if (!isMounted) {
-    return null
-  }
+  const textAlignmentOptions = [
+    { value: "left", label: "Left" },
+    { value: "center", label: "Center" },
+    { value: "right", label: "Right" },
+    { value: "justify", label: "Justify" },
+  ]
 
   return (
-    <TooltipProvider>
-      <motion.div
-        ref={panelRef}
-        className="fixed z-[997] bottom-4 left-4 sm:left-4 md:left-4 lg:left-4"
-        initial="hidden"
-        animate="visible"
-        exit="hidden"
-        variants={buttonVariants}
+    <div className="fixed left-4 top-1/2 z-50 -translate-y-1/2">
+      <Button
+        variant="outline"
+        size="icon"
+        className="rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        onClick={() => setIsOpen(true)}
+        aria-label="Open settings panel"
       >
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              ref={buttonRef}
-              variant="outline"
-              size="icon"
-              onClick={() => setIsOpen(!isOpen)}
-              className={cn(
-                "h-12 w-12 rounded-full shadow-lg bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm",
-                "border-2 border-green-200/50 dark:border-green-800/50",
-                "hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 dark:hover:border-green-700",
-                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
-                "transition-all duration-300 hover:scale-105 relative",
-              )}
-              style={{
-                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(34, 197, 94, 0.05)",
-              }}
-              aria-label={isOpen ? t("settings.close_button_label") : t("settings.open_button_label")}
-            >
-              {isOpen ? (
-                <ChevronRight className="h-5 w-5 text-green-600 dark:text-green-400" />
-              ) : (
-                <Settings className="h-5 w-5 text-green-600 dark:text-green-400" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {isOpen ? t("settings.close_tooltip") : t("settings.open_tooltip")}
-          </TooltipContent>
-        </Tooltip>
+        <ArrowRight className="h-5 w-5" />
+      </Button>
 
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={panelVariants}
-              className={cn(
-                "absolute bottom-full left-0 mb-3 w-full max-w-[90vw] sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-green-200/50 dark:border-green-800/50",
-                "relative flex flex-col",
-              )}
-              style={{
-                maxHeight: "80vh",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(34, 197, 94, 0.1)",
-              }}
-            >
-              <div className="bg-gradient-to-r from-green-600 via-green-700 to-green-800 text-white p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Settings className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">{t("settings.title")}</h3>
-                      <p className="text-green-100 text-sm">{t("settings.subtitle")}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsOpen(false)}
-                    className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                    aria-label={t("settings.close_panel_button_label")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetContent
+          side="left"
+          className="w-full max-w-md border-r border-purple-700 bg-purple-900/95 p-6 text-white shadow-2xl backdrop-blur-md"
+        >
+          <SheetHeader className="mb-6">
+            <SheetTitle className="flex items-center text-2xl font-bold text-purple-100">
+              <Settings className="mr-2 h-6 w-6" />
+              Settings
+            </SheetTitle>
+          </SheetHeader>
+
+          <Tabs defaultValue="accessibility" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-purple-800/70">
+              <TabsTrigger
+                value="accessibility"
+                className="flex items-center gap-2 text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
+              >
+                <Accessibility className="h-4 w-4" /> Accessibility
+              </TabsTrigger>
+              <TabsTrigger
+                value="display"
+                className="flex items-center gap-2 text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
+              >
+                <Palette className="h-4 w-4" /> Display
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="accessibility" className="mt-4 space-y-6">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="high-contrast" className="text-purple-100">
+                  High Contrast
+                </Label>
+                <Switch
+                  id="high-contrast"
+                  checked={preferences.highContrast}
+                  onCheckedChange={(checked) => updatePreference("highContrast", checked)}
+                  aria-label="Toggle high contrast mode"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="large-text" className="text-purple-100">
+                  Large Text
+                </Label>
+                <Switch
+                  id="large-text"
+                  checked={preferences.largeText}
+                  onCheckedChange={(checked) => updatePreference("largeText", checked)}
+                  aria-label="Toggle large text mode"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reduced-motion" className="text-purple-100">
+                  Reduced Motion
+                </Label>
+                <Switch
+                  id="reduced-motion"
+                  checked={preferences.reducedMotion}
+                  onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
+                  aria-label="Toggle reduced motion"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="screen-reader-mode" className="text-purple-100">
+                  Screen Reader Mode
+                </Label>
+                <Switch
+                  id="screen-reader-mode"
+                  checked={preferences.screenReaderMode}
+                  onCheckedChange={(checked) => updatePreference("screenReaderMode", checked)}
+                  aria-label="Toggle screen reader mode"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="keyboard-navigation" className="text-purple-100">
+                  Keyboard Navigation
+                </Label>
+                <Switch
+                  id="keyboard-navigation"
+                  checked={preferences.keyboardNavigation}
+                  onCheckedChange={(checked) => updatePreference("keyboardNavigation", checked)}
+                  aria-label="Toggle keyboard navigation indicators"
+                />
+              </div>
+              <Separator className="bg-purple-700" />
+              <Button
+                onClick={handleReset}
+                className="w-full bg-purple-700 text-purple-100 hover:bg-purple-800"
+                aria-label="Reset all accessibility settings"
+              >
+                Reset All Settings
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="display" className="mt-4 space-y-6">
+              <div>
+                <Label htmlFor="text-alignment" className="mb-2 block text-purple-100">
+                  <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment
+                </Label>
+                <Select
+                  value={preferences.textAlignment}
+                  onValueChange={(value: "left" | "center" | "right" | "justify") =>
+                    updatePreference("textAlignment", value)
+                  }
+                >
+                  <SelectTrigger className="w-full bg-purple-800/70 text-purple-100">
+                    <SelectValue placeholder="Select alignment" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-purple-800 text-purple-100">
+                    {textAlignmentOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="p-5 flex-1 overflow-auto space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="theme-toggle" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <Sun className="h-5 w-5 text-yellow-500" />
-                    <Moon className="h-5 w-5 text-blue-500" />
-                    <span>{t("settings.dark_mode")}</span>
-                  </Label>
-                  <Switch
-                    id="theme-toggle"
-                    checked={preferences.prefersDarkTheme}
-                    onCheckedChange={(checked) => {
-                      updatePreference("prefersDarkTheme", checked)
-                      updatePreference("prefersLightTheme", !checked)
-                      announceToScreenReader(t(`settings.dark_mode_status_${checked ? "enabled" : "disabled"}`), true)
-                    }}
-                    aria-label={t("settings.toggle_dark_mode")}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="high-contrast-toggle"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Sparkles className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.high_contrast_mode")}</span>
-                  </Label>
-                  <Switch
-                    id="high-contrast-toggle"
-                    checked={preferences.highContrast}
-                    onCheckedChange={(checked) => {
-                      updatePreference("highContrast", checked)
-                      announceToScreenReader(
-                        t(`settings.high_contrast_status_${checked ? "enabled" : "disabled"}`),
-                        true,
-                      )
-                    }}
-                    aria-label={t("settings.toggle_high_contrast_mode")}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="large-text-toggle"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.large_text_mode")}</span>
-                  </Label>
-                  <Switch
-                    id="large-text-toggle"
-                    checked={preferences.largeText}
-                    onCheckedChange={(checked) => {
-                      updatePreference("largeText", checked)
-                      announceToScreenReader(t(`settings.large_text_status_${checked ? "enabled" : "disabled"}`), true)
-                    }}
-                    aria-label={t("settings.toggle_large_text_mode")}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="reduced-motion-toggle"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Zap className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.reduced_motion")}</span>
-                  </Label>
-                  <Switch
-                    id="reduced-motion-toggle"
-                    checked={preferences.reducedMotion}
-                    onCheckedChange={(checked) => {
-                      updatePreference("reducedMotion", checked)
-                      announceToScreenReader(
-                        t(`settings.reduced_motion_status_${checked ? "enabled" : "disabled"}`),
-                        true,
-                      )
-                    }}
-                    aria-label={t("settings.toggle_reduced_motion")}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="keyboard-nav-toggle"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <ClipboardCheck className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.keyboard_navigation")}</span>
-                  </Label>
-                  <Switch
-                    id="keyboard-nav-toggle"
-                    checked={preferences.keyboardNavigation}
-                    onCheckedChange={(checked) => {
-                      updatePreference("keyboardNavigation", checked)
-                      announceToScreenReader(
-                        t(`settings.keyboard_navigation_status_${checked ? "enabled" : "disabled"}`),
-                        true,
-                      )
-                    }}
-                    aria-label={t("settings.toggle_keyboard_navigation")}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="font-family-select"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Font className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.font_family")}</span>
-                  </Label>
-                  <Select
-                    value={preferences.fontFamily}
-                    onValueChange={(value) => {
-                      updatePreference("fontFamily", value)
-                      announceToScreenReader(t("settings.font_family_changed", { font: value }), true)
-                    }}
-                  >
-                    <SelectTrigger
-                      id="font-family-select"
-                      className="w-full"
-                      aria-label={t("settings.select_font_family")}
-                    >
-                      <SelectValue placeholder={t("settings.select_a_font")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Inter, sans-serif">{t("settings.font_inter")}</SelectItem>
-                      <SelectItem value="Arial, sans-serif">{t("settings.font_arial")}</SelectItem>
-                      <SelectItem value="Verdana, sans-serif">{t("settings.font_verdana")}</SelectItem>
-                      <SelectItem value="Georgia, serif">{t("settings.font_georgia")}</SelectItem>
-                      <SelectItem value="monospace">{t("settings.font_monospace")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language-select" className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <Languages className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.language")}</span>
-                  </Label>
-                  <Select
-                    value={preferences.language}
-                    onValueChange={(value) => {
-                      updatePreference("language", value)
-                      announceToScreenReader(t("settings.language_changed", { lang: value }), true)
-                    }}
-                  >
-                    <SelectTrigger id="language-select" className="w-full" aria-label={t("settings.select_language")}>
-                      <SelectValue placeholder={t("settings.select_a_language")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">{t("settings.lang_en")}</SelectItem>
-                      <SelectItem value="es">{t("settings.lang_es")}</SelectItem>
-                      <SelectItem value="fr">{t("settings.lang_fr")}</SelectItem>
-                      <SelectItem value="de">{t("settings.lang_de")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="color-scheme-select"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Palette className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.color_scheme")}</span>
-                  </Label>
-                  <Select
-                    value={preferences.colorScheme}
-                    onValueChange={(value) => {
-                      updatePreference("colorScheme", value as "default" | "green" | "blue")
-                      announceToScreenReader(t("settings.color_scheme_changed", { scheme: value }), true)
-                    }}
-                  >
-                    <SelectTrigger
-                      id="color-scheme-select"
-                      className="w-full"
-                      aria-label={t("settings.select_color_scheme")}
-                    >
-                      <SelectValue placeholder={t("settings.select_a_color_scheme")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">{t("settings.scheme_default")}</SelectItem>
-                      <SelectItem value="green">{t("settings.scheme_green")}</SelectItem>
-                      <SelectItem value="blue">{t("settings.scheme_blue")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="line-height-slider"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>
-                      {t("settings.line_height")}: {preferences.lineHeight?.toFixed(2)}
-                    </span>
-                  </Label>
-                  <Slider
-                    id="line-height-slider"
-                    min={1.0}
-                    max={2.0}
-                    step={0.05}
-                    value={[preferences.lineHeight || 1.5]}
-                    onValueChange={(value) => {
-                      updatePreference("lineHeight", value[0])
-                      announceToScreenReader(t("settings.line_height_set", { height: value[0].toFixed(2) }), true)
-                    }}
-                    className="w-full"
-                    aria-label={t("settings.adjust_line_height")}
-                    aria-valuetext={`${preferences.lineHeight?.toFixed(2)}`}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="letter-spacing-slider"
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    <Text className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>
-                      {t("settings.letter_spacing")}: {preferences.letterSpacing?.toFixed(2)}em
-                    </span>
-                  </Label>
-                  <Slider
-                    id="letter-spacing-slider"
-                    min={0.0}
-                    max={0.1}
-                    step={0.005}
-                    value={[preferences.letterSpacing || 0]}
-                    onValueChange={(value) => {
-                      updatePreference("letterSpacing", value[0])
-                      announceToScreenReader(t("settings.letter_spacing_set", { spacing: value[0].toFixed(2) }), true)
-                    }}
-                    className="w-full"
-                    aria-label={t("settings.adjust_letter_spacing")}
-                    aria-valuetext={`${preferences.letterSpacing?.toFixed(2)}em`}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <AlignLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <span>{t("settings.text_alignment")}</span>
-                  </Label>
-                  <RadioGroup
-                    value={preferences.textAlignment || "left"}
-                    onValueChange={(value) => {
-                      updatePreference("textAlignment", value)
-                      announceToScreenReader(t("settings.text_alignment_set", { alignment: value }), true)
-                    }}
-                    className="flex gap-4"
-                    aria-label={t("settings.select_text_alignment")}
-                    role="radiogroup"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="left" id="align-left" aria-label={t("settings.align_left")} />
-                      <Label htmlFor="align-left">
-                        <AlignLeft className="h-5 w-5" />
-                        <span className="sr-only">{t("settings.align_left")}</span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="center" id="align-center" aria-label={t("settings.align_center")} />
-                      <Label htmlFor="align-center">
-                        <AlignCenter className="h-5 w-5" />
-                        <span className="sr-only">{t("settings.align_center")}</span>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="right" id="align-right" aria-label={t("settings.align_right")} />
-                      <Label htmlFor="align-right">
-                        <AlignRight className="h-5 w-5" />
-                        <span className="sr-only">{t("settings.align_right")}</span>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200/50 dark:border-gray-800/50">
-                  <Button
-                    variant="outline"
-                    className="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-800/30 border-red-200/50 dark:border-red-800/50"
-                    onClick={handleReset}
-                    aria-label={t("settings.reset_all_settings")}
-                  >
-                    {t("settings.reset_all_settings")}
-                  </Button>
-                </div>
+              <div>
+                <Label htmlFor="font-family" className="mb-2 block text-purple-100">
+                  <Text className="mr-2 inline-block h-4 w-4" /> Font Family
+                </Label>
+                <Select
+                  value={preferences.fontFamily}
+                  onValueChange={(value: string) => updatePreference("fontFamily", value)}
+                >
+                  <SelectTrigger className="w-full bg-purple-800/70 text-purple-100">
+                    <SelectValue placeholder="Select font" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-purple-800 text-purple-100">
+                    {fontFamilyOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </TooltipProvider>
+
+              <div>
+                <Label htmlFor="language" className="mb-2 block text-purple-100">
+                  <Languages className="mr-2 inline-block h-4 w-4" /> Language
+                </Label>
+                <Select
+                  value={preferences.language}
+                  onValueChange={(value: string) => updatePreference("language", value)}
+                >
+                  <SelectTrigger className="w-full bg-purple-800/70 text-purple-100">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-purple-800 text-purple-100">
+                    {languageOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
+    </div>
   )
 }

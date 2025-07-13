@@ -1,3 +1,4 @@
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { TikTokScroll } from "@/components/tiktok-scroll"
 import { OurStory } from "@/components/about/our-story"
 import { MissionVision } from "@/components/about/mission-vision"
@@ -32,6 +33,8 @@ export default function AboutPage() {
           />
         </div>
       </main>
+
+      <AccessibilityToolbar />
     </div>
   )
 }

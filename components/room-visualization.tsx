@@ -1,231 +1,233 @@
 "use client"
 
-import { useMemo } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { roomImages, roomDisplayNames, type RoomTier, type RoomAddOn } from "@/lib/room-tiers"
+import { useState, useEffect, useRef } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 
 interface RoomVisualizationProps {
   roomType: string
-  selectedTierDetails?: RoomTier
-  selectedAddOnsDetails?: RoomAddOn[]
+  selectedTier: string
+  selectedAddOns?: string[]
 }
 
-// Define areas within each room image for highlighting
-const getRoomAreas = (roomType: string) => {
-  switch (roomType) {
-    case "bedroom":
-      return [
-        { id: "bed", x: 30, y: 40, width: 40, height: 30, keywords: ["bed", "linen", "pillow", "mattress"] },
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "vacuum", "carpet"] },
-        { id: "nightstand", x: 10, y: 50, width: 15, height: 20, keywords: ["nightstand", "surface"] },
-        { id: "dresser", x: 70, y: 50, width: 20, height: 20, keywords: ["dresser", "surface"] },
-        { id: "window", x: 40, y: 10, width: 20, height: 30, keywords: ["window", "sill", "blinds"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 70, keywords: ["wall", "baseboard"] },
-        { id: "light-fixture", x: 45, y: 0, width: 10, height: 10, keywords: ["light fixture", "chandelier"] },
-        { id: "closet", x: 80, y: 20, width: 15, height: 60, keywords: ["closet"] },
-        { id: "electronics", x: 50, y: 30, width: 10, height: 10, keywords: ["tv", "electronics", "remote"] },
-      ]
-    case "bathroom":
-      return [
-        { id: "toilet", x: 10, y: 50, width: 20, height: 40, keywords: ["toilet", "bowl", "exterior"] },
-        { id: "shower-tub", x: 70, y: 30, width: 30, height: 70, keywords: ["shower", "tub", "grout", "door"] },
-        { id: "sink-vanity", x: 35, y: 40, width: 30, height: 30, keywords: ["sink", "vanity", "faucet"] },
-        { id: "mirror", x: 40, y: 10, width: 20, height: 30, keywords: ["mirror"] },
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "mop"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 70, keywords: ["wall", "baseboard"] },
-        { id: "ventilation", x: 80, y: 0, width: 10, height: 10, keywords: ["ventilation", "fan"] },
-        { id: "cabinet", x: 35, y: 70, width: 30, height: 10, keywords: ["cabinet", "medicine"] },
-      ]
-    case "kitchen":
-      return [
-        { id: "countertop", x: 0, y: 40, width: 100, height: 20, keywords: ["countertop", "backsplash"] },
-        { id: "sink", x: 20, y: 45, width: 15, height: 15, keywords: ["sink", "faucet", "disposal"] },
-        { id: "stovetop-oven", x: 40, y: 30, width: 20, height: 40, keywords: ["stovetop", "oven", "range hood"] },
-        { id: "microwave", x: 65, y: 30, width: 15, height: 15, keywords: ["microwave"] },
-        { id: "refrigerator", x: 85, y: 10, width: 15, height: 60, keywords: ["refrigerator", "fridge"] },
-        { id: "dishwasher", x: 0, y: 50, width: 15, height: 30, keywords: ["dishwasher"] },
-        { id: "cabinets", x: 0, y: 0, width: 100, height: 40, keywords: ["cabinet", "pantry"] },
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "mop"] },
-        { id: "small-appliances", x: 5, y: 30, width: 10, height: 10, keywords: ["coffee maker", "toaster"] },
-      ]
-    case "livingRoom":
-      return [
-        { id: "sofa", x: 20, y: 50, width: 60, height: 30, keywords: ["sofa", "furniture", "upholstery"] },
-        { id: "coffee-table", x: 40, y: 70, width: 20, height: 15, keywords: ["coffee table", "surface"] },
-        { id: "floor", x: 0, y: 80, width: 100, height: 20, keywords: ["floor", "vacuum", "carpet"] },
-        { id: "tv-stand", x: 70, y: 40, width: 25, height: 30, keywords: ["tv", "electronics", "entertainment"] },
-        { id: "bookshelf", x: 5, y: 20, width: 15, height: 50, keywords: ["bookshelf", "decor"] },
-        { id: "window", x: 0, y: 0, width: 20, height: 40, keywords: ["window", "sill"] },
-        { id: "ceiling-fan", x: 45, y: 0, width: 10, height: 10, keywords: ["ceiling fan", "light fixture"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 80, keywords: ["wall", "baseboard"] },
-      ]
-    case "diningRoom":
-      return [
-        { id: "dining-table", x: 30, y: 40, width: 40, height: 30, keywords: ["table", "polishing"] },
-        { id: "chairs", x: 20, y: 50, width: 60, height: 40, keywords: ["chair", "upholstery"] },
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "sweep", "mop"] },
-        { id: "china-cabinet", x: 70, y: 10, width: 20, height: 60, keywords: ["china cabinet", "glassware"] },
-        { id: "light-fixture", x: 45, y: 0, width: 10, height: 10, keywords: ["light fixture", "chandelier"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 70, keywords: ["wall", "baseboard"] },
-      ]
-    case "homeOffice":
-      return [
-        { id: "desk", x: 20, y: 40, width: 60, height: 30, keywords: ["desk", "surface", "drawer"] },
-        { id: "chair", x: 40, y: 60, width: 20, height: 30, keywords: ["chair"] },
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "vacuum"] },
-        {
-          id: "computer",
-          x: 30,
-          y: 20,
-          width: 40,
-          height: 20,
-          keywords: ["computer", "monitor", "keyboard", "mouse", "electronics"],
-        },
-        { id: "bookshelf", x: 5, y: 10, width: 15, height: 60, keywords: ["bookshelf", "filing cabinet"] },
-        { id: "window", x: 80, y: 10, width: 15, height: 40, keywords: ["window", "sill", "blinds"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 70, keywords: ["wall"] },
-      ]
-    case "laundryRoom":
-      return [
-        { id: "washer-dryer", x: 10, y: 30, width: 40, height: 60, keywords: ["washer", "dryer", "lint trap", "vent"] },
-        { id: "sink", x: 60, y: 50, width: 20, height: 30, keywords: ["sink", "utility"] },
-        { id: "countertop", x: 0, y: 20, width: 100, height: 15, keywords: ["countertop", "detergent"] },
-        { id: "cabinets", x: 0, y: 0, width: 100, height: 20, keywords: ["cabinet"] },
-        { id: "floor", x: 0, y: 80, width: 100, height: 20, keywords: ["floor", "sweep", "mop"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 80, keywords: ["wall"] },
-      ]
-    case "entryway":
-      return [
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "sweep", "mop"] },
-        { id: "console-table", x: 30, y: 40, width: 40, height: 20, keywords: ["console table", "surface"] },
-        { id: "door", x: 0, y: 20, width: 20, height: 60, keywords: ["door", "handle", "hardware"] },
-        { id: "mirror", x: 40, y: 10, width: 20, height: 30, keywords: ["mirror"] },
-        { id: "shoe-rack", x: 10, y: 80, width: 15, height: 10, keywords: ["shoe rack", "shoe organization"] },
-        { id: "coat-closet", x: 80, y: 20, width: 15, height: 60, keywords: ["coat closet"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 80, keywords: ["wall", "baseboard"] },
-        { id: "light-fixture", x: 45, y: 0, width: 10, height: 10, keywords: ["light fixture", "chandelier"] },
-      ]
-    case "hallway":
-      return [
-        { id: "floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "vacuum", "mop", "runner", "carpet"] },
-        {
-          id: "walls",
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 70,
-          keywords: ["wall", "baseboard", "picture frame", "artwork"],
-        },
-        { id: "doors", x: 0, y: 30, width: 100, height: 40, keywords: ["door", "doorframe", "hardware"] },
-        { id: "light-fixture", x: 45, y: 0, width: 10, height: 10, keywords: ["light fixture"] },
-        { id: "ceiling", x: 0, y: 0, width: 100, height: 10, keywords: ["ceiling", "cobweb", "air vent"] },
-      ]
-    case "stairs":
-      return [
-        { id: "steps", x: 0, y: 40, width: 100, height: 60, keywords: ["step", "riser", "carpet", "runner"] },
-        { id: "handrail", x: 70, y: 10, width: 10, height: 60, keywords: ["handrail", "spindle"] },
-        { id: "walls", x: 0, y: 0, width: 100, height: 70, keywords: ["wall", "baseboard"] },
-        { id: "under-stairs", x: 0, y: 70, width: 30, height: 30, keywords: ["under-stair"] },
-        { id: "light-fixture", x: 45, y: 0, width: 10, height: 10, keywords: ["light fixture"] },
-      ]
-    case "default":
-    default:
-      return [
-        {
-          id: "general-surfaces",
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          keywords: ["surface", "dusting", "tidying", "light switch", "doorknob", "mirror"],
-        },
-        { id: "general-floor", x: 0, y: 70, width: 100, height: 30, keywords: ["floor", "vacuum", "sweep", "mop"] },
-        { id: "general-trash", x: 80, y: 80, width: 10, height: 10, keywords: ["trash"] },
-        { id: "general-appliances", x: 50, y: 40, width: 20, height: 30, keywords: ["appliance", "exterior"] },
-        { id: "general-bathroom", x: 10, y: 40, width: 20, height: 30, keywords: ["bathroom", "grout", "faucet"] },
-        { id: "general-kitchen", x: 30, y: 40, width: 20, height: 30, keywords: ["kitchen", "sink", "cabinet"] },
-        { id: "general-windows", x: 70, y: 10, width: 10, height: 20, keywords: ["window", "interior"] },
-        { id: "general-upholstery", x: 40, y: 60, width: 30, height: 20, keywords: ["upholstery", "sofa", "chair"] },
-        { id: "general-beds", x: 20, y: 50, width: 20, height: 20, keywords: ["bed", "linen"] },
-        {
-          id: "general-walls",
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          keywords: ["wall", "ceiling", "crown molding", "air vent"],
-        },
-        {
-          id: "general-personal",
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          keywords: ["personal item", "drawer", "closet", "laundry"],
-        },
-      ]
+export function RoomVisualization({ roomType, selectedTier, selectedAddOns = [] }: RoomVisualizationProps) {
+  const [activeView, setActiveView] = useState("2d")
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hoveredArea, setHoveredArea] = useState<string | null>(null)
+
+  // Room areas based on room type
+  const getRoomAreas = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "bedroom":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "bed", name: "Bed", x: 100, y: 100, width: 200, height: 150 },
+          { id: "nightstand", name: "Nightstand", x: 320, y: 120, width: 60, height: 60 },
+          { id: "dresser", name: "Dresser", x: 50, y: 50, width: 100, height: 40 },
+          { id: "closet", name: "Closet", x: 380, y: 50, width: 70, height: 150 },
+        ]
+      case "bathroom":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "shower", name: "Shower/Tub", x: 300, y: 50, width: 150, height: 150 },
+          { id: "toilet", name: "Toilet", x: 200, y: 50, width: 80, height: 80 },
+          { id: "sink", name: "Sink", x: 50, y: 50, width: 120, height: 80 },
+          { id: "mirror", name: "Mirror", x: 50, y: 20, width: 120, height: 30 },
+        ]
+      case "kitchen":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 400, height: 200 },
+          { id: "counters", name: "Countertops", x: 50, y: 150, width: 400, height: 40 },
+          { id: "sink", name: "Sink", x: 200, y: 130, width: 100, height: 60 },
+          { id: "stove", name: "Stove/Oven", x: 320, y: 50, width: 130, height: 90 },
+          { id: "refrigerator", name: "Refrigerator", x: 50, y: 50, width: 100, height: 90 },
+          { id: "cabinets", name: "Cabinets", x: 160, y: 50, width: 150, height: 40 },
+        ]
+      case "living room":
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 400, height: 250 },
+          { id: "sofa", name: "Sofa", x: 100, y: 100, width: 250, height: 80 },
+          { id: "coffeeTable", name: "Coffee Table", x: 150, y: 200, width: 150, height: 60 },
+          { id: "tvStand", name: "TV Stand", x: 400, y: 100, width: 100, height: 40 },
+          { id: "bookshelf", name: "Bookshelf", x: 50, y: 50, width: 80, height: 150 },
+        ]
+      default:
+        return [
+          { id: "floor", name: "Floor", x: 50, y: 200, width: 300, height: 200 },
+          { id: "furniture", name: "Furniture", x: 100, y: 100, width: 200, height: 100 },
+        ]
+    }
   }
-}
 
-export function RoomVisualization({ roomType, selectedTierDetails, selectedAddOnsDetails }: RoomVisualizationProps) {
-  const imageUrl = roomImages[roomType] || roomImages.default
-  const displayName = roomDisplayNames[roomType] || roomDisplayNames.default
+  // Get cleaning areas based on tier
+  const getCleaningAreas = (tier: string, roomType: string) => {
+    const allAreas = getRoomAreas(roomType).map((area) => area.id)
 
-  const areas = useMemo(() => getRoomAreas(roomType), [roomType])
+    switch (tier) {
+      case "PREMIUM":
+        return allAreas
+      case "DEEP CLEAN":
+        return allAreas.filter((area) => area !== "closet" && area !== "bookshelf")
+      case "QUICK CLEAN":
+      default:
+        return allAreas.filter((area) => ["floor", "counters", "sink", "bed"].includes(area))
+    }
+  }
 
-  const highlightedAreas = useMemo(() => {
-    const includedKeywords = new Set<string>()
+  // Draw the room visualization
+  useEffect(() => {
+    if (!canvasRef.current) return
 
-    // Add keywords from selected tier's detailed tasks
-    selectedTierDetails?.detailedTasks.forEach((task) => {
-      task
-        .toLowerCase()
-        .split(" ")
-        .forEach((word) => includedKeywords.add(word.replace(/[^a-z0-9]/g, "")))
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    setIsLoading(true)
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    // Draw room outline
+    ctx.strokeStyle = "#ccc"
+    ctx.lineWidth = 2
+    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40)
+
+    // Get room areas and cleaning areas
+    const roomAreas = getRoomAreas(roomType)
+    const cleaningAreas = getCleaningAreas(selectedTier, roomType)
+
+    // Draw room areas
+    roomAreas.forEach((area) => {
+      const isIncluded = cleaningAreas.includes(area.id) || selectedAddOns?.includes(area.id)
+      const isHovered = hoveredArea === area.id
+
+      ctx.fillStyle = isIncluded
+        ? isHovered
+          ? "rgba(34, 197, 94, 0.7)"
+          : "rgba(34, 197, 94, 0.4)"
+        : isHovered
+          ? "rgba(203, 213, 225, 0.7)"
+          : "rgba(203, 213, 225, 0.3)"
+
+      ctx.strokeStyle = isIncluded ? "#16a34a" : "#94a3b8"
+      ctx.lineWidth = isHovered ? 3 : 1
+
+      ctx.fillRect(area.x, area.y, area.width, area.height)
+      ctx.strokeRect(area.x, area.y, area.width, area.height)
+
+      // Add area label
+      ctx.fillStyle = isIncluded ? "#166534" : "#475569"
+      ctx.font = "12px sans-serif"
+      ctx.textAlign = "center"
+      ctx.fillText(area.name, area.x + area.width / 2, area.y + area.height / 2)
     })
 
-    // Add keywords from selected add-ons
-    selectedAddOnsDetails?.forEach((addOn) => {
-      addOn.name
-        .toLowerCase()
-        .split(" ")
-        .forEach((word) => includedKeywords.add(word.replace(/[^a-z0-9]/g, "")))
-      addOn.description
-        ?.toLowerCase()
-        .split(" ")
-        .forEach((word) => includedKeywords.add(word.replace(/[^a-z0-9]/g, "")))
-    })
+    setIsLoading(false)
 
-    return areas.filter((area) => area.keywords.some((keyword) => includedKeywords.has(keyword)))
-  }, [selectedTierDetails, selectedAddOnsDetails, areas])
+    // Add mouse move event listener for hover effects
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+
+      let hoveredAreaId: string | null = null
+
+      roomAreas.forEach((area) => {
+        if (x >= area.x && x <= area.x + area.width && y >= area.y && y <= area.y + area.height) {
+          hoveredAreaId = area.id
+        }
+      })
+
+      if (hoveredAreaId !== hoveredArea) {
+        setHoveredArea(hoveredAreaId)
+      }
+    }
+
+    canvas.addEventListener("mousemove", handleMouseMove)
+
+    return () => {
+      canvas.removeEventListener("mousemove", handleMouseMove)
+    }
+  }, [roomType, selectedTier, selectedAddOns, hoveredArea])
 
   return (
-    <Card className="relative overflow-hidden">
-      <CardContent className="p-0">
-        <div className="relative w-full h-[250px] sm:h-[350px] md:h-[400px] bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-          <img
-            src={imageUrl || "/placeholder.svg"}
-            alt={`Visualization of ${displayName}`}
-            className="absolute inset-0 w-full h-full object-cover"
-            width={600}
-            height={400}
-          />
-          {highlightedAreas.map((area) => (
-            <div
-              key={area.id}
-              className="absolute bg-blue-500/30 border-2 border-blue-600 dark:border-blue-400 transition-all duration-300 ease-in-out"
-              style={{
-                left: `${area.x}%`,
-                top: `${area.y}%`,
-                width: `${area.width}%`,
-                height: `${area.height}%`,
-              }}
-            />
-          ))}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-white text-2xl font-bold">
-            {displayName} Visualization
-          </div>
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">Room Visualization</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  Green areas show what will be cleaned with your selected service tier. Hover over areas to see
+                  details.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="2d" value={activeView} onValueChange={setActiveView} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="2d">2D View</TabsTrigger>
+            <TabsTrigger value="list">List View</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="2d" className="relative">
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+              </div>
+            )}
+            <div className="relative">
+              <canvas ref={canvasRef} width={500} height={400} className="w-full h-auto border rounded-md"></canvas>
+              <div className="absolute bottom-2 right-2 flex gap-2">
+                <Badge variant="outline" className="bg-white">
+                  {selectedTier}
+                </Badge>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="list">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-4 h-4 bg-green-400 rounded-sm"></div>
+                <span className="text-sm">Included in {selectedTier}</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {getRoomAreas(roomType).map((area) => {
+                  const isIncluded =
+                    getCleaningAreas(selectedTier, roomType).includes(area.id) || selectedAddOns?.includes(area.id)
+
+                  return (
+                    <div
+                      key={area.id}
+                      className={`p-2 border rounded-md flex items-center gap-2 ${
+                        isIncluded ? "border-green-500 bg-green-50" : "border-gray-200"
+                      }`}
+                    >
+                      <div className={`w-3 h-3 rounded-full ${isIncluded ? "bg-green-500" : "bg-gray-300"}`}></div>
+                      <span>{area.name}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   )
