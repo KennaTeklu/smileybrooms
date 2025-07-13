@@ -2,7 +2,7 @@
 import type React from "react"
 import { TooltipTrigger } from "@/components/ui/tooltip"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2,
@@ -48,10 +48,6 @@ interface SharePlatform {
   description: string
   popular?: boolean
   template?: string // Make template optional, but use it if present
-}
-
-interface CollapsibleSharePanelProps {
-  chatbotPanelInfo: { top: number; height: number; isExpanded: boolean }
 }
 
 const sharePlatforms: SharePlatform[] = [
@@ -194,7 +190,7 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-export function CollapsibleSharePanel({ chatbotPanelInfo }: CollapsibleSharePanelProps) {
+export function CollapsibleSharePanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -219,12 +215,41 @@ export function CollapsibleSharePanel({ chatbotPanelInfo }: CollapsibleSharePane
   // Calculate panel position based on scroll and viewport
   const [panelTopPosition, setPanelTopPosition] = useState<string>("20px")
 
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current) return
+
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    const initialViewportTopOffset = 20
+    const bottomPadding = 20
+
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = Math.max(
+      documentHeight - panelRef.current.offsetHeight - bottomPadding,
+      scrollY + 20,
+    )
+
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+    setPanelTopPosition(`${finalTop}px`)
+  }, [])
+
   useEffect(() => {
-    if (chatbotPanelInfo) {
-      const newTop = chatbotPanelInfo.top + chatbotPanelInfo.height + 1 // 1 pixel under chatbot
-      setPanelTopPosition(`${newTop}px`)
+    const handleScrollAndResize = () => {
+      calculatePanelPosition()
     }
-  }, [chatbotPanelInfo])
+
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+    calculatePanelPosition()
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+    }
+  }, [calculatePanelPosition])
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -376,7 +401,8 @@ export function CollapsibleSharePanel({ chatbotPanelInfo }: CollapsibleSharePane
         className="fixed z-[998]"
         style={{
           top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
+          // Positioned 1px to the left of the chatbot panel (assuming chatbot is ~60px wide when collapsed)
+          right: "61px",
           width: "fit-content",
         }}
         initial={{ x: "150%" }}
@@ -386,30 +412,38 @@ export function CollapsibleSharePanel({ chatbotPanelInfo }: CollapsibleSharePane
         {/* Enhanced Trigger Button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
+            <motion.button
+              key="collapsed-share" // Unique key for motion.button
               ref={buttonRef}
-              variant="outline"
-              size="icon"
+              initial={{ width: 0, opacity: 0, x: 20 }}
+              animate={{ width: "auto", opacity: 1, x: 0 }}
+              exit={{ width: 0, opacity: 0, x: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={() => setIsExpanded(!isExpanded)}
               className={cn(
-                "h-12 w-12 rounded-full shadow-lg bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm",
-                "border-2 border-purple-200/50 dark:border-purple-800/50",
-                "hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-700",
-                "focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
-                "transition-all duration-300 hover:scale-105 relative",
+                "flex items-center gap-3 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl",
+                "hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50",
+                "transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
+                "relative", // Keep relative for badge positioning
               )}
               style={{
-                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(147, 51, 234, 0.05)",
+                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(147, 51, 234, 0.05)", // Adjusted for purple
               }}
               aria-label="Toggle share panel"
             >
-              <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+                <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Share</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Spread the word</div>
+              </div>
               {shareCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-green-500 text-white text-xs font-bold border-2 border-white">
                   {shareCount}
                 </Badge>
               )}
-            </Button>
+            </motion.button>
           </TooltipTrigger>
           <TooltipContent side="left">Share Options</TooltipContent>
         </Tooltip>
