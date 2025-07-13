@@ -120,21 +120,27 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                   </div>
                   <p className="font-medium">{room.name}</p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
-                    className="h-7 w-7"
-                  >
-                    <Minus className="h-3 w-3" />
+                {selectedRooms[room.id] === 0 ? (
+                  <Button variant="default" size="sm" onClick={() => incrementRoom(room.id)} className="w-full">
+                    <PlusIcon className="h-3 w-3 mr-1" /> Add 1 {room.name}
                   </Button>
-                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                    <PlusIcon className="h-3 w-3" />
-                  </Button>
-                </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => decrementRoom(room.id)}
+                      disabled={selectedRooms[room.id] === 0}
+                      className="h-7 w-7"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                    <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                      <PlusIcon className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
@@ -172,21 +178,27 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
                   </div>
                   <p className="font-medium">{room.name}</p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => decrementRoom(room.id)}
-                    disabled={selectedRooms[room.id] === 0}
-                    className="h-7 w-7"
-                  >
-                    <Minus className="h-3 w-3" />
+                {selectedRooms[room.id] === 0 ? (
+                  <Button variant="default" size="sm" onClick={() => incrementRoom(room.id)} className="w-full">
+                    <PlusIcon className="h-3 w-3 mr-1" /> Add 1 {room.name}
                   </Button>
-                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                    <PlusIcon className="h-3 w-3" />
-                  </Button>
-                </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => decrementRoom(room.id)}
+                      disabled={selectedRooms[room.id] === 0}
+                      className="h-7 w-7"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                    <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                      <PlusIcon className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
