@@ -401,7 +401,8 @@ export function CollapsibleSharePanel() {
         className="fixed z-[998]"
         style={{
           top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
+          // Positioned 1px to the left of the chatbot panel (assuming chatbot is ~60px wide when collapsed)
+          right: "61px",
           width: "fit-content",
         }}
         initial={{ x: "150%" }}
