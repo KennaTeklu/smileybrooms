@@ -4,12 +4,13 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns, roomImages, roomDisplayNames } from "@/lib/room-tiers" // Import roomImages and roomDisplayNames
 import { FrequencySelector } from "./frequency-selector"
 import { ConfigurationManager } from "./configuration-manager"
 import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
+import Image from "next/image" // Import Image component
 
 interface RoomConfig {
   roomName: string
@@ -238,6 +239,9 @@ export function MultiStepCustomizationWizard({
 
   if (!isOpen) return null
 
+  const roomImageSrc = roomImages[roomType] || "/room-icon.png"
+  const roomDisplayName = roomDisplayNames[roomType] || roomName
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex">
@@ -247,7 +251,15 @@ export function MultiStepCustomizationWizard({
           <div className="flex-shrink-0 border-b p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{roomIcon}</span>
+                <div className="relative w-12 h-12 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                  <Image
+                    src={roomImageSrc || "/placeholder.svg"}
+                    alt={`${roomDisplayName} icon`}
+                    width={48}
+                    height={48}
+                    className="object-cover"
+                  />
+                </div>
                 <div>
                   <h2 className="text-lg font-semibold">{STEP_TITLES[currentStep]}</h2>
                   <p className="text-sm text-gray-500">{STEP_DESCRIPTIONS[currentStep]}</p>
