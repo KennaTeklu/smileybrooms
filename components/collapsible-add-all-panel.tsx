@@ -57,7 +57,7 @@ export function CollapsibleAddAllPanel() {
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
 
   // Check if selection requirements are met (2 or more rooms selected)
-  const selectionRequirementsMet = selectedRoomTypes.length >= 2
+  const selectionRequirementsMet = totalItems > 0
 
   useEffect(() => {
     setIsMounted(true)
