@@ -7,7 +7,7 @@ import { WhySmileybrooms } from "@/components/about/why-smileybrooms"
 
 export default function AboutPage() {
   return (
-    <div className="flex min-h-screen flex-col" data-no-accessibility-toolbar>
+    <div className="flex min-h-screen flex-col">
       <main className="flex-1 flex flex-col">
         {/* Hero Section */}
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
