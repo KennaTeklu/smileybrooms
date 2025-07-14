@@ -15,6 +15,7 @@ export type CartItem = {
   sourceSection?: string
   metadata?: Record<string, any>
   paymentFrequency?: "per_service" | "monthly" | "yearly"
+  isFullHousePromoApplied?: boolean // New field for full house promo
 }
 
 type CartState = {
@@ -24,6 +25,7 @@ type CartState = {
   totalPrice: number // New field for total after discounts/taxes
   couponCode: string | null
   couponDiscount: number
+  fullHouseDiscount: number // New field for full house discount
 }
 
 type CartAction =
@@ -41,6 +43,7 @@ const initialState: CartState = {
   totalPrice: 0,
   couponCode: null,
   couponDiscount: 0,
+  fullHouseDiscount: 0, // Initialize new field
 }
 
 // Define valid coupons and their effects
@@ -52,11 +55,19 @@ const VALID_COUPONS: { [key: string]: { type: "percentage" | "fixed"; value: num
 const calculateCartTotals = (
   items: CartItem[],
   couponCode: string | null,
-): { totalItems: number; subtotalPrice: number; totalPrice: number; couponDiscount: number } => {
+): {
+  totalItems: number
+  subtotalPrice: number
+  totalPrice: number
+  couponDiscount: number
+  fullHouseDiscount: number
+} => {
   const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
   let couponDiscount = 0
+  let fullHouseDiscount = 0
   let finalPrice = subtotalPrice
 
+  // Apply coupon discount first
   if (couponCode && VALID_COUPONS[couponCode.toUpperCase()]) {
     const coupon = VALID_COUPONS[couponCode.toUpperCase()]
     if (coupon.type === "percentage") {
@@ -70,11 +81,19 @@ const calculateCartTotals = (
     finalPrice = Math.max(0, subtotalPrice - couponDiscount) // Ensure price doesn't go below zero
   }
 
+  // Apply full house discount if applicable (only if at least one item has the flag)
+  const hasFullHousePromo = items.some((item) => item.isFullHousePromoApplied)
+  if (hasFullHousePromo) {
+    fullHouseDiscount = finalPrice * 0.05 // 5% off the price after coupon
+    finalPrice = Math.max(0, finalPrice - fullHouseDiscount)
+  }
+
   return {
     totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
     subtotalPrice,
     totalPrice: finalPrice,
     couponDiscount,
+    fullHouseDiscount, // Return the calculated full house discount
   }
 }
 
@@ -100,7 +119,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         updatedItems = [...state.items, enhancedItem]
       }
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
         updatedItems,
         state.couponCode,
       )
@@ -112,12 +131,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         subtotalPrice,
         totalPrice,
         couponDiscount,
+        fullHouseDiscount,
       }
     }
 
     case "REMOVE_ITEM": {
       const updatedItems = state.items.filter((item) => item.id !== action.payload)
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
         updatedItems,
         state.couponCode,
       )
@@ -129,6 +149,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         subtotalPrice,
         totalPrice,
         couponDiscount,
+        fullHouseDiscount,
       }
     }
 
@@ -140,7 +161,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         return item
       })
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
         updatedItems,
         state.couponCode,
       )
@@ -152,12 +173,16 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         subtotalPrice,
         totalPrice,
         couponDiscount,
+        fullHouseDiscount,
       }
     }
 
     case "APPLY_COUPON": {
       const newCouponCode = action.payload.toUpperCase()
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(state.items, newCouponCode)
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
+        state.items,
+        newCouponCode,
+      )
 
       return {
         ...state,
@@ -166,6 +191,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalItems,
         subtotalPrice,
         totalPrice,
+        fullHouseDiscount,
       }
     }
 
@@ -173,7 +199,19 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       return initialState
 
     case "SET_CART": // For loading from localStorage
-      return action.payload
+      // Recalculate totals to ensure consistency with current coupon/full house logic
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
+        action.payload.items,
+        action.payload.couponCode,
+      )
+      return {
+        ...action.payload,
+        totalItems,
+        subtotalPrice,
+        totalPrice,
+        couponDiscount,
+        fullHouseDiscount,
+      }
 
     default:
       return state
@@ -194,34 +232,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
   const { toast } = useToast()
-
-  // Load cart from localStorage on initial render
-  useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart")
-      if (savedCart) {
-        const parsedCart = JSON.parse(savedCart) as CartState
-        // Recalculate totals to ensure consistency with current coupon logic
-        const { totalItems, subtotalPrice, totalPrice, couponDiscount } = calculateCartTotals(
-          parsedCart.items,
-          parsedCart.couponCode,
-        )
-        dispatch({
-          type: "SET_CART",
-          payload: {
-            ...parsedCart,
-            totalItems,
-            subtotalPrice,
-            totalPrice,
-            couponDiscount,
-          },
-        })
-      }
-    } catch (error) {
-      console.error("Error loading cart from localStorage:", error)
-      dispatch({ type: "CLEAR_CART" })
-    }
-  }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {

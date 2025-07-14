@@ -3,24 +3,19 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, ShoppingCart } from "lucide-react"
+import { Menu, ShoppingCart, Home, Calculator, Users, Mail, Accessibility, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Logo } from "@/components/logo" // Ensure this imports the updated Logo
+import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useCart } from "@/lib/cart-context"
+import { cn } from "@/lib/utils"
 
 export function EnhancedHeader() {
   const pathname = usePathname()
   const { cart } = useCart()
-  const [isHomePage, setIsHomePage] = useState(false)
   const [hasItems, setHasItems] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-
-  // Check if current page is homepage
-  useEffect(() => {
-    setIsHomePage(pathname === "/")
-  }, [pathname])
 
   // Check if cart has items
   useEffect(() => {
@@ -39,107 +34,84 @@ export function EnhancedHeader() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // If homepage and no items, don't show header
-  if (isHomePage && !hasItems) {
-    return null
-  }
+  // Navigation links - always include all links
+  const navigationLinks = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/pricing", label: "Pricing", icon: Calculator },
+    { href: "/about", label: "About", icon: Users },
+    { href: "/contact", label: "Contact", icon: Mail },
+    { href: "/accessibility", label: "Accessibility", icon: Accessibility },
+  ]
 
-  // If homepage with items, only show cart
-  if (isHomePage && hasItems) {
-    return (
-      <header
-        className={`fixed top-0 right-0 z-40 p-4 transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : ""}`}
-      >
-        <div className="flex justify-end">
-          <Button variant="outline" size="icon" aria-label="Open cart">
-            <ShoppingCart className="h-5 w-5" />
-            {hasItems && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                {cart.items?.length}
-              </span>
-            )}
-          </Button>
-        </div>
-      </header>
-    )
-  }
-
-  // Regular header for other pages
+  // Always render the full header
   return (
     <header
-      className={`sticky top-0 z-40 w-full transition-all duration-200 ${isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900"}`}
+      className={cn(
+        "sticky top-0 z-40 w-full transition-all duration-200",
+        isScrolled ? "bg-white/80 backdrop-blur-md shadow-sm dark:bg-gray-900/80" : "bg-white dark:bg-gray-900",
+      )}
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/">
-            <Logo /> {/* This will now use favicon.png */}
+            <Logo />
           </Link>
 
           <nav className="hidden md:flex gap-6">
-            {pathname !== "/" && (
-              <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-                Home
+            {navigationLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary",
+                  pathname === link.href && "text-primary", // Highlight active link
+                )}
+              >
+                {link.label}
               </Link>
-            )}
-            {pathname !== "/pricing" && (
-              <Link href="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-                Pricing
-              </Link>
-            )}
-            {pathname !== "/about" && (
-              <Link href="/about" className="text-sm font-medium transition-colors hover:text-primary">
-                About
-              </Link>
-            )}
-            {pathname !== "/contact" && (
-              <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
-                Contact
-              </Link>
-            )}
+            ))}
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          <Button variant="outline" size="icon" aria-label="Open cart">
-            <ShoppingCart className="h-5 w-5" />
-            {hasItems && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
-                {cart.items?.length}
-              </span>
-            )}
+          <Button variant="outline" size="icon" aria-label="Open cart" asChild>
+            <Link href="/cart">
+              <ShoppingCart className="h-5 w-5" />
+              {hasItems && (
+                <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                  {cart.items?.length}
+                </span>
+              )}
+            </Link>
           </Button>
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
+              <Button variant="outline" size="icon" className="md:hidden bg-transparent">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
               <div className="flex flex-col gap-6 pt-6">
-                {pathname !== "/" && (
-                  <Link href="/" className="text-lg font-medium">
-                    Home
+                {navigationLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "text-lg font-medium",
+                      pathname === link.href && "text-primary", // Highlight active link
+                    )}
+                  >
+                    {link.label}
                   </Link>
-                )}
-                {pathname !== "/pricing" && (
-                  <Link href="/pricing" className="text-lg font-medium">
-                    Pricing
-                  </Link>
-                )}
-                {pathname !== "/about" && (
-                  <Link href="/about" className="text-lg font-medium">
-                    About
-                  </Link>
-                )}
-                {pathname !== "/contact" && (
-                  <Link href="/contact" className="text-lg font-medium">
-                    Contact
-                  </Link>
-                )}
+                ))}
+                <Link href="/download" className="text-lg font-medium flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Download App
+                </Link>
               </div>
             </SheetContent>
           </Sheet>

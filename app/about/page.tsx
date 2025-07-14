@@ -1,4 +1,3 @@
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
 import { TikTokScroll } from "@/components/tiktok-scroll"
 import { OurStory } from "@/components/about/our-story"
 import { MissionVision } from "@/components/about/mission-vision"
@@ -8,7 +7,7 @@ import { WhySmileybrooms } from "@/components/about/why-smileybrooms"
 
 export default function AboutPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col" data-no-accessibility-toolbar>
       <main className="flex-1 flex flex-col">
         {/* Hero Section */}
         <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
@@ -33,8 +32,6 @@ export default function AboutPage() {
           />
         </div>
       </main>
-
-      <AccessibilityToolbar />
     </div>
   )
 }

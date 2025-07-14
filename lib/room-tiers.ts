@@ -720,24 +720,20 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
   ],
   default: [
     {
-      id: "def-r1",
-      name: "Skip detailed dusting",
-      discount: 10.0,
-      description: "Detailed dusting will not be performed",
+      id: "def-1",
+      name: "Detailed dusting of all surfaces",
+      price: 15.0,
+      description: "Comprehensive dusting of all surfaces",
     },
+    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
     {
-      id: "def-r2",
-      name: "Basic floor cleaning only",
-      discount: 12.0,
-      description: "Only basic floor cleaning will be performed",
+      id: "def-3",
+      name: "Ceiling corner cobweb removal",
+      price: 8.0,
+      description: "Removal of cobwebs from ceiling corners",
     },
-    { id: "def-r3", name: "No baseboard cleaning", discount: 8.0, description: "Baseboards will not be cleaned" },
-    {
-      id: "def-r4",
-      name: "Skip hard-to-reach areas",
-      discount: 10.0,
-      description: "Hard-to-reach areas will not be cleaned",
-    },
+    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
+    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
   ],
 }
 
@@ -752,19 +748,32 @@ export function getRoomAddOns(roomType: string): RoomAddOn[] {
 }
 
 // Helper function to get reductions for a specific room type
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return defaultReductions[roomType] || defaultReductions.default
+}
+
+// Helper function to get the price for a specific tier ID
+export function getPriceForTier(tierId: string): number {
+  for (const roomType in defaultTiers) {
+    const tier = defaultTiers[roomType].find((t) => t.id === tierId)
+    if (tier) return tier.price
+  }
+  return 0 // Fallback if tier not found
+}
+
 // Room type to professional image mapping
 export const roomImages: Record<string, string> = {
   bedroom: "/images/bedroom-professional.png",
   bathroom: "/images/bathroom-professional.png",
   kitchen: "/images/kitchen-professional.png",
-  livingRoom: "/images/living-room-professional.png",
-  diningRoom: "/images/dining-room-professional.png",
-  homeOffice: "/images/home-office-professional.png",
-  laundryRoom: "/images/laundry-room-professional.png",
+  livingRoom: "/images/living-room-professional.png", // Corrected path
+  diningRoom: "/images/dining-room-professional.png", // Corrected path
+  homeOffice: "/images/home-office-professional.png", // Corrected path
+  laundryRoom: "/images/laundry-room-professional.png", // Corrected path
   entryway: "/images/entryway-professional.png",
   hallway: "/images/hallway-professional.png",
   stairs: "/images/stairs-professional.png",
-  other: "/images/bedroom-professional.png", // fallback
+  other: "/images/bedroom-professional.png", // fallback for custom rooms
 }
 
 // Room type to icon mapping (keeping as fallback)
@@ -795,4 +804,171 @@ export const roomDisplayNames: Record<string, string> = {
   hallway: "Hallway",
   stairs: "Stairs",
   other: "Other Space",
+}
+
+// New room tiers, add-ons, and reductions
+export const roomTiers = {
+  "PREMIUM CLEAN": {
+    basePrice: 50,
+    detailedTasks: [
+      "Dusting all surfaces (furniture, shelves, decor)",
+      "Vacuuming/mopping all floors",
+      "Emptying trash bins",
+      "Wiping down light switches and doorknobs",
+      "Cleaning mirrors and glass surfaces",
+      "Making beds (if linens are provided)",
+      "Wiping down exterior of cabinets and drawers",
+      "Cleaning and sanitizing sinks, countertops, and backsplashes",
+      "Cleaning stovetop and exterior of oven/microwave",
+      "Wiping down exterior of refrigerator and dishwasher",
+      "Scrubbing and sanitizing toilets, showers, and bathtubs",
+      "Polishing chrome fixtures",
+      "Cleaning inside of microwave",
+      "Wiping down baseboards",
+      "Dusting ceiling fans and light fixtures (within reach)",
+      "Cleaning window sills and blinds",
+      "Wiping down interior doors",
+    ],
+    notIncludedTasks: [
+      "Deep stain removal on carpets/upholstery",
+      "Cleaning inside of oven/refrigerator",
+      "Washing dishes",
+      "Laundry services",
+      "Exterior window cleaning",
+      "Moving heavy furniture",
+      "Cleaning biohazards",
+      "Cleaning pet waste",
+      "Cleaning excessive clutter",
+      "Cleaning high-reach areas (requiring ladders)",
+    ],
+    upsellMessage: "For an even deeper clean, consider our 'Sparkling Clean' tier!",
+  },
+  "SPARKLING CLEAN": {
+    basePrice: 75,
+    detailedTasks: [
+      "All 'Premium Clean' tasks",
+      "Cleaning inside of oven",
+      "Cleaning inside of refrigerator",
+      "Washing dishes and loading dishwasher",
+      "Laundry (one load, wash and dry)",
+      "Spot cleaning walls",
+      "Cleaning all reachable interior windows",
+      "Detailed cleaning of all reachable light fixtures and vents",
+      "Organizing and tidying common areas",
+      "Cleaning and sanitizing trash cans",
+      "Cleaning under light furniture (if easily movable)",
+    ],
+    notIncludedTasks: [
+      "Deep stain removal on carpets/upholstery",
+      "Exterior window cleaning",
+      "Moving heavy furniture",
+      "Cleaning biohazards",
+      "Cleaning pet waste",
+      "Cleaning excessive clutter",
+      "Cleaning high-reach areas (requiring ladders)",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Ultimate Shine' tier!",
+  },
+  "ULTIMATE SHINE": {
+    basePrice: 100,
+    detailedTasks: [
+      "All 'Sparkling Clean' tasks",
+      "Deep cleaning inside of oven",
+      "Deep cleaning inside of refrigerator",
+      "Washing dishes and loading dishwasher",
+      "Laundry (one load, wash and dry)",
+      "Spot cleaning walls",
+      "Cleaning all reachable interior windows",
+      "Detailed cleaning of all reachable light fixtures and vents",
+      "Organizing and tidying common areas",
+      "Cleaning and sanitizing trash cans",
+      "Cleaning under light furniture (if easily movable)",
+    ],
+    notIncludedTasks: [
+      "Deep stain removal on carpets/upholstery",
+      "Exterior window cleaning",
+      "Moving heavy furniture",
+      "Cleaning biohazards",
+      "Cleaning pet waste",
+      "Cleaning excessive clutter",
+      "Cleaning high-reach areas (requiring ladders)",
+    ],
+    upsellMessage: "Experience the pinnacle of cleanliness!",
+  },
+}
+
+export const roomAddOns = {
+  ovenDeepClean: {
+    name: "Oven Deep Clean",
+    price: 30,
+    description: "Thorough cleaning of the inside of your oven.",
+  },
+  fridgeDeepClean: {
+    name: "Refrigerator Deep Clean",
+    price: 25,
+    description: "Detailed cleaning of the inside of your refrigerator.",
+  },
+  interiorWindows: {
+    name: "Interior Window Cleaning",
+    price: 20,
+    description: "Cleaning of all reachable interior windows.",
+  },
+  laundryService: {
+    name: "Laundry Service",
+    price: 15,
+    description: "One load of laundry washed and dried.",
+  },
+  dishWashing: {
+    name: "Dish Washing",
+    price: 10,
+    description: "Washing and loading dishes into the dishwasher.",
+  },
+  baseboardWipeDown: {
+    name: "Baseboard Wipe Down",
+    price: 10,
+    description: "Wiping down all accessible baseboards.",
+  },
+  wallSpotCleaning: {
+    name: "Wall Spot Cleaning",
+    price: 15,
+    description: "Spot cleaning of marks and scuffs on walls.",
+  },
+  cabinetInteriorCleaning: {
+    name: "Cabinet Interior Cleaning",
+    price: 35,
+    description: "Cleaning the inside of kitchen and bathroom cabinets (empty cabinets only).",
+  },
+  patioBalconyCleaning: {
+    name: "Patio/Balcony Cleaning",
+    price: 40,
+    description: "Sweeping and light tidying of outdoor patio or balcony.",
+  },
+  garageCleaning: {
+    name: "Garage Cleaning",
+    price: 50,
+    description: "Sweeping and organizing of garage space (light items only).",
+  },
+}
+
+export const roomReductions = {
+  noBaseboards: {
+    name: "No Baseboards",
+    price: -5,
+    description: "Skip baseboard wiping.",
+  },
+  noInteriorWindows: {
+    name: "No Interior Windows",
+    price: -10,
+    description: "Skip interior window cleaning.",
+  },
+  noOvenClean: {
+    name: "No Oven Clean",
+    price: -15,
+    description: "Skip oven cleaning.",
+  },
+  noFridgeClean: {
+    name: "No Fridge Clean",
+    price: -10,
+    description: "Skip refrigerator cleaning.",
+  },
 }

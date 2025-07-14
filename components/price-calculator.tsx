@@ -9,16 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles, ShoppingCart } from "lucide-react" // Import ShoppingCart and Plus
+import { Home, Calendar, Sparkles } from "lucide-react"
 import CleanlinessSlider from "./cleanliness-slider"
 import { roomConfig } from "@/lib/room-config"
 import { cn } from "@/lib/utils"
-import { Minus, PlusIcon } from "lucide-react" // Renamed Plus to PlusIcon to avoid conflict
-import { useCart } from "@/lib/cart-context" // Import useCart
-import { toast } from "@/components/ui/use-toast" // Import toast
+import { Minus, PlusIcon } from "lucide-react"
+import { CollapsibleAddAllPanel } from "./collapsible-add-all-panel"
 
-// Define the types for the calculator props
 interface PriceCalculatorProps {
   onCalculationComplete?: (data: {
     rooms: Record<string, number>
@@ -33,13 +30,10 @@ interface PriceCalculatorProps {
     isRecurring: boolean
     recurringInterval: "week" | "month" | "year"
   }) => void
-  onAddToCart?: () => void
 }
 
-// Define the room types and their base prices
 const roomTypes = roomConfig.roomTypes
 
-// Define the frequency options and their discounts
 const frequencyOptions = [
   { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
   { id: "weekly", label: "Weekly", discount: 0.15, isRecurring: true, recurringInterval: "week" },
@@ -50,14 +44,12 @@ const frequencyOptions = [
   { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
 ]
 
-// Define the payment frequency options
 const paymentFrequencyOptions = [
   { id: "per_service", label: "Pay Per Service" },
   { id: "monthly", label: "Monthly Subscription" },
   { id: "yearly", label: "Annual Subscription (Save 10%)" },
 ]
 
-// Define the cleanliness level multipliers
 const cleanlinessMultipliers = [
   { level: 1, multiplier: 0.8, label: "Mostly Clean" },
   { level: 2, multiplier: 1.0, label: "Average" },
@@ -91,120 +83,56 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
 
   return (
     <>
-      <div className="border-b pb-2 mb-4">
-        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">CORE ROOMS</h4>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-        {roomTypes
-          .filter((room) => ["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-          .map((room) => (
-            <div
-              key={room.id}
-              className={cn(
-                "border rounded-lg p-3 transition-all",
-                selectedRooms[room.id] > 0
-                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-800",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div
-                    className={cn(
-                      "p-2 rounded-full mr-2",
-                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
-                    )}
-                  >
-                    {room.icon}
-                  </div>
-                  <p className="font-medium">{room.name}</p>
-                </div>
-                {selectedRooms[room.id] === 0 ? (
-                  <Button variant="default" size="sm" onClick={() => incrementRoom(room.id)} className="w-full">
-                    <PlusIcon className="h-3 w-3 mr-1" /> Add 1 {room.name}
-                  </Button>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => decrementRoom(room.id)}
-                      disabled={selectedRooms[room.id] === 0}
-                      className="h-7 w-7"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                    <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                      <PlusIcon className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
-            </div>
-          ))}
-      </div>
-
-      <div className="border-b pb-2 mb-4">
-        <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">ADDITIONAL SPACES</h4>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {roomTypes
-          .filter((room) => !["bedroom", "bathroom", "kitchen", "living_room", "dining_room"].includes(room.id))
-          .map((room) => (
-            <div
-              key={room.id}
-              className={cn(
-                "border rounded-lg p-3 transition-all",
-                selectedRooms[room.id] > 0
-                  ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-                  : "border-gray-200 dark:border-gray-800",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div
-                    className={cn(
-                      "p-2 rounded-full mr-2",
-                      selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
-                    )}
-                  >
-                    {room.icon}
-                  </div>
-                  <p className="font-medium">{room.name}</p>
+        {roomTypes.map((room) => (
+          <div
+            key={room.id}
+            className={cn(
+              "border rounded-lg p-3 transition-all",
+              selectedRooms[room.id] > 0
+                ? "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                : "border-gray-200 dark:border-gray-800",
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div
+                  className={cn(
+                    "p-2 rounded-full mr-2",
+                    selectedRooms[room.id] > 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800",
+                  )}
+                >
+                  {room.icon}
                 </div>
-                {selectedRooms[room.id] === 0 ? (
-                  <Button variant="default" size="sm" onClick={() => incrementRoom(room.id)} className="w-full">
-                    <PlusIcon className="h-3 w-3 mr-1" /> Add 1 {room.name}
-                  </Button>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => decrementRoom(room.id)}
-                      disabled={selectedRooms[room.id] === 0}
-                      className="h-7 w-7"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
-                    <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
-                      <PlusIcon className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
+                <p className="font-medium">{room.name}</p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
-              </p>
+              {selectedRooms[room.id] === 0 ? (
+                <Button variant="default" size="sm" onClick={() => incrementRoom(room.id)} className="w-full">
+                  <PlusIcon className="h-3 w-3 mr-1" /> Add 1 {room.name}
+                </Button>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => decrementRoom(room.id)}
+                    disabled={selectedRooms[room.id] === 0}
+                    className="h-7 w-7"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <span className="w-6 text-center">{selectedRooms[room.id] || 0}</span>
+                  <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-7 w-7">
+                    <PlusIcon className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
-          ))}
+            <p className="text-xs text-gray-500 mt-1">
+              ${serviceType === "standard" ? room.basePrice : room.basePrice * 1.8} per room
+            </p>
+          </div>
+        ))}
       </div>
 
       <div className="mt-4 pt-4 border-t">
@@ -216,8 +144,7 @@ const RoomConfigurator: React.FC<RoomConfiguratorProps> = ({ selectedRooms, setS
   )
 }
 
-export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
-  // State for selected rooms
+export default function PriceCalculator({ onCalculationComplete }: PriceCalculatorProps) {
   const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(() => {
     const initialRooms: Record<string, number> = {}
     roomTypes.forEach((room) => {
@@ -226,27 +153,18 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     return initialRooms
   })
 
-  // State for other selections
   const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
   const [frequency, setFrequency] = useState("one_time")
   const [paymentFrequency, setPaymentFrequency] = useState("per_service")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
+  const [cleanlinessLevel, setCleanlinessLevel] = useState(2)
   const [totalPrice, setTotalPrice] = useState(0)
   const [isServiceAvailable, setIsServiceAvailable] = useState(true)
   const [expandedSections, setExpandedSections] = useState<string[]>([])
-  const [isAddingToCart, setIsAddingToCart] = useState(false) // New loading state for add to cart
 
-  const { addItem } = useCart() // Use the cart context
-
-  // Media query for responsive design
-  const isMobile = useMediaQuery("(max-width: 768px)")
-
-  // Calculate the total price whenever selections change
   useEffect(() => {
     calculatePrice()
   }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
 
-  // Function to increment room count
   const incrementRoom = (roomId: string) => {
     setSelectedRooms((prev) => ({
       ...prev,
@@ -254,7 +172,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     }))
   }
 
-  // Function to decrement room count
   const decrementRoom = (roomId: string) => {
     if (selectedRooms[roomId] > 0) {
       setSelectedRooms((prev) => ({
@@ -264,9 +181,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     }
   }
 
-  // Function to calculate the total price
   const calculatePrice = () => {
-    // Calculate base price from selected rooms
     let basePrice = 0
     Object.entries(selectedRooms).forEach(([roomId, count]) => {
       const room = roomTypes.find((r) => r.id === roomId)
@@ -275,36 +190,28 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
       }
     })
 
-    // Apply service type multiplier
     const serviceMultiplier = serviceType === "standard" ? 1 : 1.5
 
-    // Apply frequency discount
     const selectedFrequency = frequencyOptions.find((f) => f.id === frequency)
     const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
 
-    // Apply cleanliness level multiplier
     const cleanlinessMultiplier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
 
-    // Apply payment frequency discount
     let paymentDiscount = 0
     if (paymentFrequency === "yearly") {
-      paymentDiscount = 0.1 // 10% discount for annual subscription
+      paymentDiscount = 0.1
     }
 
-    // Calculate total price
     let calculatedPrice =
       basePrice * serviceMultiplier * (1 - frequencyDiscount) * cleanlinessMultiplier * (1 - paymentDiscount)
 
-    // Round to 2 decimal places
     calculatedPrice = Math.round(calculatedPrice * 100) / 100
 
-    // Check if service is available (e.g., for extremely dirty conditions)
     const isAvailable = !(cleanlinessLevel === 5 && serviceType === "standard")
 
     setTotalPrice(calculatedPrice)
     setIsServiceAvailable(isAvailable)
 
-    // Call the onCalculationComplete callback if provided
     if (onCalculationComplete) {
       const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
       onCalculationComplete({
@@ -315,7 +222,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         cleanlinessLevel,
         priceMultiplier: cleanlinessMultiplier,
         isServiceAvailable: isAvailable,
-        addressId: "custom", // This would be replaced with actual address ID in a real implementation
+        addressId: "custom",
         paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
         isRecurring: selectedFrequencyOption?.isRecurring || false,
         recurringInterval: selectedFrequencyOption?.recurringInterval as "week" | "month" | "year",
@@ -323,76 +230,16 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
     }
   }
 
-  // Function to check if any rooms are selected
   const hasSelectedRooms = () => {
     return Object.values(selectedRooms).some((count) => count > 0)
   }
 
-  // Function to toggle section expansion
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
   }
 
-  // Check if a section is expanded
   const isSectionExpanded = (section: string) => {
     return expandedSections.includes(section)
-  }
-
-  const handleAddToCartClick = async () => {
-    setIsAddingToCart(true)
-    try {
-      // Simulate an async operation
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Construct item details for the cart
-      const selectedRoomNames = Object.entries(selectedRooms)
-        .filter(([, count]) => count > 0)
-        .map(([roomId, count]) => {
-          const room = roomTypes.find((r) => r.id === roomId)
-          return `${count} ${room?.name || roomId}`
-        })
-        .join(", ")
-
-      const serviceDescription = `${serviceType === "standard" ? "Standard" : "Premium"} Cleaning`
-      const frequencyLabel = frequencyOptions.find((opt) => opt.id === frequency)?.label || "One-Time"
-
-      addItem({
-        id: `calculated-service-${Date.now()}`, // Unique ID for this specific configuration
-        name: `${serviceDescription} (${frequencyLabel})`,
-        price: totalPrice,
-        priceId: "price_calculated_service", // Placeholder price ID
-        quantity: 1, // This represents one service booking
-        image: "/placeholder.svg?height=100&width=100",
-        sourceSection: "Price Calculator",
-        metadata: {
-          rooms: selectedRooms,
-          frequency,
-          serviceType,
-          cleanlinessLevel,
-          paymentFrequency,
-        },
-      })
-
-      toast({
-        title: "Service added to cart",
-        description: "Your customized cleaning service has been added to your cart.",
-        duration: 3000,
-      })
-
-      if (onAddToCart) {
-        onAddToCart()
-      }
-    } catch (error) {
-      console.error("Error adding calculated service to cart:", error)
-      toast({
-        title: "Failed to add to cart",
-        description: "There was an error adding the service to your cart. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      })
-    } finally {
-      setIsAddingToCart(false)
-    }
   }
 
   return (
@@ -415,7 +262,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             </p>
           </div>
 
-          {/* Room Selection - Always visible */}
+          <CollapsibleAddAllPanel />
+
           <Card className="border-2 border-blue-100 dark:border-blue-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
@@ -431,9 +279,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             </CardContent>
           </Card>
 
-          {/* Collapsible Sections */}
           <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
             <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -482,7 +328,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </AccordionContent>
             </AccordionItem>
 
-            {/* Cleanliness Level */}
             <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -515,7 +360,8 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             </p>
           </div>
 
-          {/* Room Selection - Always visible */}
+          <CollapsibleAddAllPanel />
+
           <Card className="border-2 border-purple-100 dark:border-purple-900">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
@@ -531,9 +377,7 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
             </CardContent>
           </Card>
 
-          {/* Collapsible Sections */}
           <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
             <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -582,7 +426,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
               </AccordionContent>
             </AccordionItem>
 
-            {/* Cleanliness Level */}
             <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
               <AccordionTrigger className="px-4 py-3 hover:no-underline">
                 <div className="flex items-center">
@@ -608,7 +451,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
         </TabsContent>
       </Tabs>
 
-      {/* Price Summary */}
       <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="flex justify-between items-center">
           <div>
@@ -630,24 +472,6 @@ export default function PriceCalculator({ onCalculationComplete, onAddToCart }: 
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
             For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
             quote.
-          </div>
-        )}
-
-        {onAddToCart && (
-          <div className="mt-4">
-            <Button
-              onClick={handleAddToCartClick} // Use the new handler
-              disabled={!hasSelectedRooms() || !isServiceAvailable || isAddingToCart} // Disable if adding
-              className="w-full"
-            >
-              {isAddingToCart ? (
-                "Adding..."
-              ) : (
-                <>
-                  <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
-                </>
-              )}
-            </Button>
           </div>
         )}
       </div>

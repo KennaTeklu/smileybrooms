@@ -190,7 +190,11 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-export function CollapsibleSharePanel() {
+interface CollapsibleSharePanelProps {
+  onPanelClick?: (panelName: "chatbot" | "share") => void
+}
+
+export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -211,8 +215,6 @@ export function CollapsibleSharePanel() {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
-
-  // Calculate panel position based on scroll and viewport
 
   // Close panel when clicking outside
   useClickOutside(panelRef, (event) => {
@@ -357,14 +359,24 @@ export function CollapsibleSharePanel() {
     return null
   }
 
+  const handleToggleExpand = () => {
+    const newState = !isExpanded
+    setIsExpanded(newState)
+    if (newState) {
+      onPanelClick("share") // Notify parent when expanded
+    }
+  }
+
   return (
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className="fixed z-[998]"
+        className={cn(
+          "fixed",
+          isExpanded ? "left-1/2 -translate-x-1/2" : "right-0", // Conditional centering
+        )}
         style={{
           bottom: "20px", // Fixed position from the bottom
-          right: "61px",
           width: "fit-content",
         }}
         initial={{ x: "150%" }}
@@ -381,9 +393,9 @@ export function CollapsibleSharePanel() {
               animate={{ width: "auto", opacity: 1, x: 0 }}
               exit={{ width: 0, opacity: 0, x: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={handleToggleExpand} // Use the new handler
               className={cn(
-                "flex items-center gap-3 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl",
+                "flex flex-col items-center gap-1 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl",
                 "hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50",
                 "transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
                 "relative", // Keep relative for badge positioning
@@ -396,7 +408,7 @@ export function CollapsibleSharePanel() {
               <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
                 <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="text-left">
+              <div className="[writing-mode:vertical-rl] self-end rotate-180">
                 <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Share</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Spread the word</div>
               </div>
@@ -610,3 +622,5 @@ export function CollapsibleSharePanel() {
     </TooltipProvider>
   )
 }
+
+export default CollapsibleSharePanel

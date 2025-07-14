@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowRight, Settings, Palette, Accessibility, Text, Languages } from "lucide-react"
+import { Settings, Palette, Accessibility, Text, Languages } from "lucide-react"
 import { useAccessibility } from "@/lib/accessibility-context"
 
 export function CollapsibleSettingsPanel() {
@@ -49,7 +49,7 @@ export function CollapsibleSettingsPanel() {
         onClick={() => setIsOpen(true)}
         aria-label="Open settings panel"
       >
-        <ArrowRight className="h-5 w-5" />
+        <Settings className="h-5 w-5" />
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>

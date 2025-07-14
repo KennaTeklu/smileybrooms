@@ -97,7 +97,12 @@ export default function Hero() {
                   <ArrowDown className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-1" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="text-base" onClick={() => setShowWaitlist(true)}>
+              <Button
+                variant="outline"
+                size="lg"
+                className="text-base bg-transparent"
+                onClick={() => setShowWaitlist(true)}
+              >
                 Join Waitlist
               </Button>
             </motion.div>

@@ -3,297 +3,174 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Mail, Phone, MapPin, Clock } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import Image from "next/image"
 
 export default function ContactPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
-  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData((prev) => ({ ...prev, [id]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Email validation
-    const enteredEmail = email.trim().toLowerCase()
-    const allowedDomains = [
-      "gmail.com",
-      "outlook.com",
-      "hotmail.com",
-      "live.com",
-      "yahoo.com",
-      "aol.com",
-      "protonmail.com",
-      "proton.me",
-      "icloud.com",
-      "me.com",
-      "yandex.com",
-      "yandex.ru",
-      "comcast.net",
-      "verizon.net",
-      "cox.net",
-      "spectrum.net",
-    ]
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    const isValidEmail = allowedDomains.some((domain) => enteredEmail.endsWith(`@${domain}`))
-    if (!isValidEmail) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address ending with one of the accepted domain names.",
-        variant: "destructive",
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    // Terms validation
-    if (!termsAccepted) {
-      toast({
-        title: "Terms not accepted",
-        description: "Please accept the terms and conditions to proceed.",
-        variant: "destructive",
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    try {
-      // Google Sheets integration
-      const scriptURL =
-        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
-
-      // Extract the first sentence as a summary if message is long
-      const messageSummary = message.length > 50 ? message.substring(0, 50).split(".")[0] + "..." : message
-
-      // Analyze message content to suggest department
-      const department =
-        message.toLowerCase().includes("price") || message.toLowerCase().includes("cost")
-          ? "Sales"
-          : message.toLowerCase().includes("job") || message.toLowerCase().includes("career")
-            ? "Careers"
-            : message.toLowerCase().includes("clean") || message.toLowerCase().includes("service")
-              ? "Operations"
-              : "General"
-
-      const formData = {
-        name,
-        email: enteredEmail,
-        phone: "N/A", // Not used in contact form directly
-        message: `🔵 Contact: ${messageSummary}`,
-        fullMessage: message,
-        source: "Contact Form",
-        meta: {
-          formType: "contact",
-          submitDate: new Date().toISOString(),
-          browser: navigator.userAgent,
-          page: window.location.pathname,
-          referrer: document.referrer || "direct",
-          device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
-          consent: termsAccepted,
-        },
-        data: {
-          suggestedDepartment: department,
-          messageLength: message.length,
-          wordCount: message.trim().split(/\s+/).length,
-          priority: message.length > 500 ? "high" : "normal",
-          messageCategory: department,
-        },
-      }
-
-      // Submit form data to Google Sheets
-      await fetch(scriptURL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      toast({
-        title: "Message sent!",
-        description: "We've received your message and will get back to you soon.",
-      })
-
-      // Reset form
-      setName("")
-      setEmail("")
-      setMessage("")
-      setTermsAccepted(false)
-    } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Something went wrong",
-        description: "There was an error sending your message. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
+    setIsSubmitting(false)
+    setFormData({ name: "", email: "", subject: "", message: "" })
+    toast({
+      title: "Message Sent!",
+      description: "Your message has been successfully sent. We will get back to you shortly.",
+      variant: "default",
+    })
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1">
-        <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Have questions or need a custom quote? Reach out to our friendly team.
+    <div className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="container px-4 md:px-6">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="space-y-6">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl dark:text-gray-100">
+              Get in Touch
+            </h1>
+            <p className="text-lg text-gray-700 md:text-xl dark:text-gray-300">
+              Have questions, feedback, or need a custom quote? Reach out to us! Our friendly team is here to help you
+              with all your cleaning needs.
             </p>
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="message">Message</Label>
-                  <Textarea
-                    id="message"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Tell us how we can help you..."
-                    rows={6}
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={termsAccepted}
-                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                  />
-                  <Label htmlFor="terms" className="text-sm">
-                    I agree to the terms and conditions and privacy policy
-                  </Label>
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Sending..." : "Send Message"}
-                </Button>
-              </form>
-            </div>
-
-            {/* Contact Information */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
-              <div className="grid gap-6">
-                <Card>
-                  <CardContent className="flex items-start space-x-4 p-6">
-                    <Mail className="h-6 w-6 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-medium">Email</h3>
-                      <p className="text-gray-600 dark:text-gray-400">info@smileybrooms.com</p>
-                      <p className="text-gray-600 dark:text-gray-400">support@smileybrooms.com</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="flex items-start space-x-4 p-6">
-                    <Phone className="h-6 w-6 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-medium">Phone</h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Main:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
-                        </a>
-                      </p>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Support:{" "}
-                        <a href="tel:6028000605" className="hover:underline">
-                          (602) 800-0605
-                        </a>
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="flex items-start space-x-4 p-6">
-                    <MapPin className="h-6 w-6 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-medium">Address</h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        123 Cleaning Street, Suite 100
-                        <br />
-                        Sparkle City, SC 12345
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="flex items-start space-x-4 p-6">
-                    <Clock className="h-6 w-6 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-medium">Business Hours</h3>
-                      <p className="text-gray-600 dark:text-gray-400">Monday - Friday: 8:00 AM - 6:00 PM</p>
-                      <p className="text-gray-600 dark:text-gray-400">Saturday: 9:00 AM - 4:00 PM</p>
-                      <p className="text-gray-600 dark:text-gray-400">Sunday: Closed</p>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
+                <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <a href="mailto:info@smileybrooms.com" className="hover:underline">
+                  info@smileybrooms.com
+                </a>
+              </div>
+              <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
+                <Phone className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <a href="tel:+15551234567" className="hover:underline">
+                  +1 (555) 123-4567
+                </a>
+              </div>
+              <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
+                <MapPin className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <span>We'll come to you!</span>
+              </div>
+              <div className="flex items-center gap-4 text-gray-800 dark:text-gray-200">
+                <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <span>Mon - Fri: 9:00 AM - 5:00 PM (EST)</span>
               </div>
             </div>
-          </div>
-
-          {/* Map Section */}
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold mb-6">Find Us</h2>
-            <div className="h-96 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3328.1744242014436!2d-112.07462492392832!3d33.44857797378126!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x872b12ed50a179cb%3A0x8c69c7f8354a1bac!2sPhoenix%2C%20AZ!5e0!3m2!1sen!2sus!4v1682349458979!5m2!1sen!2sus"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
+            <div className="relative h-64 w-full overflow-hidden rounded-xl shadow-lg md:h-80 lg:h-96">
+              <Image
+                src="/smiling-support-agent.png"
+                alt="Support Agent"
+                layout="fill"
+                objectFit="cover"
+                className="rounded-xl"
+              />
             </div>
           </div>
+          <Card className="bg-white/90 dark:bg-gray-950/90 backdrop-blur-sm shadow-xl border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="text-3xl font-bold text-gray-900 dark:text-gray-100">Send us a Message</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                      Name
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="bg-gray-100/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="john@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="bg-gray-100/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subject" className="text-gray-700 dark:text-gray-300">
+                    Subject
+                  </Label>
+                  <Input
+                    id="subject"
+                    placeholder="Regarding a cleaning service"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    required
+                    className="bg-gray-100/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="message" className="text-gray-700 dark:text-gray-300">
+                    Message
+                  </Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Your message here..."
+                    rows={5}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                    className="bg-gray-100/70 dark:bg-gray-800/70 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5" />
+                      Send Message
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

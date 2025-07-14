@@ -91,21 +91,26 @@ export default function CookieConsentManager() {
 
   const detectGeoLocation = async () => {
     try {
-      // In a real implementation, use a geo-IP service
-      const response = await fetch("/api/geo-detect")
-      const geo = await response.json()
+      const res = await fetch("/api/geo-detect")
 
-      // Mock geo detection for demo
-      const mockGeo: GeoLocation = {
+      // Ensure we only call res.json() when the response is OK *and*
+      // the server actually sent JSON.
+      if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+        const geo: GeoLocation = await res.json()
+        setGeoLocation(geo)
+      } else {
+        throw new Error(`Unexpected content-type: ${res.headers.get("content-type")}`)
+      }
+    } catch (error) {
+      // Log once, then fall back to a safe default so the UI still works.
+      console.warn("Geo detection failed, using fallback:", error)
+      const fallback: GeoLocation = {
         country: "US",
         region: "CA",
-        requiresExplicitConsent: false, // GDPR regions would be true
-        hasRightToForget: false, // GDPR regions would be true
+        requiresExplicitConsent: false,
+        hasRightToForget: false,
       }
-
-      setGeoLocation(mockGeo)
-    } catch (error) {
-      console.error("Geo detection failed:", error)
+      setGeoLocation(fallback)
     }
   }
 
@@ -284,3 +289,6 @@ export default function CookieConsentManager() {
     </div>
   )
 }
+
+// Also provide a named export for convenience/consistency with other components
+export { CookieConsentManager }

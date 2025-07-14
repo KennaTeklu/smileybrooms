@@ -4,10 +4,8 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { getRoomTiers, roomImages, roomDisplayNames } from "@/lib/room-tiers" // Removed getRoomAddOns
+import { getRoomTiers, roomImages, roomDisplayNames } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
-// Removed ConfigurationManager import
-// Removed InlineAddressForm import
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
@@ -15,10 +13,8 @@ import Image from "next/image"
 interface RoomConfig {
   roomName: string
   selectedTier: string
-  // Removed selectedAddOns
   basePrice: number
   tierUpgradePrice: number
-  // Removed addOnsPrice
   totalPrice: number
 }
 
@@ -33,7 +29,7 @@ interface WizardProps {
   onConfigChange: (config: RoomConfig) => void
 }
 
-type WizardStep = "room-config" | "frequency" | "review" // Removed "configuration-manager" and "address"
+type WizardStep = "room-config" | "frequency" | "review"
 
 const STEP_TITLES = {
   "room-config": "Customize Room",
@@ -42,7 +38,7 @@ const STEP_TITLES = {
 }
 
 const STEP_DESCRIPTIONS = {
-  "room-config": "Select cleaning level", // Updated description
+  "room-config": "Select cleaning level",
   frequency: "Choose how often you want cleaning",
   review: "Review your selections and add to cart",
 }
@@ -59,10 +55,8 @@ export function MultiStepCustomizationWizard({
 }: WizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
-  // Removed selectedAddOns state
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
-  // Removed addressData state
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -80,7 +74,6 @@ export function MultiStepCustomizationWizard({
     try {
       return {
         tiers: getRoomTiers(roomType) || [],
-        // Removed addOns
       }
     } catch (error) {
       console.error("Error getting room data:", error)
@@ -94,7 +87,7 @@ export function MultiStepCustomizationWizard({
         return {
           basePrice: 0,
           tierUpgradePrice: 0,
-          totalPrice: 0, // Removed addOnsPrice
+          totalPrice: 0,
         }
       }
 
@@ -102,28 +95,27 @@ export function MultiStepCustomizationWizard({
       const currentTier = roomData.tiers.find((t) => t.name === selectedTier) || baseTier
 
       const tierUpgradePrice = Math.max(0, currentTier.price - baseTier.price)
-      // Removed addOnsPrice calculation
 
-      let totalPrice = currentTier.price // Removed addOnsPrice from total
+      let totalPrice = currentTier.price
       const discountAmount = totalPrice * (frequencyDiscount / 100)
       totalPrice = Math.max(0, totalPrice - discountAmount)
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
-        totalPrice, // Removed addOnsPrice
+        totalPrice,
       }
     } catch (error) {
       console.error("Error calculating pricing:", error)
       return {
         basePrice: 0,
         tierUpgradePrice: 0,
-        totalPrice: 0, // Removed addOnsPrice
+        totalPrice: 0,
       }
     }
   }, [selectedTier, frequencyDiscount, roomData])
 
-  const steps: WizardStep[] = ["room-config", "frequency", "review"] // Updated steps array
+  const steps: WizardStep[] = ["room-config", "frequency", "review"]
   const currentStepIndex = steps.indexOf(currentStep)
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === steps.length - 1
@@ -140,15 +132,10 @@ export function MultiStepCustomizationWizard({
     }
   }, [currentStepIndex, isFirstStep, steps])
 
-  // Removed toggleAddOn callback
-
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
     setSelectedFrequency(frequency)
     setFrequencyDiscount(discount)
   }, [])
-
-  // Removed handleLoadConfig callback
-  // Removed handleAddressSubmit callback
 
   const handleAddToCart = useCallback(() => {
     try {
@@ -161,9 +148,7 @@ export function MultiStepCustomizationWizard({
         metadata: {
           roomType,
           selectedTier,
-          // Removed selectedAddOns
           frequency: selectedFrequency,
-          // Removed customer: addressData
           isRecurring: selectedFrequency !== "one_time",
         },
       }
@@ -186,19 +171,7 @@ export function MultiStepCustomizationWizard({
         duration: 3000,
       })
     }
-  }, [
-    roomName,
-    pricing.totalPrice,
-    roomCount,
-    roomType,
-    selectedTier,
-    // Removed selectedAddOns
-    selectedFrequency,
-    // Removed addressData
-    addItem,
-    toast,
-    onClose,
-  ])
+  }, [roomName, pricing.totalPrice, roomCount, roomType, selectedTier, selectedFrequency, addItem, toast, onClose])
 
   const canProceedToNext = useMemo(() => {
     switch (currentStep) {
@@ -305,9 +278,6 @@ export function MultiStepCustomizationWizard({
               </div>
             )}
 
-            {/* Removed ConfigurationManager section */}
-            {/* Removed InlineAddressForm section */}
-
             {currentStep === "review" && (
               <div className="space-y-6">
                 <div>
@@ -325,12 +295,10 @@ export function MultiStepCustomizationWizard({
                           <span>Cleaning Level:</span>
                           <span className="font-medium">{selectedTier}</span>
                         </div>
-                        {/* Removed Add-ons display */}
                         <div className="flex justify-between">
                           <span>Frequency:</span>
                           <span className="font-medium">{selectedFrequency.replace("_", " ")}</span>
                         </div>
-                        {/* Removed addressData display */}
                         <div className="border-t pt-3">
                           <div className="flex justify-between text-lg font-bold">
                             <span>Total:</span>
@@ -341,8 +309,6 @@ export function MultiStepCustomizationWizard({
                     </CardContent>
                   </Card>
                 </div>
-
-                {/* Removed addressData warning */}
               </div>
             )}
           </div>

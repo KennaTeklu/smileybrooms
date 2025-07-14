@@ -10,6 +10,7 @@ import { RequestQuoteButton } from "@/components/request-quote-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
+import { Separator } from "@/components/ui/separator"
 
 function PricingContent() {
   const { toast } = useToast()
@@ -103,9 +104,8 @@ function PricingContent() {
         <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
           {/* Core Rooms Category */}
           <RoomCategory
-            title="CORE ROOMS"
-            description="Select the rooms you want cleaned in your home"
-            rooms={coreRooms}
+            description="Essential areas for a standard clean."
+            rooms={["bedroom", "bathroom", "kitchen", "living-room", "dining-room"]}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
             onRoomConfigChange={handleRoomConfigChange}
@@ -114,11 +114,13 @@ function PricingContent() {
             onRoomSelect={setSelectedRoomForMap}
           />
 
+          <Separator />
+
           {/* Additional Spaces Category */}
           <RoomCategory
-            title="ADDITIONAL SPACES"
-            description="Select any additional areas that need cleaning"
-            rooms={additionalSpaces}
+            title="Additional Spaces"
+            description="Expand your cleaning to other areas."
+            rooms={["home-office", "laundry-room", "entryway", "hallway", "stairs"]}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
             onRoomConfigChange={handleRoomConfigChange}

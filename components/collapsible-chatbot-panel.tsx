@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils" // Ensure cn utility is imported
 
 // Extend Window interface for JotForm
 declare global {
@@ -15,6 +16,7 @@ declare global {
 
 interface CollapsibleChatbotPanelProps {
   sharePanelInfo?: { expanded: boolean; height: number }
+  onPanelClick?: (panelName: "chatbot" | "share") => void // ← now optional
 }
 
 // Define fixed top offsets for different states
@@ -28,6 +30,7 @@ const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (6
 
 export function CollapsibleChatbotPanel({
   sharePanelInfo = { expanded: false, height: 0 },
+  onPanelClick = () => {}, // ← safe default
 }: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -69,7 +72,7 @@ export function CollapsibleChatbotPanel({
             )
           }
         } catch (error) {
-          //console.log("JotForm embed handler initialization skipped")
+          // Ignore cross-origin errors
         }
       }
       document.head.appendChild(script)
@@ -87,15 +90,10 @@ export function CollapsibleChatbotPanel({
 
   // Add this useEffect hook immediately after the existing useEffect hooks
   useEffect(() => {
-    //console.log("🎯 Chatbot panel received sharePanelInfo:", sharePanelInfo)
-    //console.log("📐 Calculated topTransitionClass:", sharePanelInfo.expanded ? "duration-0" : "duration-300")
-
     if (panelRef.current) {
       const computedStyle = window.getComputedStyle(panelRef.current)
-      //console.log("🎨 Chatbot Current top value (computed):", computedStyle.top)
-      //console.log("⏱️ Chatbot Current transition-duration (computed):", computedStyle.transitionDuration)
     }
-  }, [sharePanelInfo, sharePanelInfo.expanded]) // Re-run when sharePanelInfo.expanded changes
+  }, [sharePanelInfo, sharePanelInfo.expanded])
 
   if (!isMounted) return null
 
@@ -104,32 +102,32 @@ export function CollapsibleChatbotPanel({
   let desiredTop: number
 
   if (sharePanelInfo.expanded) {
-    // If share panel is expanded, chatbot always goes to 500px from top immediately
     desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
   } else if (isExpanded) {
-    // If chatbot is expanded and share panel is not, chatbot goes to 0px from top
     desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
   } else {
-    // If chatbot is collapsed and share panel is not, chatbot goes to 300px from top
     desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
   }
 
-  // Determine the current panel height for consistent clamping of its top position
   const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
   const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
 
-  // Clamp the desiredTop within the visible document boundaries
   const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
 
-  // Determine the transition duration based on share panel state
-  // It's immediate (duration-0) when share panel is expanded, smooth (duration-300) otherwise.
   const topTransitionClass = sharePanelInfo.expanded ? "duration-0" : "duration-300"
+
+  const handleToggleExpand = () => {
+    const newState = !isExpanded
+    setIsExpanded(newState)
+    if (newState) {
+      onPanelClick("chatbot")
+    }
+  }
 
   return (
     <div
       ref={panelRef}
-      // Apply transition-all and the dynamic duration class
-      className={`fixed right-0 z-[999] flex transition-all ${topTransitionClass} ease-in-out`}
+      className={cn(`fixed right-0 flex transition-all ${topTransitionClass} ease-in-out`)} // Removed z-index here
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
@@ -198,8 +196,8 @@ export function CollapsibleChatbotPanel({
             animate={{ width: "auto", opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-3 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            onClick={handleToggleExpand} // Use the new handler
+            className="flex flex-col items-center gap-1 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             style={{
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
             }}
@@ -208,7 +206,7 @@ export function CollapsibleChatbotPanel({
             <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
               <Bot className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div className="text-left">
+            <div className="[writing-mode:vertical-rl] self-end rotate-180">
               <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Support</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">Get help now</div>
             </div>

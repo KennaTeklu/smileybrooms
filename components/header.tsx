@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Download, Calculator, Users, Mail, Accessibility } from "lucide-react"
+import { Menu, Download, Calculator, Users, Mail, Accessibility, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
@@ -12,6 +12,7 @@ import CartButton from "@/components/cart-button"
 import { useCart } from "@/lib/cart-context"
 
 const navigationLinks = [
+  { href: "/", label: "Home", icon: Home }, // Added Home link
   { href: "/pricing", label: "Pricing", icon: Calculator },
   { href: "/about", label: "About", icon: Users },
   { href: "/contact", label: "Contact", icon: Mail },
@@ -22,12 +23,7 @@ export default function Header() {
   const pathname = usePathname()
   const { cart } = useCart()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [shouldRender, setShouldRender] = useState(pathname !== "/")
   const [hasItems, setHasItems] = useState(false)
-
-  useEffect(() => {
-    setShouldRender(pathname !== "/")
-  }, [pathname])
 
   useEffect(() => {
     setHasItems(cart.items && cart.items.length > 0)
@@ -41,35 +37,16 @@ export default function Header() {
 
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [pathname])
+  }, [])
 
   const getVisibleLinks = () => {
-    const filteredLinks = navigationLinks.filter((link) => link.href !== pathname)
-    return filteredLinks.slice(0, 4)
+    // Always show all links, but highlight current one if needed (handled by styling)
+    return navigationLinks
   }
 
   const visibleLinks = getVisibleLinks()
 
-  // Homepage with items - minimal header with ID for positioning
-  if (pathname === "/" && hasItems) {
-    return (
-      <header id="main-header" className="fixed top-0 right-0 z-50 p-6" style={{ height: "64px" }}>
-        <div className="flex justify-end">
-          <CartButton showLabel={false} variant="default" size="lg" />
-        </div>
-      </header>
-    )
-  }
-
-  // Don't show header on homepage without items
-  if (pathname === "/" && !hasItems) {
-    return (
-      // Hidden header with ID for positioning calculations
-      <header id="main-header" className="hidden" style={{ height: "0px" }} aria-hidden="true" />
-    )
-  }
-
-  // Main header for all other pages
+  // Main header for all pages
   return (
     <header
       id="main-header"
@@ -110,6 +87,7 @@ export default function Header() {
                       "text-foreground/70 hover:text-foreground",
                       "hover:bg-accent/50",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                      pathname === link.href && "text-primary bg-accent/70", // Highlight active link
                     )}
                   >
                     <IconComponent className="h-4 w-4" />
@@ -128,7 +106,7 @@ export default function Header() {
 
               {/* Download button - desktop only */}
               <div className="hidden md:flex">
-                <Button variant="outline" size="sm" asChild className="h-9 px-3">
+                <Button variant="outline" size="sm" asChild className="h-9 px-3 bg-transparent">
                   <Link href="/download" className="flex items-center space-x-2">
                     <Download className="h-4 w-4" />
                     <span className="hidden lg:inline">Download</span>
@@ -150,26 +128,25 @@ export default function Header() {
                     <div className="flex flex-col space-y-4 mt-8">
                       {/* Mobile navigation links */}
                       <nav className="flex flex-col space-y-2" role="navigation">
-                        {navigationLinks
-                          .filter((link) => link.href !== pathname)
-                          .map((link) => {
-                            const IconComponent = link.icon
-                            return (
-                              <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                  "flex items-center space-x-3 px-4 py-3 rounded-lg",
-                                  "text-base font-medium transition-colors duration-200",
-                                  "text-foreground hover:bg-accent",
-                                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                                )}
-                              >
-                                <IconComponent className="h-5 w-5" />
-                                <span>{link.label}</span>
-                              </Link>
-                            )
-                          })}
+                        {navigationLinks.map((link) => {
+                          const IconComponent = link.icon
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              className={cn(
+                                "flex items-center space-x-3 px-4 py-3 rounded-lg",
+                                "text-base font-medium transition-colors duration-200",
+                                "text-foreground hover:bg-accent",
+                                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                                pathname === link.href && "text-primary bg-accent/70", // Highlight active link
+                              )}
+                            >
+                              <IconComponent className="h-5 w-5" />
+                              <span>{link.label}</span>
+                            </Link>
+                          )
+                        })}
                       </nav>
 
                       {/* Divider */}
@@ -186,7 +163,12 @@ export default function Header() {
                         />
 
                         {/* Download button - full width for mobile */}
-                        <Button variant="outline" size="default" asChild className="w-full justify-start h-11">
+                        <Button
+                          variant="outline"
+                          size="default"
+                          asChild
+                          className="w-full justify-start h-11 bg-transparent"
+                        >
                           <Link href="/download" className="flex items-center space-x-3">
                             <Download className="h-5 w-5" />
                             <span>Download App</span>

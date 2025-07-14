@@ -1,183 +1,130 @@
 "use client"
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown, Phone } from "lucide-react"
-import Logo from "@/components/logo" // Ensure this imports the updated Logo
-import { cn } from "@/lib/utils"
 import Link from "next/link"
-
-type FooterSection = {
-  title: string
-  links: {
-    label: string
-    href: string
-    external?: boolean
-  }[]
-}
-
-const footerSections: FooterSection[] = [
-  {
-    title: "About",
-    links: [
-      { label: "About Us", href: "/about" },
-      { label: "Careers", href: "/careers" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-  {
-    title: "Downloads",
-    links: [
-      { label: "iOS App", href: "/pricing" },
-      { label: "Android App", href: "/pricing" },
-      { label: "macOS App", href: "/pricing" },
-      { label: "Windows App", href: "/pricing" },
-      { label: "Linux App", href: "/pricing" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms", href: "/terms" },
-      { label: "Privacy", href: "/privacy" },
-    ],
-  },
-]
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, Phone, MapPin } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export default function UnifiedFooter() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [flashEffect, setFlashEffect] = useState(false)
-  const currentYear = new Date().getFullYear()
+  const { toast } = useToast()
 
-  const handleToggle = () => {
-    if (isExpanded) {
-      // When closing, trigger the flash effect
-      setFlashEffect(true)
-      setTimeout(() => {
-        setFlashEffect(false)
-      }, 100) // Brief flash
-    }
-    setIsExpanded(!isExpanded)
+  const handleFeatureComingSoon = () => {
+    toast({
+      title: "Feature Coming Soon!",
+      description: "This feature is under development and will be available shortly.",
+      variant: "default",
+    })
   }
 
   return (
-    <footer
-      className={cn(
-        "relative bg-gray-50 dark:bg-gray-900 py-6 overflow-hidden",
-        flashEffect && "after:absolute after:inset-0 after:bg-white after:opacity-30 after:z-10 after:animate-flash",
-      )}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center justify-center gap-4">
-          {/* Logo and Toggle Button */}
-          <div className="flex items-center justify-center w-full">
-            <Logo className="h-8 w-auto" iconOnly={false} /> {/* This will now use favicon.png */}
-            <button
-              onClick={handleToggle}
-              className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? "Collapse footer" : "Expand footer"}
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              )}
-            </button>
-          </div>
-
-          {/* Expandable Content */}
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.7, ease: [0.04, 0.62, 0.23, 0.98] }}
-                className="w-full overflow-hidden"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8">
-                  {footerSections.map((section) => (
-                    <motion.div
-                      key={section.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                    >
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{section.title}</h3>
-                      <ul className="space-y-2">
-                        {section.links.map((link) => (
-                          <motion.li key={link.label} whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
-                            <Link
-                              href={link.href}
-                              className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors flex items-center"
-                              target={link.external ? "_blank" : undefined}
-                              rel={link.external ? "noopener noreferrer" : undefined}
-                            >
-                              {link.label}
-                            </Link>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Social Links */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="flex justify-center space-x-4 py-4"
-                >
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="h-4 w-4" />
-                  </a>
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="h-4 w-4" />
-                  </a>
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Twitter"
-                  >
-                    <Twitter className="h-4 w-4" />
-                  </a>
-                  <a
-                    href="tel:6028000605"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Call Us"
-                  >
-                    <Phone className="h-4 w-4" />
-                  </a>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Phone number - Always visible */}
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Phone className="h-4 w-4" />
-            <a href="tel:6028000605" className="hover:text-primary transition-colors">
-              (602) 800-0605
-            </a>
-          </div>
-
-          {/* Copyright - Always visible */}
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            &copy; {currentYear} Smiley Brooms. All rights reserved.
+    <footer className="bg-gray-900 text-gray-200 p-8 md:py-16 w-full shadow-lg">
+      <div className="container max-w-7xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 text-sm">
+        {/* Company Info */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-xl text-white">Smiley Brooms</h3>
+          <p className="text-gray-400 leading-relaxed">
+            Dedicated to providing exceptional cleaning services with a focus on customer satisfaction and eco-friendly
+            practices.
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Mail className="h-4 w-4 text-blue-400" />
+              <a href="mailto:info@smileybrooms.com" className="hover:underline text-blue-300">
+                info@smileybrooms.com
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Phone className="h-4 w-4 text-blue-400" />
+              <a href="tel:+15551234567" className="hover:underline text-blue-300">
+                +1 (555) 123-4567
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <MapPin className="h-4 w-4 text-blue-400" />
+              <span>We'll come to you!</span>
+            </div>
           </div>
         </div>
+
+        {/* Quick Links */}
+        <div className="grid gap-3">
+          <h3 className="font-semibold text-lg text-white">Services & Info</h3>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Residential Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Commercial Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Deep Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Pricing Calculator
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            How It Works
+          </Link>
+        </div>
+
+        {/* Legal & Resources */}
+        <div className="grid gap-3">
+          <h3 className="font-semibold text-lg text-white">Legal & Resources</h3>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Privacy Policy
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Terms of Service
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Cookie Policy
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            FAQ
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Careers
+          </Link>
+        </div>
+
+        {/* Social Media & Newsletter */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg text-white">Connect With Us</h3>
+          <div className="flex space-x-4">
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Facebook">
+              <Facebook className="h-6 w-6 text-gray-400 hover:text-blue-400 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Twitter">
+              <Twitter className="h-6 w-6 text-gray-400 hover:text-blue-300 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Instagram">
+              <Instagram className="h-6 w-6 text-gray-400 hover:text-pink-400 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="LinkedIn">
+              <Linkedin className="h-6 w-6 text-gray-400 hover:text-blue-500 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="YouTube">
+              <Youtube className="h-6 w-6 text-gray-400 hover:text-red-500 transition-colors" />
+            </Button>
+          </div>
+          <p className="text-gray-400">Stay updated with our latest news and offers.</p>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="Your email"
+              className="flex-1 p-2 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              onClick={handleFeatureComingSoon}
+            >
+              Subscribe
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="container max-w-7xl mt-12 text-center text-gray-500 border-t border-gray-700 pt-8">
+        © {new Date().getFullYear()} Smiley Brooms. All rights reserved.
       </div>
     </footer>
   )

@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { analyzeCartHealth, type CartHealthReport } from "@/lib/cart-health"
 import { CheckoutButton } from "@/components/checkout-button"
-import { Input } from "@/components/ui/input" // Import Input component
-import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems }: { currentCartItems: any[] }) {
@@ -93,7 +93,7 @@ export default function CartPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [cartHealth, setCartHealth] = useState<CartHealthReport | null>(null)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
-  const [couponInput, setCouponInput] = useState(cart.couponCode || "") // State for coupon input
+  const [couponInput, setCouponInput] = useState(cart.couponCode || "")
 
   useEffect(() => {
     if (cart.items.length > 0) {
@@ -101,7 +101,7 @@ export default function CartPage() {
     } else {
       setCartHealth(null)
     }
-    setCouponInput(cart.couponCode || "") // Keep input synced with cart state
+    setCouponInput(cart.couponCode || "")
   }, [cart.items, cart.couponCode])
 
   const handleQuantityChange = (itemId: string, change: number) => {
@@ -111,7 +111,6 @@ export default function CartPage() {
       if (newQuantity > 0) {
         updateQuantity(itemId, newQuantity)
       } else {
-        // If quantity drops to 0, trigger remove confirmation
         setItemToRemoveId(itemId)
         setItemToRemoveName(currentItem.name)
         setShowRemoveConfirm(true)
@@ -173,7 +172,7 @@ export default function CartPage() {
             Looks like you haven't added any cleaning services or products yet. Start by exploring our offerings!
           </p>
           <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
-            <Link href="/">Start Shopping</Link>
+            <Link href="/pricing">Start Shopping</Link>
           </Button>
         </Card>
       ) : (
@@ -285,7 +284,9 @@ export default function CartPage() {
 
           {/* Cart Summary & Health */}
           <div className="lg:col-span-1 flex flex-col gap-8">
-            <Card className="shadow-lg sticky top-24">
+            <Card className="shadow-lg">
+              {" "}
+              {/* Removed sticky top-24 */}
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">Order Summary</CardTitle>
               </CardHeader>
@@ -334,6 +335,11 @@ export default function CartPage() {
                   <span>Total</span>
                   <span className="text-blue-600 dark:text-blue-400">${cart.totalPrice.toFixed(2)}</span>
                 </div>
+                {/* New descriptive text */}
+                <p className="text-sm text-muted-foreground mb-4 text-center">
+                  Ready to finalize your booking? Proceed to our secure checkout to enter your details and complete your
+                  order.
+                </p>
                 <CheckoutButton
                   useCheckoutPage={true}
                   className="w-full"

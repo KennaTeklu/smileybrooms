@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRoomContext } from "@/lib/room-context"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
-import { roomImages, roomDisplayNames } from "@/lib/room-tiers"
+import { roomImages, roomDisplayNames, roomIcons, type RoomTier } from "@/lib/room-tiers"
 import Image from "next/image"
 import { useVibration } from "@/hooks/use-vibration"
 import { toast } from "@/components/ui/use-toast"
@@ -36,9 +36,17 @@ interface RoomCategoryProps {
   rooms: string[]
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
+  tiers: RoomTier[]
 }
 
-export function RoomCategory({ title, description, rooms, variant = "primary", onRoomSelect }: RoomCategoryProps) {
+export function RoomCategory({
+  title,
+  description,
+  rooms,
+  variant = "primary",
+  onRoomSelect,
+  tiers,
+}: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { roomCounts, roomConfigs, updateRoomCount, addItem } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
@@ -81,7 +89,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         price: config.totalPrice,
         priceId: "price_custom_cleaning", // Use a generic price ID for custom services
         quantity: config.quantity,
-        image: roomImages[activeWizard] || "/placeholder.svg",
+        image: roomImages[activeWizard] || roomImages.other,
         metadata: {
           roomType: activeWizard,
           roomConfig: config,
@@ -215,18 +223,8 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
           <CardHeader className={getBgColor()}>
             <CardTitle className="text-2xl flex items-center gap-2">
               <span
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
-              >
-                {variant === "primary" ? (
-                  <span className="text-lg" aria-hidden="true">
-                    🏠
-                  </span>
-                ) : (
-                  <span className="text-lg" aria-hidden="true">
-                    🧹
-                  </span>
-                )}
-              </span>
+                className={`flex items-center justify-center w-0 h-0 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
+              ></span>
               {title}
             </CardTitle>
             {/* Removed CardDescription as it was not defined in the existing code */}
@@ -241,8 +239,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
                 const count = roomCounts[roomType] || 0
                 const config = safeGetRoomConfig(roomType)
                 const roomName = roomDisplayNames[roomType] || roomType
-                const roomImage = roomImages[roomType] || "/placeholder.svg"
-
+                const roomImage = roomImages[roomType] || roomImages.other
                 const handleAdd = () => {
                   updateRoomCount(roomType, count + 1)
                   vibrate(50)
@@ -275,11 +272,11 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
                     }}
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center">
-                      <div className="w-full h-40 mb-3 relative rounded-lg overflow-hidden">
+                      <div className="w-full h-40 mb-3 relative rounded-t-lg overflow-hidden -mx-4 -mt-4">
                         {" "}
                         {/* Changed h-24 to h-40 */}
                         <Image
-                          src={roomImage || "/placeholder.svg"}
+                          src={roomImage || "/placeholder.svg"} // This line dynamically loads the image
                           alt={`Professional ${roomName} cleaning before and after`}
                           fill
                           className="object-cover"
@@ -433,7 +430,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
             onClose={handleCloseWizard}
             roomType={activeWizard}
             roomName={roomDisplayNames[activeWizard] || activeWizard}
-            roomIcon={roomImages[activeWizard] || roomImages.bedroom}
+            roomIcon={roomIcons[activeWizard] || roomIcons.bedroom}
             roomCount={roomCounts[activeWizard] || 0}
             config={safeGetRoomConfig(activeWizard)}
             onConfigChange={handleRoomConfigChange}
