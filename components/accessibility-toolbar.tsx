@@ -1,45 +1,80 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { Sun, Moon, Plus, Minus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { ContrastIcon as HighContrast, Text } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-/**
- * A lightweight accessibility toolbar that lets users:
- * 1. Adjust the global font-size scale.
- * 2. Toggle a high-contrast mode.
- *
- * NOTE: Feel free to enhance or reposition this component.
- * Right now it simply attaches to the bottom-right corner.
- */
 export default function AccessibilityToolbar() {
+  const [open, setOpen] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
   const [fontScale, setFontScale] = useState(1)
-  const [highContrast, setHighContrast] = useState(false)
 
-  /* Dynamically set a CSS custom property for font scaling */
+  /* ───────────────────────── Helpers ───────────────────────── */
+  const toggleDark = () => setDarkMode((d) => !d)
+  const increaseFont = () => setFontScale((s) => Math.min(1.5, +(s + 0.1).toFixed(2)))
+  const decreaseFont = () => setFontScale((s) => Math.max(0.8, +(s - 0.1).toFixed(2)))
+
+  /* ───────────────────────── Side-effects ───────────────────────── */
   useEffect(() => {
-    document.documentElement.style.setProperty("--sb-font-scale", fontScale.toString())
+    document.documentElement.classList.toggle("dark", darkMode)
+  }, [darkMode])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sb-font-scale", String(fontScale))
   }, [fontScale])
 
-  /* Toggle a high-contrast class on <html> */
-  useEffect(() => {
-    document.documentElement.classList.toggle("high-contrast", highContrast)
-  }, [highContrast])
-
+  /* ───────────────────────── UI ───────────────────────── */
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-4 rounded-md border bg-white p-4 shadow-lg dark:bg-gray-900">
-      {/* Font-size control */}
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <Text className="h-4 w-4" />
-        <span>Font size</span>
-      </div>
-      <Slider defaultValue={[1]} min={0.8} max={1.5} step={0.05} onValueChange={(v) => setFontScale(v[0])} />
-      {/* High-contrast toggle */}
-      <Button size="sm" variant={highContrast ? "default" : "outline"} onClick={() => setHighContrast((p) => !p)}>
-        <HighContrast className="mr-2 h-4 w-4" />
-        {highContrast ? "Contrast Off" : "High Contrast"}
-      </Button>
-    </div>
+    <>
+      {/* FAB trigger */}
+      {!open && (
+        <Button
+          aria-label="Open accessibility toolbar"
+          className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg"
+          onClick={() => setOpen(true)}
+        >
+          <Sun className="h-5 w-5" />
+        </Button>
+      )}
+
+      {/* Toolbar */}
+      {open && (
+        <div
+          className={cn(
+            "fixed bottom-6 right-6 z-50 flex flex-col gap-2 rounded-lg bg-white p-4 shadow-lg",
+            "dark:bg-gray-800 dark:text-gray-100",
+          )}
+        >
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-semibold text-sm">Accessibility</span>
+            <button
+              aria-label="Close accessibility toolbar"
+              onClick={() => setOpen(false)}
+              className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <Button size="sm" variant="secondary" onClick={toggleDark} className="justify-start">
+            {darkMode ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+            {darkMode ? "Light Mode" : "Dark Mode"}
+          </Button>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Font Size</span>
+            <div className="flex gap-1">
+              <Button size="icon" variant="outline" onClick={decreaseFont} aria-label="Decrease font">
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" onClick={increaseFont} aria-label="Increase font">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
