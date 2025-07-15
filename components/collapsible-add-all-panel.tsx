@@ -3,21 +3,7 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  ShoppingCart,
-  Plus,
-  Trash2,
-  X,
-  ArrowLeft,
-  ArrowRight,
-  ListChecks,
-  ListX,
-  Lightbulb,
-  CheckCircle,
-  Minus,
-  PlusIcon,
-  ChevronDown,
-} from "lucide-react"
+import { ShoppingCart, Plus, Trash2, X, ArrowLeft, ArrowRight, ListChecks, ListX, Lightbulb, CheckCircle, Minus, PlusIcon, ChevronDown } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -29,6 +15,7 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
+import { generateMailtoLink } from "@/lib/email-utils"
 import {
   roomImages,
   roomDisplayNames,
@@ -319,6 +306,17 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       return
     }
 
+    // Open prefilled email for custom room pricing
+    const emailSubject = `Custom Room Pricing Request - ${newCustomRoomName}`
+    const emailBody = `Hello smileybrooms team,
+
+I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustomRoomName}.
+
+Best regards`
+
+    const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+    window.open(mailtoLink, '_blank')
+
     const customRoomId = `other-custom-${Date.now()}` // Unique ID for custom room
     const selectedGlobalTierDetails = roomTiers[selectedGlobalTierName] // Use selectedGlobalTierName
 
@@ -340,10 +338,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     setNewCustomRoomQuantity(1)
 
     toast({
-      title: "Custom Room Added",
-      description: `${newCustomRoomName} (x${newCustomRoomQuantity}) added to your selection.`,
+      title: "Custom Room Added & Email Opened",
+      description: `${newCustomRoomName} (x${newCustomRoomQuantity}) added to your selection. Email opened for pricing inquiry.`,
       variant: "success",
-      duration: 3000,
+      duration: 4000,
     })
     vibrate(50)
   }, [newCustomRoomName, newCustomRoomQuantity, selectedGlobalTierName, updateRoomCount, updateRoomConfig, vibrate])
@@ -890,7 +888,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           className="mt-3 w-full"
                           disabled={!newCustomRoomName.trim()}
                         >
-                          <Plus className="h-4 w-4 mr-2" /> Add Space
+                          <Plus className="h-4 w-4 mr-2" /> Add Space & Request Pricing
                         </Button>
                         <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
                           <p className="font-semibold text-blue-600 mb-1">Custom Space Pricing:</p>
