@@ -49,7 +49,7 @@ export function RoomCategory({
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { roomCounts, roomConfigs, updateRoomCount } = useRoomContext()
-  const { addItem } = useCart()
+  const { addItem, removeItem, cart } = useCart()
   const isMultiSelection = Object.values(roomCounts).some((c) => c > 1)
   const [addingRoomId, setAddingRoomId] = useState<string | null>(null)
   const [initialRenderComplete, setInitialRenderComplete] = useState(false) // New state
@@ -77,39 +77,82 @@ export function RoomCategory({
   }
 
   const handleRoomConfigChange = async (config: RoomConfig) => {
-    if (!activeWizard) return // Should not happen
+    if (!activeWizard) return
 
-    setAddingRoomId(activeWizard) // Set loading state for the room being added
+    setAddingRoomId(activeWizard)
     try {
-      const isOtherRoom = activeWizard === "other" // Check if it's the "other" room type
+      const isOtherRoom = activeWizard === "other"
 
-      // Update the room config in context
-      updateRoomCount(activeWizard, config.quantity)
-      addItem({
-        id: `custom-cleaning-${activeWizard}-${Date.now()}`,
-        name: `${config.roomName} Cleaning`,
-        price: config.totalPrice,
-        priceId: "price_custom_cleaning", // Use a generic price ID for custom services
-        quantity: config.quantity,
-        image: roomImages[activeWizard] || roomImages.other,
-        metadata: {
-          roomType: activeWizard,
-          roomConfig: config,
-          isRecurring: false,
-          frequency: "one_time",
-          detailedTasks: config.detailedTasks,
-          notIncludedTasks: config.notIncludedTasks,
-          upsellMessage: config.upsellMessage,
-        },
-        paymentType: isOtherRoom ? "in_person" : "online", // Set paymentType based on room type
+      // Calculate price per unit, assuming config.totalPrice is the total for config.quantity.
+      const pricePerUnit = config.quantity > 0 ? config.totalPrice / config.quantity : 0
+
+      // 1. Remove all existing items in the cart that match this roomType and its exact configuration.
+      // This is crucial to prevent duplicates and ensure updates correctly reflect the desired quantity of unique instances.
+      const itemsToRemove = cart.items.filter((item) => {
+        const itemConfig = item.metadata?.roomConfig
+        if (!itemConfig) return false
+
+        // Compare the properties that define a "matching configuration" (excluding unique instance IDs or quantity).
+        const matchesRoomType = item.metadata?.roomType === activeWizard
+        const matchesTier = itemConfig.selectedTier === config.selectedTier
+
+        // Ensure array comparisons are consistent by sorting the arrays.
+        const matchesAddOns =
+          JSON.stringify([...(itemConfig.selectedAddOns || [])].sort()) ===
+          JSON.stringify([...(config.selectedAddOns || [])].sort())
+        const matchesReductions =
+          JSON.stringify([...(itemConfig.selectedReductions || [])].sort()) ===
+          JSON.stringify([...(config.selectedReductions || [])].sort())
+
+        // Special handling for "Other Space" to match by name if it's a custom entry.
+        const isConfigOtherRoom = config.roomName === roomDisplayNames.other
+        const isItemOtherRoom = item.metadata?.roomType === "other"
+
+        if (isConfigOtherRoom && isItemOtherRoom) {
+          return itemConfig.roomName === config.roomName
+        }
+
+        return matchesRoomType && matchesTier && matchesAddOns && matchesReductions
       })
 
-      vibrate([100, 50, 100]) // Success pattern
+      // Remove identified items from the cart.
+      itemsToRemove.forEach((item) => removeItem(item.id))
 
-      // Unified toast notification
+      // 2. Add the desired quantity of new, distinct items.
+      for (let i = 0; i < config.quantity; i++) {
+        // Generate a truly unique ID for each distinct instance using Date.now() and an iteration index.
+        const uniqueId = `custom-cleaning-${activeWizard}-${Date.now()}-${i}`
+
+        addItem({
+          id: uniqueId, // Each added item gets a new unique ID.
+          name: `${config.roomName} Cleaning Instance #${i + 1}`, // Add instance number for clarity in cart.
+          price: pricePerUnit, // Use the calculated price per single unit.
+          priceId: "price_custom_cleaning",
+          quantity: 1, // Always add quantity 1 for each distinct item.
+          image: roomImages[activeWizard] || roomImages.other,
+          metadata: {
+            roomType: activeWizard,
+            roomConfig: { ...config, quantity: 1 }, // Store config for a single unit.
+            isRecurring: false,
+            frequency: "one_time",
+            detailedTasks: config.detailedTasks,
+            notIncludedTasks: config.notIncludedTasks,
+            upsellMessage: config.upsellMessage,
+          },
+          paymentType: isOtherRoom ? "in_person" : "online",
+        })
+      }
+
+      // Update the roomCounts in the useRoomContext to reflect the new total count,
+      // which helps in updating the UI elements on the room cards.
+      updateRoomCount(activeWizard, config.quantity)
+
+      vibrate([100, 50, 100]) // Success vibration pattern.
+
+      // Unified toast notification for a more accurate message.
       if (isOtherRoom) {
         toast({
-          title: "Custom Space Added!",
+          title: "Custom Space Updated!", // Changed from "Added!" to "Updated!"
           description:
             "Price and details for custom spaces will be discussed via email. Payment for additional services will be made in person.",
           variant: "default",
@@ -117,24 +160,24 @@ export function RoomCategory({
         })
       } else {
         toast({
-          title: "Added to cart",
-          description: `${config.quantity} x ${config.roomName} has been added to your cart`,
+          title: "Rooms Updated!", // Changed to reflect that items were potentially removed and re-added
+          description: `${config.quantity} x ${config.roomName} instances are now in your cart.`,
           duration: 3000,
         })
       }
 
-      handleCloseWizard() // Close the wizard after adding to cart
+      handleCloseWizard() // Close the wizard after changes are applied.
     } catch (error) {
-      console.error("Error adding item to cart after customization:", error)
-      vibrate(300) // Error pattern
+      console.error("Error adding/updating items in cart after customization:", error)
+      vibrate(300) // Error vibration pattern.
       toast({
-        title: "Failed to add to cart",
-        description: "There was an error adding the item to your cart. Please try again.",
+        title: "Failed to update cart",
+        description: "There was an error updating items in your cart. Please try again.",
         variant: "destructive",
         duration: 3000,
       })
     } finally {
-      setAddingRoomId(null) // Reset loading state
+      setAddingRoomId(null) // Reset loading state.
     }
   }
 

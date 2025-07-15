@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react"
+import { useEffect } from "react"
+import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ShoppingCart,
@@ -171,34 +172,30 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           const basePrice = config.totalPrice || 0
           const adjustedPrice = basePrice * frequencyMultiplier
 
-          // Add each room as a separate item with a unique ID
-          for (let i = 0; i < count; i++) {
-            addItem({
-              id: `custom-cleaning-${roomType}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
-              name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
-              price: adjustedPrice,
-              priceId: "price_custom_cleaning",
-              quantity: 1, // Always add quantity as 1 for individual items
-              image: roomType.startsWith("other-custom-")
-                ? roomImages.other
-                : roomImages[roomType] || "/placeholder.svg",
-              metadata: {
-                roomType,
-                roomConfig: config,
-                isRecurring: selectedFrequency !== "one_time",
-                frequency: selectedFrequency,
-                detailedTasks: config.detailedTasks,
-                notIncludedTasks: config.notIncludedTasks,
-                upsellMessage: config.upsellMessage,
-                basePrice: basePrice,
-                frequencyMultiplier: frequencyMultiplier,
-              },
-              isFullHousePromoApplied: selectedFrequency !== "one_time" && isFullHouseChecked,
-              paymentType: config.paymentType,
-            })
-            addedCount++
-          }
+          addItem({
+            id: `custom-cleaning-${roomType}-${Date.now()}`,
+            name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
+            price: adjustedPrice,
+            priceId: "price_custom_cleaning",
+            quantity: count,
+            image: roomType.startsWith("other-custom-") ? roomImages.other : roomImages[roomType] || "/placeholder.svg",
+            metadata: {
+              roomType,
+              roomConfig: config,
+              isRecurring: selectedFrequency !== "one_time",
+              frequency: selectedFrequency,
+              detailedTasks: config.detailedTasks,
+              notIncludedTasks: config.notIncludedTasks,
+              upsellMessage: config.upsellMessage,
+              basePrice: basePrice,
+              frequencyMultiplier: frequencyMultiplier,
+            },
+            isFullHousePromoApplied: selectedFrequency !== "one_time" && isFullHouseChecked,
+            paymentType: config.paymentType,
+          })
+
           updateRoomCount(roomType, 0)
+          addedCount++
         }
       })
 
@@ -271,7 +268,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       if ((roomCounts[roomType] || 0) > 0) {
         updateRoomCount(roomType, (roomCounts[roomType] || 0) - 1)
         vibrate(50)
-        const remainingRooms = Object.entries(roomCounts).filter(([type, count]) => type !== roomType && count > 0)
+        const remainingRooms = Object.values(roomCounts).filter((count, key) => key !== roomType && count > 0)
         if (remainingRooms.length === 0 && (roomCounts[roomType] || 0) === 1) {
           setHasClearedAll(true)
         }

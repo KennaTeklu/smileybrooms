@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
-// Import the new matching utilities
-import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
 
 export type CartItem = {
   id: string
@@ -110,27 +108,39 @@ const calculateCartTotals = (
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
+    // Update the ADD_ITEM case in the cartReducer to check for exact ID matches first.
+    // This ensures that if the source provides a new unique ID, it's added as a new item,
+    // preventing consolidation of distinct instances.
+    // The advancedMatchCriteria and getItemSignature from lib/cart-matching will no longer be used for ADD_ITEM
+    // to ensure each newly added room instance is treated as a unique line item.
+
     case "ADD_ITEM": {
-      const similarItemIndex = state.items.findIndex((item) => advancedMatchCriteria(item, action.payload))
+      // Check if an item with the exact same unique ID already exists in the cart.
+      // This is for scenarios where an item might be re-added from another flow,
+      // or if its quantity needs to be explicitly updated by re-adding.
+      const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
+
       let updatedItems: CartItem[]
 
-      if (similarItemIndex >= 0) {
-        updatedItems = state.items.map((item, index) => {
-          if (index === similarItemIndex) {
-            return { ...item, quantity: item.quantity + action.payload.quantity }
-          }
-          return item
-        })
+      if (existingItemIndex !== -1) {
+        // If the exact item ID already exists, update its quantity.
+        // In our case, RoomCategory will always add quantity: 1, so this will increment
+        // if a truly identical unique item ID is somehow dispatched again.
+        updatedItems = state.items.map((item, index) =>
+          index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
+        )
       } else {
-        const itemSignature = getItemSignature(action.payload)
+        // If the item ID is new, add it as a new distinct entry.
         const enhancedItem = {
           ...action.payload,
-          id: action.payload.id.includes("custom-cleaning") ? `custom-cleaning-${itemSignature}` : action.payload.id,
-          paymentType: action.payload.paymentType || "online", // Set paymentType, default to online
+          // The ID is expected to be unique from the source (RoomCategory).
+          // paymentType defaults to "online" if not provided.
+          paymentType: action.payload.paymentType || "online",
         }
         updatedItems = [...state.items, enhancedItem]
       }
 
+      // Recalculate totals based on the updated (potentially new) items list.
       const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
         calculateCartTotals(updatedItems, state.couponCode)
 
@@ -142,7 +152,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
-        inPersonPaymentTotal, // Added
+        inPersonPaymentTotal,
       }
     }
 
