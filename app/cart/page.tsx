@@ -165,6 +165,25 @@ export default function CartPage() {
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
       <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100">Your Shopping Cart</h1>
 
+      {cart.items.length > 0 && (
+        <nav className="mb-8 flex justify-center gap-4 flex-wrap">
+          <Button variant="outline" asChild>
+            <Link href="#cart-items-list">Items</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="#order-summary">Summary</Link>
+          </Button>
+          {cartHealth && (
+            <Button variant="outline" asChild>
+              <Link href="#cart-health-report">Health</Link>
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href="#suggested-products">Suggestions</Link>
+          </Button>
+        </nav>
+      )}
+
       {cart.items.length === 0 ? (
         <Card
           className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-lg shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
