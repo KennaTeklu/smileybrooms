@@ -43,16 +43,12 @@ export const ROOM_CONFIG = {
 
 export const APP_CONSTANTS = {
   // General
-  APP_NAME: "Smiley Brooms",
+  APP_NAME: "smileybrooms",
   CONTACT_EMAIL: "support@smileybrooms.com",
   PHONE_NUMBER: "+1 (800) 555-0123",
   ADDRESS: "123 Clean Street, Sparkle City, CA 90210",
 
-  // Public feature flags (safe for client)
-  FEATURE_AI_CHATBOT: process.env.NEXT_PUBLIC_FEATURE_AI_POWERED_CHATBOT === "true",
-  FEATURE_ADVANCED_CART: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_CART === "true",
-  FEATURE_ROOM_VISUALIZATION: process.env.NEXT_PUBLIC_FEATURE_ROOM_VISUALIZATION === "true",
-  // … (all the other NEXT_PUBLIC_ flags you already had) …
+
 }
 
 /**
