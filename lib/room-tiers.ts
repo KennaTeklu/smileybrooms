@@ -1008,6 +1008,33 @@ export const roomTiers = {
     notIncludedTasks: [], // All tasks are included in Luxury Clean
     upsellMessage: "Experience the pinnacle of living room cleanliness!",
   },
+  // Dining Room Tiers
+  "DINING ROOM ESSENTIAL CLEAN": {
+    basePrice: 80,
+    detailedTasks: ["Table cleaning", "Floor vacuuming", "Basic organizing"],
+    notIncludedTasks: [
+      "Table & chairs detailing",
+      "Floor deep clean",
+      "China cabinet exterior",
+      "Furniture restoration",
+      "Floor restoration",
+      "China cabinet organization",
+      "Lighting fixtures",
+    ],
+    upsellMessage: "For a more thorough dining room clean, consider our 'Premium Clean' tier!",
+  },
+  "DINING ROOM PREMIUM CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Table & chairs detailing", "Floor deep clean", "China cabinet exterior"],
+    notIncludedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your dining room!",
+  },
+  "DINING ROOM LUXURY CLEAN": {
+    basePrice: 240,
+    detailedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of dining room cleanliness!",
+  },
 }
 
 export const roomAddOns = {
