@@ -205,6 +205,12 @@ export default function CartPage() {
             <CardHeader>
               <CardTitle className="text-2xl font-bold">Items in Cart ({cart.totalItems})</CardTitle>
             </CardHeader>
+            <div className="flex justify-end p-6 border-b border-gray-200 dark:border-gray-700">
+              <Button variant="outline" onClick={handleClearCartClick} disabled={cart.items.length === 0}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear All Items
+              </Button>
+            </div>
             <CardContent className="p-0">
               <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
                 <div className="space-y-4 p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
@@ -311,12 +317,6 @@ export default function CartPage() {
                   ))}
                 </div>
               </ScrollArea>
-              <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
-                <Button variant="outline" onClick={handleClearCartClick} disabled={cart.items.length === 0}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All Items
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
