@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
-import { useState, useCallback, useMemo, useRef } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ShoppingCart,
@@ -272,7 +271,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       if ((roomCounts[roomType] || 0) > 0) {
         updateRoomCount(roomType, (roomCounts[roomType] || 0) - 1)
         vibrate(50)
-        const remainingRooms = Object.values(roomCounts).filter((count, key) => key !== roomType && count > 0)
+        const remainingRooms = Object.entries(roomCounts).filter(([type, count]) => type !== roomType && count > 0)
         if (remainingRooms.length === 0 && (roomCounts[roomType] || 0) === 1) {
           setHasClearedAll(true)
         }
