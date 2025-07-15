@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
+import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const { cart } = useCart()
   const router = useRouter()
   const { toast } = useToast()
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
   const [completedSteps, setCompletedSteps] = useState<CheckoutStepId[]>([])
@@ -56,16 +57,15 @@ export default function CheckoutPage() {
       agreeToTerms: false,
     },
   })
+  const [isLoading, setIsLoading] = useState(true) // New loading state
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty or load data
   useEffect(() => {
     if (cart.items.length === 0) {
       router.push("/pricing")
+      return
     }
-  }, [cart.items.length, router])
 
-  // Load initial data from localStorage if available (for returning users or partial completion)
-  useEffect(() => {
     try {
       const savedContact = localStorage.getItem("checkout-contact")
       const savedAddress = localStorage.getItem("checkout-address")
@@ -94,8 +94,10 @@ export default function CheckoutPage() {
       localStorage.removeItem("checkout-contact")
       localStorage.removeItem("checkout-address")
       localStorage.removeItem("checkout-payment")
+    } finally {
+      setIsLoading(false) // Set loading to false after data is loaded or attempted
     }
-  }, [])
+  }, [cart.items.length, router])
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
   const progress = ((currentStepIndex + 1) / steps.length) * 100
@@ -120,6 +122,7 @@ export default function CheckoutPage() {
     const nextStepIndex = currentStepIndex + 1
     if (nextStepIndex < steps.length) {
       setCurrentStep(steps[nextStepIndex].id)
+      contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) // Scroll to top
     }
   }, [currentStepIndex])
 
@@ -127,6 +130,7 @@ export default function CheckoutPage() {
     const prevStepIndex = currentStepIndex - 1
     if (prevStepIndex >= 0) {
       setCurrentStep(steps[prevStepIndex].id)
+      contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) // Scroll to top
     }
   }, [currentStepIndex])
 
@@ -136,10 +140,12 @@ export default function CheckoutPage() {
       // Allow navigating to any previous completed step or the immediate next step
       if (stepIndex < currentStepIndex || (stepIndex === currentStepIndex && completedSteps.includes(stepId))) {
         setCurrentStep(stepId)
+        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) // Scroll to top
       } else if (stepIndex === currentStepIndex + 1) {
         // Allow moving to the next step if the current one is completed
         if (completedSteps.includes(currentStep)) {
           setCurrentStep(stepId)
+          contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }) // Scroll to top
         } else {
           toast({
             title: "Please complete current step",
@@ -152,8 +158,17 @@ export default function CheckoutPage() {
     [currentStep, currentStepIndex, completedSteps, toast],
   )
 
-  if (cart.items.length === 0) {
-    return null // Will redirect via useEffect
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+        <p className="ml-4 text-lg text-gray-700 dark:text-gray-300">Loading checkout...</p>
+      </div>
+    )
+  }
+
+  if (cart.items.length === 0 && !isLoading) {
+    return null // Will redirect via useEffect after loading check
   }
 
   const renderStepContent = () => {
@@ -197,7 +212,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div ref={contentRef} className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-12">
           <Link
