@@ -52,7 +52,7 @@ const roomIcons: Record<RoomType, React.ElementType> = {
   "custom-space": SquareDot,
 }
 
-export default function PricingContent() {
+function PricingContent() {
   const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, resetRoomConfigs } = useRoomContext()
   const { addItem, addMultipleItems } = useCart()
   const [openCollapsible, setOpenCollapsible] = useState<RoomType | null>(null)
@@ -384,3 +384,6 @@ export default function PricingContent() {
     </div>
   )
 }
+
+export default PricingContent
+export { PricingContent }

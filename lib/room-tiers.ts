@@ -924,3 +924,118 @@ export function getDisplayPrice(roomType: string, config: any): string {
 
 export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
   "Custom spaces require personalized assessment. Pricing will be provided via email consultation, with payment collected in-person through Zelle upon service completion. All custom service bookings are subject to our standard Terms of Service."
+
+// -----------------------------------------------------------------------------
+// Public API expected by the UI (ROOM_TIERS, ADD_ONS, REDUCTIONS, helpers)
+// -----------------------------------------------------------------------------
+
+/**
+ * Canonical list of cleaning tiers used by the pricing UI.
+ * `value` is the short identifier saved in state,
+ * `label` is the display name shown to users.
+ */
+export const ROOM_TIERS = [
+  {
+    value: "essential",
+    label: "Essential Clean",
+    description: "Basic cleaning for everyday tidiness.",
+    features: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+  },
+  {
+    value: "premium",
+    label: "Premium Clean",
+    description: "A more thorough clean – perfect for regular maintenance.",
+    features: roomTiers["PREMIUM CLEAN"].detailedTasks,
+  },
+  {
+    value: "luxury",
+    label: "Luxury Clean",
+    description: "Our most comprehensive clean, leaving your home spotless.",
+    features: roomTiers["LUXURY CLEAN"].detailedTasks,
+  },
+] as const
+
+/**
+ * Flatten the generic “default” add-ons list into the structure expected
+ * by the pricing component.
+ */
+export const ADD_ONS = defaultAddOns.default.map((a) => ({
+  value: a.id,
+  label: a.name,
+  description: a.description ?? "",
+  price: a.price,
+}))
+
+/**
+ * Same for reductions.
+ */
+export const REDUCTIONS = defaultReductions.default.map((r) => ({
+  value: r.id,
+  label: r.name,
+  description: r.description ?? "",
+  price: r.discount,
+}))
+
+/**
+ * Calculate the final price for a room based on the selected tier,
+ * add-ons, and reductions. Used by the pricing UI and cart.
+ */
+export function calculateRoomPrice(
+  roomType: string,
+  tierValue: string,
+  selectedAddOns: string[],
+  selectedReductions: string[],
+): number {
+  const tierConfig =
+    getRoomTiers(roomType).find((t) => t.name.toLowerCase().startsWith(tierValue)) ?? getRoomTiers(roomType)[0]
+
+  const base = tierConfig.price
+
+  const addOnTotal = selectedAddOns.reduce((sum, id) => {
+    const found =
+      (defaultAddOns as any)[roomType]?.find((a: any) => a.id === id) ?? defaultAddOns.default.find((a) => a.id === id)
+    return sum + (found?.price ?? 0)
+  }, 0)
+
+  const reductionTotal = selectedReductions.reduce((sum, id) => {
+    const found =
+      (defaultReductions as any)[roomType]?.find((r: any) => r.id === id) ??
+      defaultReductions.default.find((r) => r.id === id)
+    return sum + (found?.discount ?? 0)
+  }, 0)
+
+  return Math.max(0, base + addOnTotal - reductionTotal)
+}
+
+/**
+ * Build the human-readable task list shown in the UI for a room config.
+ */
+export function generateDetailedTasks(
+  roomType: string,
+  tierValue: string,
+  selectedAddOns: string[],
+  selectedReductions: string[],
+): string[] {
+  const tierTasks =
+    ROOM_TIERS.find((t) => t.value === tierValue)?.features ?? roomTiers["ESSENTIAL CLEAN"].detailedTasks
+
+  const addOnTasks = selectedAddOns
+    .map((id) => {
+      const found =
+        (defaultAddOns as any)[roomType]?.find((a: any) => a.id === id) ??
+        defaultAddOns.default.find((a) => a.id === id)
+      return found?.name
+    })
+    .filter(Boolean) as string[]
+
+  const reductionNotes = selectedReductions
+    .map((id) => {
+      const found =
+        (defaultReductions as any)[roomType]?.find((r: any) => r.id === id) ??
+        defaultReductions.default.find((r) => r.id === id)
+      return found?.name ? `Reduced: ${found.name}` : undefined
+    })
+    .filter(Boolean) as string[]
+
+  return [...tierTasks, ...addOnTasks, ...reductionNotes]
+}
