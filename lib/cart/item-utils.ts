@@ -13,21 +13,10 @@ export function generateCartItemId(roomConfig: RoomConfig): string {
   const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
 
   // Sort arrays to ensure deterministic stringification regardless of order
-  const sortedAddOns = selectedAddOns ? [...selectedAddOns].sort() : []
-  const sortedReductions = selectedReductions ? [...selectedReductions].sort() : []
+  const sortedAddOns = [...selectedAddOns].sort().join("-")
+  const sortedReductions = [...selectedReductions].sort().join("-")
 
-  // Create a unique signature string
-  const signature = JSON.stringify({
-    roomType,
-    selectedTier,
-    addOns: sortedAddOns,
-    reductions: sortedReductions,
-  })
-
-  // Use a simple hash or base64 encoding for a compact ID.
-  // For simplicity, we'll use a basic string concatenation and a hash-like approach.
-  // In a real application, consider a more robust hashing algorithm if collision avoidance is critical.
-  return btoa(signature).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_") // Base64 URL-safe
+  return `${roomType}-${selectedTier}-${sortedAddOns}-${sortedReductions}`
 }
 
 /**

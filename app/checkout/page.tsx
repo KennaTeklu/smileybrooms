@@ -71,11 +71,24 @@ export default function CheckoutPage() {
       const savedAddress = localStorage.getItem("checkout-address")
       const savedPayment = localStorage.getItem("checkout-payment")
 
-      setCheckoutData((prev) => ({
-        contact: savedContact ? JSON.parse(savedContact) : prev.contact,
-        address: savedAddress ? JSON.parse(savedAddress) : prev.address,
-        payment: savedPayment ? JSON.parse(savedPayment) : prev.payment,
-      }))
+      setCheckoutData((prev) => {
+        const contact = savedContact ? JSON.parse(savedContact) : prev.contact
+        const address = savedAddress ? JSON.parse(savedAddress) : prev.address
+        const payment = savedPayment ? JSON.parse(savedPayment) : prev.payment
+
+        // Ensure address fields are populated from contact if contact data exists
+        if (contact && contact.firstName && contact.lastName && contact.email && contact.phone) {
+          address.fullName = `${contact.firstName} ${contact.lastName}`
+          address.email = contact.email
+          address.phone = contact.phone
+        }
+
+        return {
+          contact,
+          address,
+          payment,
+        }
+      })
 
       // Determine the last completed step to resume
       if (savedPayment) {
@@ -102,12 +115,29 @@ export default function CheckoutPage() {
 
   const handleSaveStepData = useCallback(
     (stepId: CheckoutStepId, data: any) => {
-      setCheckoutData((prev) => ({
-        ...prev,
-        [stepId]: data,
-      }))
-      // Persist to localStorage
-      localStorage.setItem(`checkout-${stepId}`, JSON.stringify(data))
+      setCheckoutData((prev) => {
+        const newState = {
+          ...prev,
+          [stepId]: data,
+        }
+
+        // Special handling for contact step to pre-fill address fields
+        if (stepId === "contact") {
+          newState.address = {
+            ...newState.address, // Keep existing address fields like street, city, etc.
+            fullName: `${data.firstName} ${data.lastName}`,
+            email: data.email,
+            phone: data.phone,
+          }
+          // Also persist the updated address data to localStorage
+          localStorage.setItem("checkout-address", JSON.stringify(newState.address))
+        }
+
+        // Persist the current step's data to localStorage
+        localStorage.setItem(`checkout-${stepId}`, JSON.stringify(data))
+
+        return newState
+      })
 
       if (!completedSteps.includes(stepId)) {
         setCompletedSteps((prev) => [...prev, stepId])
@@ -185,6 +215,7 @@ export default function CheckoutPage() {
             onSave={(data) => handleSaveStepData("payment", data)}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            checkoutData={checkoutData} // Pass full checkoutData for Stripe Payment Request
           />
         )
       case "review":

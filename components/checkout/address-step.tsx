@@ -99,7 +99,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Contact Information (pre-filled from previous step) */}
           <div className="space-y-6">
-            <h3 className="text-lg font-medium">Contact Information (Pre-filled)</h3>
+            <h3 className="text-lg font-medium">Contact Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="fullName" className="text-base">
