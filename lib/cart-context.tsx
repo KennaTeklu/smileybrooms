@@ -16,6 +16,7 @@ export type CartItem = {
   metadata?: Record<string, any>
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   isFullHousePromoApplied?: boolean // New field for full house promo
+  paymentType?: "online" | "in_person" // Added paymentType
 }
 
 type CartState = {
@@ -26,6 +27,7 @@ type CartState = {
   couponCode: string | null
   couponDiscount: number
   fullHouseDiscount: number // New field for full house discount
+  inPersonPaymentTotal: number
 }
 
 type CartAction =
@@ -43,7 +45,8 @@ const initialState: CartState = {
   totalPrice: 0,
   couponCode: null,
   couponDiscount: 0,
-  fullHouseDiscount: 0, // Initialize new field
+  fullHouseDiscount: 0,
+  inPersonPaymentTotal: 0, // Added
 }
 
 // Define valid coupons and their effects
@@ -61,39 +64,47 @@ const calculateCartTotals = (
   totalPrice: number
   couponDiscount: number
   fullHouseDiscount: number
+  inPersonPaymentTotal: number // New field for in-person payment total
 } => {
+  const onlineItems = items.filter((item) => item.paymentType !== "in_person")
+  const inPersonItems = items.filter((item) => item.paymentType === "in_person")
+
   const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  const onlineSubtotal = onlineItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  const inPersonPaymentTotal = inPersonItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
+
   let couponDiscount = 0
   let fullHouseDiscount = 0
-  let finalPrice = subtotalPrice
+  let finalOnlinePrice = onlineSubtotal
 
-  // Apply coupon discount first
+  // Apply coupon discount only to online items
   if (couponCode && VALID_COUPONS[couponCode.toUpperCase()]) {
     const coupon = VALID_COUPONS[couponCode.toUpperCase()]
     if (coupon.type === "percentage") {
-      couponDiscount = subtotalPrice * coupon.value
+      couponDiscount = onlineSubtotal * coupon.value
       if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
         couponDiscount = coupon.maxDiscount
       }
     } else if (coupon.type === "fixed") {
       couponDiscount = coupon.value
     }
-    finalPrice = Math.max(0, subtotalPrice - couponDiscount) // Ensure price doesn't go below zero
+    finalOnlinePrice = Math.max(0, onlineSubtotal - couponDiscount) // Ensure price doesn't go below zero
   }
 
-  // Apply full house discount if applicable (only if at least one item has the flag)
-  const hasFullHousePromo = items.some((item) => item.isFullHousePromoApplied)
+  // Apply full house discount if applicable (only if at least one item has the flag and it's an online item)
+  const hasFullHousePromo = onlineItems.some((item) => item.isFullHousePromoApplied)
   if (hasFullHousePromo) {
-    fullHouseDiscount = finalPrice * 0.05 // 5% off the price after coupon
-    finalPrice = Math.max(0, finalPrice - fullHouseDiscount)
+    fullHouseDiscount = finalOnlinePrice * 0.05 // 5% off the price after coupon
+    finalOnlinePrice = Math.max(0, finalOnlinePrice - fullHouseDiscount)
   }
 
   return {
     totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
-    subtotalPrice,
-    totalPrice: finalPrice,
+    subtotalPrice, // This includes all items
+    totalPrice: finalOnlinePrice, // This is the total for online payment
     couponDiscount,
-    fullHouseDiscount, // Return the calculated full house discount
+    fullHouseDiscount,
+    inPersonPaymentTotal, // Return the total for in-person payment
   }
 }
 
@@ -115,14 +126,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         const enhancedItem = {
           ...action.payload,
           id: action.payload.id.includes("custom-cleaning") ? `custom-cleaning-${itemSignature}` : action.payload.id,
+          paymentType: action.payload.paymentType || "online", // Set paymentType, default to online
         }
         updatedItems = [...state.items, enhancedItem]
       }
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(updatedItems, state.couponCode)
 
       return {
         ...state,
@@ -132,15 +142,14 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
+        inPersonPaymentTotal, // Added
       }
     }
 
     case "REMOVE_ITEM": {
       const updatedItems = state.items.filter((item) => item.id !== action.payload)
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(updatedItems, state.couponCode)
 
       return {
         ...state,
@@ -150,6 +159,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
+        inPersonPaymentTotal, // Added
       }
     }
 
@@ -161,10 +171,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         return item
       })
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
-        updatedItems,
-        state.couponCode,
-      )
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(updatedItems, state.couponCode)
 
       return {
         ...state,
@@ -174,15 +182,14 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
+        inPersonPaymentTotal, // Added
       }
     }
 
     case "APPLY_COUPON": {
       const newCouponCode = action.payload.toUpperCase()
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
-        state.items,
-        newCouponCode,
-      )
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(state.items, newCouponCode)
 
       return {
         ...state,
@@ -192,6 +199,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         subtotalPrice,
         totalPrice,
         fullHouseDiscount,
+        inPersonPaymentTotal, // Added
       }
     }
 
@@ -200,10 +208,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
     case "SET_CART": // For loading from localStorage
       // Recalculate totals to ensure consistency with current coupon/full house logic
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount } = calculateCartTotals(
-        action.payload.items,
-        action.payload.couponCode,
-      )
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(action.payload.items, action.payload.couponCode)
       return {
         ...action.payload,
         totalItems,
@@ -211,6 +217,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
+        inPersonPaymentTotal, // Added
       }
 
     default:

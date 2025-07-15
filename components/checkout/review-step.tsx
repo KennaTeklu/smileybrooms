@@ -31,12 +31,19 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
 
   const { contact: contactData, address: addressData, payment: paymentData } = checkoutData
 
-  // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const videoDiscount = paymentData?.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const totalBeforeTax = subtotal - videoDiscount - couponDiscount
-  const tax = totalBeforeTax * 0.08 // 8% tax
-  const total = totalBeforeTax + tax
+  // Filter items for online payment
+  const onlinePaymentItems = cart.items.filter((item) => item.paymentType !== "in_person")
+  const inPersonPaymentItems = cart.items.filter((item) => item.paymentType === "in_person")
+
+  // Calculate totals for online payment
+  const subtotalOnline = onlinePaymentItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const videoDiscount = paymentData?.allowVideoRecording ? (subtotalOnline >= 250 ? 25 : subtotalOnline * 0.1) : 0
+  const totalBeforeTaxOnline = subtotalOnline - videoDiscount - couponDiscount
+  const tax = totalBeforeTaxOnline * 0.08 // 8% tax
+  const totalOnline = totalBeforeTaxOnline + tax
+
+  // Total for in-person payment
+  const totalInPerson = inPersonPaymentItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   useEffect(() => {
     // Reset coupon discount if cart items or other discounts change
@@ -49,7 +56,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
     setCouponError(null)
     // Simulate coupon application
     if (couponCode.toLowerCase() === "v0discount") {
-      const discountAmount = Math.min(totalBeforeTax * 0.15, 50) // 15% off, max $50
+      const discountAmount = Math.min(totalBeforeTaxOnline * 0.15, 50) // 15% off, max $50
       setCouponDiscount(discountAmount)
       toast({
         title: "Coupon Applied!",
@@ -82,8 +89,8 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
     setIsProcessing(true)
 
     try {
-      // Prepare line items for Stripe
-      const customLineItems = cart.items.map((item) => ({
+      // Prepare line items for Stripe (only online payment items)
+      const customLineItems = onlinePaymentItems.map((item) => ({
         name: item.name,
         amount: item.price,
         quantity: item.quantity,
@@ -197,6 +204,9 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                       {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
                       {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
                       <p>Quantity: {item.quantity}</p>
+                      {item.paymentType === "in_person" && (
+                        <p className="text-orange-500 font-semibold">Payment in person</p>
+                      )}
                     </div>
                   </div>
                   <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
@@ -231,8 +241,8 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
 
             <div className="space-y-3">
               <div className="flex justify-between text-lg">
-                <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
+                <span>Subtotal (Online Payment)</span>
+                <span>{formatCurrency(subtotalOnline)}</span>
               </div>
               {videoDiscount > 0 && (
                 <div className="flex justify-between text-lg text-green-600">
@@ -252,9 +262,15 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
               </div>
               <Separator />
               <div className="flex justify-between text-2xl font-bold">
-                <span>Total</span>
-                <span>{formatCurrency(total)}</span>
+                <span>Total (Online Payment)</span>
+                <span>{formatCurrency(totalOnline)}</span>
               </div>
+              {totalInPerson > 0 && (
+                <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
+                  <span>Estimated In-Person Payment</span>
+                  <span>{formatCurrency(totalInPerson)}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -364,11 +380,18 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
             ) : (
               <>
                 <Shield className="mr-3 h-5 w-5" />
-                Complete Order - {formatCurrency(total)}
+                {totalInPerson > 0
+                  ? `Complete Online Payment - ${formatCurrency(totalOnline)}`
+                  : `Complete Order - ${formatCurrency(totalOnline)}`}
               </>
             )}
           </Button>
         </div>
+        {totalInPerson > 0 && (
+          <p className="text-center text-sm text-orange-500 mt-4">
+            Note: An additional {formatCurrency(totalInPerson)} will be collected in person for custom services.
+          </p>
+        )}
         <p className="text-center text-sm text-gray-500 mt-4">
           By clicking "Complete Order", you agree to our Terms of Service and Privacy Policy.
         </p>

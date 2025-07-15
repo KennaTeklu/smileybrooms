@@ -82,6 +82,8 @@ export function RoomCategory({
 
     setAddingRoomId(activeWizard) // Set loading state for the room being added
     try {
+      const isOtherRoom = activeWizard === "other" // Check if it's the "other" room type
+
       // Update the room config in context
       updateRoomCount(activeWizard, config.quantity)
       addItem({
@@ -100,11 +102,30 @@ export function RoomCategory({
           notIncludedTasks: config.notIncludedTasks,
           upsellMessage: config.upsellMessage,
         },
+        paymentType: isOtherRoom ? "in_person" : "online", // Set paymentType based on room type
       })
 
       setAddedItemName(`${config.quantity} x ${config.roomName}`)
       setShowSuccessNotification(true)
       vibrate([100, 50, 100]) // Success pattern
+
+      // Show specific toast for "other" room
+      if (isOtherRoom) {
+        toast({
+          title: "Custom Space Added!",
+          description:
+            "Price and details for custom spaces will be discussed via email. Payment for additional services will be made in person.",
+          variant: "default", // You might want a specific variant for this
+          duration: 8000,
+        })
+      } else {
+        // Original toast for regular items
+        toast({
+          title: "Added to cart",
+          description: `${config.quantity} x ${config.roomName} has been added to your cart`,
+          duration: 3000,
+        })
+      }
 
       // Hide notification after 3 seconds
       setTimeout(() => {
