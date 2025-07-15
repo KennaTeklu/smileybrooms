@@ -10,6 +10,8 @@ import { ArrowRight, User } from "lucide-react"
 import { motion } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
+import { isValidUSPhone, formatUSPhone } from "@/lib/validation/phone-validation"
+import { isValidEmail } from "@/lib/validation/email-validation" // Assuming this exists or will be created
 
 interface ContactStepProps {
   data: CheckoutData["contact"]
@@ -28,9 +30,13 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
   }, [data])
 
   const handleChange = (field: string, value: string) => {
+    let processedValue = value
+    if (field === "phone") {
+      processedValue = formatUSPhone(value)
+    }
     setContactData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }))
     if (errors[field]) {
       setErrors((prev) => {
@@ -46,8 +52,9 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
     if (!contactData.firstName.trim()) newErrors.firstName = "First name is required"
     if (!contactData.lastName.trim()) newErrors.lastName = "Last name is required"
     if (!contactData.email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(contactData.email)) newErrors.email = "Email is invalid"
+    else if (!isValidEmail(contactData.email)) newErrors.email = "Email is invalid" // Using isValidEmail
     if (!contactData.phone.trim()) newErrors.phone = "Phone is required"
+    else if (!isValidUSPhone(contactData.phone)) newErrors.phone = "Phone number is invalid (e.g., (555) 123-4567)" // Using isValidUSPhone
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

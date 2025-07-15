@@ -22,6 +22,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { generateOutOfServiceMailtoLink } from "@/lib/email-utils"
+import {
+  isValidUSZip,
+  isValidStreetAddress,
+  isValidCity,
+  isValidUSState,
+  formatUSZip,
+} from "@/lib/validation/address-validation"
+import { isValidEmail } from "@/lib/validation/email-validation"
+import { isValidUSPhone } from "@/lib/validation/phone-validation"
 
 interface AddressStepProps {
   data: CheckoutData["address"]
@@ -42,9 +51,13 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
   }, [data])
 
   const handleChange = (field: string, value: string) => {
+    let processedValue = value
+    if (field === "zipCode") {
+      processedValue = formatUSZip(value)
+    }
     setAddressData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }))
     if (errors[field]) {
       setErrors((prev) => {
@@ -57,14 +70,21 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
+    // These fields are disabled and pre-filled from ContactStep, but still good to validate if they were somehow empty
     if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
     if (!addressData.email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
+    else if (!isValidEmail(addressData.email)) newErrors.email = "Email is invalid"
     if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
-    if (!addressData.address.trim()) newErrors.address = "Address is required"
+    else if (!isValidUSPhone(addressData.phone)) newErrors.phone = "Phone number is invalid (e.g., (555) 123-4567)"
+
+    if (!addressData.address.trim()) newErrors.address = "Street address is required"
+    else if (!isValidStreetAddress(addressData.address)) newErrors.address = "Street address is invalid"
     if (!addressData.city.trim()) newErrors.city = "City is required"
+    else if (!isValidCity(addressData.city)) newErrors.city = "City is invalid"
     if (!addressData.state) newErrors.state = "State is required"
+    else if (!isValidUSState(addressData.state)) newErrors.state = "Invalid state selected"
     if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    else if (!isValidUSZip(addressData.zipCode)) newErrors.zipCode = "ZIP code is invalid (e.g., 10001 or 10001-1234)"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

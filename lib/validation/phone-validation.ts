@@ -74,16 +74,17 @@ export function isValidPhoneForCountry(phone: string, countryCode: string): bool
  * @returns Formatted phone number or original if invalid
  */
 export function formatUSPhone(phone: string): string {
-  if (!isValidUSPhone(phone)) return phone
-
+  if (!phone) return ""
   // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, "")
 
   // Handle numbers with or without country code
-  const hasCountryCode = cleaned.length > 10
+  const hasCountryCode = cleaned.length > 10 && cleaned.startsWith("1")
   const digits = hasCountryCode ? cleaned.slice(-10) : cleaned
 
-  // Format as (XXX) XXX-XXXX
+  if (digits.length === 0) return ""
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.substring(0, 3)}) ${digits.substring(3)}`
   return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`
 }
 

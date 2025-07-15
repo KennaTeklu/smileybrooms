@@ -1,36 +1,16 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
-import Link from "next/link"
-import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { AnimatePresence } from "framer-motion"
 import ContactStep from "@/components/checkout/contact-step"
 import AddressStep from "@/components/checkout/address-step"
 import PaymentStep from "@/components/checkout/payment-step"
 import ReviewStep from "@/components/checkout/review-step"
-import type { CheckoutData } from "@/lib/types"
-
-type CheckoutStepId = "contact" | "address" | "payment" | "review"
-
-const steps = [
-  { id: "contact", title: "Contact Info", icon: User },
-  { id: "address", title: "Service Address", icon: MapPin },
-  { id: "payment", title: "Payment", icon: CreditCard },
-  { id: "review", title: "Review Order", icon: Package },
-]
+import type { CheckoutData } from "@/lib/types" // Assuming you have a types.ts defining CheckoutData
 
 export default function CheckoutPage() {
-  const { cart } = useCart()
-  const router = useRouter()
-  const { toast } = useToast()
-
-  const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
-  const [completedSteps, setCompletedSteps] = useState<CheckoutStepId[]>([])
+  const [currentStep, setCurrentStep] = useState(0)
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     contact: {
       firstName: "",
@@ -39,276 +19,121 @@ export default function CheckoutPage() {
       phone: "",
     },
     address: {
-      fullName: "",
-      email: "",
-      phone: "",
+      fullName: "", // Will be populated from contact step
+      email: "", // Will be populated from contact step
+      phone: "", // Will be populated from contact step
+      addressType: "residential",
       address: "",
       address2: "",
       city: "",
       state: "",
       zipCode: "",
       specialInstructions: "",
-      addressType: "residential",
     },
     payment: {
-      paymentMethod: "card",
-      allowVideoRecording: false,
-      agreeToTerms: false,
+      method: "credit_card",
+      cardDetails: {
+        cardNumber: "",
+        expiryDate: "",
+        cvc: "",
+        cardholderName: "",
+      },
+      billingAddressSameAsService: true,
+      billingAddress: {
+        address: "",
+        address2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+      },
+    },
+    review: {
+      agreedToTerms: false,
     },
   })
 
-  // Redirect if cart is empty
-  useEffect(() => {
-    if (cart.items.length === 0) {
-      router.push("/pricing")
-    }
-  }, [cart.items.length, router])
+  const totalSteps = 4 // Contact, Address, Payment, Review
 
-  // Load initial data from localStorage if available (for returning users or partial completion)
-  useEffect(() => {
-    try {
-      const savedContact = localStorage.getItem("checkout-contact")
-      const savedAddress = localStorage.getItem("checkout-address")
-      const savedPayment = localStorage.getItem("checkout-payment")
-
-      setCheckoutData((prev) => {
-        const contact = savedContact ? JSON.parse(savedContact) : prev.contact
-        const address = savedAddress ? JSON.parse(savedAddress) : prev.address
-        const payment = savedPayment ? JSON.parse(savedPayment) : prev.payment
-
-        // Ensure address fields are populated from contact if contact data exists
-        if (contact && contact.firstName && contact.lastName && contact.email && contact.phone) {
-          address.fullName = `${contact.firstName} ${contact.lastName}`
-          address.email = contact.email
-          address.phone = contact.phone
+  const handleSaveData = (step: number, data: any) => {
+    setCheckoutData((prevData) => {
+      const newData = { ...prevData }
+      if (step === 0) {
+        newData.contact = data
+        // Also populate address fields from contact for convenience
+        newData.address = {
+          ...newData.address,
+          fullName: `${data.firstName} ${data.lastName}`,
+          email: data.email,
+          phone: data.phone,
         }
-
-        return {
-          contact,
-          address,
-          payment,
-        }
-      })
-
-      // Determine the last completed step to resume
-      if (savedPayment) {
-        setCurrentStep("review")
-        setCompletedSteps(["contact", "address", "payment"])
-      } else if (savedAddress) {
-        setCurrentStep("payment")
-        setCompletedSteps(["contact", "address"])
-      } else if (savedContact) {
-        setCurrentStep("address")
-        setCompletedSteps(["contact"])
+      } else if (step === 1) {
+        newData.address = data
+      } else if (step === 2) {
+        newData.payment = data
+      } else if (step === 3) {
+        newData.review = data
       }
-    } catch (e) {
-      console.error("Failed to load saved checkout data from localStorage", e)
-      // Optionally clear corrupted data
-      localStorage.removeItem("checkout-contact")
-      localStorage.removeItem("checkout-address")
-      localStorage.removeItem("checkout-payment")
-    }
-  }, [])
-
-  const currentStepIndex = steps.findIndex((step) => step.id === currentStep)
-  const progress = ((currentStepIndex + 1) / steps.length) * 100
-
-  const handleSaveStepData = useCallback(
-    (stepId: CheckoutStepId, data: any) => {
-      setCheckoutData((prev) => {
-        const newState = {
-          ...prev,
-          [stepId]: data,
-        }
-
-        // Special handling for contact step to pre-fill address fields
-        if (stepId === "contact") {
-          newState.address = {
-            ...newState.address, // Keep existing address fields like street, city, etc.
-            fullName: `${data.firstName} ${data.lastName}`,
-            email: data.email,
-            phone: data.phone,
-          }
-          // Also persist the updated address data to localStorage
-          localStorage.setItem("checkout-address", JSON.stringify(newState.address))
-        }
-
-        // Persist the current step's data to localStorage
-        localStorage.setItem(`checkout-${stepId}`, JSON.stringify(data))
-
-        return newState
-      })
-
-      if (!completedSteps.includes(stepId)) {
-        setCompletedSteps((prev) => [...prev, stepId])
-      }
-    },
-    [completedSteps],
-  )
-
-  const handleNext = useCallback(() => {
-    const nextStepIndex = currentStepIndex + 1
-    if (nextStepIndex < steps.length) {
-      setCurrentStep(steps[nextStepIndex].id)
-    }
-  }, [currentStepIndex])
-
-  const handlePrevious = useCallback(() => {
-    const prevStepIndex = currentStepIndex - 1
-    if (prevStepIndex >= 0) {
-      setCurrentStep(steps[prevStepIndex].id)
-    }
-  }, [currentStepIndex])
-
-  const handleStepClick = useCallback(
-    (stepId: CheckoutStepId) => {
-      const stepIndex = steps.findIndex((step) => step.id === stepId)
-      // Allow navigating to any previous completed step or the immediate next step
-      if (stepIndex < currentStepIndex || (stepIndex === currentStepIndex && completedSteps.includes(stepId))) {
-        setCurrentStep(stepId)
-      } else if (stepIndex === currentStepIndex + 1) {
-        // Allow moving to the next step if the current one is completed
-        if (completedSteps.includes(currentStep)) {
-          setCurrentStep(stepId)
-        } else {
-          toast({
-            title: "Please complete current step",
-            description: "You must complete the current step before moving forward.",
-            variant: "destructive",
-          })
-        }
-      }
-    },
-    [currentStep, currentStepIndex, completedSteps, toast],
-  )
-
-  if (cart.items.length === 0) {
-    return null // Will redirect via useEffect
+      return newData
+    })
   }
 
-  const renderStepContent = () => {
+  const handleNextStep = () => {
+    setCurrentStep((prevStep) => Math.min(prevStep + 1, totalSteps - 1))
+  }
+
+  const handlePreviousStep = () => {
+    setCurrentStep((prevStep) => Math.max(prevStep - 1, 0))
+  }
+
+  const renderStep = () => {
     switch (currentStep) {
-      case "contact":
+      case 0:
         return (
-          <ContactStep
-            key="contact-step"
-            data={checkoutData.contact}
-            onSave={(data) => handleSaveStepData("contact", data)}
-            onNext={handleNext}
-          />
+          <ContactStep data={checkoutData.contact} onSave={(data) => handleSaveData(0, data)} onNext={handleNextStep} />
         )
-      case "address":
+      case 1:
         return (
           <AddressStep
-            key="address-step"
             data={checkoutData.address}
-            onSave={(data) => handleSaveStepData("address", data)}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
+            onSave={(data) => handleSaveData(1, data)}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
           />
         )
-      case "payment":
+      case 2:
         return (
           <PaymentStep
-            key="payment-step"
             data={checkoutData.payment}
-            onSave={(data) => handleSaveStepData("payment", data)}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            checkoutData={checkoutData} // Pass full checkoutData for Stripe Payment Request
+            onSave={(data) => handleSaveData(2, data)}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
           />
         )
-      case "review":
-        return <ReviewStep key="review-step" checkoutData={checkoutData} onPrevious={handlePrevious} />
+      case 3:
+        return (
+          <ReviewStep
+            data={checkoutData.review}
+            checkoutData={checkoutData} // Pass full checkout data for review
+            onSave={(data) => handleSaveData(3, data)}
+            onPrevious={handlePreviousStep}
+          />
+        )
       default:
         return null
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/pricing"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Services
-          </Link>
-
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Secure Checkout</h1>
-            <p className="text-xl text-muted-foreground mb-8">Complete your order in just a few simple steps</p>
-
-            {/* Progress Bar */}
-            <div className="max-w-md mx-auto mb-8">
-              <Progress value={progress} className="h-2 mb-4" />
-              <p className="text-sm text-muted-foreground">
-                Step {currentStepIndex + 1} of {steps.length}
-              </p>
-            </div>
-          </div>
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
+      <Card className="w-full max-w-3xl p-6 md:p-8 lg:p-10 shadow-lg">
+        <div className="mb-8">
+          <Progress value={((currentStep + 1) / totalSteps) * 100} className="w-full" />
+          <p className="text-center text-sm text-gray-500 mt-2">
+            Step {currentStep + 1} of {totalSteps}
+          </p>
         </div>
-
-        {/* Step Navigation */}
-        <div className="mb-12">
-          <div className="flex justify-center">
-            <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
-              {steps.map((step, index) => {
-                const Icon = step.icon
-                const isActive = step.id === currentStep
-                const isCompleted = completedSteps.includes(step.id)
-                const isClickable = index <= currentStepIndex || isCompleted
-
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => isClickable && handleStepClick(step.id)}
-                    disabled={!isClickable}
-                    className={`flex items-center space-x-2 px-4 py-3 rounded-full transition-all ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-md"
-                        : isCompleted
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : isClickable
-                            ? "hover:bg-gray-100 dark:hover:bg-gray-700"
-                            : "opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                    <span className="font-medium hidden sm:block">{step.title}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <Card className="shadow-lg border-0 mb-12">
-          <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
-        </Card>
-
-        {/* Trust Indicators */}
-        <div className="mt-16 text-center">
-          <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
-            <div className="flex items-center">
-              <Shield className="mr-2 h-4 w-4" />
-              SSL Secured
-            </div>
-            <div className="flex items-center">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Encrypted Payment
-            </div>
-            <div className="flex items-center">
-              <Check className="mr-2 h-4 w-4" />
-              100% Satisfaction Guarantee
-            </div>
-          </div>
-        </div>
-      </div>
+        {renderStep()}
+      </Card>
     </div>
   )
 }
