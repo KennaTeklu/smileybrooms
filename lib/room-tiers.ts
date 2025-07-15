@@ -26,6 +26,23 @@ export const roomDisplayNames: Record<string, string> = {
   // Custom rooms will have their names set dynamically
 }
 
+/* ------------------------------------------------------------------ */
+/*  Simple emoji icons for each room ‒ used across the UI             */
+/* ------------------------------------------------------------------ */
+export const roomIcons: Record<string, string> = {
+  bedroom: "🛏️",
+  bathroom: "🚿",
+  kitchen: "🍳",
+  living_room: "🛋️",
+  dining_room: "🍽️",
+  home_office: "💻",
+  laundry_room: "🧺",
+  entryway: "🚪",
+  hallway: "🚶",
+  stairs: "🪜",
+  other: "🏠",
+}
+
 export interface RoomTier {
   id: string
   name: string
