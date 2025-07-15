@@ -200,6 +200,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               upsellMessage: config.upsellMessage,
             },
             isFullHousePromoApplied: selectedFrequency === "one_time" && isFullHouseChecked,
+            paymentType: config.paymentType, // Pass the paymentType from roomConfig
           })
 
           updateRoomCount(roomType, 0) // Clear count after adding to cart
@@ -317,13 +318,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     updateRoomConfig(customRoomId, {
       roomName: newCustomRoomName.trim(),
       selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`, // Generate a custom tier ID
-      totalPrice: selectedGlobalTierDetails?.basePrice || 0, // Use basePrice from roomTiers
-      isPriceTBD: false,
+      totalPrice: 0, // Price is TBD for custom rooms
+      isPriceTBD: true, // Mark as price TBD
       selectedAddOns: [],
       selectedReductions: [],
       detailedTasks: selectedGlobalTierDetails?.detailedTasks || [],
       notIncludedTasks: selectedGlobalTierDetails?.notIncludedTasks || [],
       upsellMessage: selectedGlobalTierDetails?.upsellMessage || "",
+      paymentType: "in_person", // Explicitly set for custom rooms
     })
 
     setNewCustomRoomName("")
@@ -403,8 +405,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         ? config?.roomName || "Custom Space"
         : roomDisplayNames[roomType] || roomType
 
-      const displayPrice = config?.isPriceTBD ? "Price TBD" : formatCurrency(config?.totalPrice || 0)
-      const displayRoomTotal = config?.isPriceTBD ? "Price TBD" : formatCurrency(roomTotal)
+      // Check if it's a custom room or marked for in-person payment
+      const isCustomOrInPerson = roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
+
+      const displayPrice = isCustomOrInPerson ? "In-person Payment" : formatCurrency(config?.totalPrice || 0)
+      const displayRoomTotal = isCustomOrInPerson ? "In-person Payment" : formatCurrency(roomTotal)
 
       return (
         <motion.div
@@ -897,10 +902,15 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               ? config?.roomName || "Custom Space"
                               : roomDisplayNames[roomType] || roomType
 
-                            const displayPrice = config?.isPriceTBD
-                              ? "Price TBD"
+                            const isCustomOrInPerson =
+                              roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
+
+                            const displayPrice = isCustomOrInPerson
+                              ? "In-person Payment"
                               : formatCurrency(config?.totalPrice || 0)
-                            const displayRoomTotal = config?.isPriceTBD ? "Price TBD" : formatCurrency(roomTotal)
+                            const displayRoomTotal = isCustomOrInPerson
+                              ? "In-person Payment"
+                              : formatCurrency(roomTotal)
 
                             return (
                               <div
