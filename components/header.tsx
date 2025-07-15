@@ -1,187 +1,165 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Download, Calculator, Users, Mail, Accessibility, Home } from "lucide-react"
+import { Menu, X, ShoppingCart, Phone, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Logo from "@/components/logo"
-import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
+import { Badge } from "@/components/ui/badge"
 import { useCart } from "@/lib/cart-context"
-
-const navigationLinks = [
-  { href: "/", label: "Home", icon: Home }, // Added Home link
-  { href: "/pricing", label: "Pricing", icon: Calculator },
-  { href: "/about", label: "About", icon: Users },
-  { href: "/contact", label: "Contact", icon: Mail },
-  { href: "/accessibility", label: "Accessibility", icon: Accessibility },
-]
+import { cn } from "@/lib/utils"
 
 export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
   const { cart } = useCart()
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [hasItems, setHasItems] = useState(false)
 
-  useEffect(() => {
-    setHasItems(cart.items && cart.items.length > 0)
-  }, [cart])
+  const navigation = [
+    { name: "Home", href: "/" },
+    { name: "About", href: "/about" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "Contact", href: "/contact" },
+  ]
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 10
-      setIsScrolled(scrolled)
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/"
     }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const getVisibleLinks = () => {
-    // Always show all links, but highlight current one if needed (handled by styling)
-    return navigationLinks
+    return pathname.startsWith(href)
   }
 
-  const visibleLinks = getVisibleLinks()
-
-  // Main header for all pages
   return (
-    <header
-      id="main-header"
-      className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300 ease-in-out",
-        "border-b border-border/40",
-        isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm" : "bg-background/90 backdrop-blur-sm",
-      )}
-      style={{ height: "64px" }}
-    >
-      {/* Main container with proper spacing grid */}
-      <div className="container mx-auto">
-        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo section - consistent spacing */}
-          <div className="flex items-center">
-            <Link
-              href="/"
-              className="flex items-center space-x-2 transition-opacity hover:opacity-80"
-              aria-label="SmileyBrooms Home"
-            >
-              <Logo className="h-8 w-auto" />
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">SB</span>
+              </div>
+              <span className="font-bold text-xl text-gray-900">Smiley Brooms</span>
             </Link>
           </div>
 
-          {/* Navigation and actions - proper spacing hierarchy */}
-          <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
-            {/* Desktop navigation - consistent spacing */}
-            <nav className="hidden lg:flex items-center space-x-1" role="navigation">
-              {visibleLinks.map((link) => {
-                const IconComponent = link.icon
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-8">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  isActive(item.href)
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-700 hover:text-blue-600 hover:bg-gray-50",
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right side actions */}
+          <div className="flex items-center space-x-4">
+            {/* Contact Info - Hidden on small screens */}
+            <div className="hidden lg:flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-1">
+                <Phone className="h-4 w-4" />
+                <span>(555) 123-4567</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <MapPin className="h-4 w-4" />
+                <span>Arizona</span>
+              </div>
+            </div>
+
+            {/* Enhanced Cart Button */}
+            <Link href="/cart" className="relative group">
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "relative p-2.5 border-2 transition-all duration-200",
+                  "hover:border-blue-500 hover:bg-blue-50 hover:scale-105",
+                  "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                  cart.items.length > 0 && "border-blue-500 bg-blue-50",
+                )}
+              >
+                <ShoppingCart className="h-5 w-5 text-gray-700 group-hover:text-blue-600" />
+
+                {/* Enhanced Counter Badge */}
+                {cart.items.length > 0 && (
+                  <Badge
                     className={cn(
-                      "flex items-center space-x-2 px-3 py-2 rounded-md",
-                      "text-sm font-medium transition-colors duration-200",
-                      "text-foreground/70 hover:text-foreground",
-                      "hover:bg-accent/50",
-                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                      pathname === link.href && "text-primary bg-accent/70", // Highlight active link
+                      "absolute -top-2 -right-2 h-6 w-6 p-0",
+                      "flex items-center justify-center",
+                      "bg-red-500 hover:bg-red-600 text-white",
+                      "border-2 border-white shadow-lg",
+                      "text-xs font-bold",
+                      "animate-pulse",
+                      "min-w-[1.5rem]",
                     )}
                   >
-                    <IconComponent className="h-4 w-4" />
-                    <span>{link.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
+                    {cart.items.length > 99 ? "99+" : cart.items.length}
+                  </Badge>
+                )}
 
-            {/* Action buttons - consistent sizing and spacing */}
-            <div className="flex items-center space-x-2">
-              {/* Cart button - proper touch target */}
-              <div className="flex items-center">
-                <CartButton showLabel={false} size="default" />
+                {/* Subtle glow effect for items in cart */}
+                {cart.items.length > 0 && <div className="absolute inset-0 rounded-md bg-blue-500/10 animate-pulse" />}
+              </Button>
+
+              {/* Tooltip on hover */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                {cart.items.length === 0
+                  ? "Cart is empty"
+                  : `${cart.items.length} item${cart.items.length === 1 ? "" : "s"} in cart`}
               </div>
+            </Link>
 
-              {/* Download button - desktop only */}
-              <div className="hidden md:flex">
-                <Button variant="outline" size="sm" asChild className="h-9 px-3 bg-transparent">
-                  <Link href="/download" className="flex items-center space-x-2">
-                    <Download className="h-4 w-4" />
-                    <span className="hidden lg:inline">Download</span>
-                  </Link>
-                </Button>
-              </div>
-
-              {/* Mobile menu trigger - proper touch target */}
-              <div className="lg:hidden">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0" aria-label="Open navigation menu">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-
-                  <SheetContent side="right" className="w-80 sm:w-96">
-                    {/* Mobile menu content with proper spacing */}
-                    <div className="flex flex-col space-y-4 mt-8">
-                      {/* Mobile navigation links */}
-                      <nav className="flex flex-col space-y-2" role="navigation">
-                        {navigationLinks.map((link) => {
-                          const IconComponent = link.icon
-                          return (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              className={cn(
-                                "flex items-center space-x-3 px-4 py-3 rounded-lg",
-                                "text-base font-medium transition-colors duration-200",
-                                "text-foreground hover:bg-accent",
-                                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                                pathname === link.href && "text-primary bg-accent/70", // Highlight active link
-                              )}
-                            >
-                              <IconComponent className="h-5 w-5" />
-                              <span>{link.label}</span>
-                            </Link>
-                          )
-                        })}
-                      </nav>
-
-                      {/* Divider */}
-                      <div className="border-t border-border" />
-
-                      {/* Mobile action buttons */}
-                      <div className="flex flex-col space-y-3 px-4">
-                        {/* Cart button - full width for mobile */}
-                        <CartButton
-                          showLabel={true}
-                          variant="default"
-                          size="default"
-                          className="w-full justify-start h-11"
-                        />
-
-                        {/* Download button - full width for mobile */}
-                        <Button
-                          variant="outline"
-                          size="default"
-                          asChild
-                          className="w-full justify-start h-11 bg-transparent"
-                        >
-                          <Link href="/download" className="flex items-center space-x-3">
-                            <Download className="h-5 w-5" />
-                            <span>Download App</span>
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2">
+                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "block px-3 py-2 rounded-md text-base font-medium transition-colors",
+                    isActive(item.href)
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-gray-700 hover:text-blue-600 hover:bg-gray-50",
+                  )}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+
+              {/* Mobile contact info */}
+              <div className="pt-4 border-t border-gray-200 space-y-2">
+                <div className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600">
+                  <Phone className="h-4 w-4" />
+                  <span>(555) 123-4567</span>
+                </div>
+                <div className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600">
+                  <MapPin className="h-4 w-4" />
+                  <span>Arizona</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   )
