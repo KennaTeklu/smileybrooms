@@ -843,5 +843,24 @@ export function getRoomTiers(roomType: string): RoomTier[] {
   return (defaultTiers as any)[roomType] || defaultTiers.default
 }
 
+// --- helpers --------------------------------------------------------------
+
+/**
+ * Return the list of add-ons available for a given room type.
+ * Falls back to the generic `default` add-ons if none are defined.
+ */
+export function getRoomAddOns(roomType: string): RoomAddOn[] {
+  return (defaultAddOns as any)[roomType] || defaultAddOns.default
+}
+
+/**
+ * Return the list of reductions available for a given room type.
+ * Falls back to the generic `default` reductions if none are defined.
+ * (Pre-emptively added to avoid a similar “missing export” error.)
+ */
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return (defaultReductions as any)[roomType] || defaultReductions.default
+}
+
 // Re-export roomTiers to make it accessible
 export type RoomTierName = keyof typeof roomTiers
