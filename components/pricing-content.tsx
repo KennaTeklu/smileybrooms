@@ -19,6 +19,7 @@ function PricingContent() {
   const { addItem, addMultipleItems } = useCart() // Destructure addMultipleItems
   const [activeTab, setActiveTab] = useState("standard")
 
+  // roomCounts and roomConfigs from useRoomContext are always the latest state
   const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes } = useRoomContext()
 
   // local highlight-on-map state (was crashing before because undefined)
@@ -54,6 +55,7 @@ function PricingContent() {
   }
 
   const getRoomConfig = (roomType: string): RoomConfig => {
+    // This function always accesses the latest `roomConfigs` from the context
     return (
       roomConfigs[roomType] || {
         roomName: roomType,
@@ -69,6 +71,7 @@ function PricingContent() {
   }
 
   const getActiveRoomConfigs = () => {
+    // This function always accesses the latest `roomCounts` from the context
     return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
   }
 
