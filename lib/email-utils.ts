@@ -33,17 +33,9 @@ export function sendEmailViaMailto(options: SendEmailOptions): void {
  * @returns A mailto string.
  */
 export function generateOutOfServiceMailtoLink(state: string): string {
-  const subject = `Inquiry about service in ${state}`
-  const body = `Dear Smiley Brooms Team,
-
-I was wondering if you guys work in ${state}? If not, what is your plan for future expansion into this area?
-
-Best regards,
-${"" /* You can add user's name/email here if available from context */}
-`
-  return generateMailtoLink({
-    to: "info@smileybrooms.com", // Replace with your actual contact email
-    subject,
-    body,
-  })
+  const subject = encodeURIComponent(`Inquiry about service in ${state}`)
+  const body = encodeURIComponent(
+    `Dear Smiley Brooms Team,\n\nI was wondering if you guys work in ${state}? If not, what is your plan for future expansion into this area?\n\nBest regards,`,
+  )
+  return `mailto:info@smileybrooms.com?subject=${subject}&body=${body}`
 }

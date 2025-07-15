@@ -11,16 +11,34 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import type { CartItem } from "@/lib/cart/types"
+import Link from "next/link"
+import Image from "next/image"
+import { requiresEmailPricing } from "@/lib/room-tiers"
 
 export default function CartPage() {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const { toast } = useToast()
+
+  const subtotal = useMemo(() => {
+    return cart.items.reduce((sum, item) => {
+      // Only sum items that are not "email for pricing"
+      if (!requiresEmailPricing(item.metadata?.roomType)) {
+        return sum + item.price * item.quantity
+      }
+      return sum
+    }, 0)
+  }, [cart.items])
+
+  const totalItems = useMemo(() => {
+    return cart.items.reduce((sum, item) => sum + item.quantity, 0)
+  }, [cart.items])
 
   const handleClearCartClick = () => {
     clearCart()
     toast({
       title: "Cart Cleared",
       description: "All items have been removed from your cart.",
+      variant: "default",
     })
   }
 
@@ -30,14 +48,11 @@ export default function CartPage() {
       removeItem(item.id)
       toast({
         title: "Item Removed",
-        description: `${item.name} has been removed from your cart.`,
+        description: `${item.name} has been removed from cart.`,
+        variant: "default",
       })
     } else {
       updateQuantity(item.id, newQuantity)
-      toast({
-        title: "Quantity Updated",
-        description: `Quantity for ${item.name} updated to ${newQuantity}.`,
-      })
     }
   }
 
@@ -49,7 +64,7 @@ export default function CartPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex items-center gap-3">
             <ShoppingCart className="h-7 w-7" />
-            Your Cart ({cart.totalItems} items)
+            Your Cart ({totalItems} items)
           </CardTitle>
           <CardDescription>Review your selected cleaning services before proceeding to checkout.</CardDescription>
         </CardHeader>
@@ -73,6 +88,9 @@ export default function CartPage() {
                   >
                     <p className="text-lg mb-2">Your cart is empty.</p>
                     <p>Add some cleaning services to get started!</p>
+                    <Button asChild className="mt-6">
+                      <Link href="/pricing">Browse Services</Link>
+                    </Button>
                   </motion.div>
                 ) : (
                   cart.items.map((item) => (
@@ -86,7 +104,7 @@ export default function CartPage() {
                     >
                       <div className="flex items-center gap-4">
                         {item.image && (
-                          <img
+                          <Image
                             src={item.image || "/placeholder.svg"}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-md"
@@ -97,9 +115,13 @@ export default function CartPage() {
                         <div>
                           <h3 className="font-semibold text-lg">{item.name}</h3>
                           <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
-                          <p className="font-medium text-gray-700 dark:text-gray-300">
-                            {formatCurrency(item.price)} per item
-                          </p>
+                          {requiresEmailPricing(item.metadata?.roomType) ? (
+                            <p className="font-medium text-orange-600 dark:text-orange-400">Email for Pricing</p>
+                          ) : (
+                            <p className="font-medium text-gray-700 dark:text-gray-300">
+                              {formatCurrency(item.price)} per item
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -107,6 +129,7 @@ export default function CartPage() {
                           variant="outline"
                           size="icon"
                           onClick={() => handleUpdateQuantity(item, -1)}
+                          disabled={item.quantity <= 1}
                           aria-label={`Decrease quantity of ${item.name}`}
                         >
                           <Minus className="h-4 w-4" />
@@ -142,17 +165,9 @@ export default function CartPage() {
               <span>Total:</span>
               <span>{formatCurrency(cart.totalPrice)}</span>
             </div>
-            <Button className="w-full py-3 text-lg" disabled={cartIsEmpty}>
-              Proceed to Checkout
+            <Button asChild className="w-full py-3 text-lg" disabled={cartIsEmpty}>
+              <Link href="/checkout">Proceed to Checkout</Link>
             </Button>
-            <div className="mt-6 space-y-4">
-              <h3 className="text-lg font-semibold">Suggestions for you:</h3>
-              <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-2">
-                <li>Consider adding a deep cleaning service for a more thorough clean.</li>
-                <li>Check out our recurring service plans for discounted rates.</li>
-                <li>Don't forget to add any special instructions for our cleaning team.</li>
-              </ul>
-            </div>
           </div>
         </CardContent>
       </Card>
