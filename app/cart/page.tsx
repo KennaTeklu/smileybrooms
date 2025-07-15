@@ -444,39 +444,7 @@ export default function CartPage() {
                   <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Detailed Metrics:</h3>
                   <div className="space-y-3">
                     {cartHealth.metrics.map((metric) => (
-                      <div key={metric.id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-700 dark:text-gray-300">{metric.name}</span>
-                        <span
-                          className={cn("font-medium", {
-                            "text-green-600 dark:text-green-400": metric.status === "healthy",
-                            "text-yellow-600 dark:text-yellow-400": metric.status === "warning",
-                            "text-red-600 dark:text-red-400": metric.status === "critical",
-                          })}
-                        >
-                          {metric.value} ({metric.status})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Suggested Products/Upsells */}
-            <CartSuggestions currentCartItems={cart.items} id="suggested-products" />
-          </div>
-        </div>
-      )}
-
-      {/* Remove Item Confirmation Dialog */}
-      <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Removal</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove <span className="font-semibold">{itemToRemoveName}</span> from your cart?
-              This action cannot be undone.
-            </DialogDescription>
+                                </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={cancelRemoveItem}>
