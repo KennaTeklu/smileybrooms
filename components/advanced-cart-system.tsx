@@ -1,19 +1,18 @@
 "use client"
 
-import type React from "react"
-import { useState, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useCart } from "@/lib/cart-context"
-import { createCheckoutSession } from "@/lib/actions"
-import { formatCurrency } from "@/lib/utils"
-import { toast } from "@/hooks/use-toast"
+import React from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { ShoppingCart, X, Plus, Minus, Tag, Percent, DollarSign, Info, AlertCircle } from "lucide-react"
+import { useCart } from "@/lib/cart-context"
+import { formatCurrency } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useCartHealth } from "@/lib/cart-health" // Assuming this hook exists
+import { Badge } from "@/components/ui/badge"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Drawer,
   DrawerContent,
@@ -31,27 +30,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  CreditCard,
-  Wallet,
-  BanknoteIcon,
-  ArrowRight,
-  Heart,
-  Share2,
-  Truck,
-  Shield,
-  CheckCircle,
-  Loader2,
-  Lock,
-  Smartphone,
-  Repeat,
-  Package,
-} from "lucide-react"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { Label } from "@/components/ui/label"
+import { Loader2, ArrowRight, Shield, Lock, CheckCircle, CreditCard, Apple, BanknoteIcon } from "lucide-react"
 
 // Enhanced cart item interface
 interface EnhancedCartItem {
@@ -68,6 +49,7 @@ interface EnhancedCartItem {
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   isRecurring?: boolean
   recurringInterval?: "week" | "month" | "year"
+  paymentType?: "online" | "in_person"
 }
 
 // Payment method interface
@@ -85,6 +67,12 @@ interface PaymentMethod {
 export function AdvancedCartSystem() {
   // Core state management
   const { cart, addItem, removeItem, updateQuantity, clearCart } = useCart()
+  const { toast } = useToast()
+  const { getCartHealthSuggestions } = useCartHealth()
+
+  const [couponCode, setCouponCode] = useState("")
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponError, setCouponError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -106,7 +94,7 @@ export function AdvancedCartSystem() {
       id: "paypal",
       type: "wallet",
       name: "PayPal",
-      icon: Wallet,
+      icon: Tag,
       description: "Pay with your PayPal account",
       fees: 0,
       processingTime: "Instant",
@@ -115,7 +103,7 @@ export function AdvancedCartSystem() {
       id: "apple_pay",
       type: "wallet",
       name: "Apple Pay",
-      icon: Smartphone,
+      icon: Apple,
       description: "Touch ID or Face ID",
       fees: 0,
       processingTime: "Instant",
@@ -168,7 +156,7 @@ export function AdvancedCartSystem() {
   const calculations = useMemo(() => {
     const subtotal = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
     const shipping = subtotal > 100 ? 0 : 4.99
-    const tax = subtotal * 0.08875 // NY tax rate
+    const tax = subtotal * 0.08 // Generic tax rate
     const total = subtotal + shipping + tax
 
     return {
@@ -283,6 +271,51 @@ export function AdvancedCartSystem() {
     [cart.items, updateQuantity, handleRemoveItem],
   )
 
+  useEffect(() => {
+    // Reset coupon discount if cart items change
+    setCouponDiscount(0)
+    setCouponCode("")
+    setCouponError(null)
+  }, [cart.items])
+
+  const handleApplyCoupon = () => {
+    setCouponError(null)
+    if (couponCode.toLowerCase() === "v0discount") {
+      const discountAmount = Math.min(calculations.subtotal * 0.15, 50) // 15% off, max $50
+      setCouponDiscount(discountAmount)
+      toast({
+        title: "Coupon Applied!",
+        description: `You saved ${formatCurrency(discountAmount)} with code "${couponCode}".`,
+        variant: "success",
+      })
+    } else if (couponCode.trim() === "") {
+      setCouponError("Please enter a coupon code.")
+    } else {
+      setCouponDiscount(0)
+      setCouponError("Invalid coupon code. Please try again.")
+      toast({
+        title: "Invalid Coupon",
+        description: "The coupon code you entered is not valid.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleClearCartClick = useCallback(() => {
+    clearCart()
+    toast({
+      title: "Cart Cleared",
+      description: "All items have been removed from your cart.",
+      variant: "default",
+    })
+  }, [clearCart, toast])
+
+  // Cart health suggestions
+  const cartHealthSuggestions = getCartHealthSuggestions(cart.items)
+  const filteredSuggestions = cartHealthSuggestions.filter(
+    (suggestion) => suggestion.message !== "Your cart has some potential issues.",
+  )
+
   // Mobile cart component
   const MobileCart = () => (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
@@ -331,7 +364,7 @@ export function AdvancedCartSystem() {
             animate={{ opacity: 1, y: 0 }}
             className="mt-4 flex items-center gap-2 rounded-lg bg-yellow-50 p-3 text-sm"
           >
-            <Truck className="h-4 w-4 text-yellow-600" />
+            <ShoppingCart className="h-4 w-4 text-yellow-600" />
             <span className="text-yellow-800">Arrives by April 3 to April 9th</span>
           </motion.div>
         </DrawerHeader>
@@ -361,7 +394,7 @@ export function AdvancedCartSystem() {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
-                            <Package className="h-8 w-8 text-gray-400" />
+                            <ShoppingCart className="h-8 w-8 text-gray-400" />
                           </div>
                         )}
 
@@ -405,14 +438,26 @@ export function AdvancedCartSystem() {
                             className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
                             onClick={() => handleRemoveItem(item.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <X className="h-4 w-4" />
                           </Button>
                         </div>
 
                         {/* Customizations */}
                         {item.metadata?.rooms && (
-                          <div className="mt-2 text-xs text-gray-500">
+                          <div className="mt-2 text-sm text-gray-500">
                             <span className="font-medium">Rooms:</span> {item.metadata.rooms}
+                          </div>
+                        )}
+
+                        {item.metadata?.addOns && item.metadata.addOns.length > 0 && (
+                          <div className="mt-2 text-sm text-gray-500">
+                            <span className="font-medium">Add-ons:</span> {item.metadata.addOns.join(", ")}
+                          </div>
+                        )}
+
+                        {item.metadata?.reductions && item.metadata.reductions.length > 0 && (
+                          <div className="mt-2 text-sm text-gray-500">
+                            <span className="font-medium">Reductions:</span> {item.metadata.reductions.join(", ")}
                           </div>
                         )}
 
@@ -422,7 +467,7 @@ export function AdvancedCartSystem() {
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 bg-transparent"
                               onClick={() => handleQuantityUpdate(item.id, item.quantity - 1)}
                               disabled={item.quantity <= 1}
                             >
@@ -434,7 +479,7 @@ export function AdvancedCartSystem() {
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 bg-transparent"
                               onClick={() => handleQuantityUpdate(item.id, item.quantity + 1)}
                             >
                               <Plus className="h-3 w-3" />
@@ -443,27 +488,20 @@ export function AdvancedCartSystem() {
 
                           {/* Item actions */}
                           <div className="flex items-center gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Heart className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Save for later</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Share2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Share item</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700">
+                              <Tag className="h-4 w-4 mr-2" />
+                              Save for later
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700">
+                              <Percent className="h-4 w-4 mr-2" />
+                              Share
+                            </Button>
+                            {item.metadata?.isRecurring && (
+                              <Badge variant="outline" className="ml-auto">
+                                <Percent className="h-3 w-3 mr-1" />
+                                Recurring {item.metadata.recurringInterval}ly
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -473,7 +511,7 @@ export function AdvancedCartSystem() {
                     {item.metadata?.isRecurring && (
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Repeat className="h-3 w-3" />
+                          <Percent className="h-3 w-3" />
                           <span>Recurring {item.metadata.recurringInterval}ly</span>
                         </div>
                       </div>
@@ -549,7 +587,9 @@ export function AdvancedCartSystem() {
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <motion.div className="mr-2 h-4 w-4 animate-spin">
+                      <Loader2 className="h-4 w-4" />
+                    </motion.div>
                     Processing...
                   </>
                 ) : (
@@ -632,7 +672,7 @@ export function AdvancedCartSystem() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 flex items-center gap-2 rounded-lg bg-yellow-50 p-3"
               >
-                <Truck className="h-5 w-5 text-yellow-600" />
+                <ShoppingCart className="h-5 w-5 text-yellow-600" />
                 <span className="text-yellow-800 font-medium">Arrives by April 3 to April 9th</span>
               </motion.div>
             </DialogHeader>
@@ -660,7 +700,7 @@ export function AdvancedCartSystem() {
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
-                            <Package className="h-12 w-12 text-gray-400" />
+                            <ShoppingCart className="h-12 w-12 text-gray-400" />
                           </div>
                         )}
 
@@ -693,10 +733,15 @@ export function AdvancedCartSystem() {
                               </div>
                             )}
 
-                            {/* Customer info */}
-                            {item.metadata?.customer && (
+                            {item.metadata?.addOns && item.metadata.addOns.length > 0 && (
                               <div className="mt-2 text-sm text-gray-500">
-                                <span className="font-medium">Address:</span> {item.metadata.customer.address}
+                                <span className="font-medium">Add-ons:</span> {item.metadata.addOns.join(", ")}
+                              </div>
+                            )}
+
+                            {item.metadata?.reductions && item.metadata.reductions.length > 0 && (
+                              <div className="mt-2 text-sm text-gray-500">
+                                <span className="font-medium">Reductions:</span> {item.metadata.reductions.join(", ")}
                               </div>
                             )}
                           </div>
@@ -708,7 +753,7 @@ export function AdvancedCartSystem() {
                             className="text-red-500 hover:bg-red-50 hover:text-red-600"
                             onClick={() => handleRemoveItem(item.id)}
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <X className="h-5 w-5" />
                           </Button>
                         </div>
 
@@ -752,16 +797,16 @@ export function AdvancedCartSystem() {
                         {/* Item actions */}
                         <div className="flex items-center gap-2 mt-4">
                           <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
-                            <Heart className="h-4 w-4 mr-2" />
+                            <Tag className="h-4 w-4 mr-2" />
                             Save for later
                           </Button>
                           <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
-                            <Share2 className="h-4 w-4 mr-2" />
+                            <Percent className="h-4 w-4 mr-2" />
                             Share
                           </Button>
                           {item.metadata?.isRecurring && (
                             <Badge variant="outline" className="ml-auto">
-                              <Repeat className="h-3 w-3 mr-1" />
+                              <Percent className="h-3 w-3 mr-1" />
                               Recurring {item.metadata.recurringInterval}ly
                             </Badge>
                           )}
@@ -797,33 +842,48 @@ export function AdvancedCartSystem() {
             <div className="w-96 border-l bg-gradient-to-b from-blue-50 to-purple-50">
               <div className="p-6">
                 <h3 className="text-xl font-bold mb-6 flex items-center">
-                  <CreditCard className="h-5 w-5 mr-2" />
+                  <Tag className="h-5 w-5 mr-2" />
+                  Coupon Code
+                </h3>
+
+                <div className="flex gap-2 mb-4">
+                  <Input
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className={couponError ? "border-red-500" : ""}
+                  />
+                  <Button onClick={handleApplyCoupon}>Apply</Button>
+                </div>
+                {couponError && <p className="text-red-500 text-sm mt-1">{couponError}</p>}
+                {couponDiscount > 0 && (
+                  <p className="text-green-600 text-sm mt-1">Coupon applied: -{formatCurrency(couponDiscount)}</p>
+                )}
+
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2" />
                   Card Details
                 </h3>
 
                 {/* Payment method selection */}
                 <div className="mb-6">
-                  <Label className="text-sm font-medium mb-3 block">Card type</Label>
                   <div className="flex gap-2 mb-4">
-                    <div className="flex-1 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-500 transition-colors">
-                      <img src="/placeholder.svg?height=24&width=40&text=MC" alt="Mastercard" className="h-6" />
-                    </div>
-                    <div className="flex-1 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-500 transition-colors">
-                      <img src="/placeholder.svg?height=24&width=40&text=VISA" alt="Visa" className="h-6" />
-                    </div>
-                    <div className="flex-1 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-500 transition-colors">
-                      <img src="/placeholder.svg?height=24&width=40&text=RUPAY" alt="RuPay" className="h-6" />
-                    </div>
-                    <Button variant="outline" size="sm" className="px-3">
-                      See all
-                    </Button>
+                    {paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className="flex-1 p-3 border rounded-lg bg-white cursor-pointer hover:border-blue-500 transition-colors"
+                      >
+                        {React.createElement(method.icon)}
+                        <span className="ml-2">{method.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Card form */}
                 <div className="space-y-4 mb-6">
                   <div>
-                    <Label htmlFor="card-name" className="text-sm font-medium">
+                    <Label htmlFor="card-name" className="text-sm font-medium mb-3 block">
                       Name on card
                     </Label>
                     <Input
@@ -834,7 +894,7 @@ export function AdvancedCartSystem() {
                   </div>
 
                   <div>
-                    <Label htmlFor="card-number" className="text-sm font-medium">
+                    <Label htmlFor="card-number" className="text-sm font-medium mb-3 block">
                       Card Number
                     </Label>
                     <Input
@@ -846,7 +906,7 @@ export function AdvancedCartSystem() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="expiry" className="text-sm font-medium">
+                      <Label htmlFor="expiry" className="text-sm font-medium mb-3 block">
                         Expiration date
                       </Label>
                       <Input
@@ -856,7 +916,7 @@ export function AdvancedCartSystem() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cvv" className="text-sm font-medium">
+                      <Label htmlFor="cvv" className="text-sm font-medium mb-3 block">
                         CVV
                       </Label>
                       <Input id="cvv" placeholder="123" className="mt-1 bg-white/70 border-white/50 focus:bg-white" />
@@ -894,7 +954,9 @@ export function AdvancedCartSystem() {
                     >
                       {isProcessing ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <motion.div className="mr-2 h-4 w-4 animate-spin">
+                            <Loader2 className="h-4 w-4" />
+                          </motion.div>
                           Processing...
                         </>
                       ) : (
@@ -906,6 +968,28 @@ export function AdvancedCartSystem() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Cart health suggestions */}
+                {filteredSuggestions.length > 0 && (
+                  <div className="space-y-4 bg-blue-50 dark:bg-blue-900/20 rounded-b-lg">
+                    <h3 className="text-lg font-medium flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                      <Info className="h-5 w-5" />
+                      Suggestions for You
+                    </h3>
+                    <ul className="space-y-2">
+                      {filteredSuggestions.map((suggestion, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
+                          {suggestion.type === "warning" ? (
+                            <AlertCircle className="h-4 w-4 flex-shrink-0 text-orange-500" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
+                          )}
+                          {suggestion.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Security badges */}
                 <div className="flex items-center justify-center gap-4 text-xs text-gray-600">

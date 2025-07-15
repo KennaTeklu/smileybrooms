@@ -6,58 +6,59 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useCartAnimation } from "@/hooks/useCartAnimation"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import Link from "next/link"
 import styles from "./cart.module.css"
 
 interface CartButtonProps {
-  itemCount: number
-  totalPrice: number
-  onClick: () => void
-  isOpen: boolean
   className?: string
   disabled?: boolean
 }
 
-export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(
-  ({ itemCount, totalPrice, onClick, isOpen, className, disabled = false }, ref) => {
-    const { animationState, handleHover, handlePress, startFloating, stopFloating } = useCartAnimation({
-      enableFloat: !isOpen && itemCount > 0,
-    })
+export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(({ className, disabled = false }, ref) => {
+  const { cart } = useCart()
+  const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
+  const totalPrice = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
 
-    const handleMouseEnter = () => {
-      handleHover(true)
-      if (itemCount > 0) startFloating()
-    }
+  const { animationState, handleHover, handlePress, startFloating, stopFloating } = useCartAnimation({
+    enableFloat: itemCount > 0,
+  })
 
-    const handleMouseLeave = () => {
-      handleHover(false)
-      stopFloating()
-    }
+  const handleMouseEnter = () => {
+    handleHover(true)
+    if (itemCount > 0) startFloating()
+  }
 
-    const handleMouseDown = () => handlePress(true)
-    const handleMouseUp = () => handlePress(false)
+  const handleMouseLeave = () => {
+    handleHover(false)
+    stopFloating()
+  }
 
-    const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
+  const handleMouseDown = () => handlePress(true)
+  const handleMouseUp = () => handlePress(false)
 
-    return (
-      <Button
-        ref={ref}
-        onClick={onClick}
-        disabled={disabled}
-        className={cn(styles.cartButton, className)}
-        style={{
-          transform: `translateY(${animationState.translateY}px) scale(${animationState.scale})`,
-          backgroundColor: "var(--primary)",
-          color: "var(--primary-foreground)",
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-controls="cart-panel"
-        data-testid="floating-cart-button"
-      >
+  const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
+
+  return (
+    <Button
+      ref={ref}
+      asChild
+      disabled={disabled}
+      className={cn(styles.cartButton, className)}
+      style={{
+        transform: `translateY(${animationState.translateY}px) scale(${animationState.scale})`,
+        backgroundColor: "var(--primary)",
+        color: "var(--primary-foreground)",
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      aria-label={ariaLabel}
+      aria-controls="cart-panel"
+      data-testid="floating-cart-button"
+    >
+      <Link href="/cart">
         <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
 
         {itemCount > 0 && (
@@ -80,9 +81,9 @@ export const CartButton = forwardRef<HTMLButtonElement, CartButtonProps>(
             aria-hidden="true"
           />
         )}
-      </Button>
-    )
-  },
-)
+      </Link>
+    </Button>
+  )
+})
 
 CartButton.displayName = "CartButton"

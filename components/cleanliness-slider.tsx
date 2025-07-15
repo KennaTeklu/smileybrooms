@@ -1,144 +1,111 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Slider } from "@/components/ui/slider"
-import { cn } from "@/lib/utils"
+import type React from "react"
 
-interface CleanlinessSliderProps {
-  value?: number
-  onChange: (value: number[]) => void
+import { useState } from "react"
+import { Slider } from "@/components/ui/slider"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import Image from "next/image"
+import { Sparkles, Droplet, Trash2 } from "lucide-react"
+import { motion } from "framer-motion"
+
+interface CleanlinessLevel {
+  value: number
+  label: string
+  description: string
+  image: string
+  icon: React.ElementType
 }
 
-export default function CleanlinessSlider({ value = 7, onChange }: CleanlinessSliderProps) {
-  const [sliderValue, setSliderValue] = useState(value)
+const cleanlinessLevels: CleanlinessLevel[] = [
+  {
+    value: 0,
+    label: "Lightly Dirty",
+    description: "Minor dust, light traffic areas. Quick refresh needed.",
+    image: "/images/clean-home.jpg",
+    icon: Sparkles,
+  },
+  {
+    value: 50,
+    label: "Moderately Dirty",
+    description: "Regular build-up, some visible grime. Standard cleaning required.",
+    image: "/images/medium-dirty-home.jpg",
+    icon: Droplet,
+  },
+  {
+    value: 100,
+    label: "Very Dirty",
+    description: "Significant grime, heavy dust, neglected areas. Deep cleaning recommended.",
+    image: "/images/very-dirty-home.jpg",
+    icon: Trash2,
+  },
+]
 
-  useEffect(() => {
-    setSliderValue(value)
-  }, [value])
-
-  const handleChange = (newValue: number[]) => {
-    const cleanlinessValue = newValue[0]
-    setSliderValue(cleanlinessValue)
-    onChange(newValue)
-  }
-
-  // Get professional cinematic image based on cleanliness level
-  const getCleanlinessImage = () => {
-    if (sliderValue < 3) {
-      return "/images/bathroom-dirty-vs-clean.png" // Most dramatic transformation
-    } else if (sliderValue < 5) {
-      return "/images/kitchen-dirty-vs-clean.png" // Heavy cleaning needed
-    } else if (sliderValue < 7) {
-      return "/images/living-room-dirty-vs-clean.png" // Standard cleaning
-    } else if (sliderValue < 9) {
-      return "/images/bedroom-dirty-vs-clean.png" // Light cleaning
-    } else {
-      return "/images/mr-clean-hero.png" // Hero shot for pristine spaces
-    }
-  }
-
-  // Professional descriptions matching the cinematic quality
-  const getCleanlinessDescription = () => {
-    if (sliderValue < 3) {
-      return "Extreme Restoration Required"
-    } else if (sliderValue < 5) {
-      return "Deep Cleaning Transformation"
-    } else if (sliderValue < 7) {
-      return "Professional Standard Cleaning"
-    } else if (sliderValue < 9) {
-      return "Maintenance & Perfection"
-    } else {
-      return "Luxury Preservation Service"
-    }
-  }
-
-  // Professional service descriptions
-  const getServiceDescription = () => {
-    if (sliderValue < 3) {
-      return "Our restoration specialists will transform your space from neglected to magnificent using professional-grade equipment and techniques."
-    } else if (sliderValue < 5) {
-      return "Deep cleaning protocol with specialized tools to eliminate grime, stains, and restore surfaces to pristine condition."
-    } else if (sliderValue < 7) {
-      return "Comprehensive cleaning service that brings your space to professional standards with attention to every detail."
-    } else if (sliderValue < 9) {
-      return "Precision maintenance cleaning to preserve and enhance your already well-maintained space."
-    } else {
-      return "Luxury preservation service maintaining your pristine environment to the highest standards."
-    }
-  }
+export default function CleanlinessSlider() {
+  const [sliderValue, setSliderValue] = useState(50)
+  const selectedLevel = cleanlinessLevels.find((level) => level.value === sliderValue) || cleanlinessLevels[1] // Default to moderately dirty
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Current Space Assessment</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          Adjust the slider to indicate your space's current condition
-        </p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-8 items-center">
-        <div className="w-full lg:w-1/2 space-y-6">
-          <div className="relative">
-            <Slider
-              defaultValue={[sliderValue]}
-              max={10}
-              min={1}
-              step={1}
-              onValueChange={handleChange}
-              className="mb-6"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span className="font-medium">Needs Restoration</span>
-              <span className="font-medium">Pristine Condition</span>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center mb-3">
-              <div
-                className={cn(
-                  "w-4 h-4 rounded-full mr-3 shadow-sm",
-                  sliderValue < 3
-                    ? "bg-gradient-to-r from-red-500 to-red-600"
-                    : sliderValue < 5
-                      ? "bg-gradient-to-r from-orange-500 to-orange-600"
-                      : sliderValue < 7
-                        ? "bg-gradient-to-r from-yellow-500 to-yellow-600"
-                        : sliderValue < 9
-                          ? "bg-gradient-to-r from-green-500 to-green-600"
-                          : "bg-gradient-to-r from-blue-500 to-blue-600",
-                )}
-              ></div>
-              <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{getCleanlinessDescription()}</h4>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{getServiceDescription()}</p>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Assessment Level:</span>
-                <span className="text-lg font-bold text-gray-900 dark:text-white">{sliderValue}/10</span>
+    <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
+              <Sparkles className="h-8 w-8" />
+              How Dirty Is Your Home?
+            </CardTitle>
+            <CardDescription className="text-lg text-muted-foreground">
+              Adjust the slider to match your home's current cleanliness level for an accurate quote.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="relative w-full max-w-md mx-auto">
+              <Slider
+                min={0}
+                max={100}
+                step={50}
+                value={[sliderValue]}
+                onValueChange={(val) => setSliderValue(val[0])}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm mt-2">
+                {cleanlinessLevels.map((level) => (
+                  <span
+                    key={level.value}
+                    className={`cursor-pointer ${
+                      sliderValue === level.value ? "font-semibold text-blue-600" : "text-muted-foreground"
+                    }`}
+                    onClick={() => setSliderValue(level.value)}
+                  >
+                    {level.label}
+                  </span>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="w-full lg:w-1/2">
-          <div className="relative rounded-xl overflow-hidden h-[280px] lg:h-[320px] shadow-2xl border border-gray-200 dark:border-gray-700">
-            <img
-              src={getCleanlinessImage() || "/placeholder.svg"}
-              alt={`Professional cleaning visualization - ${getCleanlinessDescription()}`}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent">
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <div className="backdrop-blur-sm bg-black/30 rounded-lg p-4">
-                  <h5 className="font-bold text-lg mb-1">Level {sliderValue} Assessment</h5>
-                  <p className="text-sm opacity-90 font-medium">{getCleanlinessDescription()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            <motion.div
+              key={selectedLevel.value} // Key for re-animation on value change
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center space-y-4"
+            >
+              <Image
+                src={selectedLevel.image || "/placeholder.svg"}
+                alt={selectedLevel.label}
+                width={600}
+                height={400}
+                className="rounded-lg shadow-md mx-auto object-cover w-full h-64"
+              />
+              <h3 className="text-2xl font-bold flex items-center justify-center gap-2">
+                <selectedLevel.icon className="h-6 w-6 text-blue-600" />
+                {selectedLevel.label}
+              </h3>
+              <p className="text-lg text-muted-foreground">{selectedLevel.description}</p>
+            </motion.div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </section>
   )
 }

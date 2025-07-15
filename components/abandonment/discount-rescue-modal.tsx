@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,101 +9,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { useRouter } from "next/navigation"
+import { Gift } from "lucide-react"
 
 interface DiscountRescueModalProps {
-  isOpen: boolean
   onClose: () => void
-  discountPercentage: number
-  onEmailCapture?: (email: string) => void
+  onAccept: () => void
 }
 
-export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEmailCapture }: DiscountRescueModalProps) {
-  const [email, setEmail] = useState("")
-  const [isValid, setIsValid] = useState(false)
-  const [countdown, setCountdown] = useState(300) // 5 minutes in seconds
-  const router = useRouter()
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout
-
-    if (isOpen) {
-      timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
-
-    return () => {
-      if (timer) clearInterval(timer)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    setIsValid(emailRegex.test(email))
-  }, [email])
-
-  const handleSubmit = () => {
-    if (isValid && onEmailCapture) {
-      onEmailCapture(email)
-    }
-
-    // Apply discount to localStorage
-    localStorage.setItem("appliedDiscount", discountPercentage.toString())
-
-    // Redirect to cart
-    router.push("/cart")
-    onClose()
-  }
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
-  }
-
+export default function DiscountRescueModal({ onClose, onAccept }: DiscountRescueModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Wait! Special Offer Just For You</DialogTitle>
-          <DialogDescription className="text-center pt-2">
-            <span className="block text-3xl font-bold text-green-600">{discountPercentage}% OFF</span>
-            <span className="block mt-2">Complete your booking now and save!</span>
-            <div className="mt-4 text-amber-600 font-semibold">Offer expires in: {formatTime(countdown)}</div>
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px] p-6">
+        <DialogHeader className="flex flex-col items-center text-center">
+          <Gift className="h-12 w-12 text-green-500 mb-4" />
+          <DialogTitle className="text-2xl font-bold">Don't Leave Empty-Handed!</DialogTitle>
+          <DialogDescription className="text-base text-gray-600">
+            We'd love to help you get your home sparkling clean. Here's a special offer just for you!
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex flex-col space-y-4 py-4">
-          <p className="text-sm text-gray-500">Enter your email to claim this exclusive discount:</p>
-          <Input
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="col-span-3"
-          />
+        <div className="grid gap-4 py-4">
+          <div className="text-center text-3xl font-extrabold text-green-600">10% OFF Your Entire Order!</div>
+          <p className="text-sm text-muted-foreground text-center">
+            Apply this discount now and complete your booking.
+          </p>
         </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-4">
-          <Button type="button" variant="outline" onClick={onClose} className="sm:w-auto w-full order-2 sm:order-1">
-            No thanks
+        <DialogFooter className="flex flex-col sm:flex-row gap-3">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto bg-transparent">
+            No, thanks
           </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isValid}
-            className="sm:w-auto w-full order-1 sm:order-2 bg-green-600 hover:bg-green-700"
-          >
-            Claim {discountPercentage}% Discount
+          <Button onClick={onAccept} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
+            Claim Discount
           </Button>
         </DialogFooter>
       </DialogContent>

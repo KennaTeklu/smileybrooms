@@ -7,20 +7,23 @@ import { Badge } from "@/components/ui/badge"
 import { useAdvancedAnimations } from "@/hooks/useAdvancedAnimations"
 import { usePerformanceOptimization } from "@/hooks/usePerformanceOptimization"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { useOptimizedRendering } from "@/hooks/useOptimizedRendering" // Assuming this hook exists
 import styles from "./cart.module.css"
 
 interface OptimizedCartButtonProps {
-  itemCount: number
-  totalPrice: number
-  onClick: () => void
-  isOpen: boolean
   className?: string
   disabled?: boolean
 }
 
 export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartButtonProps>(
-  ({ itemCount, totalPrice, onClick, isOpen, className, disabled = false }, ref) => {
+  ({ className, disabled = false }, ref) => {
     const buttonRef = useRef<HTMLButtonElement>(null)
+    const { cart } = useCart()
+    const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
+    const totalPrice = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
     const lastItemCountRef = useRef(itemCount)
 
     // Advanced physics-based animations
@@ -32,6 +35,9 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
       enableFPSMonitoring: true,
       enableRenderTimeTracking: true,
     })
+
+    // Use a hook to optimize rendering, e.g., only re-render if itemCount changes significantly
+    const shouldRender = useOptimizedRendering(itemCount)
 
     // Adaptive quality based on performance
     const quality = getAdaptiveQuality()
@@ -58,7 +64,7 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
     useEffect(() => {
       let floatingInterval: NodeJS.Timeout
 
-      if (itemCount > 0 && !isOpen && !shouldUseReducedAnimations) {
+      if (itemCount > 0 && !cart.isOpen && !shouldUseReducedAnimations) {
         floatingInterval = setInterval(() => {
           animateFloat(2)
         }, 3000)
@@ -69,7 +75,7 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
           clearInterval(floatingInterval)
         }
       }
-    }, [itemCount, isOpen, animateFloat, shouldUseReducedAnimations])
+    }, [itemCount, cart.isOpen, animateFloat, shouldUseReducedAnimations])
 
     // Optimized event handlers
     const handleMouseEnter = useCallback(() => {
@@ -99,8 +105,8 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
 
     const handleClick = useCallback(() => {
       endInteractionMeasurement()
-      onClick()
-    }, [onClick, endInteractionMeasurement])
+      // Redirect to cart page
+    }, [endInteractionMeasurement])
 
     // Haptic feedback for mobile
     const triggerHapticFeedback = useCallback(() => {
@@ -117,82 +123,80 @@ export const OptimizedCartButton = forwardRef<HTMLButtonElement, OptimizedCartBu
 
     const ariaLabel = `Shopping Cart (${itemCount} items, $${totalPrice.toFixed(2)})`
 
+    if (!shouldRender) {
+      return null // Or a lightweight placeholder
+    }
+
     return (
-      <Button
-        ref={ref || buttonRef}
-        onClick={handleEnhancedClick}
-        disabled={disabled}
-        className={cn(styles.cartButton, className)}
-        style={{
-          ...getAnimatedStyle(),
-          backgroundColor: "var(--primary)",
-          color: "var(--primary-foreground)",
-          // Performance optimizations
-          backfaceVisibility: "hidden",
-          perspective: 1000,
-          transformStyle: "preserve-3d",
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchEnd={handleMouseUp}
-        aria-label={ariaLabel}
-        aria-expanded={isOpen}
-        aria-controls="cart-panel"
-        data-testid="optimized-cart-button"
-        data-performance-quality={quality}
-        data-is-animating={isAnimating}
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
-        <ShoppingCart
-          className="h-5 w-5 sm:h-6 sm:w-6"
-          aria-hidden="true"
+        <Button
+          asChild
+          className={cn(styles.cartButton, className)}
+          ref={ref || buttonRef}
+          disabled={disabled}
+          aria-label={ariaLabel}
+          aria-expanded={cart.isOpen}
+          aria-controls="cart-panel"
+          data-testid="optimized-cart-button"
+          data-performance-quality={quality}
+          data-is-animating={isAnimating}
           style={{
-            // Optimize icon rendering
-            willChange: shouldUseReducedAnimations ? "auto" : "transform",
+            ...getAnimatedStyle(),
+            backgroundColor: "var(--primary)",
+            color: "var(--primary-foreground)",
+            backfaceVisibility: "hidden",
+            perspective: 1000,
+            transformStyle: "preserve-3d",
           }}
-        />
-
-        {itemCount > 0 && (
-          <Badge
-            className={cn(styles.cartBadge)}
-            style={{
-              backgroundColor: "var(--destructive)",
-              color: "var(--destructive-foreground)",
-              // Optimize badge rendering
-              willChange: shouldUseReducedAnimations ? "auto" : "transform, opacity",
-              animation: shouldUseReducedAnimations ? "none" : undefined,
-            }}
-            aria-label={`${itemCount} items in cart`}
-          >
-            {itemCount > 99 ? "99+" : itemCount}
-          </Badge>
-        )}
-
-        {/* High value indicator with performance optimization */}
-        {totalPrice > 200 && !shouldUseReducedAnimations && (
-          <div
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse"
-            aria-hidden="true"
-            style={{
-              willChange: "opacity",
-              backfaceVisibility: "hidden",
-            }}
-          />
-        )}
-
-        {/* Performance indicator (development only) */}
-        {process.env.NODE_ENV === "development" && (
-          <div
-            className="absolute -top-2 -left-2 w-2 h-2 rounded-full"
-            style={{
-              backgroundColor: quality === "high" ? "green" : quality === "medium" ? "yellow" : "red",
-            }}
-            title={`Performance: ${quality}`}
-          />
-        )}
-      </Button>
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onTouchStart={handleMouseDown}
+          onTouchEnd={handleMouseUp}
+        >
+          <Link href="/cart" onClick={handleEnhancedClick}>
+            <ShoppingCart
+              className="h-5 w-5 sm:h-6 sm:w-6"
+              aria-hidden="true"
+              style={{ willChange: shouldUseReducedAnimations ? "auto" : "transform" }}
+            />
+            {itemCount > 0 && (
+              <Badge
+                className={cn(styles.cartBadge)}
+                style={{
+                  backgroundColor: "var(--destructive)",
+                  color: "var(--destructive-foreground)",
+                  willChange: shouldUseReducedAnimations ? "auto" : "transform, opacity",
+                  animation: shouldUseReducedAnimations ? "none" : undefined,
+                }}
+                aria-label={`${itemCount} items in cart`}
+              >
+                {itemCount > 99 ? "99+" : itemCount}
+              </Badge>
+            )}
+            {totalPrice > 200 && !shouldUseReducedAnimations && (
+              <div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 animate-pulse"
+                aria-hidden="true"
+                style={{ willChange: "opacity", backfaceVisibility: "hidden" }}
+              />
+            )}
+            {process.env.NODE_ENV === "development" && (
+              <div
+                className="absolute -top-2 -left-2 w-2 h-2 rounded-full"
+                style={{ backgroundColor: quality === "high" ? "green" : quality === "medium" ? "yellow" : "red" }}
+                title={`Performance: ${quality}`}
+              />
+            )}
+          </Link>
+        </Button>
+      </motion.div>
     )
   },
 )

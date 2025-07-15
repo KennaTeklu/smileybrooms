@@ -1,67 +1,64 @@
-/* Payment method styling */
-.payment-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+/* Base styles for payment-optimized themes */
+:root {
+  --payment-theme-bg: #f8f9fa;
+  --payment-theme-card-bg: #ffffff;
+  --payment-theme-text: #212529;
+  --payment-theme-primary: #007bff;
+  --payment-theme-border: #dee2e6;
 }
 
-.payment-icon.standard {
-  background-color: #f4f4f5;
-  color: #18181b;
+/* Light theme (default) */
+.light-payment-theme {
+  --payment-theme-bg: #f8f9fa;
+  --payment-theme-card-bg: #ffffff;
+  --payment-theme-text: #212529;
+  --payment-theme-primary: #007bff;
+  --payment-theme-border: #dee2e6;
 }
 
-.payment-icon.black {
-  background-color: #000000;
-  color: #ffffff;
+/* Dark theme */
+.dark-payment-theme {
+  --payment-theme-bg: #212529;
+  --payment-theme-card-bg: #343a40;
+  --payment-theme-text: #f8f9fa;
+  --payment-theme-primary: #66b3ff;
+  --payment-theme-border: #495057;
 }
 
-.payment-icon.material {
-  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335);
-  color: #ffffff;
+/* High-security theme */
+.security-payment-theme {
+  --payment-theme-bg: #e9ecef;
+  --payment-theme-card-bg: #ffffff;
+  --payment-theme-text: #343a40;
+  --payment-theme-primary: #28a745; /* Green for security */
+  --payment-theme-border: #c3e6cb;
+  font-family: "Roboto Mono", monospace; /* Monospaced font for a secure feel */
 }
 
-.payment-icon.blue {
-  background-color: #0070ba;
-  color: #ffffff;
+/* Express checkout theme */
+.express-payment-theme {
+  --payment-theme-bg: #e0f7fa;
+  --payment-theme-card-bg: #ffffff;
+  --payment-theme-text: #004d40;
+  --payment-theme-primary: #00bcd4; /* Cyan for speed */
+  --payment-theme-border: #b2ebf2;
+  border-radius: 8px; /* Slightly more rounded for a modern feel */
 }
 
-.payment-icon.orange {
-  background-color: #ff9900;
-  color: #000000;
+/* Apply variables */
+body {
+  background-color: var(--payment-theme-bg);
+  color: var(--payment-theme-text);
 }
 
-/* Device-specific styling */
-.ios-card {
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+/* Example usage in components */
+.payment-theme-card {
+  background-color: var(--payment-theme-card-bg);
+  border: 1px solid var(--payment-theme-border);
+  color: var(--payment-theme-text);
 }
 
-.android-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.desktop-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.recommended-payment {
-  background-color: rgba(59, 130, 246, 0.05);
-}
-
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .payment-icon.standard {
-    background-color: #27272a;
-    color: #f4f4f5;
-  }
-
-  .recommended-payment {
-    background-color: rgba(59, 130, 246, 0.1);
-  }
+.payment-theme-button {
+  background-color: var(--payment-theme-primary);
+  color: var(--payment-theme-card-bg); /* Text color contrasting with primary */
 }

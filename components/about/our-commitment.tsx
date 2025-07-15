@@ -1,51 +1,53 @@
-"use client"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CheckCircle, Shield, Users, Leaf } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
+export default function OurCommitment() {
+  const commitments = [
+    {
+      icon: CheckCircle,
+      title: "Quality Assurance",
+      description: "Rigorous training and quality checks ensure every clean meets our high standards.",
+    },
+    {
+      icon: Shield,
+      title: "Safety & Security",
+      description: "Fully insured and bonded professionals for your peace of mind.",
+    },
+    {
+      icon: Users,
+      title: "Professional Team",
+      description: "Experienced, vetted, and friendly cleaning specialists dedicated to your satisfaction.",
+    },
+    {
+      icon: Leaf,
+      title: "Eco-Conscious Cleaning",
+      description: "Using non-toxic, biodegradable products for a healthier home and planet.",
+    },
+  ]
 
-export function OurCommitment() {
   return (
-    <section className="h-full flex items-center justify-center bg-gradient-to-b from-primary/10 to-transparent py-16">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold mb-6 text-center">Our Commitment</h2>
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">To Our Customers</h3>
-                  <p>
-                    We promise to deliver exceptional cleaning services that exceed your expectations. We respect your
-                    home or office as if it were our own, using only the highest quality products and techniques.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">To Our Employees</h3>
-                  <p>
-                    We're committed to providing fair wages, comprehensive training, and opportunities for growth. Our
-                    team members are the heart of our business, and we invest in their success and well-being.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">To Our Environment</h3>
-                  <p>
-                    We use eco-friendly cleaning products and sustainable practices whenever possible. We're constantly
-                    researching and implementing new ways to reduce our environmental footprint.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">To Our Community</h3>
-                  <p>
-                    We actively participate in community initiatives and support local causes. We believe in giving back
-                    to the communities that have helped us grow.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+    <section className="py-12 md:py-20 bg-blue-50 dark:bg-blue-950">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Our Commitment to You</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {commitments.map((commitment, index) => {
+            const Icon = commitment.icon
+            return (
+              <Card key={index} className="text-center shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto p-4 rounded-full bg-white dark:bg-gray-800 text-blue-600 mb-4">
+                    <Icon className="h-8 w-8" />
+                  </div>
+                  <CardTitle className="text-xl font-semibold">{commitment.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{commitment.description}</p>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </div>
     </section>
   )
 }
-
-export default OurCommitment
