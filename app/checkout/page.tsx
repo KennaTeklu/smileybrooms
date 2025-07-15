@@ -185,6 +185,7 @@ export default function CheckoutPage() {
             onSave={(data) => handleSaveStepData("payment", data)}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            checkoutData={checkoutData}
           />
         )
       case "review":
