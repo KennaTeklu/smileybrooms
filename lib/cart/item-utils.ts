@@ -1,70 +1,60 @@
 import type { CartItem } from "./types"
-import type { RoomConfig, RoomType, RoomTier, AddOn, Reduction } from "@/lib/types" // Assuming these types exist
+import type { RoomConfig } from "@/lib/room-context"
+import { RoomTier } from "@/lib/room-tiers"
 
 /**
  * Generates a unique ID for a cart item based on its room configuration.
- * This ensures that items with the same configuration have the same ID,
- * allowing for proper quantity aggregation in the cart.
- * @param roomType The type of room (e.g., 'bedroom', 'bathroom').
- * @param selectedTier The selected cleaning tier.
- * @param selectedAddOns An array of selected add-on values.
- * @param selectedReductions An array of selected reduction values.
+ * This ensures that the same room configuration always results in the same ID,
+ * allowing for proper quantity management in the cart.
+ * @param roomConfig The room configuration object.
  * @returns A unique string ID for the cart item.
  */
-export function generateRoomCartItemId(
-  roomType: RoomType,
-  selectedTier: RoomTier["value"],
-  selectedAddOns: AddOn["value"][],
-  selectedReductions: Reduction["value"][],
-): string {
-  // Sort add-ons and reductions to ensure consistent ID regardless of order
-  const sortedAddOns = [...selectedAddOns].sort().join("-")
-  const sortedReductions = [...selectedReductions].sort().join("-")
+export function generateCartItemId(roomConfig: RoomConfig): string {
+  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
 
-  return `room-${roomType}-${selectedTier}-${sortedAddOns}-${sortedReductions}`
+  // Sort add-ons and reductions to ensure consistent ID regardless of order
+  const sortedAddOns = [...selectedAddOns].sort().join(",")
+  const sortedReductions = [...selectedReductions].sort().join(",")
+
+  return `${roomType}-${selectedTier}-${sortedAddOns}-${sortedReductions}`
 }
 
 /**
  * Creates a CartItem object from a RoomConfig.
- * @param roomConfig The room configuration object.
+ * @param roomConfig The room configuration.
  * @param price The calculated price for the room.
- * @param quantity The quantity of this room configuration.
+ * @param quantity The quantity of this item.
  * @returns A CartItem object.
  */
-export function createCartItemFromRoomConfig(roomConfig: RoomConfig, price: number, quantity: number): CartItem {
-  const id = generateRoomCartItemId(
-    roomConfig.roomType,
-    roomConfig.selectedTier,
-    roomConfig.selectedAddOns,
-    roomConfig.selectedReductions,
-  )
+export function createCartItemFromRoomConfig(roomConfig: RoomConfig, price: number, quantity = 1): CartItem {
+  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
+  const id = generateCartItemId(roomConfig)
 
-  // Determine a more descriptive name for the cart item
-  const tierName = roomConfig.selectedTier.replace(/_/g, " ") // e.g., "standard_clean" -> "standard clean"
-  const roomName = roomConfig.roomType.replace(/_/g, " ") // e.g., "master_bedroom" -> "master bedroom"
-  let name = `${roomName} (${tierName})`
+  // Determine the display name for the cart item
+  let name = `${roomType.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`
+  if (selectedTier !== RoomTier.Standard) {
+    name += ` (${selectedTier.replace(/\b\w/g, (l) => l.toUpperCase())})`
+  }
 
-  if (roomConfig.selectedAddOns.length > 0) {
-    name += ` + ${roomConfig.selectedAddOns.length} add-on(s)`
+  const descriptionParts: string[] = []
+  if (selectedAddOns.length > 0) {
+    descriptionParts.push(`Add-ons: ${selectedAddOns.map((a) => a.replace(/-/g, " ")).join(", ")}`)
   }
-  if (roomConfig.selectedReductions.length > 0) {
-    name += ` - ${roomConfig.selectedReductions.length} reduction(s)`
+  if (selectedReductions.length > 0) {
+    descriptionParts.push(`Reductions: ${selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}`)
   }
+  const description = descriptionParts.join("; ")
 
   return {
-    id: id,
-    name: name,
-    price: price,
-    quantity: quantity,
-    image: roomConfig.image || "/placeholder.svg", // Use roomConfig image if available
-    description: `Cleaning service for ${roomName} with ${tierName} tier.`,
-    metadata: {
-      roomType: roomConfig.roomType,
-      selectedTier: roomConfig.selectedTier,
-      selectedAddOns: roomConfig.selectedAddOns,
-      selectedReductions: roomConfig.selectedReductions,
-      timeEstimate: roomConfig.timeEstimate,
-      // Add any other relevant metadata from roomConfig
-    },
+    id,
+    name,
+    price,
+    quantity,
+    image: `/images/${roomType}-professional.png`, // Example image path
+    roomType,
+    selectedTier,
+    selectedAddOns,
+    selectedReductions,
+    description: description || "Standard cleaning service",
   }
 }

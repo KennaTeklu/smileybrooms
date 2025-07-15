@@ -1,23 +1,18 @@
 "use client"
 
-import { SelectItem } from "@/components/ui/select"
-
-import { SelectContent } from "@/components/ui/select"
-
-import { SelectValue } from "@/components/ui/select"
-
-import { SelectTrigger } from "@/components/ui/select"
-
-import { Select } from "@/components/ui/select"
-
 import type React from "react"
-
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useState, useEffect } from "react"
+import { ArrowLeft, ArrowRight, CreditCard, Banknote, Wallet } from "lucide-react"
+import { motion } from "framer-motion"
+import { useToast } from "@/components/ui/use-toast"
+import type { CheckoutData } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { US_STATES } from "@/lib/location-data"
 import {
   isValidUSZip,
   isValidStreetAddress,
@@ -27,467 +22,375 @@ import {
 } from "@/lib/validation/address-validation"
 
 interface PaymentStepProps {
-  data: {
-    paymentMethod: string
-    cardDetails: {
-      cardNumber: string
-      expiryDate: string
-      cvc: string
-      cardholderName: string
-    }
-    billingAddressSameAsService: boolean
-    billingAddress: {
-      street: string
-      city: string
-      state: string
-      zip: string
-      unit?: string
-    }
-    serviceAddress: {
-      street: string
-      city: string
-      state: string
-      zip: string
-      unit?: string
-    }
-  }
-  onNext: (data: any) => void
-  onBack: () => void
+  data: CheckoutData["payment"]
+  onSave: (data: CheckoutData["payment"]) => void
+  onNext: () => void
+  onPrevious: () => void
 }
 
-const US_STATES = [
-  { value: "AL", label: "Alabama" },
-  { value: "AK", label: "Alaska" },
-  { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" },
-  { value: "CA", label: "California" },
-  { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" },
-  { value: "DE", label: "Delaware" },
-  { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" },
-  { value: "HI", label: "Hawaii" },
-  { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" },
-  { value: "IN", label: "Indiana" },
-  { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
-  { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" },
-  { value: "MD", label: "Maryland" },
-  { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" },
-  { value: "MN", label: "Minnesota" },
-  { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" },
-  { value: "MT", label: "Montana" },
-  { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" },
-  { value: "NH", label: "New Hampshire" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" },
-  { value: "NY", label: "New York" },
-  { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" },
-  { value: "OH", label: "Ohio" },
-  { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" },
-  { value: "PA", label: "Pennsylvania" },
-  { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" },
-  { value: "SD", label: "South Dakota" },
-  { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" },
-  { value: "UT", label: "Utah" },
-  { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" },
-  { value: "WA", label: "Washington" },
-  { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" },
-  { value: "WY", label: "Wyoming" },
-]
-
-export function PaymentStep({ data, onNext, onBack }: PaymentStepProps) {
-  const [paymentMethod, setPaymentMethod] = useState(data.paymentMethod || "credit_card")
-  const [cardNumber, setCardNumber] = useState(data.cardDetails.cardNumber || "")
-  const [expiryDate, setExpiryDate] = useState(data.cardDetails.expiryDate || "")
-  const [cvc, setCvc] = useState(data.cardDetails.cvc || "")
-  const [cardholderName, setCardholderName] = useState(data.cardDetails.cardholderName || "")
-  const [billingAddressSameAsService, setBillingAddressSameAsService] = useState(
-    data.billingAddressSameAsService ?? true,
-  )
-  const [billingStreet, setBillingStreet] = useState(data.billingAddress.street || "")
-  const [billingCity, setBillingCity] = useState(data.billingAddress.city || "")
-  const [billingState, setBillingState] = useState(data.billingAddress.state || "")
-  const [billingZip, setBillingZip] = useState(data.billingAddress.zip || "")
-  const [billingUnit, setBillingUnit] = useState(data.billingAddress.unit || "")
-
-  const [cardNumberError, setCardNumberError] = useState<string | null>(null)
-  const [expiryDateError, setExpiryDateError] = useState<string | null>(null)
-  const [cvcError, setCvcError] = useState<string | null>(null)
-  const [cardholderNameError, setCardholderNameError] = useState<string | null>(null)
-  const [billingStreetError, setBillingStreetError] = useState<string | null>(null)
-  const [billingCityError, setBillingCityError] = useState<string | null>(null)
-  const [billingStateError, setBillingStateError] = useState<string | null>(null)
-  const [billingZipError, setBillingZipError] = useState<string | null>(null)
+export default function PaymentStep({ data, onSave, onNext, onPrevious }: PaymentStepProps) {
+  const { toast } = useToast()
+  const [paymentData, setPaymentData] = useState(data)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setPaymentMethod(data.paymentMethod || "credit_card")
-    setCardNumber(data.cardDetails.cardNumber || "")
-    setExpiryDate(data.cardDetails.expiryDate || "")
-    setCvc(data.cardDetails.cvc || "")
-    setCardholderName(data.cardDetails.cardholderName || "")
-    setBillingAddressSameAsService(data.billingAddressSameAsService ?? true)
-    setBillingStreet(data.billingAddress.street || "")
-    setBillingCity(data.billingAddress.city || "")
-    setBillingState(data.billingAddress.state || "")
-    setBillingZip(data.billingAddress.zip || "")
-    setBillingUnit(data.billingAddress.unit || "")
+    setPaymentData(data)
   }, [data])
 
+  const handleChange = (field: string, value: string) => {
+    setPaymentData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const handleCardDetailsChange = (field: string, value: string) => {
+    setPaymentData((prev) => ({
+      ...prev,
+      cardDetails: {
+        ...prev.cardDetails,
+        [field]: value,
+      },
+    }))
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const handleBillingAddressChange = (field: string, value: string) => {
+    let processedValue = value
+    if (field === "zipCode") {
+      processedValue = formatUSZip(value)
+    }
+    setPaymentData((prev) => ({
+      ...prev,
+      billingAddress: {
+        ...prev.billingAddress,
+        [field]: processedValue,
+      },
+    }))
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
   const validateForm = () => {
-    let isValid = true
+    const newErrors: Record<string, string> = {}
 
-    if (paymentMethod === "credit_card") {
-      if (!cardNumber.replace(/\s/g, "").match(/^\d{13,19}$/)) {
-        setCardNumberError("Please enter a valid card number.")
-        isValid = false
-      } else {
-        setCardNumberError(null)
-      }
+    if (paymentData.method === "credit_card") {
+      if (!paymentData.cardDetails.cardholderName.trim()) newErrors.cardholderName = "Cardholder name is required"
+      if (!paymentData.cardDetails.cardNumber.trim()) newErrors.cardNumber = "Card number is required"
+      else if (!/^\d{16}$/.test(paymentData.cardDetails.cardNumber.replace(/\s/g, "")))
+        newErrors.cardNumber = "Card number must be 16 digits"
+      if (!paymentData.cardDetails.expiryDate.trim()) newErrors.expiryDate = "Expiry date is required"
+      else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(paymentData.cardDetails.expiryDate))
+        newErrors.expiryDate = "Expiry date must be MM/YY"
+      if (!paymentData.cardDetails.cvc.trim()) newErrors.cvc = "CVC is required"
+      else if (!/^\d{3,4}$/.test(paymentData.cardDetails.cvc)) newErrors.cvc = "CVC must be 3 or 4 digits"
 
-      if (!expiryDate.match(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/)) {
-        setExpiryDateError("Invalid expiry date (MM/YY).")
-        isValid = false
-      } else {
-        setExpiryDateError(null)
-      }
-
-      if (!cvc.match(/^\d{3,4}$/)) {
-        setCvcError("Invalid CVC.")
-        isValid = false
-      } else {
-        setCvcError(null)
-      }
-
-      if (!cardholderName.trim()) {
-        setCardholderNameError("Cardholder name is required.")
-        isValid = false
-      } else {
-        setCardholderNameError(null)
-      }
-
-      if (!billingAddressSameAsService) {
-        if (!billingStreet.trim() || !isValidStreetAddress(billingStreet)) {
-          setBillingStreetError("Please enter a valid street address.")
-          isValid = false
-        } else {
-          setBillingStreetError(null)
-        }
-
-        if (!billingCity.trim() || !isValidCity(billingCity)) {
-          setBillingCityError("Please enter a valid city.")
-          isValid = false
-        } else {
-          setBillingCityError(null)
-        }
-
-        if (!billingState.trim() || !isValidUSState(billingState)) {
-          setBillingStateError("Please select a state.")
-          isValid = false
-        } else {
-          setBillingStateError(null)
-        }
-
-        if (!billingZip.trim() || !isValidUSZip(billingZip)) {
-          setBillingZipError("Please enter a valid 5-digit ZIP code.")
-          isValid = false
-        } else {
-          setBillingZipError(null)
-        }
+      if (!paymentData.billingAddressSameAsService) {
+        if (!paymentData.billingAddress.address.trim())
+          newErrors.billingAddress_address = "Billing street address is required"
+        else if (!isValidStreetAddress(paymentData.billingAddress.address))
+          newErrors.billingAddress_address = "Billing street address is invalid"
+        if (!paymentData.billingAddress.city.trim()) newErrors.billingAddress_city = "Billing city is required"
+        else if (!isValidCity(paymentData.billingAddress.city))
+          newErrors.billingAddress_city = "Billing city is invalid"
+        if (!paymentData.billingAddress.state) newErrors.billingAddress_state = "Billing state is required"
+        else if (!isValidUSState(paymentData.billingAddress.state))
+          newErrors.billingAddress_state = "Invalid billing state selected"
+        if (!paymentData.billingAddress.zipCode.trim())
+          newErrors.billingAddress_zipCode = "Billing ZIP code is required"
+        else if (!isValidUSZip(paymentData.billingAddress.zipCode))
+          newErrors.billingAddress_zipCode = "Billing ZIP code is invalid (e.g., 10001 or 10001-1234)"
       }
     }
 
-    return isValid
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      onNext({
-        paymentMethod,
-        cardDetails: { cardNumber, expiryDate, cvc, cardholderName },
-        billingAddressSameAsService,
-        billingAddress: billingAddressSameAsService
-          ? data.serviceAddress // Use service address if same
-          : { street: billingStreet, city: billingCity, state: billingState, zip: billingZip, unit: billingUnit },
+      setIsSubmitting(true)
+      onSave(paymentData)
+      onNext()
+      setIsSubmitting(false)
+    } else {
+      toast({
+        title: "Please check your information",
+        description: "Some required fields are missing or invalid.",
+        variant: "destructive",
       })
     }
   }
 
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "") // Remove non-digits
-    const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ") // Add space every 4 digits
-    setCardNumber(formattedValue.trim())
-    if (cardNumberError && formattedValue.replace(/\s/g, "").match(/^\d{13,19}$/)) {
-      setCardNumberError(null)
-    }
-  }
-
-  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "") // Remove non-digits
-    if (value.length > 2) {
-      value = value.slice(0, 2) + "/" + value.slice(2, 4)
-    }
-    setExpiryDate(value)
-    if (expiryDateError && value.match(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/)) {
-      setExpiryDateError(null)
-    }
-  }
-
-  const handleCvcChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 4) // Max 4 digits
-    setCvc(value)
-    if (cvcError && value.match(/^\d{3,4}$/)) {
-      setCvcError(null)
-    }
-  }
-
-  const handleBillingZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatUSZip(e.target.value)
-    setBillingZip(formatted)
-    if (billingZipError && isValidUSZip(formatted)) {
-      setBillingZipError(null)
-    }
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-2">
-        <Label>Payment Method</Label>
-        <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="flex gap-4">
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="credit_card" id="credit_card" />
-            <Label htmlFor="credit_card">Credit Card</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="paypal" id="paypal" disabled />
-            <Label htmlFor="paypal">PayPal (Coming Soon)</Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      {paymentMethod === "credit_card" && (
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="cardNumber">Card Number</Label>
-            <Input
-              id="cardNumber"
-              value={cardNumber}
-              onChange={handleCardNumberChange}
-              placeholder="XXXX XXXX XXXX XXXX"
-              maxLength={19} // Max length for formatted number
-              required
-              aria-invalid={cardNumberError ? "true" : "false"}
-              aria-describedby={cardNumberError ? "cardNumber-error" : undefined}
-            />
-            {cardNumberError && (
-              <p id="cardNumber-error" className="text-red-500 text-sm">
-                {cardNumberError}
-              </p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="expiryDate">Expiry Date (MM/YY)</Label>
-              <Input
-                id="expiryDate"
-                value={expiryDate}
-                onChange={handleExpiryDateChange}
-                placeholder="MM/YY"
-                maxLength={5}
-                required
-                aria-invalid={expiryDateError ? "true" : "false"}
-                aria-describedby={expiryDateError ? "expiryDate-error" : undefined}
-              />
-              {expiryDateError && (
-                <p id="expiryDate-error" className="text-red-500 text-sm">
-                  {expiryDateError}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="cvc">CVC</Label>
-              <Input
-                id="cvc"
-                value={cvc}
-                onChange={handleCvcChange}
-                placeholder="XXX"
-                maxLength={4}
-                required
-                aria-invalid={cvcError ? "true" : "false"}
-                aria-describedby={cvcError ? "cvc-error" : undefined}
-              />
-              {cvcError && (
-                <p id="cvc-error" className="text-red-500 text-sm">
-                  {cvcError}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="cardholderName">Cardholder Name</Label>
-            <Input
-              id="cardholderName"
-              value={cardholderName}
-              onChange={(e) => {
-                setCardholderName(e.target.value)
-                if (cardholderNameError && e.target.value.trim()) {
-                  setCardholderNameError(null)
-                }
-              }}
-              placeholder="John Doe"
-              required
-              aria-invalid={cardholderNameError ? "true" : "false"}
-              aria-describedby={cardholderNameError ? "cardholderName-error" : undefined}
-            />
-            {cardholderNameError && (
-              <p id="cardholderName-error" className="text-red-500 text-sm">
-                {cardholderNameError}
-              </p>
-            )}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Payment Information
+        </CardTitle>
+        <CardDescription>How would you like to pay for your service?</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Payment Method Selection */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Select Payment Method</h3>
+            <RadioGroup
+              value={paymentData.method}
+              onValueChange={(value) => handleChange("method", value)}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            >
+              <Label
+                htmlFor="credit_card"
+                className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer ${paymentData.method === "credit_card" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-700"}`}
+              >
+                <RadioGroupItem value="credit_card" id="credit_card" className="sr-only" />
+                <CreditCard className="h-8 w-8 mb-2 text-blue-600" />
+                <span className="font-medium">Credit Card</span>
+              </Label>
+              <Label
+                htmlFor="paypal"
+                className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer ${paymentData.method === "paypal" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-700"}`}
+              >
+                <RadioGroupItem value="paypal" id="paypal" className="sr-only" />
+                <Banknote className="h-8 w-8 mb-2 text-blue-600" />
+                <span className="font-medium">PayPal</span>
+              </Label>
+              <Label
+                htmlFor="apple_pay"
+                className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer ${paymentData.method === "apple_pay" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-700"}`}
+              >
+                <RadioGroupItem value="apple_pay" id="apple_pay" className="sr-only" />
+                <Wallet className="h-8 w-8 mb-2 text-blue-600" />
+                <span className="font-medium">Apple Pay</span>
+              </Label>
+            </RadioGroup>
           </div>
 
-          <div className="flex items-center space-x-2 mt-4">
-            <Checkbox
-              id="billingAddressSameAsService"
-              checked={billingAddressSameAsService}
-              onCheckedChange={(checked) => setBillingAddressSameAsService(!!checked)}
-            />
-            <Label htmlFor="billingAddressSameAsService">Billing address same as service address</Label>
-          </div>
-
-          {!billingAddressSameAsService && (
-            <div className="space-y-4 border p-4 rounded-md bg-gray-50 dark:bg-gray-800">
-              <h3 className="font-semibold text-lg">Billing Address</h3>
-              <div className="grid gap-2">
-                <Label htmlFor="billingStreet">Street Address</Label>
+          {/* Credit Card Details (conditionally rendered) */}
+          {paymentData.method === "credit_card" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <h3 className="text-lg font-medium">Credit Card Details</h3>
+              <div>
+                <Label htmlFor="cardholderName" className="text-base">
+                  Cardholder Name
+                </Label>
                 <Input
-                  id="billingStreet"
-                  value={billingStreet}
-                  onChange={(e) => {
-                    setBillingStreet(e.target.value)
-                    if (billingStreetError && isValidStreetAddress(e.target.value)) {
-                      setBillingStreetError(null)
-                    }
-                  }}
-                  placeholder="123 Main St"
-                  required
-                  aria-invalid={billingStreetError ? "true" : "false"}
-                  aria-describedby={billingStreetError ? "billingStreet-error" : undefined}
+                  id="cardholderName"
+                  value={paymentData.cardDetails.cardholderName}
+                  onChange={(e) => handleCardDetailsChange("cardholderName", e.target.value)}
+                  className={`mt-2 h-12 ${errors.cardholderName ? "border-red-500" : ""}`}
+                  placeholder="John Doe"
                 />
-                {billingStreetError && (
-                  <p id="billingStreet-error" className="text-red-500 text-sm">
-                    {billingStreetError}
-                  </p>
-                )}
+                {errors.cardholderName && <p className="text-red-500 text-sm mt-1">{errors.cardholderName}</p>}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="billingUnit">Unit/Apt/Suite (Optional)</Label>
+              <div>
+                <Label htmlFor="cardNumber" className="text-base">
+                  Card Number
+                </Label>
                 <Input
-                  id="billingUnit"
-                  value={billingUnit}
-                  onChange={(e) => setBillingUnit(e.target.value)}
-                  placeholder="Apt 4B"
+                  id="cardNumber"
+                  value={paymentData.cardDetails.cardNumber}
+                  onChange={(e) => handleCardDetailsChange("cardNumber", e.target.value)}
+                  className={`mt-2 h-12 ${errors.cardNumber ? "border-red-500" : ""}`}
+                  placeholder="XXXX XXXX XXXX XXXX"
+                  maxLength={19} // 16 digits + 3 spaces
                 />
+                {errors.cardNumber && <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="billingCity">City</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="expiryDate" className="text-base">
+                    Expiry Date (MM/YY)
+                  </Label>
                   <Input
-                    id="billingCity"
-                    value={billingCity}
-                    onChange={(e) => {
-                      setBillingCity(e.target.value)
-                      if (billingCityError && isValidCity(e.target.value)) {
-                        setBillingCityError(null)
-                      }
-                    }}
-                    placeholder="Anytown"
-                    required
-                    aria-invalid={billingCityError ? "true" : "false"}
-                    aria-describedby={billingCityError ? "billingCity-error" : undefined}
+                    id="expiryDate"
+                    value={paymentData.cardDetails.expiryDate}
+                    onChange={(e) => handleCardDetailsChange("expiryDate", e.target.value)}
+                    className={`mt-2 h-12 ${errors.expiryDate ? "border-red-500" : ""}`}
+                    placeholder="MM/YY"
+                    maxLength={5}
                   />
-                  {billingCityError && (
-                    <p id="billingCity-error" className="text-red-500 text-sm">
-                      {billingCityError}
-                    </p>
-                  )}
+                  {errors.expiryDate && <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>}
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="billingState">State</Label>
-                  <Select
-                    value={billingState}
-                    onValueChange={(value) => {
-                      setBillingState(value)
-                      if (billingStateError && isValidUSState(value)) {
-                        setBillingStateError(null)
-                      }
-                    }}
-                    required
-                  >
-                    <SelectTrigger
-                      id="billingState"
-                      aria-invalid={billingStateError ? "true" : "false"}
-                      aria-describedby={billingStateError ? "billingState-error" : undefined}
-                    >
-                      <SelectValue placeholder="Select a state" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {US_STATES.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {billingStateError && (
-                    <p id="billingState-error" className="text-red-500 text-sm">
-                      {billingStateError}
-                    </p>
-                  )}
+                <div>
+                  <Label htmlFor="cvc" className="text-base">
+                    CVC
+                  </Label>
+                  <Input
+                    id="cvc"
+                    value={paymentData.cardDetails.cvc}
+                    onChange={(e) => handleCardDetailsChange("cvc", e.target.value)}
+                    className={`mt-2 h-12 ${errors.cvc ? "border-red-500" : ""}`}
+                    placeholder="XXX"
+                    maxLength={4}
+                  />
+                  {errors.cvc && <p className="text-red-500 text-sm mt-1">{errors.cvc}</p>}
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="billingZip">ZIP Code</Label>
-                <Input
-                  id="billingZip"
-                  value={billingZip}
-                  onChange={handleBillingZipChange}
-                  placeholder="12345"
-                  maxLength={5}
-                  required
-                  aria-invalid={billingZipError ? "true" : "false"}
-                  aria-describedby={billingZipError ? "billingZip-error" : undefined}
-                />
-                {billingZipError && (
-                  <p id="billingZip-error" className="text-red-500 text-sm">
-                    {billingZipError}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
-      <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Back to Address
-        </Button>
-        <Button type="submit">Continue to Review</Button>
-      </div>
-    </form>
+              {/* Billing Address */}
+              <div className="flex items-center space-x-2 mt-6">
+                <input
+                  type="checkbox"
+                  id="billingAddressSameAsService"
+                  checked={paymentData.billingAddressSameAsService}
+                  onChange={(e) => handleChange("billingAddressSameAsService", e.target.checked)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <Label htmlFor="billingAddressSameAsService" className="text-base font-medium">
+                  Billing address same as service address
+                </Label>
+              </div>
+
+              {!paymentData.billingAddressSameAsService && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6 mt-4"
+                >
+                  <h3 className="text-lg font-medium">Billing Address</h3>
+                  <div>
+                    <Label htmlFor="billingAddress" className="text-base">
+                      Street Address
+                    </Label>
+                    <Input
+                      id="billingAddress"
+                      value={paymentData.billingAddress.address}
+                      onChange={(e) => handleBillingAddressChange("address", e.target.value)}
+                      className={`mt-2 h-12 ${errors.billingAddress_address ? "border-red-500" : ""}`}
+                      placeholder="123 Main Street"
+                    />
+                    {errors.billingAddress_address && (
+                      <p className="text-red-500 text-sm mt-1">{errors.billingAddress_address}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="billingAddress2" className="text-base">
+                      Apartment, suite, etc. (optional)
+                    </Label>
+                    <Input
+                      id="billingAddress2"
+                      value={paymentData.billingAddress.address2}
+                      onChange={(e) => handleBillingAddressChange("address2", e.target.value)}
+                      className="mt-2 h-12"
+                      placeholder="Apt 4B"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <Label htmlFor="billingCity" className="text-base">
+                        City
+                      </Label>
+                      <Input
+                        id="billingCity"
+                        value={paymentData.billingAddress.city}
+                        onChange={(e) => handleBillingAddressChange("city", e.target.value)}
+                        className={`mt-2 h-12 ${errors.billingAddress_city ? "border-red-500" : ""}`}
+                        placeholder="New York"
+                      />
+                      {errors.billingAddress_city && (
+                        <p className="text-red-500 text-sm mt-1">{errors.billingAddress_city}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="billingState" className="text-base">
+                        State
+                      </Label>
+                      <Select
+                        value={paymentData.billingAddress.state}
+                        onValueChange={(value) => handleBillingAddressChange("state", value)}
+                      >
+                        <SelectTrigger
+                          id="billingState"
+                          className={`mt-2 h-12 ${errors.billingAddress_state ? "border-red-500" : ""}`}
+                        >
+                          <SelectValue placeholder="Select state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {US_STATES.map((state) => (
+                            <SelectItem key={state.value} value={state.value}>
+                              {state.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.billingAddress_state && (
+                        <p className="text-red-500 text-sm mt-1">{errors.billingAddress_state}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="billingZipCode" className="text-base">
+                        ZIP Code
+                      </Label>
+                      <Input
+                        id="billingZipCode"
+                        value={paymentData.billingAddress.zipCode}
+                        onChange={(e) => handleBillingAddressChange("zipCode", e.target.value)}
+                        className={`mt-2 h-12 ${errors.billingAddress_zipCode ? "border-red-500" : ""}`}
+                        placeholder="10001"
+                      />
+                      {errors.billingAddress_zipCode && (
+                        <p className="text-red-500 text-sm mt-1">{errors.billingAddress_zipCode}</p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6">
+            <Button variant="outline" size="lg" className="px-8 bg-transparent" onClick={onPrevious}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Address
+            </Button>
+            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Continue to Review
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </motion.div>
   )
 }

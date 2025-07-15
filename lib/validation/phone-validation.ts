@@ -3,7 +3,7 @@
  */
 
 // Regex patterns for different phone formats
-const US_PHONE_REGEX = /^$$?([0-9]{3})$$?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/
+const US_PHONE_REGEX = /^(\+?1)?[-.\s]?$$?([0-9]{3})$$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/
 const INTERNATIONAL_PHONE_REGEX = /^\+(?:[0-9] ?){6,14}[0-9]$/
 
 // Country codes for reference
@@ -74,22 +74,18 @@ export function isValidPhoneForCountry(phone: string, countryCode: string): bool
  * @returns Formatted phone number or original if invalid
  */
 export function formatUSPhone(phone: string): string {
-  const cleaned = ("" + phone).replace(/\D/g, "")
-  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-  if (match) {
-    return "(" + match[1] + ") " + match[2] + "-" + match[3]
-  }
-  // Handle partial input for better UX
-  if (cleaned.length > 6) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`
-  }
-  if (cleaned.length > 3) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}`
-  }
-  if (cleaned.length > 0) {
-    return `(${cleaned.slice(0, 3)}`
-  }
-  return phone
+  if (!phone) return ""
+  // Remove all non-digit characters
+  const cleaned = phone.replace(/\D/g, "")
+
+  // Handle numbers with or without country code
+  const hasCountryCode = cleaned.length > 10 && cleaned.startsWith("1")
+  const digits = hasCountryCode ? cleaned.slice(-10) : cleaned
+
+  if (digits.length === 0) return ""
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.substring(0, 3)}) ${digits.substring(3)}`
+  return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`
 }
 
 /**
