@@ -33,11 +33,11 @@ import { formatCurrency } from "@/lib/utils"
 import { roomImages, roomDisplayNames, defaultTiers, getRoomTiers, roomTiers } from "@/lib/room-tiers"
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -55,7 +55,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const [isAddingToCart, setIsAddingToCart] = useState(false)
-  const [selectedFrequency, setSelectedFrequency] = useState<"one_time" | "monthly">("one_time")
+  // Use keyof typeof ROOM_CONFIG.frequencyMultipliers for selectedFrequency type
+  const [selectedFrequency, setSelectedFrequency] = useState<keyof typeof ROOM_CONFIG.frequencyMultipliers>("one_time")
   const [isFullHouseChecked, setIsFullHouseChecked] = useState(false)
 
   // Find the "Premium Clean" tier ID for default selection
@@ -117,9 +118,13 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const selectedRoomTypes = getSelectedRoomTypes()
   const baseTotalPrice = getTotalPrice()
 
-  // Calculate the total price to display in the modal, including the full house discount
+  // Calculate the total price to display in the modal, including frequency and full house discounts
   const displayTotalPrice = useMemo(() => {
     let price = baseTotalPrice
+    const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0 // Get multiplier
+
+    price *= frequencyMultiplier // Apply frequency discount first
+
     if (selectedFrequency === "one_time" && isFullHouseChecked) {
       price *= 0.95 // Apply 5% discount for one-time full house
     }
@@ -152,15 +157,15 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           addItem({
             id: `custom-cleaning-${roomType}-${Date.now()}`,
             name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
-            price: config.totalPrice,
+            price: config.totalPrice, // This is the base price for the room/tier
             priceId: "price_custom_cleaning",
             quantity: count,
             image: roomType.startsWith("other-custom-") ? roomImages.other : roomImages[roomType] || "/placeholder.svg",
             metadata: {
               roomType,
               roomConfig: config,
-              isRecurring: selectedFrequency === "monthly",
-              frequency: selectedFrequency,
+              isRecurring: selectedFrequency !== "one_time", // Set based on selected frequency
+              frequency: selectedFrequency, // Pass the selected frequency
               detailedTasks: config.detailedTasks,
               notIncludedTasks: config.notIncludedTasks,
               upsellMessage: config.upsellMessage,
@@ -732,29 +737,27 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                           <h4 className="font-semibold mb-3">Frequency</h4>
-                          <RadioGroup
+                          <Select
                             value={selectedFrequency}
-                            onValueChange={(value: "one_time" | "monthly") => {
+                            onValueChange={(value: keyof typeof ROOM_CONFIG.frequencyMultipliers) => {
                               setSelectedFrequency(value)
-                              if (value === "monthly") {
+                              if (value !== "one_time") {
+                                // Only allow full house for one_time
                                 setIsFullHouseChecked(false)
                               }
                             }}
-                            className="space-y-2"
                           >
-                            <div className="flex items-center space-x-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                              <RadioGroupItem value="one_time" id="freq-one" />
-                              <Label htmlFor="freq-one" className="cursor-pointer flex-1">
-                                One-time
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                              <RadioGroupItem value="monthly" id="freq-monthly" />
-                              <Label htmlFor="freq-monthly" className="cursor-pointer flex-1">
-                                Monthly
-                              </Label>
-                            </div>
-                          </RadioGroup>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60 overflow-y-auto">
+                              {Object.keys(ROOM_CONFIG.frequencyMultipliers).map((key) => (
+                                <SelectItem key={key} value={key}>
+                                  {key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {selectedFrequency === "one_time" && (
@@ -886,7 +889,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           <div className="flex justify-between items-center text-lg font-bold">
                             <span>Total</span>
                             <span className="text-blue-600 dark:text-blue-400">
-                              {formatCurrency(displayTotalPrice)} {selectedFrequency === "monthly" ? "/ month" : ""}
+                              {formatCurrency(displayTotalPrice)}{" "}
+                              {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
                             </span>
                           </div>
                           {selectedFrequency === "one_time" && isFullHouseChecked && (
