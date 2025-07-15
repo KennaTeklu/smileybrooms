@@ -270,7 +270,34 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, dispatch] = useReducer(cartReducer, initialState)
+  const [cart, dispatch] = useReducer(cartReducer, initialState, (initial) => {
+    // Initialize state from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        const storedCart = localStorage.getItem("cart")
+        if (storedCart) {
+          const parsedCart: CartState = JSON.parse(storedCart)
+          // Recalculate totals to ensure consistency with current coupon/full house logic
+          const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+            calculateCartTotals(parsedCart.items, parsedCart.couponCode)
+          return {
+            ...parsedCart,
+            totalItems,
+            subtotalPrice,
+            totalPrice,
+            couponDiscount,
+            fullHouseDiscount,
+            inPersonPaymentTotal,
+          }
+        }
+      } catch (error) {
+        console.error("Error loading cart from localStorage:", error)
+        // Optionally clear corrupted data
+        localStorage.removeItem("cart")
+      }
+    }
+    return initial
+  })
   const { toast } = useToast()
 
   // Save cart to localStorage whenever it changes
