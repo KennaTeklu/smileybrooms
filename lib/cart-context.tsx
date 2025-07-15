@@ -1,28 +1,31 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import type React from "react"
+import { createContext, useContext, useReducer, useEffect, useCallback } from "react"
 import { useToast } from "@/components/ui/use-toast"
 
-export type CartItem = {
-  id: string
-  name: string
-  price: number
-  priceId: string
-  quantity: number
-  image?: string
+// Define the structure for a single item in the cart
+export interface CartItem {
+  id: string // Unique ID for the item (e.g., generated from room config)
+  name: string // Display name of the item (e.g., "Bedroom Cleaning - Standard")
+  price: number // Price per unit of the item
+  quantity: number // Number of units of this item
+  imageUrl?: string // Optional image for the item
+  // Add specific room configuration details for better identification and display
+  roomType?: string
+  selectedTier?: string
+  selectedAddOns?: string[]
+  selectedReductions?: string[]
+  priceId?: string
   sourceSection?: string
   metadata?: Record<string, any>
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   isFullHousePromoApplied?: boolean // New field for full house promo
   paymentType?: "online" | "in_person" // Added paymentType
-  // New fields for room configuration details
-  roomType?: string
-  selectedTier?: string
-  selectedAddOns?: string[]
-  selectedReductions?: string[]
 }
 
-type CartState = {
+// Define the structure for the entire cart state
+export interface CartState {
   items: CartItem[]
   totalItems: number
   subtotalPrice: number // Renamed from totalPrice to subtotalPrice
@@ -31,18 +34,20 @@ type CartState = {
   couponDiscount: number
   fullHouseDiscount: number // New field for full house discount
   inPersonPaymentTotal: number
+  lastModified: number // Timestamp for CRDT
 }
 
-type CartAction =
-  | { type: "ADD_ITEM"; payload: CartItem }
-  | { type: "ADD_MULTIPLE_ITEMS"; payload: CartItem[] } // New action for batch adding
-  | { type: "REMOVE_ITEM"; payload: string }
-  | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
-  | { type: "CLEAR_CART" }
-  | { type: "APPLY_COUPON"; payload: string }
-  | { type: "SET_CART"; payload: CartState } // New action for loading from localStorage
+// Define action types for the reducer
+type CartActionType = "ADD_ITEM" | "REMOVE_ITEM" | "UPDATE_QUANTITY" | "CLEAR_CART" | "SET_CART" | "ADD_MULTIPLE_ITEMS"
 
-const initialState: CartState = {
+// Define the structure for cart actions
+interface CartAction {
+  type: CartActionType
+  payload?: any
+}
+
+// Initial state for the cart
+const initialCartState: CartState = {
   items: [],
   totalItems: 0,
   subtotalPrice: 0,
@@ -50,7 +55,15 @@ const initialState: CartState = {
   couponCode: null,
   couponDiscount: 0,
   fullHouseDiscount: 0,
-  inPersonPaymentTotal: 0, // Added
+  inPersonPaymentTotal: 0,
+  lastModified: Date.now(),
+}
+
+// Helper function to calculate totals
+const calculateTotals = (items: CartItem[]) => {
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  return { totalItems, totalPrice }
 }
 
 // Define valid coupons and their effects
@@ -59,6 +72,7 @@ const VALID_COUPONS: { [key: string]: { type: "percentage" | "fixed"; value: num
   FREECLEAN: { type: "fixed", value: 25 }, // $25 off
 }
 
+// Helper function to calculate cart totals with discounts
 const calculateCartTotals = (
   items: CartItem[],
   couponCode: string | null,
@@ -112,233 +126,161 @@ const calculateCartTotals = (
   }
 }
 
+// Reducer function to manage cart state
 const cartReducer = (state: CartState, action: CartAction): CartState => {
+  let updatedItems: CartItem[]
+  let newTotals: { totalItems: number; totalPrice: number }
+
   switch (action.type) {
-    case "ADD_ITEM": {
-      const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
+    case "ADD_ITEM":
+      const newItem = action.payload as CartItem
+      updatedItems = [...state.items]
+      const existingItemIndex = updatedItems.findIndex((item) => item.id === newItem.id)
 
-      let updatedItems: CartItem[]
-
-      if (existingItemIndex !== -1) {
-        updatedItems = state.items.map((item, index) =>
-          index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
-        )
+      if (existingItemIndex > -1) {
+        // Update quantity if item already exists
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + newItem.quantity,
+        }
       } else {
-        const enhancedItem = {
-          ...action.payload,
-          paymentType: action.payload.paymentType || "online",
-        }
-        updatedItems = [...state.items, enhancedItem]
+        // Add new item
+        updatedItems.push(newItem)
       }
+      newTotals = calculateTotals(updatedItems)
+      return { ...state, items: updatedItems, ...newTotals, lastModified: Date.now() }
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(updatedItems, state.couponCode)
+    case "ADD_MULTIPLE_ITEMS":
+      const newItems = action.payload as CartItem[]
+      const currentItems = [...state.items]
 
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-        fullHouseDiscount,
-        inPersonPaymentTotal,
-      }
-    }
-
-    case "ADD_MULTIPLE_ITEMS": {
-      let updatedItems = [...state.items]
-      action.payload.forEach((newItem) => {
-        const existingItemIndex = updatedItems.findIndex((item) => item.id === newItem.id)
-        if (existingItemIndex !== -1) {
-          updatedItems = updatedItems.map((item, index) =>
-            index === existingItemIndex ? { ...item, quantity: item.quantity + newItem.quantity } : item,
-          )
-        } else {
-          const enhancedItem = {
-            ...newItem,
-            paymentType: newItem.paymentType || "online",
+      newItems.forEach((newItem) => {
+        const existingIndex = currentItems.findIndex((item) => item.id === newItem.id)
+        if (existingIndex > -1) {
+          currentItems[existingIndex] = {
+            ...currentItems[existingIndex],
+            quantity: currentItems[existingIndex].quantity + newItem.quantity,
           }
-          updatedItems = [...updatedItems, enhancedItem]
+        } else {
+          currentItems.push(newItem)
         }
       })
+      newTotals = calculateTotals(currentItems)
+      return { ...state, items: currentItems, ...newTotals, lastModified: Date.now() }
 
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(updatedItems, state.couponCode)
+    case "REMOVE_ITEM":
+      updatedItems = state.items.filter((item) => item.id !== action.payload)
+      newTotals = calculateTotals(updatedItems)
+      return { ...state, items: updatedItems, ...newTotals, lastModified: Date.now() }
 
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-        fullHouseDiscount,
-        inPersonPaymentTotal,
-      }
-    }
-
-    case "REMOVE_ITEM": {
-      const updatedItems = state.items.filter((item) => item.id !== action.payload)
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(updatedItems, state.couponCode)
-
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-        fullHouseDiscount,
-        inPersonPaymentTotal, // Added
-      }
-    }
-
-    case "UPDATE_QUANTITY": {
-      const updatedItems = state.items.map((item) => {
-        if (item.id === action.payload.id) {
-          return { ...item, quantity: action.payload.quantity }
-        }
-        return item
-      })
-
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(updatedItems, state.couponCode)
-
-      return {
-        ...state,
-        items: updatedItems,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-        fullHouseDiscount,
-        inPersonPaymentTotal, // Added
-      }
-    }
-
-    case "APPLY_COUPON": {
-      const newCouponCode = action.payload.toUpperCase()
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(state.items, newCouponCode)
-
-      return {
-        ...state,
-        couponCode: newCouponCode,
-        couponDiscount,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        fullHouseDiscount,
-        inPersonPaymentTotal, // Added
-      }
-    }
+    case "UPDATE_QUANTITY":
+      const { id, quantity } = action.payload
+      updatedItems = state.items
+        .map((item) => (item.id === id ? { ...item, quantity: Math.max(0, quantity) } : item))
+        .filter((item) => item.quantity > 0) // Remove if quantity becomes 0
+      newTotals = calculateTotals(updatedItems)
+      return { ...state, items: updatedItems, ...newTotals, lastModified: Date.now() }
 
     case "CLEAR_CART":
-      return initialState
+      return { ...initialCartState, lastModified: Date.now() }
 
-    case "SET_CART": // For loading from localStorage
-      // Recalculate totals to ensure consistency with current coupon/full house logic
-      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(action.payload.items, action.payload.couponCode)
-      return {
-        ...action.payload,
-        totalItems,
-        subtotalPrice,
-        totalPrice,
-        couponDiscount,
-        fullHouseDiscount,
-        inPersonPaymentTotal, // Added
-      }
+    case "SET_CART":
+      // Used for loading from persistence
+      const loadedState = action.payload as CartState
+      return { ...loadedState, lastModified: Date.now() }
 
     default:
       return state
   }
 }
 
-type CartContextType = {
+// Create the Cart Context
+interface CartContextType {
   cart: CartState
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
-  addMultipleItems: (items: (Omit<CartItem, "quantity"> & { quantity?: number })[]) => void // New function
+  addItem: (item: CartItem) => void
+  addMultipleItems: (items: CartItem[]) => void
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
   applyCoupon: (couponCode: string) => boolean // Returns true if coupon is valid
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+export const CartContext = createContext<CartContextType | undefined>(undefined)
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, dispatch] = useReducer(cartReducer, initialState)
+// Create the Cart Provider component
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [cart, dispatch] = useReducer(cartReducer, initialCartState)
   const { toast } = useToast()
 
-  // Save cart to localStorage whenever it changes
+  // Load cart from localStorage on initial mount
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error saving cart",
-          description: "There was an error saving your cart. Please try again.",
-          variant: "destructive",
-        })
+    const loadCart = async () => {
+      const storedCart = localStorage.getItem("cart-state")
+      if (storedCart) {
+        try {
+          const parsedCart: CartState = JSON.parse(storedCart)
+          dispatch({ type: "SET_CART", payload: parsedCart })
+        } catch (error) {
+          console.error("Failed to parse stored cart:", error)
+        }
       }
     }
-  }, [cart, toast])
+    loadCart()
+  }, [])
 
-  const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-    dispatch({
-      type: "ADD_ITEM",
-      payload: { ...item, quantity: item.quantity || 1 },
-    })
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("cart-state", JSON.stringify(cart))
+  }, [cart])
 
-    if (toast) {
-      toast({
-        title: "Added to cart",
-        description: `${item.name} has been added to your cart`,
-        duration: 3000,
-      })
-    }
-  }
+  const addItem = useCallback(
+    (item: CartItem) => {
+      dispatch({ type: "ADD_ITEM", payload: item })
+      if (toast) {
+        toast({
+          title: "Added to cart",
+          description: `${item.name} has been added to your cart`,
+          duration: 3000,
+        })
+      }
+    },
+    [toast],
+  )
 
-  const addMultipleItems = (items: (Omit<CartItem, "quantity"> & { quantity?: number })[]) => {
-    const itemsToDispatch = items.map((item) => ({ ...item, quantity: item.quantity || 1 }))
-    dispatch({
-      type: "ADD_MULTIPLE_ITEMS",
-      payload: itemsToDispatch,
-    })
+  const addMultipleItems = useCallback(
+    (items: CartItem[]) => {
+      dispatch({ type: "ADD_MULTIPLE_ITEMS", payload: items })
+      if (toast) {
+        toast({
+          title: "Items Added!",
+          description: `${items.length} items have been added to your cart.`,
+          duration: 3000,
+        })
+      }
+    },
+    [toast],
+  )
 
-    if (toast) {
-      toast({
-        title: "Items Added!",
-        description: `${items.length} items have been added to your cart.`,
-        duration: 3000,
-      })
-    }
-  }
+  const removeItem = useCallback(
+    (id: string) => {
+      dispatch({ type: "REMOVE_ITEM", payload: id })
+      if (toast) {
+        toast({
+          title: "Removed from cart",
+          description: "Item has been removed from your cart",
+          duration: 3000,
+        })
+      }
+    },
+    [toast],
+  )
 
-  const removeItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id })
-
-    if (toast) {
-      toast({
-        title: "Removed from cart",
-        description: "Item has been removed from your cart",
-        duration: 3000,
-      })
-    }
-  }
-
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = useCallback((id: string, quantity: number) => {
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
-  }
+  }, [])
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: "CLEAR_CART" })
-
     if (toast) {
       toast({
         title: "Cart cleared",
@@ -346,30 +288,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
         duration: 3000,
       })
     }
-  }
+  }, [toast])
 
-  const applyCoupon = (couponCode: string): boolean => {
-    if (VALID_COUPONS[couponCode.toUpperCase()]) {
-      dispatch({ type: "APPLY_COUPON", payload: couponCode })
-      if (toast) {
-        toast({
-          title: "Coupon Applied!",
-          description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
-          variant: "success",
-        })
+  const applyCoupon = useCallback(
+    (couponCode: string): boolean => {
+      if (VALID_COUPONS[couponCode.toUpperCase()]) {
+        dispatch({ type: "APPLY_COUPON", payload: couponCode })
+        if (toast) {
+          toast({
+            title: "Coupon Applied!",
+            description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
+            variant: "success",
+          })
+        }
+        return true
+      } else {
+        if (toast) {
+          toast({
+            title: "Invalid Coupon",
+            description: `The coupon code "${couponCode}" is not valid.`,
+            variant: "destructive",
+          })
+        }
+        return false
       }
-      return true
-    } else {
-      if (toast) {
-        toast({
-          title: "Invalid Coupon",
-          description: `The coupon code "${couponCode}" is not valid.`,
-          variant: "destructive",
-        })
-      }
-      return false
-    }
-  }
+    },
+    [toast],
+  )
 
   return (
     <CartContext.Provider
@@ -380,6 +325,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// Custom hook to use the cart context
 export const useCart = () => {
   const context = useContext(CartContext)
   if (context === undefined) {
