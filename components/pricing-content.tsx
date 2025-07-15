@@ -17,15 +17,10 @@ function PricingContent() {
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
 
-  const {
-    roomCounts,
-    roomConfigs,
-    selectedRoomForMap,
-    updateRoomCount,
-    updateRoomConfig,
-    setSelectedRoomForMap,
-    getSelectedRoomTypes,
-  } = useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes } = useRoomContext()
+
+  // local highlight-on-map state (was crashing before because undefined)
+  const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
 
   const [serviceFee, setServiceFee] = useState(25)
 
@@ -107,10 +102,6 @@ function PricingContent() {
             title="Core Rooms"
             description="Essential areas for a standard clean."
             rooms={["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
             variant="primary"
             onRoomSelect={setSelectedRoomForMap}
           />
@@ -122,10 +113,6 @@ function PricingContent() {
             title="Additional Spaces"
             description="Expand your cleaning to other areas."
             rooms={["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"]}
-            roomCounts={roomCounts}
-            onRoomCountChange={handleRoomCountChange}
-            onRoomConfigChange={handleRoomConfigChange}
-            getRoomConfig={getRoomConfig}
             variant="secondary"
             onRoomSelect={setSelectedRoomForMap}
           />
