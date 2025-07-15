@@ -1,11 +1,5 @@
-/**
- * Address validation utilities for various countries
- */
-
-import { US_STATES } from "../location-data"
-
 // Regex patterns for postal codes
-const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/
+const US_ZIP_REGEX = /^\d{5}$/
 const CA_POSTAL_REGEX = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
 const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
@@ -78,30 +72,73 @@ export function isValidPostalCode(postalCode: string, countryCode: string): bool
 
 /**
  * Validates a US state code
- * @param state - The state code to validate
+ * @param stateCode - The state code to validate
  * @returns True if the state code is valid, false otherwise
  */
-export function isValidUSState(state: string): boolean {
-  if (!state || typeof state !== "string") return false
-  return US_STATES.some((s) => s.value.toLowerCase() === state.trim().toLowerCase())
+export function isValidUSState(stateCode: string): boolean {
+  const usStates = [
+    "AL",
+    "AK",
+    "AZ",
+    "AR",
+    "CA",
+    "CO",
+    "CT",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "ID",
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "KY",
+    "LA",
+    "ME",
+    "MD",
+    "MA",
+    "MI",
+    "MN",
+    "MS",
+    "MO",
+    "MT",
+    "NE",
+    "NV",
+    "NH",
+    "NJ",
+    "NM",
+    "NY",
+    "NC",
+    "ND",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VT",
+    "VA",
+    "WA",
+    "WV",
+    "WI",
+    "WY",
+  ]
+  return usStates.includes(stateCode.toUpperCase())
 }
 
 /**
  * Formats a US ZIP code (adds hyphen if needed)
- * @param zipCode - The ZIP code to format
+ * @param zip - The ZIP code to format
  * @returns Formatted ZIP code
  */
-export function formatUSZip(zipCode: string): string {
-  // Remove all non-numeric characters
-  const cleaned = zipCode.replace(/\D/g, "")
-
-  // Format as XXXXX-XXXX if it's a 9-digit ZIP
-  if (cleaned.length === 9) {
-    return `${cleaned.substring(0, 5)}-${cleaned.substring(5, 9)}`
-  }
-
-  // Return original for 5-digit or invalid ZIPs
-  return zipCode
+export function formatUSZip(zip: string): string {
+  // Removes non-digits and truncates to 5 digits
+  return zip.replace(/\D/g, "").slice(0, 5)
 }
 
 /**
@@ -128,16 +165,8 @@ export function formatCAPostal(postalCode: string): string {
  * @returns True if the address appears valid, false otherwise
  */
 export function isValidStreetAddress(address: string): boolean {
-  if (!address || typeof address !== "string") return false
-
-  // Basic validation - ensure it's not empty and has minimum length
-  const trimmed = address.trim()
-  if (trimmed.length < 3) return false
-
-  // Check for at least one number (most addresses have numbers)
-  if (!/\d/.test(trimmed)) return false
-
-  return true
+  // Simple validation: not empty and contains at least one digit or letter
+  return address.trim().length > 0 && /[a-zA-Z0-9]/.test(address)
 }
 
 /**
@@ -146,16 +175,8 @@ export function isValidStreetAddress(address: string): boolean {
  * @returns True if the city appears valid, false otherwise
  */
 export function isValidCity(city: string): boolean {
-  if (!city || typeof city !== "string") return false
-
-  // Basic validation - ensure it's not empty and has minimum length
-  const trimmed = city.trim()
-  if (trimmed.length < 2) return false
-
-  // City names should not contain numbers or special characters
-  if (/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(trimmed)) return false
-
-  return true
+  // Simple validation: not empty and contains only letters and spaces
+  return city.trim().length > 0 && /^[a-zA-Z\s]+$/.test(city)
 }
 
 /**

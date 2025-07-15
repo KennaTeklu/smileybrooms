@@ -1,138 +1,184 @@
 "use client"
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import ContactStep from "@/components/checkout/contact-step"
-import AddressStep from "@/components/checkout/address-step"
-import PaymentStep from "@/components/checkout/payment-step"
-import ReviewStep from "@/components/checkout/review-step"
-import type { CheckoutData } from "@/lib/types" // Assuming you have a types.ts defining CheckoutData
+import { useState, useEffect, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { CheckCircle, Truck, CreditCard, ClipboardCheck } from "lucide-react"
+import { ContactStep } from "@/components/checkout/contact-step"
+import { AddressStep } from "@/components/checkout/address-step"
+import { PaymentStep } from "@/components/checkout/payment-step"
+import { ReviewStep } from "@/components/checkout/review-step"
+import { useCart } from "@/lib/cart-context"
+import { useRouter } from "next/navigation"
+import { generateOrderConfirmationEmailBody } from "@/lib/email-utils"
+
+interface CheckoutData {
+  contact: {
+    fullName: string
+    email: string
+    phone: string
+  }
+  address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+    fullName: string // Added to ensure consistency with contact info
+    email: string // Added to ensure consistency with contact info
+    phone: string // Added to ensure consistency with contact info
+  }
+  payment: {
+    method: "card" | "in_person" | ""
+    cardDetails?: {
+      cardNumber: string
+      expiryDate: string
+      cvc: string
+    }
+    billingAddressSameAsService: boolean
+    billingAddress?: {
+      street: string
+      city: string
+      state: string
+      zip: string
+    }
+  }
+  termsAgreed: boolean
+}
 
 export default function CheckoutPage() {
-  const [currentStep, setCurrentStep] = useState(0)
+  const router = useRouter()
+  const { cart, clearCart } = useCart()
+  const [currentStep, setCurrentStep] = useState(1)
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
-    contact: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-    },
-    address: {
-      fullName: "", // Will be populated from contact step
-      email: "", // Will be populated from contact step
-      phone: "", // Will be populated from contact step
-      addressType: "residential",
-      address: "",
-      address2: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      specialInstructions: "",
-    },
-    payment: {
-      method: "credit_card",
-      cardDetails: {
-        cardNumber: "",
-        expiryDate: "",
-        cvc: "",
-        cardholderName: "",
-      },
-      billingAddressSameAsService: true,
-      billingAddress: {
-        address: "",
-        address2: "",
-        city: "",
-        state: "",
-        zipCode: "",
-      },
-    },
-    review: {
-      agreedToTerms: false,
-    },
+    contact: { fullName: "", email: "", phone: "" },
+    address: { street: "", city: "", state: "", zip: "", fullName: "", email: "", phone: "" },
+    payment: { method: "", billingAddressSameAsService: true },
+    termsAgreed: false,
   })
+  const [isClient, setIsClient] = useState(false)
 
-  const totalSteps = 4 // Contact, Address, Payment, Review
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
-  const handleSaveData = (step: number, data: any) => {
-    setCheckoutData((prevData) => {
-      const newData = { ...prevData }
-      if (step === 0) {
-        newData.contact = data
-        // Also populate address fields from contact for convenience
-        newData.address = {
-          ...newData.address,
-          fullName: `${data.firstName} ${data.lastName}`,
+  const totalAmount = useMemo(() => cart.totalPrice, [cart.totalPrice])
+
+  const steps = [
+    { id: 1, name: "Contact Information", icon: <CheckCircle className="h-5 w-5" /> },
+    { id: 2, name: "Service Address", icon: <Truck className="h-5 w-5" /> },
+    { id: 3, name: "Payment Method", icon: <CreditCard className="h-5 w-5" /> },
+    { id: 4, name: "Review & Confirm", icon: <ClipboardCheck className="h-5 w-5" /> },
+  ]
+
+  const handleNext = (data: any) => {
+    let updatedData = { ...checkoutData }
+
+    if (currentStep === 1) {
+      updatedData = {
+        ...updatedData,
+        contact: data,
+        // Also update address with contact info for validation in AddressStep
+        address: {
+          ...updatedData.address,
+          fullName: data.fullName,
           email: data.email,
           phone: data.phone,
-        }
-      } else if (step === 1) {
-        newData.address = data
-      } else if (step === 2) {
-        newData.payment = data
-      } else if (step === 3) {
-        newData.review = data
+        },
       }
-      return newData
-    })
-  }
-
-  const handleNextStep = () => {
-    setCurrentStep((prevStep) => Math.min(prevStep + 1, totalSteps - 1))
-  }
-
-  const handlePreviousStep = () => {
-    setCurrentStep((prevStep) => Math.max(prevStep - 1, 0))
-  }
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <ContactStep data={checkoutData.contact} onSave={(data) => handleSaveData(0, data)} onNext={handleNextStep} />
-        )
-      case 1:
-        return (
-          <AddressStep
-            data={checkoutData.address}
-            onSave={(data) => handleSaveData(1, data)}
-            onNext={handleNextStep}
-            onPrevious={handlePreviousStep}
-          />
-        )
-      case 2:
-        return (
-          <PaymentStep
-            data={checkoutData.payment}
-            onSave={(data) => handleSaveData(2, data)}
-            onNext={handleNextStep}
-            onPrevious={handlePreviousStep}
-          />
-        )
-      case 3:
-        return (
-          <ReviewStep
-            data={checkoutData.review}
-            checkoutData={checkoutData} // Pass full checkout data for review
-            onSave={(data) => handleSaveData(3, data)}
-            onPrevious={handlePreviousStep}
-          />
-        )
-      default:
-        return null
+    } else if (currentStep === 2) {
+      updatedData = { ...updatedData, address: { ...updatedData.address, ...data } }
+    } else if (currentStep === 3) {
+      updatedData = { ...updatedData, payment: data }
+    } else if (currentStep === 4) {
+      updatedData = { ...updatedData, termsAgreed: data.termsAgreed }
     }
+
+    setCheckoutData(updatedData)
+    setCurrentStep((prev) => prev + 1)
+  }
+
+  const handleBack = () => {
+    setCurrentStep((prev) => prev - 1)
+  }
+
+  const handleSubmitOrder = () => {
+    // Simulate order submission
+    console.log("Submitting order:", { checkoutData, cartItems: cart.items })
+
+    // Generate a dummy order ID
+    const orderId = `ORDER-${Date.now()}`
+
+    // Construct order details for email
+    const orderDetails = {
+      orderId: orderId,
+      customerName: checkoutData.contact.fullName,
+      items: cart.items,
+      totalPrice: totalAmount,
+      address: checkoutData.address,
+      contact: checkoutData.contact,
+      paymentType: checkoutData.payment.method,
+    }
+
+    // Clear cart after successful submission
+    clearCart()
+
+    // Redirect to success page with order details
+    router.push(`/success?orderId=${orderId}&emailBody=${generateOrderConfirmationEmailBody(orderDetails)}`)
+  }
+
+  if (!isClient) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
-      <Card className="w-full max-w-3xl p-6 md:p-8 lg:p-10 shadow-lg">
-        <div className="mb-8">
-          <Progress value={((currentStep + 1) / totalSteps) * 100} className="w-full" />
-          <p className="text-center text-sm text-gray-500 mt-2">
-            Step {currentStep + 1} of {totalSteps}
-          </p>
-        </div>
-        {renderStep()}
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">Checkout</CardTitle>
+          <div className="flex justify-between items-center mt-4">
+            {steps.map((step) => (
+              <div key={step.id} className="flex flex-col items-center">
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    currentStep >= step.id ? "bg-blue-600 border-blue-600 text-white" : "border-gray-300 text-gray-500"
+                  }`}
+                >
+                  {step.icon}
+                </div>
+                <span
+                  className={`text-sm mt-2 text-center ${
+                    currentStep >= step.id ? "font-medium text-blue-600" : "text-gray-500"
+                  } hidden sm:block`}
+                >
+                  {step.name}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Separator className="my-6" />
+        </CardHeader>
+        <CardContent className="p-6">
+          {currentStep === 1 && <ContactStep initialData={checkoutData.contact} onNext={handleNext} />}
+          {currentStep === 2 && (
+            <AddressStep initialData={checkoutData.address} onNext={handleNext} onBack={handleBack} />
+          )}
+          {currentStep === 3 && (
+            <PaymentStep initialData={checkoutData.payment} onNext={handleNext} onBack={handleBack} />
+          )}
+          {currentStep === 4 && (
+            <ReviewStep
+              checkoutData={checkoutData}
+              cartItems={cart.items}
+              totalAmount={totalAmount}
+              onBack={handleBack}
+              onSubmitOrder={handleSubmitOrder}
+            />
+          )}
+        </CardContent>
       </Card>
     </div>
   )

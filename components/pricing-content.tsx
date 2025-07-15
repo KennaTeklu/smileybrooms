@@ -1,24 +1,29 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { RoomCategory } from "@/components/room-category"
+import { RoomConfigurator } from "@/components/room-configurator"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
-import { RoomTier, ROOM_TIERS, ROOM_ADD_ONS, ROOM_REDUCTIONS } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
-import { createCartItemFromRoomConfig } from "@/lib/cart/item-utils"
+import { ROOM_TIERS, calculateRoomPrice, requiresEmailPricing } from "@/lib/room-tiers"
 import { useCart } from "@/lib/cart-context"
-import { Check, X, Plus, Minus, ShoppingCart } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { generateCartItemId } from "@/lib/cart/item-utils"
 import { useToast } from "@/components/ui/use-toast"
+import { ShoppingCart, Check, X, Plus, Minus } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import type { CartItem } from "@/lib/cart-context" // Corrected import for CartItem
+import { RoomTier } from "@/lib/room-tiers" // Declare RoomTier
+import { removeItem } from "@/lib/cart-context" // Declare removeItem
 
 export default function PricingContent() {
-  const { roomConfigs, updateRoomConfig, calculateRoomPrice, calculateTotalPrice, resetRoomConfigs } = useRoomContext()
-  const { addMultipleItems, addItem, removeItem, updateQuantity, cart } = useCart()
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, calculateTotalPrice, resetRoomConfigs } =
+    useRoomContext()
+  const { addItem, addMultipleItems, cart, updateQuantity } = useCart()
   const { toast } = useToast()
 
+  const [isAddingAll, setIsAddingAll] = useState(false)
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -29,57 +34,200 @@ export default function PricingContent() {
     return calculateTotalPrice()
   }, [roomConfigs, calculateTotalPrice])
 
-  const handleAddAllToCart = () => {
-    const itemsToAdd = Object.values(roomConfigs)
-      .filter((config) => config.count > 0)
-      .map((config) => {
-        const pricePerRoom = calculateRoomPrice(
-          config.roomType,
-          config.selectedTier,
-          config.selectedAddOns,
-          config.selectedReductions,
-        )
-        return createCartItemFromRoomConfig(config, pricePerRoom, config.count)
-      })
+  const handleAddRoomToCart = (roomType: string) => {
+    const config = roomConfigs[roomType]
+    const count = roomCounts[roomType]
 
-    if (itemsToAdd.length > 0) {
-      addMultipleItems(itemsToAdd)
+    if (!config || count === 0) {
       toast({
-        title: "Added to Cart!",
-        description: `${itemsToAdd.length} room configurations added to your cart.`,
+        title: "No room configured",
+        description: `Please configure your ${roomType} before adding to cart.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    const cartItemId = generateCartItemId({
+      roomType,
+      selectedTier: config.selectedTier,
+      selectedAddOns: config.selectedAddOns,
+      selectedReductions: config.selectedReductions,
+      count: count, // Pass count for ID generation if needed, though it's for the item quantity
+    })
+
+    const existingCartItem = cart.items.find((item) => item.id === cartItemId)
+
+    if (existingCartItem) {
+      // If the item already exists, update its quantity to match the room count
+      updateQuantity(cartItemId, count)
+      toast({
+        title: "Cart Updated",
+        description: `${count} ${roomType}(s) updated in your cart.`,
+        variant: "success",
       })
     } else {
+      // If it's a new item, add it to the cart
+      const price = requiresEmailPricing(roomType)
+        ? 0
+        : calculateRoomPrice(roomType, config.selectedTier, config.selectedAddOns, config.selectedReductions)
+
+      addItem({
+        id: cartItemId,
+        name: `${roomType} Cleaning - ${ROOM_TIERS.find((t) => t.value === config.selectedTier)?.label || config.selectedTier}`,
+        price: price,
+        quantity: count,
+        image: `/images/${roomType}-professional.png`, // Example image path
+        metadata: {
+          roomType: roomType,
+          selectedTier: config.selectedTier,
+          selectedAddOns: config.selectedAddOns,
+          selectedReductions: config.selectedReductions,
+          frequency: "one_time", // Assuming one-time for now
+          description: `Cleaning service for ${roomType} with ${config.selectedTier} tier.`,
+        },
+        paymentType: requiresEmailPricing(roomType) ? "in_person" : "online",
+      })
       toast({
-        title: "No Rooms Selected",
-        description: "Please select at least one room to add to your cart.",
-        variant: "destructive",
+        title: "Added to Cart",
+        description: `${count} ${roomType}(s) added to your cart.`,
+        variant: "success",
       })
     }
   }
 
-  const handleAddToCart = (roomConfig: RoomConfig) => {
-    const pricePerRoom = calculateRoomPrice(
-      roomConfig.roomType,
-      roomConfig.selectedTier,
-      roomConfig.selectedAddOns,
-      roomConfig.selectedReductions,
-    )
-    const item = createCartItemFromRoomConfig(roomConfig, pricePerRoom, roomConfig.count)
-    addItem(item)
-    toast({
-      title: "Added to Cart!",
-      description: `${roomConfig.count} x ${item.name} added to your cart.`,
-    })
+  const handleAddAllSelectedRoomsToCart = () => {
+    setIsAddingAll(true)
+    const itemsToAdd: CartItem[] = []
+    let hasUnconfiguredRooms = false
+
+    for (const roomType of Object.keys(roomCounts)) {
+      const count = roomCounts[roomType]
+      if (count > 0) {
+        const config = roomConfigs[roomType]
+        if (!config) {
+          hasUnconfiguredRooms = true
+          continue
+        }
+
+        const cartItemId = generateCartItemId({
+          roomType,
+          selectedTier: config.selectedTier,
+          selectedAddOns: config.selectedAddOns,
+          selectedReductions: config.selectedReductions,
+          count: count,
+        })
+
+        const price = requiresEmailPricing(roomType)
+          ? 0
+          : calculateRoomPrice(roomType, config.selectedTier, config.selectedAddOns, config.selectedReductions)
+
+        itemsToAdd.push({
+          id: cartItemId,
+          name: `${roomType} Cleaning - ${ROOM_TIERS.find((t) => t.value === config.selectedTier)?.label || config.selectedTier}`,
+          price: price,
+          quantity: count,
+          image: `/images/${roomType}-professional.png`, // Example image path
+          metadata: {
+            roomType: roomType,
+            selectedTier: config.selectedTier,
+            selectedAddOns: config.selectedAddOns,
+            selectedReductions: config.selectedReductions,
+            frequency: "one_time", // Assuming one-time for now
+            description: `Cleaning service for ${roomType} with ${config.selectedTier} tier.`,
+          },
+          paymentType: requiresEmailPricing(roomType) ? "in_person" : "online",
+        })
+      }
+    }
+
+    if (hasUnconfiguredRooms) {
+      toast({
+        title: "Some rooms not added",
+        description: "Please configure all selected rooms before adding them to the cart.",
+        variant: "destructive",
+      })
+    }
+
+    if (itemsToAdd.length > 0) {
+      addMultipleItems(itemsToAdd)
+      toast({
+        title: "All Selected Rooms Added",
+        description: `${itemsToAdd.length} unique room configurations added/updated in your cart.`,
+        variant: "success",
+      })
+    } else if (!hasUnconfiguredRooms) {
+      toast({
+        title: "No Rooms Selected",
+        description: "Please select and configure rooms before adding to cart.",
+        variant: "info",
+      })
+    }
+    setIsAddingAll(false)
   }
 
   const handleRemoveFromCart = (roomConfig: RoomConfig) => {
-    const item = createCartItemFromRoomConfig(roomConfig, 0, 0) // Price and quantity don't matter for removal by ID
-    removeItem(item.id)
+    const cartItemId = generateCartItemId({
+      roomType: roomConfig.roomType,
+      selectedTier: roomConfig.selectedTier,
+      selectedAddOns: roomConfig.selectedAddOns,
+      selectedReductions: roomConfig.selectedReductions,
+      count: roomConfig.count,
+    })
+    removeItem(cartItemId)
     toast({
       title: "Removed from Cart",
-      description: `${item.name} removed from your cart.`,
+      description: `${roomConfig.roomType} removed from your cart.`,
       variant: "destructive",
     })
+  }
+
+  const handleAddToCart = (config: RoomConfig) => {
+    const cartItemId = generateCartItemId({
+      roomType: config.roomType,
+      selectedTier: config.selectedTier,
+      selectedAddOns: config.selectedAddOns,
+      selectedReductions: config.selectedReductions,
+      count: config.count,
+    })
+
+    const existingCartItem = cart.items.find((item) => item.id === cartItemId)
+
+    if (existingCartItem) {
+      // If the item already exists, update its quantity to match the room count
+      updateQuantity(cartItemId, config.count)
+      toast({
+        title: "Cart Updated",
+        description: `${config.count} ${config.roomType}(s) updated in your cart.`,
+        variant: "success",
+      })
+    } else {
+      // If it's a new item, add it to the cart
+      const price = requiresEmailPricing(config.roomType)
+        ? 0
+        : calculateRoomPrice(config.roomType, config.selectedTier, config.selectedAddOns, config.selectedReductions)
+
+      addItem({
+        id: cartItemId,
+        name: `${config.roomType} Cleaning - ${ROOM_TIERS.find((t) => t.value === config.selectedTier)?.label || config.selectedTier}`,
+        price: price,
+        quantity: config.count,
+        image: `/images/${config.roomType}-professional.png`, // Example image path
+        metadata: {
+          roomType: config.roomType,
+          selectedTier: config.selectedTier,
+          selectedAddOns: config.selectedAddOns,
+          selectedReductions: config.selectedReductions,
+          frequency: "one_time", // Assuming one-time for now
+          description: `Cleaning service for ${config.roomType} with ${config.selectedTier} tier.`,
+        },
+        paymentType: requiresEmailPricing(config.roomType) ? "in_person" : "online",
+      })
+      toast({
+        title: "Added to Cart",
+        description: `${config.count} ${config.roomType}(s) added to your cart.`,
+        variant: "success",
+      })
+    }
   }
 
   if (!isClient) {
@@ -107,7 +255,7 @@ export default function PricingContent() {
               Customize your cleaning service and get an instant estimate.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 md:p-8 lg:p-10">
+          <CardContent className="p-1.5 md:p-3 lg:p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Room Selection Column */}
               <div className="lg:col-span-2 space-y-6">
@@ -118,14 +266,13 @@ export default function PricingContent() {
                 <Separator />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {Object.keys(roomConfigs).map((roomType) => (
-                    <RoomCategory
+                    <RoomConfigurator
                       key={roomType}
                       roomType={roomType as keyof typeof roomConfigs}
                       config={roomConfigs[roomType as keyof typeof roomConfigs]}
                       updateConfig={updateRoomConfig}
                       roomTiers={ROOM_TIERS}
-                      roomAddOns={ROOM_ADD_ONS}
-                      roomReductions={ROOM_REDUCTIONS}
+                      // Removed roomAddOns and roomReductions props as they are fetched internally by RoomConfigurator
                     />
                   ))}
                 </div>
@@ -133,7 +280,10 @@ export default function PricingContent() {
                   <Button variant="outline" onClick={resetRoomConfigs}>
                     Reset Selections
                   </Button>
-                  <Button onClick={handleAddAllToCart} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button
+                    onClick={handleAddAllSelectedRoomsToCart}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
                     <ShoppingCart className="mr-2 h-5 w-5" />
                     Add All Selected Rooms to Cart
                   </Button>

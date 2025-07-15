@@ -2,7 +2,19 @@
 
 import type React from "react"
 import { createContext, useReducer, useContext, useEffect, useCallback } from "react"
-import type { CartItem } from "@/lib/cart/types"
+
+// Define the shape of a single item in the cart
+export interface CartItem {
+  id: string // Unique ID for the item (e.g., roomType-tier-addons-reductions)
+  name: string // Display name (e.g., "Bedroom Cleaning - Standard")
+  price: number // Price per unit
+  quantity: number // Number of units (e.g., number of bedrooms)
+  image?: string // Optional image URL
+  metadata?: {
+    [key: string]: any // Flexible metadata for additional details (e.g., frequency, roomType, selectedTier, selectedAddOns, selectedReductions)
+  }
+  paymentType?: "online" | "in_person" // How this item is paid for
+}
 
 // Define the shape of the cart state
 interface CartState {

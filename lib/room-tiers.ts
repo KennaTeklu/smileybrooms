@@ -924,3 +924,23 @@ export function getDisplayPrice(roomType: string, config: any): string {
 
 export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
   "Custom spaces require personalized assessment. Pricing will be provided via email consultation, with payment collected in-person through Zelle upon service completion. All custom service bookings are subject to our standard Terms of Service."
+
+export const ROOM_TYPES = [
+  { value: "bedroom", label: "Bedroom", description: "Relaxing and clean sleeping space." },
+  { value: "bathroom", label: "Bathroom", description: "Sparkling clean and sanitized." },
+  { value: "kitchen", label: "Kitchen", description: "Spotless counters and appliances." },
+  { value: "livingRoom", label: "Living Room", description: "Comfortable and inviting." },
+  { value: "diningRoom", label: "Dining Room", description: "Ready for your next meal." },
+  { value: "homeOffice", label: "Home Office", description: "Productive and organized." },
+  { value: "laundryRoom", label: "Laundry Room", description: "Fresh and tidy." },
+  { value: "entryway", label: "Entryway", description: "Welcoming first impression." },
+  { value: "hallway", label: "Hallway", description: "Clean and clear pathways." },
+  { value: "stairs", label: "Stairs", description: "Safe and spotless steps." },
+  { value: "other", label: "Other Space", description: "Custom cleaning for unique areas." },
+]
+
+export const ROOM_TIERS = [
+  { value: "ESSENTIAL CLEAN", label: "Essential Clean" },
+  { value: "PREMIUM CLEAN", label: "Premium Clean" },
+  { value: "LUXURY CLEAN", label: "Luxury Clean" },
+]
