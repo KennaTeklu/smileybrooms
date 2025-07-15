@@ -26,7 +26,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 
 // Placeholder for suggested products component
-function CartSuggestions({ currentCartItems }: { currentCartItems: any[] }) {
+function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
   // In a real application, this would fetch suggestions based on currentCartItems
   const suggestedProducts = [
     {
@@ -50,7 +50,7 @@ function CartSuggestions({ currentCartItems }: { currentCartItems: any[] }) {
   }
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg" id={id}>
       <CardHeader>
         <CardTitle className="text-2xl font-bold flex items-center gap-2">
           <Lightbulb className="h-6 w-6 text-yellow-500" /> Suggested for You
@@ -166,7 +166,10 @@ export default function CartPage() {
       <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100">Your Shopping Cart</h1>
 
       {cart.items.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-lg shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+        <Card
+          className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-lg shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
+          id="empty-cart-message"
+        >
           <ShoppingBag className="h-24 w-24 text-muted-foreground mb-6 opacity-70" />
           <h3 className="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-200">Your cart is empty</h3>
           <p className="text-muted-foreground mb-8 max-w-md">
@@ -179,7 +182,7 @@ export default function CartPage() {
       ) : (
         <div className="grid lg:grid-cols-3 gap-8 flex-1">
           {/* Cart Items List */}
-          <Card className="lg:col-span-2 shadow-lg">
+          <Card className="lg:col-span-2 shadow-lg" id="cart-items-list">
             <CardHeader>
               <CardTitle className="text-2xl font-bold">Items in Cart ({cart.totalItems})</CardTitle>
             </CardHeader>
@@ -300,9 +303,7 @@ export default function CartPage() {
 
           {/* Cart Summary & Health */}
           <div className="lg:col-span-1 flex flex-col gap-8">
-            <Card className="shadow-lg">
-              {" "}
-              {/* Removed sticky top-24 */}
+            <Card className="shadow-lg" id="order-summary">
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">Order Summary</CardTitle>
               </CardHeader>
@@ -385,7 +386,7 @@ export default function CartPage() {
             </Card>
 
             {cartHealth && (
-              <Card className="shadow-lg">
+              <Card className="shadow-lg" id="cart-health-report">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold flex items-center gap-2">
                     Cart Health Report
@@ -443,7 +444,7 @@ export default function CartPage() {
             )}
 
             {/* Suggested Products/Upsells */}
-            <CartSuggestions currentCartItems={cart.items} />
+            <CartSuggestions currentCartItems={cart.items} id="suggested-products" />
           </div>
         </div>
       )}
