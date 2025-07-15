@@ -1,92 +1,179 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Calendar, DollarSign, Home } from "lucide-react"
-import { motion } from "framer-motion"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Calendar } from "@/components/ui/calendar"
+import { Clock, CalendarIcon, ArrowRight, Check, X } from "lucide-react"
+import { format } from "date-fns"
 
-interface TimelineStep {
-  icon: React.ElementType
-  title: string
-  description: string
+interface TimeSlot {
+  time: string
+  available: boolean
 }
 
-const timelineSteps: TimelineStep[] = [
-  {
-    icon: Calendar,
-    title: "Book Your Service",
-    description: "Select your desired cleaning service, date, and time through our easy-to-use online platform.",
-  },
-  {
-    icon: Home,
-    title: "We Arrive & Clean",
-    description:
-      "Our professional, vetted cleaners arrive on schedule with all necessary supplies to transform your space.",
-  },
-  {
-    icon: DollarSign,
-    title: "Secure Payment",
-    description: "Complete your payment securely online or in person after the service is rendered.",
-  },
-  {
-    icon: CheckCircle,
-    title: "Enjoy Your Clean Home",
-    description: "Relax and enjoy your sparkling clean, fresh-smelling home or office!",
-  },
-]
+interface BookingTimelineProps {
+  onDateSelected: (date: Date | undefined) => void
+  onTimeSelected: (time: string) => void
+  selectedDate?: Date
+  selectedTime?: string
+}
 
-export default function BookingTimeline() {
-  const [activeStep, setActiveStep] = useState(0) // For potential future interactive features
+export function BookingTimeline({ onDateSelected, onTimeSelected, selectedDate, selectedTime }: BookingTimelineProps) {
+  const [date, setDate] = useState<Date | undefined>(selectedDate)
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
+    { time: "8:00 AM", available: true },
+    { time: "9:00 AM", available: true },
+    { time: "10:00 AM", available: true },
+    { time: "11:00 AM", available: false },
+    { time: "12:00 PM", available: true },
+    { time: "1:00 PM", available: true },
+    { time: "2:00 PM", available: false },
+    { time: "3:00 PM", available: true },
+    { time: "4:00 PM", available: true },
+    { time: "5:00 PM", available: false },
+    { time: "6:00 PM", available: true },
+  ])
+
+  const handleDateChange = (newDate: Date | undefined) => {
+    setDate(newDate)
+    onDateSelected(newDate)
+
+    // Simulate different availability for different dates
+    if (newDate) {
+      const day = newDate.getDay()
+      const newTimeSlots = [...timeSlots]
+
+      // Make weekends have different availability
+      if (day === 0 || day === 6) {
+        newTimeSlots.forEach((slot, index) => {
+          slot.available = index % 3 !== 0
+        })
+      } else {
+        newTimeSlots.forEach((slot, index) => {
+          slot.available = index % 4 !== 0
+        })
+      }
+
+      setTimeSlots(newTimeSlots)
+    }
+  }
+
+  const handleTimeSelection = (time: string) => {
+    onTimeSelected(time)
+  }
 
   return (
-    <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">How It Works</h2>
-        <div className="relative flex flex-col items-center">
-          {/* Vertical Line */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-blue-200 dark:bg-blue-800 hidden md:block"></div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Booking Timeline</CardTitle>
+        <CardDescription>Select your preferred date and time for cleaning service</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-medium mb-4">Select Date</h3>
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={handleDateChange}
+              className="rounded-md border"
+              disabled={{ before: new Date() }}
+            />
 
-          {timelineSteps.map((step, index) => {
-            const Icon = step.icon
-            const isEven = index % 2 === 0
-            const isLast = index === timelineSteps.length - 1
+            <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center">
+                <div className="h-3 w-3 rounded-full bg-green-500 mr-1"></div>
+                <span>Available</span>
+              </div>
+              <div className="flex items-center">
+                <div className="h-3 w-3 rounded-full bg-gray-300 mr-1"></div>
+                <span>Unavailable</span>
+              </div>
+              <div className="flex items-center">
+                <div className="h-3 w-3 rounded-full bg-blue-500 mr-1"></div>
+                <span>Selected</span>
+              </div>
+            </div>
+          </div>
 
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.5 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className={`relative flex items-center w-full md:w-3/4 lg:w-2/3 mb-12 md:mb-16 ${
-                  isEven ? "md:flex-row" : "md:flex-row-reverse"
-                }`}
-              >
-                {/* Icon Circle */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 md:static md:translate-x-0 p-4 rounded-full bg-blue-600 text-white z-10 shadow-lg">
-                  <Icon className="h-8 w-8" />
+          <div>
+            <h3 className="text-lg font-medium mb-4">Select Time</h3>
+            {date ? (
+              <>
+                <div className="mb-4">
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    <span>{format(date, "EEEE, MMMM d, yyyy")}</span>
+                  </Badge>
                 </div>
 
-                {/* Card Content */}
-                <Card
-                  className={`w-full md:w-[calc(50%-30px)] shadow-lg ${
-                    isEven ? "md:mr-auto md:text-right" : "md:ml-auto md:text-left"
-                  } mt-8 md:mt-0`}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold">{step.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{step.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
+                <div className="grid grid-cols-2 gap-2">
+                  {timeSlots.map((slot) => (
+                    <Button
+                      key={slot.time}
+                      variant={selectedTime === slot.time ? "default" : "outline"}
+                      disabled={!slot.available}
+                      onClick={() => handleTimeSelection(slot.time)}
+                      className="justify-start"
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      {slot.time}
+                      {!slot.available && <X className="h-4 w-4 ml-auto text-gray-400" />}
+                      {selectedTime === slot.time && <Check className="h-4 w-4 ml-auto" />}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="mt-4 text-sm text-gray-500">
+                  <p>* Cleaning sessions typically last 2-4 hours depending on service level and home size.</p>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[300px] border rounded-md bg-gray-50">
+                <CalendarIcon className="h-12 w-12 text-gray-300 mb-4" />
+                <p className="text-gray-500">Please select a date first</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+
+        <Separator className="my-6" />
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Booking Summary</h3>
+
+          {date && selectedTime ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 border rounded-md">
+                  <p className="text-sm text-gray-500">Date</p>
+                  <p className="font-medium">{format(date, "EEEE, MMMM d, yyyy")}</p>
+                </div>
+                <div className="p-4 border rounded-md">
+                  <p className="text-sm text-gray-500">Time</p>
+                  <p className="font-medium">{selectedTime}</p>
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-md">
+                <p className="text-sm text-gray-500">Estimated Duration</p>
+                <p className="font-medium">3 hours (based on your selections)</p>
+              </div>
+
+              <Button className="w-full">
+                Confirm Booking <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="p-4 border rounded-md bg-gray-50 text-center">
+              <p className="text-gray-500">Select both date and time to see booking summary</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

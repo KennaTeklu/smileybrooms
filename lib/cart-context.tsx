@@ -29,14 +29,14 @@ type CartAction =
   | { type: "CLEAR_CART" }
   | { type: "ADD_MULTIPLE_ITEMS"; payload: CartItem[] } // New action for batch adding
 
-// Define the shape of the CartContext
+// Define the CartContextType
 interface CartContextType {
   cart: CartState
   addItem: (item: CartItem) => void
   removeItem: (id: string) => void
   updateItemQuantity: (id: string, quantity: number) => void
   clearCart: () => void
-  addMultipleItems: (items: CartItem[]) => void // New function for batch adding
+  addMultipleItems: (items: CartItem[]) => void
 }
 
 // Initial state for the cart

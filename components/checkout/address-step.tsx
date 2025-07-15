@@ -19,17 +19,32 @@ interface AddressStepProps {
   onSave: (data: CheckoutData["address"]) => void
   onNext: () => void
   onPrevious: () => void
+  checkoutData: CheckoutData // Added to pre-fill contact info
 }
 
-export default function AddressStep({ data, onSave, onNext, onPrevious }: AddressStepProps) {
+export default function AddressStep({ data, onSave, onNext, onPrevious, checkoutData }: AddressStepProps) {
   const { toast } = useToast()
   const [addressData, setAddressData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setAddressData(data)
-  }, [data])
+    // Pre-fill contact info from checkoutData if available and not already set
+    setAddressData((prev) => ({
+      ...prev,
+      fullName: checkoutData.contact.firstName + " " + checkoutData.contact.lastName,
+      email: checkoutData.contact.email,
+      phone: checkoutData.contact.phone,
+      // Only update address fields if they are empty in the saved data
+      address: prev.address || "",
+      address2: prev.address2 || "",
+      city: prev.city || "",
+      state: prev.state || "",
+      zipCode: prev.zipCode || "",
+      specialInstructions: prev.specialInstructions || "",
+      addressType: prev.addressType || "residential",
+    }))
+  }, [data, checkoutData])
 
   const handleChange = (field: string, value: string) => {
     setAddressData((prev) => ({

@@ -1,489 +1,634 @@
 "use client"
 
-import Link from "next/link"
-
-import { Separator } from "@/components/ui/separator"
-
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, ArrowRight, Mail, Home, MessageSquare, CheckCircle, Loader2 } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useToast } from "@/components/ui/use-toast"
-import { sendCustomQuoteRequest } from "@/lib/custom-quote-email-utils" // Assuming this server action exists
+import { Checkbox } from "@/components/ui/checkbox"
+import { X, ChevronLeft, ChevronRight, Calculator, MessageSquare, User, FileText } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { openGmailWithQuote, previewQuoteEmail, type QuoteFormData } from "@/lib/custom-quote-email-utils"
 
-interface FormData {
-  name: string
-  email: string
-  phone: string
-  propertyType: string
-  bedrooms: number | ""
-  bathrooms: number | ""
-  squareFootage: number | ""
-  serviceType: string
-  preferredDate: string
-  message: string
+interface CustomQuoteWizardProps {
+  isOpen: boolean
+  onClose: () => void
 }
 
-type Step = "contact" | "property" | "service" | "review" | "success"
+type QuoteStep = "service-type" | "special-requests" | "contact-info" | "review"
 
-export default function CustomQuoteWizard() {
-  const { toast } = useToast()
-  const [currentStep, setCurrentStep] = useState<Step>("contact")
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
+const STEP_TITLES = {
+  "service-type": "Service Type",
+  "special-requests": "Special Requests",
+  "contact-info": "Contact Information",
+  review: "Review & Submit",
+}
+
+const STEP_DESCRIPTIONS = {
+  "service-type": "Select your cleaning service type",
+  "special-requests": "Add any special requirements",
+  "contact-info": "Provide your contact details",
+  review: "Review and submit your quote request",
+}
+
+const STEP_ICONS = {
+  "service-type": Calculator,
+  "special-requests": MessageSquare,
+  "contact-info": User,
+  review: FileText,
+}
+
+export function CustomQuoteWizard({ isOpen, onClose }: CustomQuoteWizardProps) {
+  const [currentStep, setCurrentStep] = useState<QuoteStep>("service-type")
+  const [formData, setFormData] = useState({
+    serviceType: "",
+    propertyType: "",
+    squareFootage: "",
+    frequency: "",
+    specialRequests: [] as string[],
+    customRequest: "",
+    urgency: "",
+    budget: "",
+    fullName: "",
     email: "",
     phone: "",
-    propertyType: "",
-    bedrooms: "",
-    bathrooms: "",
-    squareFootage: "",
-    serviceType: "",
-    preferredDate: "",
-    message: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    preferredContact: "",
+    additionalNotes: "",
   })
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const stepsOrder: Step[] = ["contact", "property", "service", "review", "success"]
-  const currentStepIndex = stepsOrder.indexOf(currentStep)
-  const progress = ((currentStepIndex + 1) / (stepsOrder.length - 1)) * 100 // Exclude success from progress bar
+  const { toast } = useToast()
 
-  const handleChange = (field: keyof FormData, value: string | number) => {
+  // Auto-scroll to top when wizard opens
+  useEffect(() => {
+    if (isOpen) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
+    }
+  }, [isOpen])
+
+  // Steps configuration
+  const steps: QuoteStep[] = ["service-type", "special-requests", "contact-info", "review"]
+  const currentStepIndex = steps.indexOf(currentStep)
+  const isFirstStep = currentStepIndex === 0
+  const isLastStep = currentStepIndex === steps.length - 1
+
+  // Navigation handlers
+  const goToNextStep = useCallback(() => {
+    if (!isLastStep) {
+      setCurrentStep(steps[currentStepIndex + 1])
+    }
+  }, [currentStepIndex, isLastStep, steps])
+
+  const goToPreviousStep = useCallback(() => {
+    if (!isFirstStep) {
+      setCurrentStep(steps[currentStepIndex - 1])
+    }
+  }, [currentStepIndex, isFirstStep, steps])
+
+  // Form handlers
+  const updateFormData = useCallback((field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
+  }, [])
+
+  const toggleSpecialRequest = useCallback((request: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specialRequests: prev.specialRequests.includes(request)
+        ? prev.specialRequests.filter((r) => r !== request)
+        : [...prev.specialRequests, request],
+    }))
+  }, [])
+
+  const handleSubmitQuote = useCallback(() => {
+    try {
+      // Prepare the form data for email
+      const quoteData: QuoteFormData = {
+        serviceType: formData.serviceType,
+        propertyType: formData.propertyType,
+        squareFootage: formData.squareFootage,
+        frequency: formData.frequency,
+        specialRequests: formData.specialRequests,
+        customRequest: formData.customRequest,
+        urgency: formData.urgency,
+        budget: formData.budget,
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        preferredContact: formData.preferredContact,
+        additionalNotes: formData.additionalNotes,
+      }
+
+      // Open Gmail with formatted HTML email
+      openGmailWithQuote(quoteData)
+
+      // Also submit to Google Sheets as backup
+      const scriptURL =
+        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+      const submitData = {
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        message: `Custom Quote Request:
+Service Type: ${formData.serviceType}
+Property Type: ${formData.propertyType}
+Square Footage: ${formData.squareFootage}
+Frequency: ${formData.frequency}
+Special Requests: ${formData.specialRequests.join(", ")}
+Custom Request: ${formData.customRequest}
+Urgency: ${formData.urgency}
+Budget: ${formData.budget}
+Address: ${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}
+Preferred Contact: ${formData.preferredContact}
+Additional Notes: ${formData.additionalNotes}`,
+        source: "Custom Quote Request",
+      }
+
+      fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
+      }).catch((error) => {
+        console.error("Error submitting quote request:", error)
       })
-    }
-  }
 
-  const validateStep = (step: Step): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {}
-    let isValid = true
-
-    if (step === "contact") {
-      if (!formData.name.trim()) {
-        newErrors.name = "Name is required"
-        isValid = false
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = "Email is required"
-        isValid = false
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Invalid email format"
-        isValid = false
-      }
-      if (!formData.phone.trim()) {
-        newErrors.phone = "Phone is required"
-        isValid = false
-      } else if (!/^\+?\d{10,15}$/.test(formData.phone)) {
-        newErrors.phone = "Invalid phone number"
-        isValid = false
-      }
-    } else if (step === "property") {
-      if (!formData.propertyType) {
-        newErrors.propertyType = "Property type is required"
-        isValid = false
-      }
-      if (formData.propertyType === "residential") {
-        if (formData.bedrooms === "" || formData.bedrooms < 0) {
-          newErrors.bedrooms = "Number of bedrooms is required"
-          isValid = false
-        }
-        if (formData.bathrooms === "" || formData.bathrooms < 0) {
-          newErrors.bathrooms = "Number of bathrooms is required"
-          isValid = false
-        }
-      }
-      if (formData.squareFootage === "" || formData.squareFootage <= 0) {
-        newErrors.squareFootage = "Square footage is required and must be greater than 0"
-        isValid = false
-      }
-    } else if (step === "service") {
-      if (!formData.serviceType) {
-        newErrors.serviceType = "Service type is required"
-        isValid = false
-      }
-      if (!formData.preferredDate) {
-        newErrors.preferredDate = "Preferred date is required"
-        isValid = false
-      }
-    }
-    setErrors(newErrors)
-    return isValid
-  }
-
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      const nextIndex = currentStepIndex + 1
-      if (nextIndex < stepsOrder.length) {
-        setCurrentStep(stepsOrder[nextIndex])
-      }
-    } else {
       toast({
-        title: "Please correct the errors",
-        description: "Some required fields are missing or invalid.",
-        variant: "destructive",
+        title: "Quote Request Sent",
+        description: "Gmail opened with your formatted quote request. Please review and send the email.",
+        duration: 5000,
       })
-    }
-  }
 
-  const handlePrevious = () => {
-    const prevIndex = currentStepIndex - 1
-    if (prevIndex >= 0) {
-      setCurrentStep(stepsOrder[prevIndex])
-    }
-  }
-
-  const handleSubmitQuote = async () => {
-    if (validateStep("review")) {
-      // Validate all fields one last time
-      setIsSubmitting(true)
-      try {
-        const result = await sendCustomQuoteRequest(formData)
-        if (result.success) {
-          toast({
-            title: "Quote Request Sent!",
-            description: "We've received your request and will get back to you shortly.",
-            variant: "success",
-          })
-          setCurrentStep("success")
-        } else {
-          toast({
-            title: "Submission Failed",
-            description: result.error || "An error occurred. Please try again.",
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error("Error submitting quote:", error)
-        toast({
-          title: "Submission Failed",
-          description: "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsSubmitting(false)
-      }
-    } else {
+      onClose()
+    } catch (error) {
+      console.error("Error submitting quote:", error)
       toast({
-        title: "Please review your information",
-        description: "Some required fields are missing or invalid.",
+        title: "Error",
+        description: "Failed to open Gmail. Please try again or contact us directly.",
         variant: "destructive",
+        duration: 3000,
       })
     }
-  }
+  }, [formData, toast, onClose])
 
-  const renderStep = () => {
+  // Validation for next button
+  const canProceedToNext = useCallback(() => {
     switch (currentStep) {
-      case "contact":
-        return (
-          <motion.div
-            key="contact"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Your Contact Information
-              </CardTitle>
-              <CardDescription>Tell us how to reach you.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className={errors.name ? "border-red-500" : ""}
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  className={errors.email ? "border-red-500" : ""}
-                />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  className={errors.phone ? "border-red-500" : ""}
-                />
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={handleNext}>
-                  Next <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </motion.div>
-        )
-      case "property":
-        return (
-          <motion.div
-            key="property"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
-                Property Details
-              </CardTitle>
-              <CardDescription>Tell us about the property to be cleaned.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="propertyType">Property Type</Label>
-                <Select value={formData.propertyType} onValueChange={(value) => handleChange("propertyType", value)}>
-                  <SelectTrigger className={errors.propertyType ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select property type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="residential">Residential</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
-              </div>
-              {formData.propertyType === "residential" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="bedrooms">Bedrooms</Label>
-                    <Input
-                      id="bedrooms"
-                      type="number"
-                      value={formData.bedrooms}
-                      onChange={(e) => handleChange("bedrooms", Number.parseInt(e.target.value) || "")}
-                      className={errors.bedrooms ? "border-red-500" : ""}
-                    />
-                    {errors.bedrooms && <p className="text-red-500 text-sm mt-1">{errors.bedrooms}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="bathrooms">Bathrooms</Label>
-                    <Input
-                      id="bathrooms"
-                      type="number"
-                      value={formData.bathrooms}
-                      onChange={(e) => handleChange("bathrooms", Number.parseInt(e.target.value) || "")}
-                      className={errors.bathrooms ? "border-red-500" : ""}
-                    />
-                    {errors.bathrooms && <p className="text-red-500 text-sm mt-1">{errors.bathrooms}</p>}
-                  </div>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="squareFootage">Approx. Square Footage</Label>
-                <Input
-                  id="squareFootage"
-                  type="number"
-                  value={formData.squareFootage}
-                  onChange={(e) => handleChange("squareFootage", Number.parseInt(e.target.value) || "")}
-                  className={errors.squareFootage ? "border-red-500" : ""}
-                />
-                {errors.squareFootage && <p className="text-red-500 text-sm mt-1">{errors.squareFootage}</p>}
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePrevious}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleNext}>
-                  Next <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </motion.div>
-        )
-      case "service":
-        return (
-          <motion.div
-            key="service"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Service Details
-              </CardTitle>
-              <CardDescription>Tell us what kind of cleaning you need.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="serviceType">Type of Service</Label>
-                <Select value={formData.serviceType} onValueChange={(value) => handleChange("serviceType", value)}>
-                  <SelectTrigger className={errors.serviceType ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select service type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">Standard Cleaning</SelectItem>
-                    <SelectItem value="deep">Deep Cleaning</SelectItem>
-                    <SelectItem value="move-in-out">Move-in/Move-out Cleaning</SelectItem>
-                    <SelectItem value="post-construction">Post-Construction Cleaning</SelectItem>
-                    <SelectItem value="custom">Custom Request</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.serviceType && <p className="text-red-500 text-sm mt-1">{errors.serviceType}</p>}
-              </div>
-              <div>
-                <Label htmlFor="preferredDate">Preferred Service Date</Label>
-                <Input
-                  id="preferredDate"
-                  type="date"
-                  value={formData.preferredDate}
-                  onChange={(e) => handleChange("preferredDate", e.target.value)}
-                  className={errors.preferredDate ? "border-red-500" : ""}
-                />
-                {errors.preferredDate && <p className="text-red-500 text-sm mt-1">{errors.preferredDate}</p>}
-              </div>
-              <div>
-                <Label htmlFor="message">Additional Details / Special Instructions</Label>
-                <Textarea
-                  id="message"
-                  value={formData.message}
-                  onChange={(e) => handleChange("message", e.target.value)}
-                  placeholder="e.g., specific areas to focus on, pet information, entry instructions"
-                  rows={5}
-                />
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePrevious}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleNext}>
-                  Next <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </motion.div>
-        )
+      case "service-type":
+        return formData.serviceType && formData.propertyType
+      case "special-requests":
+        return true // Always can proceed
+      case "contact-info":
+        return formData.fullName && formData.email && formData.phone
       case "review":
-        return (
-          <motion.div
-            key="review"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5" />
-                Review Your Request
-              </CardTitle>
-              <CardDescription>Please review the details before submitting your quote request.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Contact Information</h3>
-                <p>Name: {formData.name}</p>
-                <p>Email: {formData.email}</p>
-                <p>Phone: {formData.phone}</p>
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Property Details</h3>
-                <p>Property Type: {formData.propertyType}</p>
-                {formData.propertyType === "residential" && (
-                  <>
-                    <p>Bedrooms: {formData.bedrooms}</p>
-                    <p>Bathrooms: {formData.bathrooms}</p>
-                  </>
-                )}
-                <p>Approx. Square Footage: {formData.squareFootage} sq ft</p>
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Service Details</h3>
-                <p>Service Type: {formData.serviceType}</p>
-                <p>Preferred Date: {formData.preferredDate}</p>
-                {formData.message && <p>Instructions: {formData.message}</p>}
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePrevious}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleSubmitQuote} disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
-                    </>
-                  ) : (
-                    "Submit Request"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </motion.div>
-        )
-      case "success":
-        return (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center space-y-6 py-12"
-          >
-            <CheckCircle className="mx-auto h-20 w-20 text-green-500" />
-            <h2 className="text-3xl font-bold">Request Submitted Successfully!</h2>
-            <p className="text-lg text-muted-foreground">
-              Thank you for your custom quote request. We will review your details and get back to you within 1-2
-              business days.
-            </p>
-            <Button asChild size="lg">
-              <Link href="/">Back to Home</Link>
-            </Button>
-          </motion.div>
-        )
+        return false // Last step
       default:
-        return null
+        return false
     }
-  }
+  }, [currentStep, formData])
+
+  if (!isOpen) return null
+
+  const CurrentIcon = STEP_ICONS[currentStep]
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <Card className="shadow-lg">
-        <div className="p-6">
-          <Progress value={progress} className="h-2 mb-4" />
-          <p className="text-sm text-muted-foreground text-center">
-            Step {currentStepIndex + 1} of {stepsOrder.length - 1}
-          </p>
+    <>
+      <div className="fixed inset-0 z-50 flex">
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+        {/* Panel */}
+        <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
+          {/* Header - Fixed */}
+          <div className="flex-shrink-0 border-b p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <CurrentIcon className="h-6 w-6 text-blue-600" />
+                <div>
+                  <h2 className="text-lg font-semibold">{STEP_TITLES[currentStep]}</h2>
+                  <p className="text-sm text-gray-500">{STEP_DESCRIPTIONS[currentStep]}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Progress indicator */}
+            <div className="flex items-center gap-2">
+              {steps.map((step, index) => (
+                <div
+                  key={step}
+                  className={`flex-1 h-2 rounded-full ${
+                    index <= currentStepIndex ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Step {currentStepIndex + 1}</span>
+              <span>{steps.length} steps</span>
+            </div>
+          </div>
+
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            {currentStep === "service-type" && (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="serviceType">Service Type *</Label>
+                  <Select value={formData.serviceType} onValueChange={(value) => updateFormData("serviceType", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="residential">Residential Cleaning</SelectItem>
+                      <SelectItem value="commercial">Commercial Cleaning</SelectItem>
+                      <SelectItem value="deep-clean">Deep Cleaning</SelectItem>
+                      <SelectItem value="move-in-out">Move In/Out Cleaning</SelectItem>
+                      <SelectItem value="post-construction">Post-Construction Cleanup</SelectItem>
+                      <SelectItem value="carpet-cleaning">Carpet Cleaning</SelectItem>
+                      <SelectItem value="window-cleaning">Window Cleaning</SelectItem>
+                      <SelectItem value="pressure-washing">Pressure Washing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="propertyType">Property Type *</Label>
+                  <Select
+                    value={formData.propertyType}
+                    onValueChange={(value) => updateFormData("propertyType", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="apartment">Apartment</SelectItem>
+                      <SelectItem value="house">House</SelectItem>
+                      <SelectItem value="condo">Condo</SelectItem>
+                      <SelectItem value="office">Office</SelectItem>
+                      <SelectItem value="retail">Retail Space</SelectItem>
+                      <SelectItem value="warehouse">Warehouse</SelectItem>
+                      <SelectItem value="restaurant">Restaurant</SelectItem>
+                      <SelectItem value="medical">Medical Facility</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="squareFootage">Square Footage</Label>
+                  <Select
+                    value={formData.squareFootage}
+                    onValueChange={(value) => updateFormData("squareFootage", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select square footage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="under-1000">Under 1,000 sq ft</SelectItem>
+                      <SelectItem value="1000-2000">1,000 - 2,000 sq ft</SelectItem>
+                      <SelectItem value="2000-3000">2,000 - 3,000 sq ft</SelectItem>
+                      <SelectItem value="3000-5000">3,000 - 5,000 sq ft</SelectItem>
+                      <SelectItem value="over-5000">Over 5,000 sq ft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="frequency">Cleaning Frequency</Label>
+                  <Select value={formData.frequency} onValueChange={(value) => updateFormData("frequency", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="one-time">One-time</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {currentStep === "special-requests" && (
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base font-medium">Special Requests</Label>
+                  <p className="text-sm text-gray-500 mb-4">Select any additional services you need</p>
+                  <div className="space-y-3">
+                    {[
+                      "Pet-friendly cleaning products",
+                      "Eco-friendly/green cleaning",
+                      "Inside oven cleaning",
+                      "Inside refrigerator cleaning",
+                      "Inside cabinet cleaning",
+                      "Garage cleaning",
+                      "Basement cleaning",
+                      "Attic cleaning",
+                      "Window cleaning (interior)",
+                      "Window cleaning (exterior)",
+                      "Carpet steam cleaning",
+                      "Upholstery cleaning",
+                      "Tile and grout cleaning",
+                      "Hardwood floor polishing",
+                      "Organizing services",
+                    ].map((request) => (
+                      <div key={request} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={request}
+                          checked={formData.specialRequests.includes(request)}
+                          onCheckedChange={() => toggleSpecialRequest(request)}
+                        />
+                        <Label htmlFor={request} className="text-sm">
+                          {request}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="customRequest">Custom Request</Label>
+                  <Textarea
+                    id="customRequest"
+                    placeholder="Describe any specific cleaning needs or requirements..."
+                    value={formData.customRequest}
+                    onChange={(e) => updateFormData("customRequest", e.target.value)}
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="urgency">Urgency</Label>
+                  <Select value={formData.urgency} onValueChange={(value) => updateFormData("urgency", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="When do you need this service?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asap">ASAP (within 24 hours)</SelectItem>
+                      <SelectItem value="this-week">This week</SelectItem>
+                      <SelectItem value="next-week">Next week</SelectItem>
+                      <SelectItem value="this-month">This month</SelectItem>
+                      <SelectItem value="flexible">Flexible timing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="budget">Budget Range</Label>
+                  <Select value={formData.budget} onValueChange={(value) => updateFormData("budget", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your budget range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="under-200">Under $200</SelectItem>
+                      <SelectItem value="200-500">$200 - $500</SelectItem>
+                      <SelectItem value="500-1000">$500 - $1,000</SelectItem>
+                      <SelectItem value="1000-2000">$1,000 - $2,000</SelectItem>
+                      <SelectItem value="over-2000">Over $2,000</SelectItem>
+                      <SelectItem value="flexible">Flexible</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {currentStep === "contact-info" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="fullName">Full Name *</Label>
+                    <Input
+                      id="fullName"
+                      placeholder="Enter your full name"
+                      value={formData.fullName}
+                      onChange={(e) => updateFormData("fullName", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) => updateFormData("email", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Phone Number *</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={formData.phone}
+                      onChange={(e) => updateFormData("phone", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      placeholder="Street address"
+                      value={formData.address}
+                      onChange={(e) => updateFormData("address", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        placeholder="City"
+                        value={formData.city}
+                        onChange={(e) => updateFormData("city", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        placeholder="State"
+                        value={formData.state}
+                        onChange={(e) => updateFormData("state", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="zipCode">ZIP Code</Label>
+                    <Input
+                      id="zipCode"
+                      placeholder="ZIP Code"
+                      value={formData.zipCode}
+                      onChange={(e) => updateFormData("zipCode", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="preferredContact">Preferred Contact Method</Label>
+                    <Select
+                      value={formData.preferredContact}
+                      onValueChange={(value) => updateFormData("preferredContact", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="How would you like us to contact you?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone Call</SelectItem>
+                        <SelectItem value="text">Text Message</SelectItem>
+                        <SelectItem value="any">Any method</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === "review" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quote Request Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Service Type:</span>
+                        <p>{formData.serviceType}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Property Type:</span>
+                        <p>{formData.propertyType}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Square Footage:</span>
+                        <p>{formData.squareFootage || "Not specified"}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Frequency:</span>
+                        <p>{formData.frequency || "Not specified"}</p>
+                      </div>
+                    </div>
+
+                    {formData.specialRequests.length > 0 && (
+                      <div>
+                        <span className="font-medium">Special Requests:</span>
+                        <ul className="list-disc list-inside text-sm mt-1">
+                          {formData.specialRequests.map((request, index) => (
+                            <li key={index}>{request}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {formData.customRequest && (
+                      <div>
+                        <span className="font-medium">Custom Request:</span>
+                        <p className="text-sm">{formData.customRequest}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Urgency:</span>
+                        <p>{formData.urgency || "Not specified"}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Budget:</span>
+                        <p>{formData.budget || "Not specified"}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <span className="font-medium">Contact Information:</span>
+                      <div className="text-sm mt-2">
+                        <p>{formData.fullName}</p>
+                        <p>{formData.email}</p>
+                        <p>{formData.phone}</p>
+                        {formData.address && (
+                          <p>
+                            {formData.address}
+                            {formData.city && `, ${formData.city}`}
+                            {formData.state && `, ${formData.state}`}
+                            {formData.zipCode && ` ${formData.zipCode}`}
+                          </p>
+                        )}
+                        {formData.preferredContact && <p>Preferred contact: {formData.preferredContact}</p>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Next Steps:</strong> We'll review your request and contact you within 24 hours with a
+                    detailed quote. Our team will work with you to create a customized cleaning plan that meets your
+                    specific needs and budget.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer - Fixed at bottom */}
+          <div className="flex-shrink-0 border-t bg-white dark:bg-gray-900 p-4">
+            <div className="flex gap-2">
+              {!isFirstStep && (
+                <Button variant="outline" onClick={goToPreviousStep} className="flex-1">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+              )}
+
+              {isLastStep ? (
+                <div className="flex gap-2 flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => previewQuoteEmail(formData as QuoteFormData)}
+                    className="flex-1"
+                  >
+                    Preview Email
+                  </Button>
+                  <Button onClick={handleSubmitQuote} className="flex-1">
+                    Send to Gmail
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={goToNextStep} className="flex-1" disabled={!canProceedToNext()}>
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-        <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
-      </Card>
-    </div>
+      </div>
+    </>
   )
 }

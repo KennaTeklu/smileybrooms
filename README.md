@@ -1,74 +1,49 @@
-# Smiley Brooms Cleaning Service Application
+# Smiley Brooms Windows Application
 
-This is the frontend application for Smiley Brooms, a modern cleaning service booking platform built with Next.js, React, and Tailwind CSS.
+A professional Windows desktop application for booking cleaning services.
 
 ## Features
 
-*   **Multi-step Checkout:** A streamlined process for booking cleaning services, including contact, address, payment, and review steps.
-*   **Dynamic Pricing Calculator:** Allows users to customize their cleaning service based on room types, add-ons, and frequency, with real-time price updates.
-*   **Cart Management:** Add, remove, and update cleaning services in the cart.
-*   **Persistent Cart Data:** Cart and checkout data are cached in the browser's local storage to prevent data loss on refresh.
-*   **Responsive Design:** Optimized for various devices and screen sizes.
-*   **Accessibility Features:** Includes an accessibility toolbar and considerations for enhanced user experience.
-*   **Stripe Integration:** Supports secure payment processing.
-*   **AI Chatbot Integration:** (Optional) Provides AI-powered assistance to users.
-*   **Theming:** Supports light and dark modes.
+- Browse cleaning services
+- Book appointments
+- View booking history
+- Receive notifications
+- Offline support
+- Automatic updates
 
-## Getting Started
+## System Requirements
+
+- Windows 10 or later
+- .NET 6.0 Runtime
+- 100 MB free disk space
+- 4 GB RAM recommended
+
+## Installation
+
+1. Download the installer from [our website](https://www.smileybrooms.com/downloads)
+2. Run the installer and follow the on-screen instructions
+3. Launch the application from the Start menu
+
+## Development Setup
 
 ### Prerequisites
 
-*   Node.js (v18.x or later)
-*   npm or Yarn
+- Visual Studio 2022 or later
+- .NET 6.0 SDK
+- Windows 10 SDK
+- Inno Setup 6 (for building installers)
 
-### Installation
+### Building the Application
 
-1.  Clone the repository:
-    \`\`\`bash
-    git clone https://github.com/your-username/smiley-brooms.git
-    cd smiley-brooms
-    \`\`\`
-2.  Install dependencies:
-    \`\`\`bash
-    npm install
-    # or
-    yarn install
-    \`\`\`
-3.  Create a `.env.local` file in the root directory and add your environment variables. You'll need at least:
-    \`\`\`
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_STRIPE_PUBLISHABLE_KEY
-    STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY
-    STRIPE_WEBHOOK_SECRET=whsec_YOUR_STRIPE_WEBHOOK_SECRET
-    NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api # Or your deployed API URL
-    \`\`\`
-    *   For Stripe keys, refer to the [Stripe documentation](https://stripe.com/docs/keys).
-    *   For webhook secret, you'll need to set up a webhook endpoint in your Stripe dashboard pointing to `/api/webhooks/stripe` on your deployed application.
+1. Clone the repository
+2. Open `SmileyBroomsWindows.sln` in Visual Studio
+3. Restore NuGet packages
+4. Build the solution
 
-4.  Run the development server:
-    \`\`\`bash
-    npm run dev
-    # or
-    yarn dev
-    \`\`\`
-    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+### Building the Installer
 
-## Project Structure
+Run the `Build/BuildRelease.ps1` PowerShell script to create a release build and installer.
 
-*   `app/`: Next.js App Router pages and layouts.
-*   `components/`: Reusable React components, including Shadcn UI components.
-*   `hooks/`: Custom React hooks for shared logic.
-*   `lib/`: Utility functions, data, and API integrations.
-*   `public/`: Static assets like images.
-*   `styles/`: Global CSS.
+## License
 
-## Deployment
-
-This application is designed to be deployed on Vercel.
-
-1.  Connect your Git repository to Vercel.
-2.  Ensure your environment variables are configured in the Vercel project settings.
-3.  Deploy!
-
-## Contributing
-
-Contributions are welcome! Please feel free to open issues or submit pull requests.
+Copyright © 2023 Smiley Brooms Cleaning Services. All rights reserved.

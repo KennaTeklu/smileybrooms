@@ -1,37 +1,31 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Target, Eye } from "lucide-react"
+"use client"
 
-export default function MissionVision() {
+import { Card, CardContent } from "@/components/ui/card"
+
+export function MissionVision() {
   return (
-    <section className="py-12 md:py-20">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="mx-auto p-4 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 mb-4">
-                <Target className="h-8 w-8" />
+    <section className="h-full flex items-center justify-center bg-gradient-to-b from-primary/10 to-transparent py-16">
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">Our Mission & Vision</h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">Mission</h3>
+                  <p className="text-lg">
+                    To provide exceptional cleaning services that create healthier, happier spaces while treating our
+                    team members with respect and offering sustainable career opportunities.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">Vision</h3>
+                  <p className="text-lg">
+                    To transform the cleaning industry by setting new standards for quality, sustainability, and
+                    customer satisfaction, one spotless space at a time.
+                  </p>
+                </div>
               </div>
-              <CardTitle className="text-2xl font-bold text-center">Our Mission</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-lg text-muted-foreground">
-                To provide exceptional, reliable, and eco-friendly cleaning services that create healthier and happier
-                environments for our clients, allowing them to focus on what matters most.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="mx-auto p-4 rounded-full bg-purple-100 dark:bg-purple-900/20 text-purple-600 mb-4">
-                <Eye className="h-8 w-8" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-center">Our Vision</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-lg text-muted-foreground">
-                To be the leading and most trusted cleaning service provider, recognized for our commitment to quality,
-                sustainability, and unparalleled customer satisfaction.
-              </p>
             </CardContent>
           </Card>
         </div>
@@ -39,3 +33,5 @@ export default function MissionVision() {
     </section>
   )
 }
+
+export default MissionVision

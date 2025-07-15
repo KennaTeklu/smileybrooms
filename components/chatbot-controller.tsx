@@ -1,100 +1,58 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { MessageSquare, X } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import ChatbotManager from "./chatbot-manager" // Assuming ChatbotManager handles the actual chat UI
-import ChatbotStatusIndicator from "./chatbot-status-indicator" // Assuming this component exists
-import { useChatbotAnalytics } from "@/hooks/use-chatbot-analytics" // Assuming this hook exists
-import { Loader2 } from "lucide-react" // Declare Loader2 variable
+import { useEffect } from "react"
 
-interface ChatbotControllerProps {
-  initialOpen?: boolean
-  apiEndpoint?: string
-  welcomeMessage?: string
-  enabled?: boolean
-}
-
-export default function ChatbotController({
-  initialOpen = false,
-  apiEndpoint = "/api/chatbot",
-  welcomeMessage = "Hi there! How can I help you today?",
-  enabled = true,
-}: ChatbotControllerProps) {
-  const [isOpen, setIsOpen] = useState(initialOpen)
-  const [isChatbotReady, setIsChatbotReady] = useState(false) // Simulate chatbot readiness
-  const { trackChatbotEvent } = useChatbotAnalytics() // Use analytics hook
-
+export default function ChatbotController() {
   useEffect(() => {
-    if (enabled) {
-      // Simulate chatbot initialization
-      const timer = setTimeout(() => {
-        setIsChatbotReady(true)
-        trackChatbotEvent("chatbot_initialized")
-      }, 1000) // Simulate API call or model loading
-      return () => clearTimeout(timer)
-    }
-  }, [enabled, trackChatbotEvent])
+    // Override any JotForm auto-open behavior after initialization
+    const overrideChatbotBehavior = () => {
+      if (typeof window !== "undefined") {
+        // Check for JotForm chatbot elements and force them closed
+        const chatbotIframes = document.querySelectorAll('iframe[src*="jotform"]')
+        chatbotIframes.forEach((iframe) => {
+          const iframeElement = iframe as HTMLIFrameElement
+          if (iframeElement.style.display !== "none") {
+            // Don't hide the button, just ensure chat window is closed
+            const chatWindow = document.querySelector("[data-jotform-chat-window]")
+            if (chatWindow) {
+              ;(chatWindow as HTMLElement).style.display = "none"
+            }
+          }
+        })
 
-  const toggleChatbot = () => {
-    setIsOpen((prev) => {
-      const newState = !prev
-      if (newState) {
-        trackChatbotEvent("chatbot_opened")
-      } else {
-        trackChatbotEvent("chatbot_closed")
+        // Override any global JotForm auto-open functions
+        if ((window as any).JotFormAgent) {
+          const originalOpen = (window as any).JotFormAgent.open
+          ;(window as any).JotFormAgent.open = function (...args: any[]) {
+            // Only allow manual opens, not automatic ones
+            if (args[0] !== "manual") {
+              console.log("Blocked automatic chatbot opening")
+              return
+            }
+            return originalOpen.apply(this, args)
+          }
+        }
       }
-      return newState
+    }
+
+    // Run immediately and on DOM changes
+    overrideChatbotBehavior()
+
+    // Set up observer to catch any dynamic changes
+    const observer = new MutationObserver(overrideChatbotBehavior)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
     })
-  }
 
-  if (!enabled) {
-    return null
-  }
+    // Also run after a delay to catch late initializations
+    const timeouts = [500, 1000, 2000, 5000].map((delay) => setTimeout(overrideChatbotBehavior, delay))
 
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute bottom-full right-0 mb-4 w-80 sm:w-96 h-[450px] rounded-lg bg-white shadow-xl dark:bg-gray-800 flex flex-col"
-          >
-            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-blue-500" />
-                Smiley Brooms AI
-              </h3>
-              <Button variant="ghost" size="icon" onClick={toggleChatbot} aria-label="Close chatbot">
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="flex-grow overflow-hidden">
-              {isChatbotReady ? (
-                <ChatbotManager apiEndpoint={apiEndpoint} welcomeMessage={welcomeMessage} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  Loading AI...
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    return () => {
+      observer.disconnect()
+      timeouts.forEach(clearTimeout)
+    }
+  }, [])
 
-      <Button
-        onClick={toggleChatbot}
-        className="relative h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
-        aria-label={isOpen ? "Close chatbot" : "Open chatbot"}
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-        <ChatbotStatusIndicator isReady={isChatbotReady} />
-      </Button>
-    </div>
-  )
+  return null
 }

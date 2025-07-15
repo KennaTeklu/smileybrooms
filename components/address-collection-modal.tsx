@@ -1,190 +1,277 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { MapPin, CreditCard } from "lucide-react"
 import { US_STATES } from "@/lib/location-data"
-import { useToast } from "@/components/ui/use-toast"
-import { MapPin } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-interface AddressData {
+export interface AddressData {
+  fullName: string
+  email: string
+  phone: string
   address: string
-  address2?: string
   city: string
   state: string
   zipCode: string
-  specialInstructions?: string
+  specialInstructions: string
 }
 
 interface AddressCollectionModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: AddressData) => void
-  initialData?: AddressData
+  onSubmit: (data: AddressData) => void
 }
 
-export default function AddressCollectionModal({ isOpen, onClose, onSave, initialData }: AddressCollectionModalProps) {
-  const { toast } = useToast()
-  const [address, setAddress] = useState(initialData?.address || "")
-  const [address2, setAddress2] = useState(initialData?.address2 || "")
-  const [city, setCity] = useState(initialData?.city || "")
-  const [state, setState] = useState(initialData?.state || "")
-  const [zipCode, setZipCode] = useState(initialData?.zipCode || "")
-  const [specialInstructions, setSpecialInstructions] = useState(initialData?.specialInstructions || "")
+export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: AddressCollectionModalProps) {
+  const [formData, setFormData] = useState<AddressData>({
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    specialInstructions: "",
+  })
+
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+
+    // Clear error when field is edited
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!address.trim()) newErrors.address = "Street address is required"
-    if (!city.trim()) newErrors.city = "City is required"
-    if (!state) newErrors.state = "State is required"
-    if (!zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+
+    if (!formData.fullName.trim()) newErrors.fullName = "Name is required"
+    if (!formData.email.trim()) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid"
+
+    if (!formData.phone.trim()) newErrors.phone = "Phone is required"
+    if (!formData.address.trim()) newErrors.address = "Address is required"
+    if (!formData.city.trim()) newErrors.city = "City is required"
+    if (!formData.state) newErrors.state = "State is required"
+    if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
     if (validateForm()) {
-      onSave({ address, address2, city, state, zipCode, specialInstructions })
-      onClose()
-    } else {
-      toast({
-        title: "Please correct the errors",
-        description: "Some required address fields are missing or invalid.",
-        variant: "destructive",
+      onSubmit(formData)
+
+      // Reset form
+      setFormData({
+        fullName: "",
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        specialInstructions: "",
       })
+
+      onClose()
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] p-6">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <MapPin className="h-6 w-6" />
-            Enter Service Address
+          <DialogTitle className="flex items-center">
+            <MapPin className="h-5 w-5 mr-2 text-blue-600" />
+            Enter Your Address
           </DialogTitle>
           <DialogDescription>
-            Please provide the address where you would like the cleaning service to be performed.
+            Please provide your address and contact information for the cleaning service.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
-          <div>
-            <Label htmlFor="address" className="text-base">
-              Street Address
-            </Label>
-            <Input
-              id="address"
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value)
-                if (errors.address) setErrors((prev) => ({ ...prev, address: "" }))
-              }}
-              className={`mt-2 h-12 ${errors.address ? "border-red-500" : ""}`}
-              placeholder="123 Main Street"
-            />
-            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
-          </div>
-          <div>
-            <Label htmlFor="address2" className="text-base">
-              Apartment, suite, etc. (optional)
-            </Label>
-            <Input
-              id="address2"
-              value={address2}
-              onChange={(e) => setAddress2(e.target.value)}
-              className="mt-2 h-12"
-              placeholder="Apt 4B"
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="city" className="text-base">
-                City
-              </Label>
-              <Input
-                id="city"
-                value={city}
-                onChange={(e) => {
-                  setCity(e.target.value)
-                  if (errors.city) setErrors((prev) => ({ ...prev, city: "" }))
-                }}
-                className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
-                placeholder="New York"
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="grid grid-cols-1 gap-4">
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Contact Information</h3>
+
+              <div>
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className={errors.fullName ? "border-red-500" : ""}
+                />
+                {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={errors.email ? "border-red-500" : ""}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={errors.phone ? "border-red-500" : ""}
+                  />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Address Information */}
+            <div className="space-y-4 pt-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Service Address</h3>
+
+              <div>
+                <Label htmlFor="address">Street Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className={errors.address ? "border-red-500" : ""}
+                />
+                {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className={errors.city ? "border-red-500" : ""}
+                  />
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+                </div>
+
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Select
+                    value={formData.state}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: value,
+                      }))
+
+                      // Clear error when field is edited
+                      if (errors.state) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev }
+                          delete newErrors.state
+                          return newErrors
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {US_STATES.map((state) => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="zipCode">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  name="zipCode"
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  className={errors.zipCode ? "border-red-500" : ""}
+                />
+                {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
+              </div>
+            </div>
+
+            {/* Special Instructions */}
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="specialInstructions">Special Instructions (Optional)</Label>
+              <Textarea
+                id="specialInstructions"
+                name="specialInstructions"
+                value={formData.specialInstructions}
+                onChange={handleChange}
+                placeholder="Entry instructions, pets, areas to avoid, etc."
+                className="h-20"
               />
-              {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
-            </div>
-            <div>
-              <Label htmlFor="state" className="text-base">
-                State
-              </Label>
-              <Select
-                value={state}
-                onValueChange={(value) => {
-                  setState(value)
-                  if (errors.state) setErrors((prev) => ({ ...prev, state: "" }))
-                }}
-              >
-                <SelectTrigger id="state" className={`mt-2 h-12 ${errors.state ? "border-red-500" : ""}`}>
-                  <SelectValue placeholder="Select state" />
-                </SelectTrigger>
-                <SelectContent>
-                  {US_STATES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
-            </div>
-            <div>
-              <Label htmlFor="zipCode" className="text-base">
-                ZIP Code
-              </Label>
-              <Input
-                id="zipCode"
-                value={zipCode}
-                onChange={(e) => {
-                  setZipCode(e.target.value)
-                  if (errors.zipCode) setErrors((prev) => ({ ...prev, zipCode: "" }))
-                }}
-                className={`mt-2 h-12 ${errors.zipCode ? "border-red-500" : ""}`}
-                placeholder="10001"
-              />
-              {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
             </div>
           </div>
-          <div>
-            <Label htmlFor="specialInstructions" className="text-base">
-              Special Instructions (Optional)
-            </Label>
-            <Textarea
-              id="specialInstructions"
-              value={specialInstructions}
-              onChange={(e) => setSpecialInstructions(e.target.value)}
-              placeholder="Entry instructions, pets, areas to avoid, etc."
-              className="mt-2 h-24"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit}>Save Address</Button>
-        </DialogFooter>
+
+          <DialogFooter className="pt-4">
+            <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-left">
+                <p className="text-sm text-gray-600">Total Price:</p>
+                <p className="text-xl font-bold">{/* Price will be displayed in the cart component */}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Add to Cart
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

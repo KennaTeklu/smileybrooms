@@ -1,301 +1,485 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Calendar, Mail } from "lucide-react"
-import Link from "next/link"
-import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import type React from "react"
 
-interface JobPosting {
-  id: string
-  title: string
-  location: string
-  salary: string
-  type: string
-  description: string[]
-  responsibilities: string[]
-  qualifications: string[]
-  benefits: string[]
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Footer from "@/components/footer"
+import AccessibilityToolbar from "@/components/accessibility-toolbar"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Briefcase, Upload } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/components/ui/use-toast"
+
+// Position-specific questions
+const positionQuestions = {
+  "professional-cleaner": [
+    {
+      id: "cleaning_experience",
+      label: "Do you have previous cleaning experience?",
+      type: "select",
+      options: ["Yes, professional", "Yes, personal", "No"],
+    },
+    {
+      id: "availability",
+      label: "What is your availability?",
+      type: "select",
+      options: ["Weekdays", "Weekends", "Evenings", "Flexible"],
+    },
+    {
+      id: "transportation",
+      label: "Do you have reliable transportation?",
+      type: "select",
+      options: ["Yes", "No"],
+    },
+    {
+      id: "lifting",
+      label: "Are you comfortable lifting up to 25 pounds?",
+      type: "select",
+      options: ["Yes", "No", "With accommodation"],
+    },
+  ],
+  "team-lead": [
+    {
+      id: "management_experience",
+      label: "How many years of management experience do you have?",
+      type: "select",
+      options: ["None", "Less than 1 year", "1-3 years", "3-5 years", "5+ years"],
+    },
+    {
+      id: "team_size",
+      label: "What is the largest team you've managed?",
+      type: "select",
+      options: ["1-3 people", "4-6 people", "7-10 people", "10+ people"],
+    },
+    {
+      id: "conflict_resolution",
+      label: "Describe your approach to conflict resolution",
+      type: "textarea",
+    },
+    {
+      id: "quality_control",
+      label: "How do you ensure quality standards are met?",
+      type: "textarea",
+    },
+  ],
+  "customer-service-representative": [
+    {
+      id: "customer_service_experience",
+      label: "How many years of customer service experience do you have?",
+      type: "select",
+      options: ["None", "Less than 1 year", "1-3 years", "3-5 years", "5+ years"],
+    },
+    {
+      id: "communication_skills",
+      label: "Rate your written communication skills",
+      type: "select",
+      options: ["Beginner", "Intermediate", "Advanced", "Expert"],
+    },
+    {
+      id: "software_experience",
+      label: "What scheduling or CRM software have you used?",
+      type: "textarea",
+    },
+    {
+      id: "difficult_customer",
+      label: "Describe how you handled a difficult customer situation",
+      type: "textarea",
+    },
+  ],
+  "operations-manager": [
+    {
+      id: "operations_experience",
+      label: "How many years of operations management experience do you have?",
+      type: "select",
+      options: ["None", "Less than 1 year", "1-3 years", "3-5 years", "5+ years"],
+    },
+    {
+      id: "budget_management",
+      label: "Have you managed operational budgets?",
+      type: "select",
+      options: ["Yes, under $100K", "Yes, $100K-$500K", "Yes, $500K+", "No"],
+    },
+    {
+      id: "process_improvement",
+      label: "Describe a process improvement you implemented",
+      type: "textarea",
+    },
+    {
+      id: "leadership_style",
+      label: "What is your leadership philosophy?",
+      type: "textarea",
+    },
+  ],
 }
 
-const jobPostings: JobPosting[] = [
-  {
-    id: "cleaner-specialist",
-    title: "Professional Cleaning Specialist",
-    location: "New York, NY",
-    salary: "$20 - $25/hour",
-    type: "Full-time, Part-time",
-    description: [
-      "Join our dynamic team as a Cleaning Specialist and help us deliver sparkling results to our clients. You will be responsible for performing high-quality cleaning services for residential and commercial properties.",
-      "We are looking for individuals who are detail-oriented, reliable, and passionate about creating clean and organized spaces. Experience in professional cleaning is a plus, but we provide comprehensive training.",
-    ],
-    responsibilities: [
-      "Perform general cleaning duties (dusting, vacuuming, mopping, sanitizing) in homes and offices.",
-      "Clean and sanitize bathrooms and kitchens thoroughly.",
-      "Empty trash receptacles and replace liners.",
-      "Follow all safety procedures and company policies.",
-      "Communicate effectively with clients and team members.",
-      "Maintain cleaning equipment and supplies.",
-    ],
-    qualifications: [
-      "High school diploma or equivalent.",
-      "Previous cleaning experience preferred but not required.",
-      "Ability to lift up to 25 lbs and perform physical tasks.",
-      "Reliable transportation and valid driver's license.",
-      "Excellent attention to detail and strong work ethic.",
-      "Ability to work independently and as part of a team.",
-    ],
-    benefits: [
-      "Competitive hourly wages.",
-      "Flexible scheduling options.",
-      "Paid training and professional development.",
-      "Opportunity for growth within the company.",
-      "Friendly and supportive work environment.",
-      "Health and dental benefits (for full-time employees).",
-    ],
-  },
-  {
-    id: "operations-manager",
-    title: "Operations Manager",
-    location: "Brooklyn, NY",
-    salary: "$60,000 - $75,000/year",
-    type: "Full-time",
-    description: [
-      "We are seeking an experienced Operations Manager to oversee our daily cleaning operations. This role involves managing cleaning teams, optimizing schedules, ensuring quality standards, and enhancing operational efficiency.",
-      "The ideal candidate will have strong leadership skills, a proven track record in operations management, and a commitment to delivering exceptional service.",
-    ],
-    responsibilities: [
-      "Manage and supervise cleaning teams, including hiring, training, and performance evaluations.",
-      "Develop and implement operational policies and procedures to improve efficiency.",
-      "Oversee scheduling and dispatching of cleaning crews.",
-      "Ensure high standards of cleaning quality and customer satisfaction.",
-      "Manage inventory of cleaning supplies and equipment.",
-      "Handle client inquiries and resolve operational issues.",
-      "Analyze operational data to identify areas for improvement.",
-    ],
-    qualifications: [
-      "Bachelor's degree in Business Administration or related field.",
-      "3+ years of experience in operations management, preferably in the service industry.",
-      "Strong leadership and team management skills.",
-      "Excellent organizational and problem-solving abilities.",
-      "Proficiency in scheduling software and Microsoft Office Suite.",
-      "Ability to work in a fast-paced environment and manage multiple priorities.",
-    ],
-    benefits: [
-      "Competitive salary and performance bonuses.",
-      "Comprehensive health, dental, and vision insurance.",
-      "Paid time off and holidays.",
-      "Retirement savings plan with company match.",
-      "Professional development opportunities.",
-      "Dynamic and collaborative work environment.",
-    ],
-  },
-  {
-    id: "customer-support-rep",
-    title: "Customer Support Representative",
-    location: "Remote",
-    salary: "$18 - $22/hour",
-    type: "Full-time, Remote",
-    description: [
-      "As a Customer Support Representative, you will be the first point of contact for our clients, providing exceptional service and support. You will assist with booking inquiries, service adjustments, and resolving customer concerns.",
-      "We are looking for empathetic and articulate individuals with a passion for helping others and a strong ability to communicate effectively.",
-    ],
-    responsibilities: [
-      "Respond to customer inquiries via phone, email, and chat in a timely and professional manner.",
-      "Assist clients with booking, rescheduling, and canceling cleaning services.",
-      "Provide information about our services, pricing, and policies.",
-      "Resolve customer complaints and issues with a positive and helpful attitude.",
-      "Maintain accurate records of customer interactions and transactions.",
-      "Collaborate with the operations team to ensure seamless service delivery.",
-    ],
-    qualifications: [
-      "High school diploma or equivalent; some college preferred.",
-      "1+ year of experience in customer service or a related field.",
-      "Excellent verbal and written communication skills.",
-      "Strong problem-solving abilities and attention to detail.",
-      "Proficiency in CRM software and basic computer skills.",
-      "Ability to work independently in a remote setting.",
-    ],
-    benefits: [
-      "Competitive hourly wage.",
-      "Flexible remote work options.",
-      "Paid training.",
-      "Health benefits.",
-      "Opportunities for career advancement.",
-      "Supportive team environment.",
-    ],
-  },
-]
+// Position titles mapping
+const positionTitles = {
+  "professional-cleaner": "Professional Cleaner",
+  "team-lead": "Team Lead",
+  "customer-service-representative": "Customer Service Representative",
+  "operations-manager": "Operations Manager",
+}
 
-export default function CareerPositionPage() {
-  const params = useParams()
-  const positionId = params.position as string
-  const [job, setJob] = useState<JobPosting | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function CareerApplicationPage({ params }: { params: { position: string } }) {
+  const position = params.position
+  const positionTitle = positionTitles[position as keyof typeof positionTitles] || "Unknown Position"
+  const router = useRouter()
+  const { toast } = useToast()
 
-  useEffect(() => {
-    setLoading(true)
-    const foundJob = jobPostings.find((p) => p.id === positionId)
-    if (foundJob) {
-      setJob(foundJob)
-    } else {
-      // Handle job not found, e.g., redirect to 404 or careers page
-      console.error(`Job position with ID "${positionId}" not found.`)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    resumeText: "",
+    resumeFile: null as File | null,
+    coverLetter: "",
+    experience: "",
+    agreeToTerms: false,
+  })
+
+  const [positionAnswers, setPositionAnswers] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handlePositionQuestionChange = (id: string, value: string) => {
+    setPositionAnswers((prev) => ({ ...prev, [id]: value }))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData((prev) => ({ ...prev, resumeFile: e.target.files![0] }))
     }
-    setLoading(false)
-  }, [positionId])
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
-        <p>Loading job details...</p>
-      </div>
-    )
   }
 
-  if (!job) {
-    return (
-      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle className="text-2xl">Job Not Found</CardTitle>
-            <CardDescription>The job posting you are looking for does not exist.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link href="/careers">Back to Careers</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: checked }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      // Google Sheets integration
+      const scriptURL =
+        "https://script.google.com/macros/s/AKfycbxSSfjUlwZ97Y0iQnagSRH7VxMz-oRSSvQ0bXU5Le1abfULTngJ_BFAQg7c4428DmaK/exec"
+
+      // Calculate experience level based on years
+      const getExperienceLevel = (years: string) => {
+        switch (years) {
+          case "0-1":
+            return "Entry Level"
+          case "1-3":
+            return "Junior"
+          case "3-5":
+            return "Mid-Level"
+          case "5+":
+            return "Senior"
+          default:
+            return "Not Specified"
+        }
+      }
+
+      // Extract key skills from resume and cover letter
+      const extractSkills = (text: string) => {
+        const skillKeywords = [
+          "cleaning",
+          "customer service",
+          "management",
+          "attention to detail",
+          "organization",
+          "leadership",
+          "communication",
+          "sales",
+          "marketing",
+        ]
+        const foundSkills = skillKeywords.filter((skill) => text.toLowerCase().includes(skill.toLowerCase()))
+        return foundSkills.length > 0 ? foundSkills.join(", ") : "None identified"
+      }
+
+      const combinedText = `${formData.resumeText} ${formData.coverLetter}`
+      const extractedSkills = extractSkills(combinedText)
+      const experienceLevel = getExperienceLevel(formData.experience)
+
+      const submitData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: `🟡 Job Application: Position - ${positionTitle}. Experience: ${formData.experience}. Resume Summary: ${formData.resumeText.substring(0, 100)}...`,
+        source: "Careers Application",
+        meta: {
+          formType: "career",
+          submitDate: new Date().toISOString(),
+          browser: navigator.userAgent,
+          page: window.location.pathname,
+          referrer: document.referrer || "direct",
+          device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+          consent: formData.agreeToTerms,
+        },
+        data: {
+          position: positionTitle,
+          experienceYears: formData.experience,
+          experienceLevel: experienceLevel,
+          resumeText: formData.resumeText,
+          coverLetter: formData.coverLetter,
+          identifiedSkills: extractedSkills,
+          applicationSource: "website",
+          hasRelevantExperience:
+            combinedText.toLowerCase().includes("cleaning") || combinedText.toLowerCase().includes("customer service"),
+          positionAnswers: positionAnswers,
+          hasResumeFile: formData.resumeFile ? true : false,
+        },
+      }
+
+      // Submit to the Google Sheet
+      await fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
+      })
+
+      // Handle file upload separately if needed
+      if (formData.resumeFile) {
+        // In a real implementation, you would upload the file to a storage service
+        console.log("Would upload file:", formData.resumeFile.name)
+      }
+
+      toast({
+        title: "Application submitted!",
+        description: "Thank you for your application. We'll review it and contact you soon!",
+      })
+
+      // Redirect back to careers page
+      setTimeout(() => {
+        router.push("/careers")
+      }, 2000)
+    } catch (error) {
+      console.error("Error:", error)
+      toast({
+        title: "Application failed",
+        description: "There was an error submitting your application. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Get questions for this position
+  const questions = positionQuestions[position as keyof typeof positionQuestions] || []
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-        <Link
-          href="/careers"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to All Careers
-        </Link>
+    <div className="flex min-h-screen flex-col">
+      <main className="flex-1">
+        <div className="bg-gradient-to-b from-primary/10 to-transparent py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl font-bold mb-4">Apply for {positionTitle}</h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Join our team and help us deliver exceptional cleaning services to our customers.
+            </p>
+          </div>
+        </div>
 
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold">{job.title}</CardTitle>
-            <CardDescription className="flex items-center gap-4 text-lg">
-              <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {job.location}
-              </span>
-              <span className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                {job.salary}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                {job.type}
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            {/* Description */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Job Description
-              </h3>
-              {job.description.map((paragraph, index) => (
-                <p key={index} className="text-gray-700 dark:text-gray-300">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
+        {/* Job Application Form */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  Application Form: {positionTitle}
+                </CardTitle>
+                <CardDescription>Fill out the form below to apply for this position at Smiley Brooms</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
 
-            <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="john@example.com"
+                        required
+                      />
+                    </div>
 
-            {/* Responsibilities */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Responsibilities
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                {job.responsibilities.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="(555) 123-4567"
+                        required
+                      />
+                    </div>
+                  </div>
 
-            <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Years of Experience</Label>
+                    <Select
+                      value={formData.experience}
+                      onValueChange={(value) => handleSelectChange("experience", value)}
+                    >
+                      <SelectTrigger id="experience">
+                        <SelectValue placeholder="Select your experience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0-1">0-1 years</SelectItem>
+                        <SelectItem value="1-3">1-3 years</SelectItem>
+                        <SelectItem value="3-5">3-5 years</SelectItem>
+                        <SelectItem value="5+">5+ years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            {/* Qualifications */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Qualifications
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                {job.qualifications.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
+                  {/* Position-specific questions */}
+                  {questions.map((question) => (
+                    <div key={question.id} className="space-y-2">
+                      <Label htmlFor={question.id}>{question.label}</Label>
+                      {question.type === "select" ? (
+                        <Select
+                          value={positionAnswers[question.id] || ""}
+                          onValueChange={(value) => handlePositionQuestionChange(question.id, value)}
+                        >
+                          <SelectTrigger id={question.id}>
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {question.options.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Textarea
+                          id={question.id}
+                          value={positionAnswers[question.id] || ""}
+                          onChange={(e) => handlePositionQuestionChange(question.id, e.target.value)}
+                          placeholder="Your answer"
+                          rows={3}
+                        />
+                      )}
+                    </div>
+                  ))}
 
-            <Separator />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="resumeFile">Resume</Label>
+                      <div className="text-sm text-gray-500">Upload your resume or paste it in the text area below</div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <label
+                          htmlFor="resumeFile"
+                          className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-gray-300 px-3 py-4 text-center hover:border-primary"
+                        >
+                          <Upload className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {formData.resumeFile ? formData.resumeFile.name : "Click to upload resume"}
+                          </span>
+                          <input
+                            id="resumeFile"
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Label htmlFor="resumeText">Or paste your resume here</Label>
+                      <Textarea
+                        id="resumeText"
+                        name="resumeText"
+                        value={formData.resumeText}
+                        onChange={handleInputChange}
+                        placeholder="Paste your resume or summarize your qualifications here"
+                        rows={5}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        {!formData.resumeFile && !formData.resumeText
+                          ? "Either upload a file or paste your resume text"
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
 
-            {/* Benefits */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                Benefits
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                {job.benefits.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="coverLetter">Cover Letter</Label>
+                    <Textarea
+                      id="coverLetter"
+                      name="coverLetter"
+                      value={formData.coverLetter}
+                      onChange={handleInputChange}
+                      placeholder="Tell us why you're interested in this position and why you'd be a great fit"
+                      rows={5}
+                      required
+                    />
+                  </div>
 
-            <Separator />
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="agreeToTerms"
+                      checked={formData.agreeToTerms}
+                      onCheckedChange={(checked) => handleCheckboxChange("agreeToTerms", checked as boolean)}
+                      required
+                    />
+                    <Label htmlFor="agreeToTerms" className="text-sm">
+                      I understand and agree that the information provided will be used for hiring purposes
+                    </Label>
+                  </div>
 
-            {/* Apply Section */}
-            <div className="text-center space-y-4">
-              <h3 className="text-2xl font-bold">Ready to Join Our Team?</h3>
-              <p className="text-lg text-gray-700 dark:text-gray-300">
-                We'd love to hear from you! Apply now and start your journey with Smiley Brooms.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <Button size="lg" className="px-8 py-3">
-                  Apply Now
-                </Button>
-                <Button variant="outline" size="lg" className="px-8 py-3 bg-transparent" asChild>
-                  <Link href="/contact">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Contact HR
-                  </Link>
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                For inquiries, you can also reach us at{" "}
-                <a href="mailto:careers@smileybrooms.com" className="text-primary hover:underline">
-                  careers@smileybrooms.com
-                </a>{" "}
-                or call us at{" "}
-                <a href="tel:+15551234567" className="text-primary hover:underline">
-                  (555) 123-4567
-                </a>
-                .
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting..." : "Submit Application"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </main>
+
+      <AccessibilityToolbar />
+      <Footer />
     </div>
   )
 }

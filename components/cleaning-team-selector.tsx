@@ -1,123 +1,155 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import Image from "next/image"
-import { Users, Star, CheckCircle } from "lucide-react"
-import { motion } from "framer-motion"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Star, Calendar, Clock, Users, ThumbsUp, Award, Shield } from "lucide-react"
 
-interface TeamMember {
+interface CleaningTeam {
   id: string
   name: string
-  role: string
-  image: string
   rating: number
-  specialty: string
+  reviews: number
+  experience: string
+  specialties: string[]
+  nextAvailable: string
+  image: string
+  premium?: boolean
 }
 
-const teamMembers: TeamMember[] = [
-  {
-    id: "team-alpha",
-    name: "Team Alpha",
-    role: "Lead Cleaners",
-    image: "/professional-cleaning-team.png",
-    rating: 4.9,
-    specialty: "Deep Cleaning, Residential",
-  },
-  {
-    id: "team-beta",
-    name: "Team Beta",
-    role: "Commercial Specialists",
-    image: "/professional-man-suit-headshot.png", // Placeholder for a team lead
-    rating: 4.8,
-    specialty: "Office Cleaning, Post-Construction",
-  },
-  {
-    id: "team-gamma",
-    name: "Team Gamma",
-    role: "Eco-Friendly Experts",
-    image: "/professional-woman-smiling-headshot.png", // Placeholder for a team lead
-    rating: 5.0,
-    specialty: "Green Cleaning, Allergy-Friendly",
-  },
-]
+interface CleaningTeamSelectorProps {
+  onTeamSelect: (teamId: string) => void
+  selectedTeam?: string
+}
 
-export default function CleaningTeamSelector() {
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null)
+export function CleaningTeamSelector({ onTeamSelect, selectedTeam }: CleaningTeamSelectorProps) {
+  const [selected, setSelected] = useState(selectedTeam || "")
 
-  const handleSelectTeam = (teamId: string) => {
-    setSelectedTeam(teamId)
+  const teams: CleaningTeam[] = [
+    {
+      id: "team1",
+      name: "The Sparkle Squad",
+      rating: 4.9,
+      reviews: 127,
+      experience: "5+ years",
+      specialties: ["Deep Cleaning", "Move-in/Move-out"],
+      nextAvailable: "Tomorrow",
+      image: "/professional-cleaning-team.png",
+      premium: true,
+    },
+    {
+      id: "team2",
+      name: "Clean & Clear Crew",
+      rating: 4.7,
+      reviews: 98,
+      experience: "3+ years",
+      specialties: ["Pet-Friendly", "Eco-Friendly"],
+      nextAvailable: "Today",
+      image: "/placeholder-n09pw.png",
+    },
+    {
+      id: "team3",
+      name: "Pristine Professionals",
+      rating: 4.8,
+      reviews: 112,
+      experience: "7+ years",
+      specialties: ["Commercial", "Residential"],
+      nextAvailable: "In 2 days",
+      image: "/placeholder.svg?height=80&width=80&query=professional cleaners",
+    },
+  ]
+
+  const handleTeamSelect = (teamId: string) => {
+    setSelected(teamId)
+    onTeamSelect(teamId)
   }
 
   return (
-    <section className="py-12 md:py-20 bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold flex items-center justify-center gap-3">
-              <Users className="h-8 w-8" />
-              Choose Your Cleaning Team
-            </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">
-              Select a team that best fits your needs and preferences.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <RadioGroup
-              value={selectedTeam || ""}
-              onValueChange={handleSelectTeam}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {teamMembers.map((team) => (
-                <motion.div
-                  key={team.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.5 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Label htmlFor={team.id} className="flex flex-col items-center space-y-4 cursor-pointer">
-                    <Card
-                      className={`w-full h-full text-center p-6 transition-all duration-200 ${
-                        selectedTeam === team.id
-                          ? "border-blue-600 ring-2 ring-blue-600 shadow-lg"
-                          : "border-gray-200 dark:border-gray-700 hover:border-blue-400"
-                      }`}
-                    >
-                      <CardContent className="p-0 flex flex-col items-center">
-                        <Image
-                          src={team.image || "/placeholder.svg"}
-                          alt={team.name}
-                          width={120}
-                          height={120}
-                          className="rounded-full object-cover mb-4 border-4 border-blue-200 dark:border-blue-800"
-                        />
-                        <h3 className="text-xl font-semibold mb-1">{team.name}</h3>
-                        <p className="text-muted-foreground text-sm mb-2">{team.role}</p>
-                        <div className="flex items-center gap-1 text-yellow-500 mb-3">
-                          <Star className="h-4 w-4 fill-yellow-500" />
-                          <span className="font-medium">{team.rating.toFixed(1)}</span>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Specialty: {team.specialty}</p>
-                        <RadioGroupItem value={team.id} id={team.id} className="sr-only" />
-                        {selectedTeam === team.id && <CheckCircle className="h-6 w-6 text-blue-600 mt-2" />}
-                      </CardContent>
-                    </Card>
-                  </Label>
-                </motion.div>
-              ))}
-            </RadioGroup>
-            <div className="text-center mt-8">
-              <Button size="lg" disabled={!selectedTeam}>
-                Confirm Team Selection
-              </Button>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" /> Select Your Cleaning Team
+        </CardTitle>
+        <CardDescription>Choose the team that best fits your needs</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <RadioGroup value={selected} onValueChange={handleTeamSelect} className="space-y-4">
+          {teams.map((team) => (
+            <div key={team.id} className="relative">
+              <RadioGroupItem value={team.id} id={team.id} className="peer sr-only" />
+              <Label
+                htmlFor={team.id}
+                className="flex flex-col sm:flex-row items-start p-4 border-2 rounded-lg border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <div className="flex items-center sm:mr-4 mb-4 sm:mb-0">
+                  <Avatar className="h-16 w-16 border-2 border-gray-200">
+                    <AvatarImage src={team.image || "/placeholder.svg"} alt={team.name} />
+                    <AvatarFallback>{team.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium">{team.name}</h3>
+                      {team.premium && (
+                        <Badge variant="default" className="ml-2">
+                          Premium
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center mt-1 sm:mt-0">
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                        <span className="ml-1 font-medium">{team.rating}</span>
+                      </div>
+                      <span className="text-sm text-gray-500 ml-1">({team.reviews} reviews)</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                    <div className="flex items-center text-sm">
+                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>{team.experience} experience</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>Available: {team.nextAvailable}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <ThumbsUp className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>Specialties: {team.specialties.join(", ")}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Shield className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>Background checked</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {team.specialties.map((specialty) => (
+                      <Badge key={specialty} variant="outline">
+                        {specialty}
+                      </Badge>
+                    ))}
+                    <Badge variant="outline">
+                      <Award className="h-3 w-3 mr-1" />
+                      Certified
+                    </Badge>
+                  </div>
+                </div>
+              </Label>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
+          ))}
+        </RadioGroup>
+
+        <div className="mt-6 flex justify-end">
+          <Button variant="outline" size="sm">
+            View All Teams
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

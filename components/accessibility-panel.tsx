@@ -1,380 +1,452 @@
 "use client"
 
-import { SheetDescription } from "@/components/ui/sheet"
-
-import { useCallback } from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence, useSpring } from "framer-motion"
+import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import {
-  Accessibility,
-  Palette,
-  Text,
-  MousePointer2,
-  Keyboard,
-  Volume2,
-  Lightbulb,
-  Eye,
-  RefreshCcw,
-} from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/components/ui/use-toast"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
+import { useClickOutside } from "@/hooks/use-click-outside"
 
 export default function AccessibilityPanel() {
-  const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
+  const [fontSize, setFontSize] = useState(1)
+  const [contrast, setContrast] = useState(1)
+  const [saturation, setSaturation] = useState(1)
+  const [motionReduced, setMotionReduced] = useState(false)
   const [highContrast, setHighContrast] = useState(false)
-  const [largeText, setLargeText] = useState(false)
-  const [fontSize, setFontSize] = useState(16)
-  const [highlightLinks, setHighlightLinks] = useState(false)
-  const [disableAnimations, setDisableAnimations] = useState(false)
-  const [readingMask, setReadingMask] = useState(false)
-  const [readingGuide, setReadingGuide] = useState(false)
+  const [dyslexicFont, setDyslexicFont] = useState(false)
   const [cursorSize, setCursorSize] = useState(1)
-  const [textSpacing, setTextSpacing] = useState(1)
-  const [lineHeight, setLineHeight] = useState(1.5)
-  const [keyboardNavigation, setKeyboardNavigation] = useState(false)
-  const [voiceCommands, setVoiceCommands] = useState(false)
-  const [screenReader, setScreenReader] = useState(false)
+  const [soundEffects, setSoundEffects] = useState(false)
+  const [keyboardMode, setKeyboardMode] = useState(false)
+  const [focusIndicators, setFocusIndicators] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const { theme, setTheme } = useTheme()
 
-  // Load settings from localStorage on mount
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Smooth scroll position with spring physics
+  const smoothScrollY = useSpring(0, {
+    stiffness: 100,
+    damping: 20,
+    mass: 0.5,
+  })
+
+  // Track scroll position with smooth animation
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem("accessibilitySettings")
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings)
-        setHighContrast(settings.highContrast || false)
-        setLargeText(settings.largeText || false)
-        setFontSize(settings.fontSize || 16)
-        setHighlightLinks(settings.highlightLinks || false)
-        setDisableAnimations(settings.disableAnimations || false)
-        setReadingMask(settings.readingMask || false)
-        setReadingGuide(settings.readingGuide || false)
-        setCursorSize(settings.cursorSize || 1)
-        setTextSpacing(settings.textSpacing || 1)
-        setLineHeight(settings.lineHeight || 1.5)
-        setKeyboardNavigation(settings.keyboardNavigation || false)
-        setVoiceCommands(settings.voiceCommands || false)
-        setScreenReader(settings.screenReader || false)
-        applySettings(settings, false) // Apply without toast on initial load
-      }
-    } catch (error) {
-      console.error("Failed to load accessibility settings from localStorage", error)
-      // Optionally clear corrupted data
-      localStorage.removeItem("accessibilitySettings")
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+      smoothScrollY.set(window.scrollY)
     }
-  }, [])
 
-  // Apply settings to the document
-  const applySettings = useCallback(
-    (settings: any, showToast = true) => {
-      document.documentElement.style.setProperty("--font-size-base", `${settings.fontSize}px`)
-      document.documentElement.style.setProperty("--text-spacing", `${settings.textSpacing}em`)
-      document.documentElement.style.setProperty("--line-height", `${settings.lineHeight}`)
+    // Use passive: true for better performance
+    window.addEventListener("scroll", handleScroll, { passive: true })
 
-      if (settings.highContrast) {
-        document.documentElement.classList.add("high-contrast")
-      } else {
-        document.documentElement.classList.remove("high-contrast")
-      }
+    // Initial position setting
+    handleScroll()
 
-      if (settings.largeText) {
-        document.documentElement.classList.add("large-text")
-      } else {
-        document.documentElement.classList.remove("large-text")
-      }
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [smoothScrollY])
 
-      if (settings.highlightLinks) {
-        document.documentElement.classList.add("highlight-links")
-      } else {
-        document.documentElement.classList.remove("highlight-links")
-      }
+  // Close panel when clicking outside
+  useClickOutside(panelRef, () => {
+    if (isOpen) {
+      setIsOpen(false)
+    }
+  })
 
-      if (settings.disableAnimations) {
-        document.documentElement.classList.add("disable-animations")
-      } else {
-        document.documentElement.classList.remove("disable-animations")
-      }
-
-      if (settings.readingMask) {
-        document.documentElement.classList.add("reading-mask")
-      } else {
-        document.documentElement.classList.remove("reading-mask")
-      }
-
-      if (settings.readingGuide) {
-        document.documentElement.classList.add("reading-guide")
-      } else {
-        document.documentElement.classList.remove("reading-guide")
-      }
-
-      // Save settings to localStorage
-      localStorage.setItem("accessibilitySettings", JSON.stringify(settings))
-
-      if (showToast) {
-        toast({
-          title: "Accessibility Settings Applied",
-          description: "Your preferences have been updated.",
-        })
-      }
-    },
-    [toast],
-  )
-
-  // Function to gather current settings
-  const getCurrentSettings = useCallback(
-    () => ({
-      highContrast,
-      largeText,
-      fontSize,
-      highlightLinks,
-      disableAnimations,
-      readingMask,
-      readingGuide,
-      cursorSize,
-      textSpacing,
-      lineHeight,
-      keyboardNavigation,
-      voiceCommands,
-      screenReader,
-    }),
-    [
-      highContrast,
-      largeText,
-      fontSize,
-      highlightLinks,
-      disableAnimations,
-      readingMask,
-      readingGuide,
-      cursorSize,
-      textSpacing,
-      lineHeight,
-      keyboardNavigation,
-      voiceCommands,
-      screenReader,
-    ],
-  )
-
-  // Apply settings whenever any state changes
+  // Apply font size to body
   useEffect(() => {
-    applySettings(getCurrentSettings())
-  }, [getCurrentSettings, applySettings])
-
-  const resetSettings = useCallback(() => {
-    const defaultSettings = {
-      highContrast: false,
-      largeText: false,
-      fontSize: 16,
-      highlightLinks: false,
-      disableAnimations: false,
-      readingMask: false,
-      readingGuide: false,
-      cursorSize: 1,
-      textSpacing: 1,
-      lineHeight: 1.5,
-      keyboardNavigation: false,
-      voiceCommands: false,
-      screenReader: false,
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-font-scale", fontSize.toString())
     }
-    setHighContrast(defaultSettings.highContrast)
-    setLargeText(defaultSettings.largeText)
-    setFontSize(defaultSettings.fontSize)
-    setHighlightLinks(defaultSettings.highlightLinks)
-    setDisableAnimations(defaultSettings.disableAnimations)
-    setReadingMask(defaultSettings.readingMask)
-    setReadingGuide(defaultSettings.readingGuide)
-    setCursorSize(defaultSettings.cursorSize)
-    setTextSpacing(defaultSettings.textSpacing)
-    setLineHeight(defaultSettings.lineHeight)
-    setKeyboardNavigation(defaultSettings.keyboardNavigation)
-    setVoiceCommands(defaultSettings.voiceCommands)
-    setScreenReader(defaultSettings.screenReader)
+  }, [fontSize])
 
-    applySettings(defaultSettings) // Apply default settings
-    toast({
-      title: "Accessibility Settings Reset",
-      description: "All preferences have been reverted to default.",
-    })
-  }, [applySettings, toast])
+  // Apply contrast and saturation
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-contrast", contrast.toString())
+      document.documentElement.style.setProperty("--accessibility-saturation", saturation.toString())
+    }
+  }, [contrast, saturation])
+
+  // Apply high contrast mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (highContrast) {
+        document.body.classList.add("high-contrast")
+      } else {
+        document.body.classList.remove("high-contrast")
+      }
+    }
+  }, [highContrast])
+
+  // Apply dyslexic font
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (dyslexicFont) {
+        document.body.classList.add("dyslexic-font")
+      } else {
+        document.body.classList.remove("dyslexic-font")
+      }
+    }
+  }, [dyslexicFont])
+
+  // Apply motion reduction
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (motionReduced) {
+        document.body.classList.add("motion-reduced")
+      } else {
+        document.body.classList.remove("motion-reduced")
+      }
+    }
+  }, [motionReduced])
+
+  // Apply keyboard mode
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (keyboardMode) {
+        document.body.classList.add("keyboard-mode")
+      } else {
+        document.body.classList.remove("keyboard-mode")
+      }
+    }
+  }, [keyboardMode])
+
+  // Apply focus indicators
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (focusIndicators) {
+        document.body.classList.add("focus-indicators")
+      } else {
+        document.body.classList.remove("focus-indicators")
+      }
+    }
+  }, [focusIndicators])
+
+  // Apply cursor size
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--accessibility-cursor-scale", cursorSize.toString())
+    }
+  }, [cursorSize])
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg h-14 w-14 bg-transparent"
-          aria-label="Open accessibility settings"
-        >
-          <Accessibility className="h-6 w-6" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:w-[400px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 text-2xl">
-            <Accessibility className="h-6 w-6" />
-            Accessibility Settings
-          </SheetTitle>
-          <SheetDescription>Customize your browsing experience.</SheetDescription>
-        </SheetHeader>
-        <div className="py-6 space-y-8">
-          {/* Visual Adjustments */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Visual Adjustments
-            </h3>
-            <div className="grid grid-cols-1 gap-6">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="high-contrast" className="flex items-center gap-2">
-                  <Palette className="h-5 w-5" />
-                  High Contrast
-                </Label>
-                <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+    <motion.div
+      className="fixed left-0 z-50"
+      style={{
+        top: scrollY > 100 ? "auto" : "50%",
+        bottom: scrollY > 100 ? "20px" : "auto",
+        y: scrollY > 100 ? 0 : "-50%",
+        transition: "top 0.3s ease, bottom 0.3s ease, transform 0.3s ease",
+      }}
+    >
+      <AnimatePresence>
+        {isOpen ? (
+          <motion.div
+            ref={panelRef}
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="bg-white dark:bg-gray-900 shadow-lg rounded-r-lg overflow-hidden flex"
+          >
+            <div className="w-72 sm:w-80 max-h-[80vh] overflow-y-auto p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Accessibility
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Close accessibility settings"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
               </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="large-text" className="flex items-center gap-2">
-                  <Text className="h-5 w-5" />
-                  Large Text
-                </Label>
-                <Switch id="large-text" checked={largeText} onCheckedChange={setLargeText} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="highlight-links" className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Highlight Links
-                </Label>
-                <Switch id="highlight-links" checked={highlightLinks} onCheckedChange={setHighlightLinks} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="disable-animations" className="flex items-center gap-2">
-                  <RefreshCcw className="h-5 w-5" />
-                  Disable Animations
-                </Label>
-                <Switch id="disable-animations" checked={disableAnimations} onCheckedChange={setDisableAnimations} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="reading-mask" className="flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Reading Mask
-                </Label>
-                <Switch id="reading-mask" checked={readingMask} onCheckedChange={setReadingMask} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="reading-guide" className="flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Reading Guide
-                </Label>
-                <Switch id="reading-guide" checked={readingGuide} onCheckedChange={setReadingGuide} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="font-size" className="flex items-center gap-2">
-                <Text className="h-5 w-5" />
-                Font Size: {fontSize}px
-              </Label>
-              <Slider
-                id="font-size"
-                min={12}
-                max={24}
-                step={1}
-                value={[fontSize]}
-                onValueChange={(val) => setFontSize(val[0])}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="text-spacing" className="flex items-center gap-2">
-                <Text className="h-5 w-5" />
-                Text Spacing: {textSpacing.toFixed(1)}em
-              </Label>
-              <Slider
-                id="text-spacing"
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={[textSpacing]}
-                onValueChange={(val) => setTextSpacing(val[0])}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="line-height" className="flex items-center gap-2">
-                <Text className="h-5 w-5" />
-                Line Height: {lineHeight.toFixed(1)}
-              </Label>
-              <Slider
-                id="line-height"
-                min={1}
-                max={2.5}
-                step={0.1}
-                value={[lineHeight]}
-                onValueChange={(val) => setLineHeight(val[0])}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cursor-size" className="flex items-center gap-2">
-                <MousePointer2 className="h-5 w-5" />
-                Cursor Size: {cursorSize.toFixed(1)}x
-              </Label>
-              <Slider
-                id="cursor-size"
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={[cursorSize]}
-                onValueChange={(val) => setCursorSize(val[0])}
-                className="w-full"
-              />
-            </div>
-          </div>
 
-          <Separator />
+              <Tabs defaultValue="vision" className="w-full">
+                <TabsList className="grid grid-cols-4 mb-4">
+                  <TabsTrigger value="vision" aria-label="Vision settings">
+                    Vision
+                  </TabsTrigger>
+                  <TabsTrigger value="motion" aria-label="Motion settings">
+                    Motion
+                  </TabsTrigger>
+                  <TabsTrigger value="input" aria-label="Input settings">
+                    Input
+                  </TabsTrigger>
+                  <TabsTrigger value="share" aria-label="Share settings">
+                    Share
+                  </TabsTrigger>
+                </TabsList>
 
-          {/* Interaction Adjustments */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Keyboard className="h-5 w-5" />
-              Interaction Adjustments
-            </h3>
-            <div className="grid grid-cols-1 gap-6">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="keyboard-navigation" className="flex items-center gap-2">
-                  <Keyboard className="h-5 w-5" />
-                  Keyboard Navigation
-                </Label>
-                <Switch id="keyboard-navigation" checked={keyboardNavigation} onCheckedChange={setKeyboardNavigation} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="voice-commands" className="flex items-center gap-2">
-                  <Volume2 className="h-5 w-5" />
-                  Voice Commands
-                </Label>
-                <Switch id="voice-commands" checked={voiceCommands} onCheckedChange={setVoiceCommands} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="screen-reader" className="flex items-center gap-2">
-                  <Volume2 className="h-5 w-5" />
-                  Screen Reader
-                </Label>
-                <Switch id="screen-reader" checked={screenReader} onCheckedChange={setScreenReader} />
+                <TabsContent value="vision" className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="font-size">Text Size</Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
+                          aria-label="Decrease text size"
+                        >
+                          <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
+                          aria-label="Increase text size"
+                        >
+                          <ZoomIn className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Slider
+                      id="font-size"
+                      value={[fontSize * 100]}
+                      min={80}
+                      max={150}
+                      step={5}
+                      onValueChange={(value) => setFontSize(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(fontSize * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contrast">Contrast</Label>
+                    <Slider
+                      id="contrast"
+                      value={[contrast * 100]}
+                      min={75}
+                      max={150}
+                      step={5}
+                      onValueChange={(value) => setContrast(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(contrast * 100)}%</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="saturation">Saturation</Label>
+                    <Slider
+                      id="saturation"
+                      value={[saturation * 100]}
+                      min={0}
+                      max={200}
+                      step={5}
+                      onValueChange={(value) => setSaturation(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(saturation * 100)}%</p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="high-contrast">High Contrast</Label>
+                      <p className="text-xs text-muted-foreground">Increase text/background contrast</p>
+                    </div>
+                    <Switch
+                      id="high-contrast"
+                      checked={highContrast}
+                      onCheckedChange={setHighContrast}
+                      aria-label="Toggle high contrast mode"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="dyslexic-font">Dyslexia Friendly</Label>
+                      <p className="text-xs text-muted-foreground">Use dyslexia-friendly font</p>
+                    </div>
+                    <Switch
+                      id="dyslexic-font"
+                      checked={dyslexicFont}
+                      onCheckedChange={setDyslexicFont}
+                      aria-label="Toggle dyslexia friendly font"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <p className="text-xs text-muted-foreground">Switch between light and dark</p>
+                    </div>
+                    <Switch
+                      id="dark-mode"
+                      checked={theme === "dark"}
+                      onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                      aria-label="Toggle dark mode"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="motion" className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="reduce-motion">Reduce Motion</Label>
+                      <p className="text-xs text-muted-foreground">Minimize animations</p>
+                    </div>
+                    <Switch
+                      id="reduce-motion"
+                      checked={motionReduced}
+                      onCheckedChange={setMotionReduced}
+                      aria-label="Toggle reduce motion"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="sound-effects">Sound Effects</Label>
+                      <p className="text-xs text-muted-foreground">Enable interface sounds</p>
+                    </div>
+                    <Switch
+                      id="sound-effects"
+                      checked={soundEffects}
+                      onCheckedChange={setSoundEffects}
+                      aria-label="Toggle sound effects"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="input" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cursor-size">Cursor Size</Label>
+                    <Slider
+                      id="cursor-size"
+                      value={[cursorSize * 100]}
+                      min={100}
+                      max={200}
+                      step={10}
+                      onValueChange={(value) => setCursorSize(value[0] / 100)}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{Math.round(cursorSize * 100)}%</p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="keyboard-mode">Keyboard Navigation</Label>
+                      <p className="text-xs text-muted-foreground">Optimize for keyboard use</p>
+                    </div>
+                    <Switch
+                      id="keyboard-mode"
+                      checked={keyboardMode}
+                      onCheckedChange={setKeyboardMode}
+                      aria-label="Toggle keyboard navigation"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="focus-indicators">Focus Indicators</Label>
+                      <p className="text-xs text-muted-foreground">Highlight focused elements</p>
+                    </div>
+                    <Switch
+                      id="focus-indicators"
+                      checked={focusIndicators}
+                      onCheckedChange={setFocusIndicators}
+                      aria-label="Toggle focus indicators"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="share" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="quick-share">Quick Share</Label>
+                        <p className="text-xs text-muted-foreground">Share this page with others</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (navigator.share) {
+                            navigator.share({
+                              title: document.title,
+                              url: window.location.href,
+                            })
+                          } else {
+                            navigator.clipboard.writeText(window.location.href)
+                          }
+                        }}
+                        aria-label="Share page"
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="copy-link">Copy Link</Label>
+                        <p className="text-xs text-muted-foreground">Copy page URL to clipboard</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href)
+                        }}
+                        aria-label="Copy link"
+                      >
+                        Copy URL
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setFontSize(1)
+                    setContrast(1)
+                    setSaturation(1)
+                    setMotionReduced(false)
+                    setHighContrast(false)
+                    setDyslexicFont(false)
+                    setCursorSize(1)
+                    setSoundEffects(false)
+                    setKeyboardMode(false)
+                    setFocusIndicators(false)
+                  }}
+                  aria-label="Reset all accessibility settings"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset All Settings
+                </Button>
               </div>
             </div>
-          </div>
-
-          <div className="flex justify-end gap-4 pt-4">
-            <Button variant="outline" onClick={resetSettings}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Reset to Default
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+          </motion.div>
+        ) : (
+          <motion.button
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ delay: 0.2 }}
+            onClick={() => setIsOpen(true)}
+            className={cn(
+              "flex items-center justify-center p-3 bg-white dark:bg-gray-900",
+              "rounded-r-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800",
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
+            )}
+            aria-label="Open accessibility settings"
+          >
+            <Settings className="h-5 w-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

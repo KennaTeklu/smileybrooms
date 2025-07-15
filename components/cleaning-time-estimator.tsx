@@ -1,230 +1,194 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
-import { Clock, Home, Bed, Bath, Square, Sparkles, Plus } from "lucide-react"
-import { motion } from "framer-motion"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Clock, Users, Home, Sparkles } from "lucide-react"
 
-interface RoomConfig {
-  type: string
-  min: number
-  max: number
-  default: number
-  timePerUnit: number // minutes per unit
+interface CleaningTimeEstimatorProps {
+  roomCounts: Record<string, number>
+  selectedTiers: Record<string, string>
+  totalAddOns: number
 }
 
-interface AddOn {
-  name: string
-  time: number // minutes
-}
+export function CleaningTimeEstimator({ roomCounts, selectedTiers, totalAddOns }: CleaningTimeEstimatorProps) {
+  const [dirtinessLevel, setDirtinessLevel] = useState(2) // 1-5 scale
+  const [cleaners, setCleaners] = useState(2) // Default 2 cleaners
+  const [estimatedTime, setEstimatedTime] = useState({ min: 0, max: 0 })
+  const [efficiency, setEfficiency] = useState(100) // Percentage
 
-const roomConfigs: RoomConfig[] = [
-  { type: "Bedroom", min: 0, max: 5, default: 1, timePerUnit: 20 },
-  { type: "Bathroom", min: 0, max: 4, default: 1, timePerUnit: 30 },
-  { type: "Living Room", min: 0, max: 2, default: 1, timePerUnit: 40 },
-  { type: "Kitchen", min: 0, max: 1, default: 1, timePerUnit: 60 },
-  { type: "Dining Room", min: 0, max: 1, default: 0, timePerUnit: 30 },
-  { type: "Home Office", min: 0, max: 2, default: 0, timePerUnit: 25 },
-]
-
-const addOns: AddOn[] = [
-  { name: "Inside Oven Cleaning", time: 30 },
-  { name: "Inside Refrigerator Cleaning", time: 20 },
-  { name: "Interior Window Cleaning", time: 45 },
-  { name: "Laundry Service", time: 60 },
-  { name: "Wall Spot Cleaning", time: 15 },
-]
-
-export default function CleaningTimeEstimator() {
-  const [roomCounts, setRoomCounts] = useState<{ [key: string]: number }>(
-    roomConfigs.reduce((acc, room) => ({ ...acc, [room.type]: room.default }), {}),
-  )
-  const [squareFootage, setSquareFootage] = useState<number | string>("")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState("medium") // low, medium, high
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([])
-
-  const handleRoomCountChange = (type: string, value: number[]) => {
-    setRoomCounts((prev) => ({ ...prev, [type]: value[0] }))
-  }
-
-  const handleAddOnChange = (addOnName: string, checked: boolean) => {
-    setSelectedAddOns((prev) => (checked ? [...prev, addOnName] : prev.filter((name) => name !== addOnName)))
-  }
-
-  const calculateEstimatedTime = () => {
-    let totalMinutes = 0
-
-    // Add time for rooms
-    roomConfigs.forEach((room) => {
-      totalMinutes += (roomCounts[room.type] || 0) * room.timePerUnit
-    })
-
-    // Adjust for square footage (simple linear scaling, e.g., 1000 sq ft = 10 mins, 2000 sq ft = 20 mins)
-    if (typeof squareFootage === "number" && squareFootage > 0) {
-      totalMinutes += Math.round(squareFootage / 100) * 5 // 5 minutes per 100 sq ft
+  // Calculate estimated cleaning time
+  useEffect(() => {
+    // Base time per room type (in minutes)
+    const baseTimePerRoom: Record<string, number> = {
+      bedroom: 15,
+      bathroom: 20,
+      kitchen: 30,
+      livingRoom: 20,
+      diningRoom: 15,
+      homeOffice: 15,
+      laundryRoom: 10,
+      entryway: 10,
+      hallway: 10,
+      stairs: 15,
     }
 
-    // Adjust for cleanliness level
-    switch (cleanlinessLevel) {
-      case "low":
-        totalMinutes *= 0.8 // 20% faster
-        break
-      case "high":
-        totalMinutes *= 1.3 // 30% slower
-        break
-      default:
-        // medium, no change
-        break
+    // Tier multipliers
+    const tierMultipliers: Record<string, number> = {
+      "QUICK CLEAN": 1,
+      "DEEP CLEAN": 1.5,
+      PREMIUM: 2,
     }
 
-    // Add time for selected add-ons
-    selectedAddOns.forEach((addOnName) => {
-      const addOn = addOns.find((a) => a.name === addOnName)
-      if (addOn) {
-        totalMinutes += addOn.time
+    // Calculate total base time
+    let totalBaseTime = 0
+    Object.entries(roomCounts).forEach(([roomType, count]) => {
+      if (count > 0) {
+        const baseTime = baseTimePerRoom[roomType] || 15
+        const tierMultiplier = tierMultipliers[selectedTiers[roomType] || "QUICK CLEAN"]
+        totalBaseTime += baseTime * count * tierMultiplier
       }
     })
 
-    return Math.max(0, Math.round(totalMinutes)) // Ensure non-negative
+    // Add time for add-ons (5 minutes per add-on)
+    totalBaseTime += totalAddOns * 5
+
+    // Adjust for dirtiness level (1-5 scale)
+    const dirtinessMultiplier = 0.8 + dirtinessLevel * 0.1
+    totalBaseTime *= dirtinessMultiplier
+
+    // Adjust for efficiency
+    totalBaseTime = totalBaseTime * (100 / efficiency)
+
+    // Divide by number of cleaners
+    const adjustedTime = totalBaseTime / cleaners
+
+    // Add setup and cleanup time (15 minutes)
+    const totalTime = adjustedTime + 15
+
+    // Set min and max estimates (±10%)
+    const min = Math.max(60, Math.round(totalTime * 0.9))
+    const max = Math.round(totalTime * 1.1)
+
+    setEstimatedTime({ min, max })
+  }, [roomCounts, selectedTiers, totalAddOns, dirtinessLevel, cleaners, efficiency])
+
+  // Convert minutes to hours and minutes
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `${hours > 0 ? `${hours}h ` : ""}${mins}m`
   }
 
-  const estimatedTimeMinutes = calculateEstimatedTime()
-  const hours = Math.floor(estimatedTimeMinutes / 60)
-  const minutes = estimatedTimeMinutes % 60
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Clock className="h-6 w-6" />
-            Cleaning Time Estimator
-          </CardTitle>
-          <CardDescription>Estimate how long your cleaning service will take.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {/* Room Configuration */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Rooms in Your Home
-            </h3>
-            {roomConfigs.map((room) => (
-              <div key={room.type} className="space-y-2">
-                <Label htmlFor={`room-${room.type}`} className="flex items-center gap-2">
-                  {room.type === "Bedroom" && <Bed className="h-5 w-5 text-blue-500" />}
-                  {room.type === "Bathroom" && <Bath className="h-5 w-5 text-green-500" />}
-                  {(room.type === "Living Room" ||
-                    room.type === "Dining Room" ||
-                    room.type === "Kitchen" ||
-                    room.type === "Home Office") && <Home className="h-5 w-5 text-purple-500" />}
-                  {room.type} ({roomCounts[room.type] || 0})
-                </Label>
-                <Slider
-                  id={`room-${room.type}`}
-                  min={room.min}
-                  max={room.max}
-                  step={1}
-                  value={[roomCounts[room.type] || 0]}
-                  onValueChange={(val) => handleRoomCountChange(room.type, val)}
-                  className="w-full"
-                />
-              </div>
-            ))}
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" /> Cleaning Time Estimator
+        </CardTitle>
+        <CardDescription>Estimate how long your cleaning service will take</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Home Cleanliness Level</label>
+            <Badge variant={dirtinessLevel <= 2 ? "default" : dirtinessLevel <= 4 ? "secondary" : "destructive"}>
+              {dirtinessLevel === 1
+                ? "Very Clean"
+                : dirtinessLevel === 2
+                  ? "Clean"
+                  : dirtinessLevel === 3
+                    ? "Average"
+                    : dirtinessLevel === 4
+                      ? "Dirty"
+                      : "Very Dirty"}
+            </Badge>
           </div>
-
-          <Separator />
-
-          {/* Square Footage */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Square className="h-5 w-5" />
-              Approx. Square Footage (Optional)
-            </h3>
-            <Input
-              type="number"
-              placeholder="e.g., 1500 sq ft"
-              value={squareFootage}
-              onChange={(e) => setSquareFootage(e.target.value === "" ? "" : Number.parseInt(e.target.value))}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Providing square footage helps us give a more accurate estimate.
-            </p>
+          <Slider
+            value={[dirtinessLevel]}
+            min={1}
+            max={5}
+            step={1}
+            onValueChange={(value) => setDirtinessLevel(value[0])}
+            className="py-4"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Very Clean</span>
+            <span>Average</span>
+            <span>Very Dirty</span>
           </div>
+        </div>
 
-          <Separator />
-
-          {/* Cleanliness Level */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Current Cleanliness Level
-            </h3>
-            <Select value={cleanlinessLevel} onValueChange={setCleanlinessLevel}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select cleanliness level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Lightly Dirty (Faster)</SelectItem>
-                <SelectItem value="medium">Moderately Dirty (Standard)</SelectItem>
-                <SelectItem value="high">Very Dirty (Slower)</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Number of Cleaners</label>
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{cleaners}</span>
+            </div>
           </div>
+          <Slider
+            value={[cleaners]}
+            min={1}
+            max={4}
+            step={1}
+            onValueChange={(value) => setCleaners(value[0])}
+            className="py-4"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>1 Cleaner</span>
+            <span>2 Cleaners</span>
+            <span>4 Cleaners</span>
+          </div>
+        </div>
 
-          <Separator />
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Cleaning Efficiency</label>
+            <Badge variant="outline">{efficiency}%</Badge>
+          </div>
+          <Slider
+            value={[efficiency]}
+            min={80}
+            max={120}
+            step={5}
+            onValueChange={(value) => setEfficiency(value[0])}
+            className="py-4"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Thorough</span>
+            <span>Standard</span>
+            <span>Express</span>
+          </div>
+        </div>
 
-          {/* Add-on Services */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Add-on Services (Optional)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {addOns.map((addOn, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <Checkbox
-                    id={`addon-${index}`}
-                    checked={selectedAddOns.includes(addOn.name)}
-                    onCheckedChange={(checked) => handleAddOnChange(addOn.name, checked as boolean)}
-                  />
-                  <Label htmlFor={`addon-${index}`} className="text-base font-normal">
-                    {addOn.name} ({addOn.time} mins)
-                  </Label>
-                </div>
-              ))}
+        <div className="pt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-500" />
+              <span className="font-medium">Estimated Time</span>
+            </div>
+            <div className="text-xl font-bold">
+              {formatTime(estimatedTime.min)} - {formatTime(estimatedTime.max)}
             </div>
           </div>
 
-          <Separator />
+          <Progress value={Math.min(100, (estimatedTime.min / 180) * 100)} className="h-2" />
 
-          {/* Estimated Time */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-4 text-center"
-          >
-            <h3 className="text-xl font-semibold flex items-center justify-center gap-2">
-              <Clock className="h-5 w-5" />
-              Estimated Cleaning Time
-            </h3>
-            <p className="text-5xl font-bold text-blue-600">
-              {hours}h {minutes}m
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This is an estimate. Actual time may vary based on specific conditions.
-            </p>
-          </motion.div>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Home className="h-4 w-4 text-gray-500" />
+              <span>{Object.values(roomCounts).reduce((sum, count) => sum + count, 0)} rooms</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Sparkles className="h-4 w-4 text-gray-500" />
+              <span>{totalAddOns} add-ons</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

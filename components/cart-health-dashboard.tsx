@@ -1,76 +1,189 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { AlertCircle, CheckCircle, Info, ShoppingCart } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useCart } from "@/lib/cart-context"
-import { useCartHealth } from "@/lib/cart-health"
-import { formatCurrency } from "@/lib/utils"
+import { getCartHealthReport, type CartHealthReport } from "@/lib/cart-health"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { AlertCircle, CheckCircle, RefreshCw, AlertTriangle, Info } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
 
-export default function CartHealthDashboard() {
+export function CartHealthDashboard() {
   const { cart } = useCart()
-  const { getCartHealthSuggestions } = useCartHealth()
+  const [healthReport, setHealthReport] = useState<CartHealthReport | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const cartHealthSuggestions = getCartHealthSuggestions(cart.items)
-  const filteredSuggestions = cartHealthSuggestions.filter(
-    (suggestion) => suggestion.message !== "Your cart has some potential issues.",
-  )
+  useEffect(() => {
+    if (cart.items.length > 0) {
+      const report = getCartHealthReport(cart.items)
+      setHealthReport(report)
+    } else {
+      setHealthReport(null)
+    }
+    setLoading(false)
+  }, [cart.items])
 
-  const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const refreshReport = () => {
+    setLoading(true)
+    // Remove cached report to force regeneration
+    localStorage.removeItem("cart-health-report")
+    localStorage.removeItem("cart-health-timestamp")
+
+    setTimeout(() => {
+      const report = getCartHealthReport(cart.items)
+      setHealthReport(report)
+      setLoading(false)
+    }, 500)
+  }
+
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Cart Health</CardTitle>
+          <CardDescription>Analyzing your cart...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-8">
+            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!healthReport || cart.items.length === 0) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Cart Health</CardTitle>
+          <CardDescription>Add items to your cart to see health metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Info className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">Your cart is empty. Add items to analyze cart health.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const getStatusIcon = (status: "healthy" | "warning" | "critical") => {
+    switch (status) {
+      case "healthy":
+        return <CheckCircle className="h-5 w-5 text-green-500" />
+      case "warning":
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />
+      case "critical":
+        return <AlertCircle className="h-5 w-5 text-red-500" />
+    }
+  }
+
+  const getStatusColor = (status: "healthy" | "warning" | "critical") => {
+    switch (status) {
+      case "healthy":
+        return "bg-green-500"
+      case "warning":
+        return "bg-amber-500"
+      case "critical":
+        return "bg-red-500"
+    }
+  }
+
+  const getStatusBadge = (status: "healthy" | "warning" | "critical") => {
+    switch (status) {
+      case "healthy":
+        return (
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            Healthy
+          </Badge>
+        )
+      case "warning":
+        return (
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            Warning
+          </Badge>
+        )
+      case "critical":
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            Critical
+          </Badge>
+        )
+    }
+  }
+
+  const lastUpdatedFormatted = healthReport.lastUpdated
+    ? formatDistanceToNow(new Date(healthReport.lastUpdated), { addSuffix: true })
+    : "just now"
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <ShoppingCart className="h-6 w-6" />
-          Cart Health Report
-        </CardTitle>
-        <CardDescription>Insights and suggestions for your current cart.</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Cart Health</CardTitle>
+            <CardDescription>Analysis and optimization suggestions</CardDescription>
+          </div>
+          <Button variant="ghost" size="icon" onClick={refreshReport} title="Refresh report">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Summary Metrics */}
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <p className="text-sm text-muted-foreground">Total Items</p>
-            <p className="text-3xl font-bold">{itemCount}</p>
+      <CardContent className="space-y-4">
+        {/* Overall Health Score */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getStatusIcon(healthReport.overallHealth)}
+              <span className="font-medium">Overall Health</span>
+            </div>
+            <span className="font-bold">{healthReport.score}%</span>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Subtotal</p>
-            <p className="text-3xl font-bold">{formatCurrency(subtotal)}</p>
-          </div>
+          <Progress value={healthReport.score} className="h-2" />
         </div>
 
-        <Separator />
+        {/* Health Metrics */}
+        <div className="space-y-3 mt-4">
+          <h4 className="text-sm font-medium">Health Metrics</h4>
+          {healthReport.metrics.map((metric) => (
+            <div key={metric.id} className="border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(metric.status)}
+                  <span className="font-medium">{metric.name}</span>
+                </div>
+                {getStatusBadge(metric.status)}
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">{metric.description}</p>
+              {metric.suggestion && (
+                <div className="text-xs bg-muted p-2 rounded">
+                  <span className="font-medium">Suggestion:</span> {metric.suggestion}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
         {/* Suggestions */}
-        {filteredSuggestions.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <Info className="h-5 w-5" />
-              Suggestions for You
-            </h3>
-            <ul className="space-y-2">
-              {filteredSuggestions.map((suggestion, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
-                  {suggestion.type === "warning" ? (
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
-                  )}
-                  {suggestion.message}
+        {healthReport.suggestions.length > 0 && (
+          <div className="space-y-2 mt-4">
+            <h4 className="text-sm font-medium">Optimization Suggestions</h4>
+            <ul className="space-y-1">
+              {healthReport.suggestions.map((suggestion, index) => (
+                <li key={index} className="text-sm flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <span>{suggestion}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
-        {filteredSuggestions.length === 0 && (
-          <div className="text-center text-muted-foreground py-4">
-            <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
-            <p>Your cart looks great!</p>
-          </div>
-        )}
       </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">Last updated: {lastUpdatedFormatted}</CardFooter>
     </Card>
   )
 }

@@ -1,103 +1,138 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { AlertCircle, CheckCircle, Info, ShoppingCart, TrendingUp, Clock } from "lucide-react"
+import { useState } from "react"
 import { useCart } from "@/lib/cart-context"
-import { useCartHealth } from "@/lib/cart-health"
-import { formatCurrency } from "@/lib/utils"
+import { CartHealthDashboard } from "@/components/cart-health-dashboard"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, ShoppingCart, BarChart3, TrendingUp, Clock } from "lucide-react"
+import Link from "next/link"
 
-export default function CartInsightsContent() {
+export function CartInsightsContent() {
   const { cart } = useCart()
-  const { getCartHealthSuggestions } = useCartHealth()
+  const [activeTab, setActiveTab] = useState("health")
 
-  const cartHealthSuggestions = getCartHealthSuggestions(cart.items)
-  const filteredSuggestions = cartHealthSuggestions.filter(
-    (suggestion) => suggestion.message !== "Your cart has some potential issues.",
-  )
-
-  const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  // Dummy data for trends and time saved
-  const averageOrderValue = 180 // Example
-  const timeSavedPerOrder = 30 // minutes, example
+  // Calculate cart metrics
+  const totalItems = cart.totalItems
+  const uniqueItems = cart.items.length
+  const averagePrice = cart.items.length > 0 ? cart.totalPrice / cart.items.length : 0
+  const highestPriceItem =
+    cart.items.length > 0 ? cart.items.reduce((prev, current) => (prev.price > current.price ? prev : current)) : null
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <ShoppingCart className="h-6 w-6" />
-          Cart Insights
-        </CardTitle>
-        <CardDescription>Valuable information about your cart and potential benefits.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Summary Metrics */}
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <p className="text-sm text-muted-foreground">Total Items</p>
-            <p className="text-3xl font-bold">{itemCount}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Subtotal</p>
-            <p className="text-3xl font-bold">{formatCurrency(subtotal)}</p>
-          </div>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-2 mb-6">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/calculator">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold">Cart Insights</h1>
+      </div>
 
-        <Separator />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-3 mb-6">
+          <TabsTrigger value="health">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            <span>Health</span>
+          </TabsTrigger>
+          <TabsTrigger value="metrics">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            <span>Metrics</span>
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>History</span>
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Trends and Savings */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium flex items-center gap-2 text-purple-700 dark:text-purple-300">
-            <TrendingUp className="h-5 w-5" />
-            Your Cleaning Trends
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <p className="text-sm text-muted-foreground">Average Order Value</p>
-              <p className="text-xl font-bold">{formatCurrency(averageOrderValue)}</p>
-            </div>
-            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <p className="text-sm text-muted-foreground">Time Saved Per Clean</p>
-              <p className="text-xl font-bold">
-                <Clock className="inline-block h-5 w-5 mr-1" />
-                {timeSavedPerOrder} mins
-              </p>
-            </div>
-          </div>
-        </div>
+        <TabsContent value="health" className="space-y-6">
+          <CartHealthDashboard />
+        </TabsContent>
 
-        <Separator />
+        <TabsContent value="metrics" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Cart Summary</CardTitle>
+                <CardDescription>Overview of your current cart</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <dl className="space-y-4">
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-muted-foreground">Total Items:</dt>
+                    <dd className="text-sm font-bold">{totalItems}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-muted-foreground">Unique Items:</dt>
+                    <dd className="text-sm font-bold">{uniqueItems}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-muted-foreground">Total Value:</dt>
+                    <dd className="text-sm font-bold">${cart.totalPrice.toFixed(2)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-muted-foreground">Average Item Price:</dt>
+                    <dd className="text-sm font-bold">${averagePrice.toFixed(2)}</dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
 
-        {/* Suggestions */}
-        {filteredSuggestions.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <Info className="h-5 w-5" />
-              Suggestions for You
-            </h3>
-            <ul className="space-y-2">
-              {filteredSuggestions.map((suggestion, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-blue-800 dark:text-blue-200">
-                  {suggestion.type === "warning" ? (
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 text-orange-500" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
-                  )}
-                  {suggestion.message}
-                </li>
-              ))}
-            </ul>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Item Analysis</CardTitle>
+                <CardDescription>Breakdown of cart items</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {cart.items.length > 0 ? (
+                  <dl className="space-y-4">
+                    <div className="flex justify-between">
+                      <dt className="text-sm font-medium text-muted-foreground">Highest Price Item:</dt>
+                      <dd className="text-sm font-bold">{highestPriceItem?.name}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-sm font-medium text-muted-foreground">Price:</dt>
+                      <dd className="text-sm font-bold">${highestPriceItem?.price.toFixed(2)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-sm font-medium text-muted-foreground">Items with Quantity &gt; 1:</dt>
+                      <dd className="text-sm font-bold">{cart.items.filter((item) => item.quantity > 1).length}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-sm font-medium text-muted-foreground">Service Types:</dt>
+                      <dd className="text-sm font-bold">
+                        {new Set(cart.items.map((item) => item.metadata?.serviceType)).size}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Your cart is empty. Add items to see metrics.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        )}
-        {filteredSuggestions.length === 0 && (
-          <div className="text-center text-muted-foreground py-4">
-            <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
-            <p>Your cart looks great!</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Cart History</CardTitle>
+              <CardDescription>Track changes to your cart over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Clock className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Cart history tracking will be available soon.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

@@ -1,20 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { loadStripe, type Stripe, type StripeElements, type PaymentRequest } from "@stripe/stripe-js"
+import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { CreditCard, Loader2 } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
+import { Loader2, Apple, CreditCard } from "lucide-react"
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
+// Declare Stripe and StripePaymentRequestButtonElement globally
+declare global {
+  interface Window {
+    Stripe: any
+  }
+}
 
 interface StripePaymentRequestButtonProps {
   total: number
   onPaymentSuccess: () => void
   onPaymentFailure: (error: string) => void
-  customerEmail: string
-  customerName: string
+  customerEmail?: string
+  customerName?: string
 }
 
 export default function StripePaymentRequestButton({
@@ -24,54 +27,71 @@ export default function StripePaymentRequestButton({
   customerEmail,
   customerName,
 }: StripePaymentRequestButtonProps) {
-  const { toast } = useToast()
-  const [stripe, setStripe] = useState<Stripe | null>(null)
-  const [elements, setElements] = useState<StripeElements | null>(null)
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
+  const [stripe, setStripe] = useState<any>(null)
+  const [paymentRequest, setPaymentRequest] = useState<any>(null)
   const [canMakePayment, setCanMakePayment] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const { toast } = useToast()
+  const buttonRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    stripePromise.then((s) => {
-      if (s) {
-        setStripe(s)
-        setElements(s.elements())
+    // Load Stripe.js script
+    const loadStripe = async () => {
+      if (window.Stripe) {
+        setStripe(window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY))
+      } else {
+        const script = document.createElement("script")
+        script.src = "https://js.stripe.com/v3/"
+        script.async = true
+        script.onload = () => {
+          setStripe(window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY))
+        }
+        document.body.appendChild(script)
       }
-    })
+    }
+
+    loadStripe()
   }, [])
 
   useEffect(() => {
-    if (stripe && elements && total > 0) {
+    if (stripe && total > 0) {
       const pr = stripe.paymentRequest({
         country: "US",
         currency: "usd",
         total: {
-          label: "Total",
+          label: "SmileyBrooms Service",
           amount: Math.round(total * 100), // Amount in cents
         },
         requestPayerName: true,
         requestPayerEmail: true,
       })
 
-      pr.canMakePayment().then((result) => {
+      pr.canMakePayment().then((result: any) => {
         if (result) {
           setCanMakePayment(true)
           setPaymentRequest(pr)
+        } else {
+          setCanMakePayment(false)
+          toast({
+            title: "Payment Request Not Available",
+            description: "Apple Pay or Google Pay is not configured on this device or browser.",
+            variant: "info",
+          })
         }
-        setIsLoading(false)
       })
 
-      pr.on("paymentmethod", async (event) => {
-        setIsLoading(true)
+      pr.on("paymentmethod", async (event: any) => {
+        setIsProcessing(true)
         try {
           const { paymentMethod, shippingAddress } = event
-          // Here you would typically send paymentMethod.id to your server
-          // to confirm the payment. For this example, we'll simulate success.
-          console.log("PaymentMethod received:", paymentMethod)
-          console.log("ShippingAddress received:", shippingAddress)
+          // In a real application, you would send paymentMethod.id to your server
+          // to confirm the payment. For this demo, we'll simulate success.
+
+          console.log("Payment Method:", paymentMethod)
+          console.log("Shipping Address:", shippingAddress)
 
           // Simulate server-side payment confirmation
-          await new Promise((resolve) => setTimeout(resolve, 1500))
+          await new Promise((resolve) => setTimeout(resolve, 2000))
 
           event.complete("success")
           onPaymentSuccess()
@@ -82,18 +102,18 @@ export default function StripePaymentRequestButton({
           })
         } catch (error: any) {
           event.complete("fail")
-          onPaymentFailure(error.message || "Payment failed.")
+          onPaymentFailure(error.message || "Payment failed")
           toast({
             title: "Payment Failed",
-            description: error.message || "There was an issue processing your payment.",
+            description: error.message || "An error occurred during payment. Please try again.",
             variant: "destructive",
           })
         } finally {
-          setIsLoading(false)
+          setIsProcessing(false)
         }
       })
     }
-  }, [stripe, elements, total, onPaymentSuccess, onPaymentFailure, toast])
+  }, [stripe, total, onPaymentSuccess, onPaymentFailure, toast])
 
   const handleClick = () => {
     if (paymentRequest) {
@@ -101,32 +121,39 @@ export default function StripePaymentRequestButton({
     }
   }
 
-  if (isLoading) {
+  if (!canMakePayment) {
     return (
-      <Button disabled className="w-full h-12">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Loading payment options...
+      <Button disabled className="w-full">
+        <CreditCard className="mr-2 h-4 w-4" />
+        Payment Request Not Available
       </Button>
     )
   }
 
-  if (!canMakePayment) {
-    return (
-      <div className="text-center text-sm text-muted-foreground py-4">
-        No Apple Pay or Google Pay available on this device/browser. Please use card payment.
-      </div>
-    )
-  }
-
   return (
-    <Button
-      type="button"
-      onClick={handleClick}
-      className="w-full h-12 bg-black text-white hover:bg-gray-800 transition-colors"
-      aria-label={`Pay ${formatCurrency(total)} with Apple Pay or Google Pay`}
-    >
-      <CreditCard className="mr-2 h-5 w-5" />
-      Pay with Apple Pay / Google Pay
-    </Button>
+    <div ref={buttonRef}>
+      {/* Stripe's Payment Request Button will render here */}
+      {/* This div is where Stripe.js will inject the actual button */}
+      {/* We'll use a fallback button if Stripe.js hasn't loaded yet or can't make payment */}
+      {paymentRequest && (
+        <Button
+          onClick={handleClick}
+          className="w-full h-12 text-lg bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Apple className="mr-2 h-5 w-5" />
+              Pay with Apple Pay / Google Pay
+            </>
+          )}
+        </Button>
+      )}
+    </div>
   )
 }

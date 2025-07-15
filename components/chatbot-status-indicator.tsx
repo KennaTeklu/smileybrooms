@@ -1,25 +1,57 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Circle } from "lucide-react"
 
-interface ChatbotStatusIndicatorProps {
-  isReady: boolean
-}
+export default function ChatbotStatusIndicator() {
+  const [isOnline, setIsOnline] = useState(true)
+  const [responseTime, setResponseTime] = useState<"fast" | "medium" | "slow">("fast")
 
-export default function ChatbotStatusIndicator({ isReady }: ChatbotStatusIndicatorProps) {
+  useEffect(() => {
+    // Simulate checking chatbot service status
+    const checkStatus = async () => {
+      try {
+        const start = Date.now()
+        await fetch("https://www.jotform.com/ping", { method: "HEAD" })
+        const end = Date.now()
+        const time = end - start
+
+        setIsOnline(true)
+        if (time < 500) setResponseTime("fast")
+        else if (time < 1000) setResponseTime("medium")
+        else setResponseTime("slow")
+      } catch {
+        setIsOnline(false)
+      }
+    }
+
+    checkStatus()
+    const interval = setInterval(checkStatus, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const getStatusColor = () => {
+    if (!isOnline) return "bg-red-500"
+    if (responseTime === "fast") return "bg-green-500"
+    if (responseTime === "medium") return "bg-yellow-500"
+    return "bg-orange-500"
+  }
+
+  const getStatusText = () => {
+    if (!isOnline) return "Offline"
+    if (responseTime === "fast") return "Online - Fast"
+    if (responseTime === "medium") return "Online - Normal"
+    return "Online - Slow"
+  }
+
   return (
-    <motion.div
-      className="absolute top-0 left-0 h-full w-full flex items-center justify-center"
-      initial={false}
-      animate={isReady ? "ready" : "loading"}
-      variants={{
-        loading: { opacity: 1, scale: 1 },
-        ready: { opacity: 0, scale: 0 },
-      }}
-      transition={{ duration: 0.3 }}
-    >
-      {!isReady && <Loader2 className="h-6 w-6 animate-spin text-white" />}
-    </motion.div>
+    <div className="fixed bottom-32 right-4 z-40">
+      <Badge variant="outline" className="bg-white/90 backdrop-blur-sm">
+        <Circle className={`h-2 w-2 mr-1 ${getStatusColor()}`} />
+        <span className="text-xs">{getStatusText()}</span>
+      </Badge>
+    </div>
   )
 }
