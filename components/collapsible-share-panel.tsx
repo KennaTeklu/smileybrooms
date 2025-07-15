@@ -205,6 +205,20 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
+
+  // Always run these hooks – they must not be inside a conditional path
+  useClickOutside(panelRef, (event) => {
+    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+      return
+    }
+    setIsExpanded(false)
+  })
+
+  useKeyboardShortcuts({
+    "alt+s": () => setIsExpanded((prev) => !prev),
+    Escape: () => setIsExpanded(false),
+  })
+
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
@@ -221,24 +235,6 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Close panel when clicking outside
-  const useClickOutsideEffect = () => {
-    useClickOutside(panelRef, (event) => {
-      if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-        return
-      }
-      setIsExpanded(false)
-    })
-  }
-
-  // Keyboard shortcuts
-  const useKeyboardShortcutsEffect = () => {
-    useKeyboardShortcuts({
-      "alt+s": () => setIsExpanded((prev) => !prev),
-      Escape: () => setIsExpanded(false),
-    })
-  }
-
   // Add positioning calculation logic
   if (!isMounted) return null
 
@@ -246,9 +242,6 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   const minBottomOffset = 20 // Minimum distance from the bottom of the viewport
 
   const panelBottomPosition = `${DEFAULT_COLLAPSED_BOTTOM_OFFSET}px`
-
-  useClickOutsideEffect()
-  useKeyboardShortcutsEffect()
 
   const copyToClipboard = async () => {
     try {
