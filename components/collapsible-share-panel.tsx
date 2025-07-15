@@ -209,6 +209,12 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
 
+  // Add state for positioning like chatbot panel
+
+  // Add positioning constants like chatbot panel
+  const DEFAULT_COLLAPSED_BOTTOM_OFFSET = 20 // Share collapsed, bottom position
+  const EXPANDED_SHARE_BOTTOM_OFFSET = 20 // Share expanded, bottom position
+
   // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
@@ -216,18 +222,33 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   }, [])
 
   // Close panel when clicking outside
-  useClickOutside(panelRef, (event) => {
-    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-      return
-    }
-    setIsExpanded(false)
-  })
+  const useClickOutsideEffect = () => {
+    useClickOutside(panelRef, (event) => {
+      if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+        return
+      }
+      setIsExpanded(false)
+    })
+  }
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    "alt+s": () => setIsExpanded((prev) => !prev),
-    Escape: () => setIsExpanded(false),
-  })
+  const useKeyboardShortcutsEffect = () => {
+    useKeyboardShortcuts({
+      "alt+s": () => setIsExpanded((prev) => !prev),
+      Escape: () => setIsExpanded(false),
+    })
+  }
+
+  // Add positioning calculation logic
+  if (!isMounted) return null
+
+  const documentHeight = document.documentElement.scrollHeight
+  const minBottomOffset = 20 // Minimum distance from the bottom of the viewport
+
+  const panelBottomPosition = `${DEFAULT_COLLAPSED_BOTTOM_OFFSET}px`
+
+  useClickOutsideEffect()
+  useKeyboardShortcutsEffect()
 
   const copyToClipboard = async () => {
     try {
@@ -354,10 +375,6 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
     })
   }
 
-  if (!isMounted) {
-    return null
-  }
-
   const handleToggleExpand = () => {
     const newState = !isExpanded
     setIsExpanded(newState)
@@ -370,14 +387,8 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
     <TooltipProvider>
       <motion.div
         ref={panelRef}
-        className={cn(
-          "fixed",
-          isExpanded ? "left-1/2 -translate-x-1/2" : "right-0", // Conditional centering
-        )}
-        style={{
-          bottom: "20px", // Fixed position from the bottom
-          width: "fit-content",
-        }}
+        className={cn("fixed right-0 flex transition-all duration-300 ease-in-out")}
+        style={{ bottom: panelBottomPosition }}
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
@@ -425,17 +436,12 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
         <AnimatePresence>
           {isExpanded && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              initial={{ width: 0, opacity: 0, x: 20 }}
+              animate={{ width: "auto", opacity: 1, x: 0 }}
+              exit={{ width: 0, opacity: 0, x: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={cn(
-                "absolute top-full left-1/2 -translate-x-1/2 mt-3 mx-4 sm:mx-0 w-[calc(100vw-2rem)] sm:w-96 md:w-[28rem] lg:w-[32rem] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl border-2 border-purple-200/50 dark:border-purple-800/50 z-50",
-                "relative flex flex-col",
-                "overflow-y-auto",
-              )}
+              className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50"
               style={{
-                maxHeight: "70vh",
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(147, 51, 234, 0.1)",
               }}
             >
