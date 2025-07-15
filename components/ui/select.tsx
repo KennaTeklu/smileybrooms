@@ -107,8 +107,8 @@ const SelectItem = React.forwardRef<
   // Function to remove price patterns from a string
   const removePrice = (text: React.ReactNode) => {
     if (typeof text === "string") {
-      // Regex to match patterns like " ($XX.XX)" or " $XX.XX"
-      return text.replace(/\s*($$\$[\d,.]+$$|\$[\d,.]+)/g, "")
+      // Regex to match patterns like " ($XX.XX)", " $XX.XX", or "$--"
+      return text.replace(/\s*(\$\$\$[\d,.]+\$\$\$|\$[\d,.]+|\$--)/g, "")
     }
     return text
   }
