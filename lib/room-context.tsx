@@ -61,7 +61,8 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     const addOns = getRoomAddOns(roomType).filter((ao) => config.selectedAddOns.includes(ao.id))
     const reductions = getRoomReductions(roomType).filter((red) => config.selectedReductions.includes(red.id))
 
-    const includedTasks = tier ? [...tier.features, ...addOns.map((ao) => ao.name)] : []
+    // Corrected from tier.features to tier.detailedTasks
+    const includedTasks = tier ? [...tier.detailedTasks, ...addOns.map((ao) => ao.name)] : []
     const notIncludedTasks = reductions.map((red) => red.name)
 
     // Simple upsell message logic (can be expanded)
@@ -94,7 +95,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
               selectedAddOns: [],
               selectedReductions: [],
               totalPrice: defaultTier.price,
-              detailedTasks: defaultTier.features,
+              detailedTasks: defaultTier.detailedTasks, // Corrected here as well for initial config
               notIncludedTasks: [],
               upsellMessage: "",
             }
