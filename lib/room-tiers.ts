@@ -860,6 +860,57 @@ export const roomTiers = {
     ],
     upsellMessage: "Experience the pinnacle of cleanliness!",
   },
+  // Bathroom Tiers
+  "BATHROOM ESSENTIAL CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Toilet cleaning", "Shower/tub basic clean", "Mirror & sink", "Basic organizing"],
+    notIncludedTasks: [
+      "Toilet deep clean",
+      "Shower/tub restoration",
+      "Vanity detailing",
+      "Floor scrubbing",
+      "Towel service",
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    upsellMessage: "For a more thorough bathroom clean, consider our 'Premium Clean' tier!",
+  },
+  "BATHROOM PREMIUM CLEAN": {
+    basePrice: 250,
+    detailedTasks: [
+      "Toilet deep clean",
+      "Shower/tub restoration",
+      "Vanity detailing",
+      "Floor scrubbing",
+      "Towel service",
+    ],
+    notIncludedTasks: [
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your bathroom!",
+  },
+  "BATHROOM LUXURY CLEAN": {
+    basePrice: 420,
+    detailedTasks: [
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of bathroom cleanliness!",
+  },
 }
 
 export const roomAddOns = {
