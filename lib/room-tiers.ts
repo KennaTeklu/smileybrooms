@@ -1,11 +1,11 @@
-// Define the room tiers, add-ons, and reductions for the room configurator
-
 export interface RoomTier {
   id: string
   name: string
-  description: string
   price: number
-  features: string[]
+  description: string
+  detailedTasks: string[]
+  notIncludedTasks: string[]
+  upsellMessage: string
 }
 
 export interface RoomAddOn {
@@ -22,704 +22,405 @@ export interface RoomReduction {
   description?: string
 }
 
-export const defaultTiers: Record<string, RoomTier[]> = {
+// Define a base structure for room tiers, keyed by their display name
+export const roomTiers = {
+  "ESSENTIAL CLEAN": {
+    basePrice: 50,
+    detailedTasks: ["Dusting all surfaces", "Vacuuming/mopping floors", "Wiping down counters", "Emptying trash"],
+    notIncludedTasks: ["Deep stain removal", "Inside oven/fridge cleaning", "Window cleaning", "Wall washing"],
+    upsellMessage: "Upgrade to Premium Clean for a more thorough service!",
+  },
+  "PREMIUM CLEAN": {
+    basePrice: 80,
+    detailedTasks: [
+      "All Essential Clean tasks",
+      "Baseboard wiping",
+      "Light fixture dusting",
+      "Cabinet exterior wiping",
+      "Mirror cleaning",
+    ],
+    notIncludedTasks: ["Inside oven/fridge cleaning", "Window cleaning", "Wall washing"],
+    upsellMessage: "Consider Luxury Clean for a truly spotless home!",
+  },
+  "LUXURY CLEAN": {
+    basePrice: 120,
+    detailedTasks: [
+      "All Premium Clean tasks",
+      "Inside window cleaning (reachable)",
+      "Inside oven/fridge cleaning",
+      "Individual decor dusting",
+      "Vent dusting",
+    ],
+    notIncludedTasks: ["Exterior window cleaning", "Carpet shampooing", "Heavy duty wall washing"],
+    upsellMessage: "For specialized needs, explore our add-on services!",
+  },
+  // Add more tiers as needed
+} as const // Use 'as const' for type safety
+
+// Define specific tiers for each room type, referencing the base prices and details from roomTiers
+export const defaultTiers = {
+  default: [
+    {
+      id: "default-essential",
+      name: "ESSENTIAL CLEAN",
+      price: roomTiers["ESSENTIAL CLEAN"].basePrice,
+      description: "Basic cleaning for everyday tidiness.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
+    },
+    {
+      id: "default-premium",
+      name: "PREMIUM CLEAN",
+      price: roomTiers["PREMIUM CLEAN"].basePrice,
+      description: "A more thorough clean, perfect for regular maintenance.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
+    },
+    {
+      id: "default-luxury",
+      name: "LUXURY CLEAN",
+      price: roomTiers["LUXURY CLEAN"].basePrice,
+      description: "Our most comprehensive clean, leaving your home spotless.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
+    },
+  ],
   bedroom: [
     {
       id: "bedroom-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for lightly used rooms",
-      price: 120.0,
-      features: ["Floor vacuuming", "Bed making", "Surface organization", "Basic dusting"],
+      price: 50,
+      description: "Basic bedroom tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for regular maintenance",
-      price: 220.0,
-      features: [
-        "Deep floor care",
-        "Mattress steaming",
-        "Complete bed service",
-        "Full surface dusting",
-        "Closet organization",
-      ],
+      price: 80,
+      description: "Thorough bedroom cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "bedroom-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for maximum freshness",
-      price: 380.0,
-      features: [
-        "Comprehensive floor restoration",
-        "Under-bed detailing",
-        "Bed frame deep clean",
-        "Walk-in closet organization",
-        "Laundry service",
-        "Electronics cleaning",
-      ],
+      price: 120,
+      description: "Deep and detailed bedroom cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   bathroom: [
     {
       id: "bathroom-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for guest bathrooms",
-      price: 140.0,
-      features: ["Toilet cleaning", "Shower/tub basic clean", "Mirror & sink", "Basic organizing"],
+      price: 60,
+      description: "Basic bathroom refresh.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "bathroom-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for regular bathrooms",
-      price: 250.0,
-      features: ["Toilet deep clean", "Shower/tub restoration", "Vanity detailing", "Floor scrubbing", "Towel service"],
+      price: 95,
+      description: "Thorough bathroom sanitization.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "bathroom-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for master bathrooms",
-      price: 420.0,
-      features: [
-        "Complete toilet restoration",
-        "Shower/tub deep restoration",
-        "Vanity organization",
-        "Floor restoration",
-        "Ventilation cleaning",
-        "Luxury amenities",
-      ],
+      price: 140,
+      description: "Deep and detailed bathroom cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   kitchen: [
     {
       id: "kitchen-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Surface cleaning for lightly used kitchens",
-      price: 160.0,
-      features: ["Countertop cleaning", "Sink & faucet", "Stovetop cleaning", "Basic organizing"],
+      price: 70,
+      description: "Basic kitchen wipe-down.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "kitchen-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for regular kitchens",
-      price: 280.0,
-      features: [
-        "Countertop detailing",
-        "Sink restoration",
-        "Stovetop & oven",
-        "Cabinet fronts",
-        "Appliance exteriors",
-      ],
+      price: 110,
+      description: "Thorough kitchen degreasing and sanitization.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "kitchen-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for gourmet kitchens",
-      price: 480.0,
-      features: [
-        "Complete countertop restoration",
-        "Sink & faucet restoration",
-        "Oven deep clean",
-        "Cabinet organization",
-        "Refrigerator deep clean",
-        "All appliances",
-      ],
+      price: 160,
+      description: "Deep and detailed kitchen cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   livingRoom: [
     {
       id: "livingroom-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for living spaces",
-      price: 110.0,
-      features: ["Carpet vacuuming", "Surface dusting", "Couch arrangement", "Basic organizing"],
+      price: 55,
+      description: "Basic living room tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "livingroom-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for family rooms",
-      price: 200.0,
-      features: ["Deep vacuuming", "Furniture dusting", "Couch cleaning", "Electronics cleaning", "Fireplace cleaning"],
+      price: 85,
+      description: "Thorough living room cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "livingroom-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for entertainment areas",
-      price: 340.0,
-      features: [
-        "Carpet restoration",
-        "Furniture restoration",
-        "Upholstery detailing",
-        "Entertainment center",
-        "Complete fireplace restoration",
-      ],
+      price: 125,
+      description: "Deep and detailed living room cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   diningRoom: [
     {
       id: "diningroom-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for dining areas",
-      price: 80.0,
-      features: ["Table cleaning", "Floor vacuuming", "Basic organizing"],
+      price: 45,
+      description: "Basic dining room tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "diningroom-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for dining rooms",
-      price: 140.0,
-      features: ["Table & chairs detailing", "Floor deep clean", "China cabinet exterior"],
+      price: 70,
+      description: "Thorough dining room cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "diningroom-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for formal dining rooms",
-      price: 240.0,
-      features: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
+      price: 100,
+      description: "Deep and detailed dining room cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   homeOffice: [
     {
-      id: "office-essential",
+      id: "homeoffice-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for work spaces",
-      price: 130.0,
-      features: ["Desk cleaning", "Floor vacuuming", "Basic organizing", "Electronics dusting"],
+      price: 40,
+      description: "Basic home office tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
-      id: "office-premium",
+      id: "homeoffice-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for home offices",
-      price: 240.0,
-      features: ["Desk organization", "Electronics cleaning", "Floor detailing", "Bookshelf organizing"],
+      price: 65,
+      description: "Thorough home office cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
-      id: "office-luxury",
+      id: "homeoffice-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for professional offices",
-      price: 420.0,
-      features: ["Complete workstation setup", "Equipment maintenance", "Floor restoration", "Storage optimization"],
+      price: 90,
+      description: "Deep and detailed home office cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   laundryRoom: [
     {
-      id: "laundry-essential",
+      id: "laundryroom-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for laundry areas",
-      price: 100.0,
-      features: ["Appliance exteriors", "Floor cleaning", "Basic organizing", "Utility sink"],
+      price: 30,
+      description: "Basic laundry room tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
-      id: "laundry-premium",
+      id: "laundryroom-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for laundry rooms",
-      price: 190.0,
-      features: ["Appliance deep clean", "Floor & walls", "Storage organization", "Utility sink detail"],
+      price: 50,
+      description: "Thorough laundry room cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
-      id: "laundry-luxury",
+      id: "laundryroom-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for laundry centers",
-      price: 320.0,
-      features: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
+      price: 70,
+      description: "Deep and detailed laundry room cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   entryway: [
     {
       id: "entryway-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for entryways",
-      price: 60.0,
-      features: ["Floor cleaning", "Surface dusting", "Basic organizing"],
+      price: 25,
+      description: "Basic entryway tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "entryway-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for foyers",
-      price: 100.0,
-      features: ["Floor detailing", "Furniture cleaning", "Closet organization"],
+      price: 40,
+      description: "Thorough entryway cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "entryway-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for grand entrances",
-      price: 160.0,
-      features: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
+      price: 55,
+      description: "Deep and detailed entryway cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   hallway: [
     {
       id: "hallway-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for hallways",
-      price: 50.0,
-      features: ["Floor cleaning", "Wall spot cleaning", "Basic organizing"],
+      price: 30,
+      description: "Basic hallway tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "hallway-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for corridors",
-      price: 90.0,
-      features: ["Floor detailing", "Wall cleaning", "Lighting fixtures"],
+      price: 50,
+      description: "Thorough hallway cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "hallway-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for gallery hallways",
-      price: 140.0,
-      features: ["Floor restoration", "Wall restoration", "Lighting optimization"],
+      price: 70,
+      description: "Deep and detailed hallway cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
   stairs: [
     {
       id: "stairs-essential",
       name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for staircases",
-      price: 70.0,
-      features: ["Step vacuuming", "Safety check", "Basic organizing"],
+      price: 35,
+      description: "Basic stairs tidy-up.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["ESSENTIAL CLEAN"].upsellMessage,
     },
     {
       id: "stairs-premium",
       name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for stairways",
-      price: 120.0,
-      features: ["Deep vacuuming", "Handrail polishing", "Wall cleaning"],
+      price: 60,
+      description: "Thorough stairs cleaning.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["PREMIUM CLEAN"].upsellMessage,
     },
     {
       id: "stairs-luxury",
       name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for grand staircases",
-      price: 180.0,
-      features: ["Carpet restoration", "Railing restoration", "Wall restoration"],
-    },
-  ],
-  default: [
-    {
-      id: "default-essential",
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for all spaces",
-      price: 25.0,
-      features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
-    },
-    {
-      id: "default-premium",
-      name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for all spaces",
-      price: 75.0,
-      features: [
-        "Detailed dusting",
-        "Floor detailed cleaning",
-        "Baseboard attention",
-        "Surface sanitizing",
-        "Trash removal",
-      ],
-    },
-    {
-      id: "default-luxury",
-      name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for all spaces",
-      price: 225.0,
-      features: [
-        "Specialty surface treatment",
-        "Detail work on fixtures",
-        "Hard-to-reach areas",
-        "Aromatherapy finishing",
-        "Wall spot cleaning",
-        "Ceiling corner cleaning",
-        "Door and doorframe cleaning",
-        "Light fixture detailed cleaning",
-        "Air vent cleaning",
-        "Furniture polishing",
-        "Decor item individual cleaning",
-      ],
+      price: 85,
+      description: "Deep and detailed stairs cleaning.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
     },
   ],
 }
 
-/**
- * Flat lookup of all generic tier templates keyed by tier
- * name (e.g. "ESSENTIAL CLEAN", "BATHROOM PREMIUM CLEAN").
- * Components like `CollapsibleAddAllPanel` use this map to
- * grab tasks, upsell messages, etc.
- */
-export const roomTiers = {
-  // ---------- Generic tiers ----------
-  "ESSENTIAL CLEAN": {
-    basePrice: 120,
-    detailedTasks: ["Floor vacuuming", "Bed making", "Surface organization", "Basic dusting"],
-    notIncludedTasks: [
-      "Deep floor care",
-      "Mattress steaming",
-      "Complete bed service",
-      "Full surface dusting",
-      "Closet organization",
-      "Comprehensive floor restoration",
-      "Under-bed detailing",
-      "Bed frame deep clean",
-      "Walk-in closet organization",
-      "Laundry service",
-      "Electronics cleaning",
-    ],
-    upsellMessage: "For a more thorough clean, consider our 'Premium Clean' tier!",
-  },
-  "PREMIUM CLEAN": {
-    basePrice: 220,
-    detailedTasks: [
-      "Deep floor care",
-      "Mattress steaming",
-      "Complete bed service",
-      "Full surface dusting",
-      "Closet organization",
-    ],
-    notIncludedTasks: [
-      "Comprehensive floor restoration",
-      "Under-bed detailing",
-      "Bed frame deep clean",
-      "Walk-in closet organization",
-      "Laundry service",
-      "Electronics cleaning",
-    ],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier!",
-  },
-  "LUXURY CLEAN": {
-    basePrice: 380,
-    detailedTasks: [
-      "Comprehensive floor restoration",
-      "Under-bed detailing",
-      "Bed frame deep clean",
-      "Walk-in closet organization",
-      "Laundry service",
-      "Electronics cleaning",
-    ],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of cleanliness!",
-  },
+export const roomImages: { [key: string]: string } = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  livingRoom: "/images/living-room-professional.png",
+  diningRoom: "/images/dining-room-professional.png",
+  homeOffice: "/images/home-office-professional.png",
+  laundryRoom: "/images/laundry-room-professional.png",
+  entryway: "/images/entryway-professional.png",
+  hallway: "/images/hallway-professional.png",
+  stairs: "/images/stairs-professional.png",
+  other: "/public/room-icon.png", // Generic icon for custom rooms
+}
 
-  // ---------- Room-specific tiers ----------
-  // Bathroom -------------------------------------------------
-  "BATHROOM ESSENTIAL CLEAN": {
-    basePrice: 140,
-    detailedTasks: ["Toilet cleaning", "Shower/tub basic clean", "Mirror & sink", "Basic organizing"],
-    notIncludedTasks: [
-      "Toilet deep clean",
-      "Shower/tub restoration",
-      "Vanity detailing",
-      "Floor scrubbing",
-      "Towel service",
-      "Complete toilet restoration",
-      "Shower/tub deep restoration",
-      "Vanity organization",
-      "Floor restoration",
-      "Ventilation cleaning",
-      "Luxury amenities",
-    ],
-    upsellMessage: "For a more thorough bathroom clean, consider our 'Premium Clean' tier!",
-  },
-  "BATHROOM PREMIUM CLEAN": {
-    basePrice: 250,
-    detailedTasks: [
-      "Toilet deep clean",
-      "Shower/tub restoration",
-      "Vanity detailing",
-      "Floor scrubbing",
-      "Towel service",
-    ],
-    notIncludedTasks: [
-      "Complete toilet restoration",
-      "Shower/tub deep restoration",
-      "Vanity organization",
-      "Floor restoration",
-      "Ventilation cleaning",
-      "Luxury amenities",
-    ],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your bathroom!",
-  },
-  "BATHROOM LUXURY CLEAN": {
-    basePrice: 420,
-    detailedTasks: [
-      "Complete toilet restoration",
-      "Shower/tub deep restoration",
-      "Vanity organization",
-      "Floor restoration",
-      "Ventilation cleaning",
-      "Luxury amenities",
-    ],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of bathroom cleanliness!",
-  },
+export const roomDisplayNames: { [key: string]: string } = {
+  bedroom: "Bedroom",
+  bathroom: "Bathroom",
+  kitchen: "Kitchen",
+  livingRoom: "Living Room",
+  diningRoom: "Dining Room",
+  homeOffice: "Home Office",
+  laundryRoom: "Laundry Room",
+  entryway: "Entryway",
+  hallway: "Hallway",
+  stairs: "Stairs",
+  other: "Other Space",
+}
 
-  // Kitchen --------------------------------------------------
-  "KITCHEN ESSENTIAL CLEAN": {
-    basePrice: 160,
-    detailedTasks: ["Countertop cleaning", "Sink & faucet", "Stovetop cleaning", "Basic organizing"],
-    notIncludedTasks: [
-      "Countertop detailing",
-      "Sink restoration",
-      "Stovetop & oven",
-      "Cabinet fronts",
-      "Appliance exteriors",
-      "Complete countertop restoration",
-      "Sink & faucet restoration",
-      "Oven deep clean",
-      "Cabinet organization",
-      "Refrigerator deep clean",
-      "All appliances",
-    ],
-    upsellMessage: "For a more thorough kitchen clean, consider our 'Premium Clean' tier!",
-  },
-  "KITCHEN PREMIUM CLEAN": {
-    basePrice: 280,
-    detailedTasks: [
-      "Countertop detailing",
-      "Sink restoration",
-      "Stovetop & oven",
-      "Cabinet fronts",
-      "Appliance exteriors",
-    ],
-    notIncludedTasks: [
-      "Complete countertop restoration",
-      "Sink & faucet restoration",
-      "Oven deep clean",
-      "Cabinet organization",
-      "Refrigerator deep clean",
-      "All appliances",
-    ],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your kitchen!",
-  },
-  "KITCHEN LUXURY CLEAN": {
-    basePrice: 480,
-    detailedTasks: [
-      "Complete countertop restoration",
-      "Sink & faucet restoration",
-      "Oven deep clean",
-      "Cabinet organization",
-      "Refrigerator deep clean",
-      "All appliances",
-    ],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of kitchen cleanliness!",
-  },
-
-  // Living Room ---------------------------------------------
-  "LIVING ROOM ESSENTIAL CLEAN": {
-    basePrice: 110,
-    detailedTasks: ["Carpet vacuuming", "Surface dusting", "Couch arrangement", "Basic organizing"],
-    notIncludedTasks: [
-      "Deep vacuuming",
-      "Furniture dusting",
-      "Couch cleaning",
-      "Electronics cleaning",
-      "Fireplace cleaning",
-      "Carpet restoration",
-      "Furniture restoration",
-      "Upholstery detailing",
-      "Entertainment center",
-      "Complete fireplace restoration",
-    ],
-    upsellMessage: "For a more thorough living room clean, consider our 'Premium Clean' tier!",
-  },
-  "LIVING ROOM PREMIUM CLEAN": {
-    basePrice: 200,
-    detailedTasks: [
-      "Deep vacuuming",
-      "Furniture dusting",
-      "Couch cleaning",
-      "Electronics cleaning",
-      "Fireplace cleaning",
-    ],
-    notIncludedTasks: [
-      "Carpet restoration",
-      "Furniture restoration",
-      "Upholstery detailing",
-      "Entertainment center",
-      "Complete fireplace restoration",
-    ],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your living room!",
-  },
-  "LIVING ROOM LUXURY CLEAN": {
-    basePrice: 340,
-    detailedTasks: [
-      "Carpet restoration",
-      "Furniture restoration",
-      "Upholstery detailing",
-      "Entertainment center",
-      "Complete fireplace restoration",
-    ],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of living room cleanliness!",
-  },
-
-  // Dining Room ---------------------------------------------
-  "DINING ROOM ESSENTIAL CLEAN": {
-    basePrice: 80,
-    detailedTasks: ["Table cleaning", "Floor vacuuming", "Basic organizing"],
-    notIncludedTasks: [
-      "Table & chairs detailing",
-      "Floor deep clean",
-      "China cabinet exterior",
-      "Furniture restoration",
-      "Floor restoration",
-      "China cabinet organization",
-      "Lighting fixtures",
-    ],
-    upsellMessage: "For a more thorough dining room clean, consider our 'Premium Clean' tier!",
-  },
-  "DINING ROOM PREMIUM CLEAN": {
-    basePrice: 140,
-    detailedTasks: ["Table & chairs detailing", "Floor deep clean", "China cabinet exterior"],
-    notIncludedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your dining room!",
-  },
-  "DINING ROOM LUXURY CLEAN": {
-    basePrice: 240,
-    detailedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of dining room cleanliness!",
-  },
-
-  // Home Office ---------------------------------------------
-  "HOME OFFICE ESSENTIAL CLEAN": {
-    basePrice: 130,
-    detailedTasks: ["Desk cleaning", "Floor vacuuming", "Basic organizing", "Electronics dusting"],
-    notIncludedTasks: [
-      "Desk organization",
-      "Electronics cleaning",
-      "Floor detailing",
-      "Bookshelf organizing",
-      "Complete workstation setup",
-      "Equipment maintenance",
-      "Floor restoration",
-      "Storage optimization",
-    ],
-    upsellMessage: "For a more thorough home office clean, consider our 'Premium Clean' tier!",
-  },
-  "HOME OFFICE PREMIUM CLEAN": {
-    basePrice: 240,
-    detailedTasks: ["Desk organization", "Electronics cleaning", "Floor detailing", "Bookshelf organizing"],
-    notIncludedTasks: [
-      "Complete workstation setup",
-      "Equipment maintenance",
-      "Floor restoration",
-      "Storage optimization",
-    ],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your home office!",
-  },
-  "HOME OFFICE LUXURY CLEAN": {
-    basePrice: 420,
-    detailedTasks: ["Complete workstation setup", "Equipment maintenance", "Floor restoration", "Storage optimization"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of home office cleanliness!",
-  },
-
-  // Laundry Room --------------------------------------------
-  "LAUNDRY ROOM ESSENTIAL CLEAN": {
-    basePrice: 100,
-    detailedTasks: ["Appliance exteriors", "Floor cleaning", "Basic organizing", "Utility sink"],
-    notIncludedTasks: [
-      "Appliance deep clean",
-      "Floor & walls",
-      "Storage organization",
-      "Utility sink detail",
-      "Appliance restoration",
-      "Deep sanitization",
-      "Complete organization",
-      "Utility optimization",
-    ],
-    upsellMessage: "For a more thorough laundry room clean, consider our 'Premium Clean' tier!",
-  },
-  "LAUNDRY ROOM PREMIUM CLEAN": {
-    basePrice: 190,
-    detailedTasks: ["Appliance deep clean", "Floor & walls", "Storage organization", "Utility sink detail"],
-    notIncludedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your laundry room!",
-  },
-  "LAUNDRY ROOM LUXURY CLEAN": {
-    basePrice: 320,
-    detailedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of laundry room cleanliness!",
-  },
-
-  // Entryway -------------------------------------------------
-  "ENTRYWAY ESSENTIAL CLEAN": {
-    basePrice: 60,
-    detailedTasks: ["Floor cleaning", "Surface dusting", "Basic organizing"],
-    notIncludedTasks: [
-      "Floor detailing",
-      "Furniture cleaning",
-      "Closet organization",
-      "Floor restoration",
-      "Complete organization",
-      "Lighting & fixtures",
-    ],
-    upsellMessage: "For a more thorough entryway clean, consider our 'Premium Clean' tier!",
-  },
-  "ENTRYWAY PREMIUM CLEAN": {
-    basePrice: 100,
-    detailedTasks: ["Floor detailing", "Furniture cleaning", "Closet organization"],
-    notIncludedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your entryway!",
-  },
-  "ENTRYWAY LUXURY CLEAN": {
-    basePrice: 160,
-    detailedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of entryway cleanliness!",
-  },
-
-  // Hallway --------------------------------------------------
-  "HALLWAY ESSENTIAL CLEAN": {
-    basePrice: 50,
-    detailedTasks: ["Floor cleaning", "Wall spot cleaning", "Basic organizing"],
-    notIncludedTasks: [
-      "Floor detailing",
-      "Wall cleaning",
-      "Lighting fixtures",
-      "Floor restoration",
-      "Wall restoration",
-      "Lighting optimization",
-    ],
-    upsellMessage: "For a more thorough hallway clean, consider our 'Premium Clean' tier!",
-  },
-  "HALLWAY PREMIUM CLEAN": {
-    basePrice: 90,
-    detailedTasks: ["Floor detailing", "Wall cleaning", "Lighting fixtures"],
-    notIncludedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your hallway!",
-  },
-  "HALLWAY LUXURY CLEAN": {
-    basePrice: 140,
-    detailedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of hallway cleanliness!",
-  },
-
-  // Stairs ---------------------------------------------------
-  "STAIRS ESSENTIAL CLEAN": {
-    basePrice: 70,
-    detailedTasks: ["Step vacuuming", "Safety check", "Basic organizing"],
-    notIncludedTasks: [
-      "Deep vacuuming",
-      "Handrail polishing",
-      "Wall cleaning",
-      "Carpet restoration",
-      "Railing restoration",
-      "Wall restoration",
-    ],
-    upsellMessage: "For a more thorough stairs clean, consider our 'Premium Clean' tier!",
-  },
-  "STAIRS PREMIUM CLEAN": {
-    basePrice: 120,
-    detailedTasks: ["Deep vacuuming", "Handrail polishing", "Wall cleaning"],
-    notIncludedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
-    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your stairs!",
-  },
-  "STAIRS LUXURY CLEAN": {
-    basePrice: 180,
-    detailedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
-    notIncludedTasks: [],
-    upsellMessage: "Experience the pinnacle of stairs cleanliness!",
-  },
-} as const
+export const roomIcons: { [key: string]: string } = {
+  bedroom: "🛏️",
+  bathroom: "🚿",
+  kitchen: "🍳",
+  livingRoom: "🛋️",
+  diningRoom: "🍽️",
+  homeOffice: "💻",
+  laundryRoom: "🧺",
+  entryway: "🚪",
+  hallway: "🚶",
+  stairs: "🪜",
+  other: "🏠",
+}
 
 export const defaultAddOns: Record<string, RoomAddOn[]> = {
   bedroom: [
@@ -1137,71 +838,10 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
   ],
 }
 
-// Helper function to get tiers for a specific room type
 export function getRoomTiers(roomType: string): RoomTier[] {
-  return defaultTiers[roomType] || defaultTiers.default
+  // Return specific tiers for the room type if they exist, otherwise return default tiers
+  return (defaultTiers as any)[roomType] || defaultTiers.default
 }
 
-// Helper function to get add-ons for a specific room type
-export function getRoomAddOns(roomType: string): RoomAddOn[] {
-  return defaultAddOns[roomType] || defaultAddOns.default
-}
-
-// Helper function to get reductions for a specific room type
-export function getRoomReductions(roomType: string): RoomReduction[] {
-  return defaultReductions[roomType] || defaultReductions.default
-}
-
-// Helper function to get the price for a specific tier ID
-export function getPriceForTier(tierId: string): number {
-  for (const roomType in defaultTiers) {
-    const tier = defaultTiers[roomType].find((t) => t.id === tierId)
-    if (tier) return tier.price
-  }
-  return 0 // Fallback if tier not found
-}
-
-// Room type to professional image mapping
-export const roomImages: Record<string, string> = {
-  bedroom: "/images/bedroom-professional.png",
-  bathroom: "/images/bathroom-professional.png",
-  kitchen: "/images/kitchen-professional.png",
-  livingRoom: "/images/living-room-professional.png", // Corrected path
-  diningRoom: "/images/dining-room-professional.png", // Corrected path
-  homeOffice: "/images/home-office-professional.png", // Corrected path
-  laundryRoom: "/images/laundry-room-professional.png", // Corrected path
-  entryway: "/images/entryway-professional.png",
-  hallway: "/images/hallway-professional.png",
-  stairs: "/images/stairs-professional.png",
-  other: "/images/bedroom-professional.png", // fallback for custom rooms
-}
-
-// Room type to icon mapping (keeping as fallback)
-export const roomIcons: Record<string, string> = {
-  bedroom: "🛏️",
-  bathroom: "🚿",
-  kitchen: "🍳",
-  livingRoom: "🛋️",
-  diningRoom: "🍽️",
-  homeOffice: "💻",
-  laundryRoom: "🧺",
-  entryway: "🚪",
-  hallway: "🚶",
-  stairs: "🪜",
-  other: "➕",
-}
-
-// Room type to display name mapping
-export const roomDisplayNames: Record<string, string> = {
-  bedroom: "Bedroom",
-  bathroom: "Bathroom",
-  kitchen: "Kitchen",
-  livingRoom: "Living Room",
-  diningRoom: "Dining Room",
-  homeOffice: "Home Office",
-  laundryRoom: "Laundry Room",
-  entryway: "Entryway",
-  hallway: "Hallway",
-  stairs: "Stairs",
-  other: "Other Space",
-}
+// Re-export roomTiers to make it accessible
+export type RoomTierName = keyof typeof roomTiers

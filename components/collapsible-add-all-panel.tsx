@@ -76,6 +76,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
   // Ref to track if initial room setup has been performed for the current open state
   const hasInitializedRoomsOnOpenRef = useRef(false)
+  // New state to control "Select All" button visibility
+  const [hasClearedAll, setHasClearedAll] = useState(false)
 
   // Function to apply the selected global tier to a specific room
   // This function now takes `globalTierName` as an argument.
@@ -127,19 +129,18 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       Object.keys(roomDisplayNames).forEach((roomType) => {
         // Ensure room count is at least 1 if it's a standard room type and not already selected
         // Use the current `roomCounts` directly from the hook closure, it's the latest on render
-        if (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 0) {
+        if (!roomType.startsWith("other-custom-")) {
+          // Always select standard rooms on open
           updateRoomCount(roomType, 1)
-        }
-        // Apply the global tier to all rooms that are currently selected or just initialized
-        // Pass the current `roomConfigs` to `applyGlobalTierToRoom`
-        if (roomCounts[roomType] > 0 || (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 1)) {
           applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
         }
       })
       hasInitializedRoomsOnOpenRef.current = true // Mark as initialized
+      setHasClearedAll(false) // Reset hasClearedAll when opening and auto-selecting all
     } else if (!isOpen) {
       // Reset the flag when the panel closes
       hasInitializedRoomsOnOpenRef.current = false
+      setHasClearedAll(false) // Also reset when closing
     }
   }, [isOpen, selectedGlobalTierName, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs])
 
@@ -254,6 +255,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     (roomType: string) => {
       updateRoomCount(roomType, 0)
       vibrate(50)
+      setHasClearedAll(true) // If a room is manually removed, allow "Select All" to appear
     },
     [updateRoomCount, vibrate],
   )
@@ -275,6 +277,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       if ((roomCounts[roomType] || 0) > 0) {
         updateRoomCount(roomType, (roomCounts[roomType] || 0) - 1)
         vibrate(50)
+        // If all rooms are now deselected, set hasClearedAll to true
+        const remainingRooms = Object.values(roomCounts).filter((count, key) => key !== roomType && count > 0)
+        if (remainingRooms.length === 0 && (roomCounts[roomType] || 0) === 1) {
+          setHasClearedAll(true)
+        }
       }
     },
     [roomCounts, updateRoomCount, vibrate],
@@ -650,31 +657,39 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Rooms</h3>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary">{selectedRoomTypes.length} selected</Badge>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                Object.keys(roomDisplayNames).forEach((roomType) => {
-                                  updateRoomCount(roomType, 0)
-                                })
-                              }}
-                              className="text-xs"
-                            >
-                              Clear All
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                Object.keys(roomDisplayNames).forEach((roomType) => {
-                                  updateRoomCount(roomType, 1)
-                                  applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs) // Pass roomConfigs
-                                })
-                              }}
-                              className="text-xs"
-                            >
-                              Select All
-                            </Button>
+                            {selectedRoomTypes.length > 0 && ( // Show Clear All if any rooms are selected
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  Object.keys(roomDisplayNames).forEach((roomType) => {
+                                    updateRoomCount(roomType, 0)
+                                  })
+                                  setHasClearedAll(true) // Set flag when cleared
+                                }}
+                                className="text-xs"
+                              >
+                                Clear All
+                              </Button>
+                            )}
+                            {hasClearedAll && ( // Show Select All only if hasClearedAll is true
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  Object.keys(roomDisplayNames).forEach((roomType) => {
+                                    if (!roomType.startsWith("other-custom-")) {
+                                      updateRoomCount(roomType, 1)
+                                      applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
+                                    }
+                                  })
+                                  setHasClearedAll(false) // Reset flag when selected all
+                                }}
+                                className="text-xs"
+                              >
+                                Select All
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -834,7 +849,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               type="number"
                               min="1"
                               value={newCustomRoomQuantity}
-                              onChange={(e) => setNewCustomRoomQuantity(Number.parseInt(e.target.value) || 1)}
+                              onChange={(e) =>
+                                Number.parseInt(e.target.value) >= 1
+                                  ? setNewCustomRoomQuantity(Number.parseInt(e.target.value))
+                                  : setNewCustomRoomQuantity(1)
+                              }
                               className="w-16 text-center"
                             />
                             <Button
