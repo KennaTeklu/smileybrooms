@@ -697,13 +697,29 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
   hallway: [
     {
       id: "hal-r1",
-      name: "Basic floor cleaning only",
-      discount: 8.0,
-      description: "Only basic floor cleaning will be performed",
+      name: "Runner/carpet deep cleaning",
+      price: 20.0,
+      description: "Deep cleaning of hallway carpet or runner",
     },
-    { id: "hal-r2", name: "Skip wall cleaning", discount: 6.0, description: "Walls will not be cleaned" },
-    { id: "hal-r3", name: "No picture frame dusting", discount: 5.0, description: "Picture frames will not be dusted" },
-    { id: "hal-r4", name: "Skip baseboard cleaning", discount: 7.0, description: "Baseboards will not be cleaned" },
+    {
+      id: "hal-r2",
+      name: "Picture frame detailed cleaning",
+      price: 15.0,
+      description: "Detailed cleaning of picture frames",
+    },
+    {
+      id: "hal-r3",
+      name: "Linen closet organization",
+      price: 25.0,
+      description: "Organization of linen closet contents",
+    },
+    {
+      id: "hal-r4",
+      name: "Light fixture detailed cleaning",
+      price: 18.0,
+      description: "Detailed cleaning of hallway light fixtures",
+    },
+    { id: "hal-r5", name: "Wall sconce cleaning", price: 12.0, description: "Cleaning of wall sconces" },
   ],
   stairs: [
     {
@@ -1034,6 +1050,34 @@ export const roomTiers = {
     detailedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
     notIncludedTasks: [], // All tasks are included in Luxury Clean
     upsellMessage: "Experience the pinnacle of dining room cleanliness!",
+  },
+  // Laundry Room Tiers
+  "LAUNDRY ROOM ESSENTIAL CLEAN": {
+    basePrice: 100,
+    detailedTasks: ["Appliance exteriors", "Floor cleaning", "Basic organizing", "Utility sink"],
+    notIncludedTasks: [
+      "Appliance deep clean",
+      "Floor & walls",
+      "Storage organization",
+      "Utility sink detail",
+      "Appliance restoration",
+      "Deep sanitization",
+      "Complete organization",
+      "Utility optimization",
+    ],
+    upsellMessage: "For a more thorough laundry room clean, consider our 'Premium Clean' tier!",
+  },
+  "LAUNDRY ROOM PREMIUM CLEAN": {
+    basePrice: 190,
+    detailedTasks: ["Appliance deep clean", "Floor & walls", "Storage organization", "Utility sink detail"],
+    notIncludedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your laundry room!",
+  },
+  "LAUNDRY ROOM LUXURY CLEAN": {
+    basePrice: 320,
+    detailedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of laundry room cleanliness!",
   },
 }
 
