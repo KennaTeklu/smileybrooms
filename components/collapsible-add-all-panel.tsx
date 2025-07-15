@@ -94,10 +94,22 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       const selectedRoomSpecificTier = roomSpecificTiers.find((tier) => tier.name === globalTierDefinition.name)
 
       if (!selectedRoomSpecificTier) {
+        // Fallback for custom rooms or if a specific tier isn't found by name (shouldn't happen for standard rooms)
         console.warn(
-          `Room-specific tier not found for roomType: ${roomType} and tier name: ${globalTierDefinition.name}`,
+          `Room-specific tier not found for roomType: ${roomType} and tier name: ${globalTierDefinition.name}. Falling back to global default tier price.`,
         )
-        return
+        updateRoomConfig(roomType, {
+          ...currentRoomConfigs[roomType],
+          roomName: roomDisplayNames[roomType] || roomType,
+          selectedTier: globalTierId, // Keep global tier ID
+          totalPrice: globalTierDefinition.price, // Use global default price as fallback
+          selectedAddOns: [],
+          selectedReductions: [],
+          detailedTasks: roomTiers[globalTierDefinition.name]?.detailedTasks || [],
+          notIncludedTasks: roomTiers[globalTierDefinition.name]?.notIncludedTasks || [],
+          upsellMessage: roomTiers[globalTierDefinition.name]?.upsellMessage || "",
+        })
+        return // Exit after fallback
       }
 
       const currentConfig = currentRoomConfigs[roomType]
@@ -115,7 +127,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           roomName: roomDisplayNames[roomType] || roomType,
           selectedTier: selectedRoomSpecificTier.id, // Use the room-specific tier ID
           totalPrice: selectedRoomSpecificTier.price, // Use the room-specific price
-          selectedAddOns: [], // Reset add-ons/reductions when tier changes
+          selectedAddOns: [],
           selectedReductions: [],
           detailedTasks: genericTierDetails?.detailedTasks || [],
           notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
@@ -147,7 +159,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       // Reset the flag when the panel closes
       hasInitializedRoomsOnOpenRef.current = false
     }
-  }, [isOpen, selectedGlobalTierId, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs]) // Keep roomCounts and roomConfigs as dependencies for this effect, but ensure updates are conditional. The key is that `applyGlobalTierToRoom` and `updateRoomCount` are now conditionally called *inside* the effect, and `applyGlobalTierToRoom` doesn't depend on `roomConfigs` directly.
+  }, [isOpen, selectedGlobalTierId, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs])
 
   const selectedRoomTypes = getSelectedRoomTypes()
   const baseTotalPrice = getTotalPrice()
