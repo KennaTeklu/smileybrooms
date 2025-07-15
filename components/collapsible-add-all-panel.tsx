@@ -80,21 +80,41 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   // Function to apply the selected global tier to a specific room
   // This function now takes currentRoomConfigs as an argument to avoid direct dependency on roomConfigs state
   const applyGlobalTierToRoom = useCallback(
-    (roomType: string, tierId: string, currentRoomConfigs: typeof roomConfigs) => {
-      const availableTiers = getRoomTiers(roomType)
-      const selectedTierObject = availableTiers.find((t) => t.id === tierId)
+    (roomType: string, globalTierId: string, currentRoomConfigs: typeof roomConfigs) => {
+      // 1. Find the global tier object from defaultTiers.default to get its name
+      const globalTierDefinition = defaultTiers.default.find((tier) => tier.id === globalTierId)
+
+      if (!globalTierDefinition) {
+        console.warn(`Global tier definition not found for ID: ${globalTierId}`)
+        return
+      }
+
+      // 2. Find the corresponding room-specific tier using the name from the global tier definition
+      const roomSpecificTiers = getRoomTiers(roomType) // This gets tiers like defaultTiers.bedroom
+      const selectedRoomSpecificTier = roomSpecificTiers.find((tier) => tier.name === globalTierDefinition.name)
+
+      if (!selectedRoomSpecificTier) {
+        console.warn(
+          `Room-specific tier not found for roomType: ${roomType} and tier name: ${globalTierDefinition.name}`,
+        )
+        return
+      }
 
       const currentConfig = currentRoomConfigs[roomType]
-      const currentTier = currentConfig?.selectedTier
+      const currentTierId = currentConfig?.selectedTier
       const currentPrice = currentConfig?.totalPrice
 
-      if (selectedTierObject && (currentTier !== tierId || currentPrice !== selectedTierObject.price)) {
-        const genericTierDetails = roomTiers[selectedTierObject.name]
+      // Only update if the tier or price is different
+      if (currentTierId !== selectedRoomSpecificTier.id || currentPrice !== selectedRoomSpecificTier.price) {
+        // Get generic tier details (tasks, upsell message) using the name from the global tier definition
+        // Note: roomTiers object keys are tier names like "PREMIUM CLEAN"
+        const genericTierDetails = roomTiers[globalTierDefinition.name]
+
         updateRoomConfig(roomType, {
           ...currentConfig,
           roomName: roomDisplayNames[roomType] || roomType,
-          selectedTier: tierId,
-          totalPrice: selectedTierObject.price,
+          selectedTier: selectedRoomSpecificTier.id, // Use the room-specific tier ID
+          totalPrice: selectedRoomSpecificTier.price, // Use the room-specific price
           selectedAddOns: [], // Reset add-ons/reductions when tier changes
           selectedReductions: [],
           detailedTasks: genericTierDetails?.detailedTasks || [],
@@ -103,7 +123,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         })
       }
     },
-    [updateRoomConfig], // Only updateRoomConfig is a dependency now
+    [updateRoomConfig],
   )
 
   // Effect for initial room setup when the panel opens or global tier changes
