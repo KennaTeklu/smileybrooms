@@ -3,7 +3,21 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, Plus, Trash2, X, ArrowLeft, ArrowRight, ListChecks, ListX, Lightbulb, CheckCircle, Minus, PlusIcon, ChevronDown } from 'lucide-react'
+import {
+  ShoppingCart,
+  Plus,
+  Trash2,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  ListChecks,
+  ListX,
+  Lightbulb,
+  CheckCircle,
+  Minus,
+  PlusIcon,
+  ChevronDown,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -15,7 +29,6 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import { generateMailtoLink } from "@/lib/email-utils"
 import {
   roomImages,
   roomDisplayNames,
@@ -315,7 +328,7 @@ I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustom
 Best regards`
 
     const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(mailtoLink, '_blank')
+    window.open(mailtoLink, "_blank")
 
     const customRoomId = `other-custom-${Date.now()}` // Unique ID for custom room
     const selectedGlobalTierDetails = roomTiers[selectedGlobalTierName] // Use selectedGlobalTierName
@@ -1000,16 +1013,13 @@ Best regards`
               {/* Footer with Clear Navigation */}
               <div className="border-t bg-white dark:bg-gray-900 p-4 flex-shrink-0">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 order-2 sm:order-1">
-                    <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
-                    {selectedRoomTypes.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {totalItems} items • {formatCurrency(displayTotalPrice)}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
+                  <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
+                  {selectedRoomTypes.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {totalItems} items • {formatCurrency(displayTotalPrice)}
+                    </Badge>
+                  )}
+                  <div className="flex gap-2 w-full sm:w-auto">
                     {reviewStep === 1 ? (
                       <>
                         <Button
