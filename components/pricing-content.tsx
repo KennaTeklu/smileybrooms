@@ -83,7 +83,7 @@ function PricingContent() {
   }, [roomCounts])
 
   return (
-    <main className="container mx-auto px-6 pt-2">
+    <main className="container mx-auto px-4 pt-2 md:px-6">
       <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
         <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
           <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
