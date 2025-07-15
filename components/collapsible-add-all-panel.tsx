@@ -58,14 +58,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const [selectedFrequency, setSelectedFrequency] = useState<keyof typeof ROOM_CONFIG.frequencyMultipliers>("one_time")
   const [isFullHouseChecked, setIsFullHouseChecked] = useState(false)
 
-  // Find the "Premium Clean" tier ID for default selection
-  const premiumTierId = useMemo(() => {
+  // Find the "Premium Clean" tier NAME for default selection
+  const premiumTierName = useMemo(() => {
     const premiumTier = defaultTiers.default.find((tier) => tier.name === "PREMIUM CLEAN")
-    return premiumTier ? premiumTier.id : defaultTiers.default[0]?.id || "default-essential"
+    return premiumTier ? premiumTier.name : "ESSENTIAL CLEAN" // Fallback to "ESSENTIAL CLEAN" if "PREMIUM CLEAN" not found
   }, [])
 
-  // State for global tier selection, defaults to Premium
-  const [selectedGlobalTierId, setSelectedGlobalTierId] = useState<string>(premiumTierId)
+  // State for global tier selection, defaults to Premium Clean NAME
+  const [selectedGlobalTierName, setSelectedGlobalTierName] = useState<keyof typeof roomTiers>(premiumTierName)
 
   // State for adding custom rooms
   const [newCustomRoomName, setNewCustomRoomName] = useState("")
@@ -78,60 +78,42 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const hasInitializedRoomsOnOpenRef = useRef(false)
 
   // Function to apply the selected global tier to a specific room
-  // This function now takes currentRoomConfigs as an argument to avoid direct dependency on roomConfigs state
+  // This function now takes `globalTierName` as an argument.
   const applyGlobalTierToRoom = useCallback(
-    (roomType: string, globalTierId: string, currentRoomConfigs: typeof roomConfigs) => {
-      // 1. Find the global tier object from defaultTiers.default to get its name
-      const globalTierDefinition = defaultTiers.default.find((tier) => tier.id === globalTierId)
+    (roomType: string, globalTierName: keyof typeof roomTiers, currentRoomConfigs: typeof roomConfigs) => {
+      const globalTierDetails = roomTiers[globalTierName]
 
-      if (!globalTierDefinition) {
-        console.warn(`Global tier definition not found for ID: ${globalTierId}`)
+      if (!globalTierDetails) {
+        console.warn(`Global tier details not found for name: ${globalTierName}`)
         return
       }
 
-      // 2. Find the corresponding room-specific tier using the name from the global tier definition
-      const roomSpecificTiers = getRoomTiers(roomType) // This gets tiers like defaultTiers.bedroom
-      const selectedRoomSpecificTier = roomSpecificTiers.find((tier) => tier.name === globalTierDefinition.name)
-
-      if (!selectedRoomSpecificTier) {
-        // Fallback for custom rooms or if a specific tier isn't found by name (shouldn't happen for standard rooms)
-        console.warn(
-          `Room-specific tier not found for roomType: ${roomType} and tier name: ${globalTierDefinition.name}. Falling back to global default tier price.`,
-        )
-        updateRoomConfig(roomType, {
-          ...currentRoomConfigs[roomType],
-          roomName: roomDisplayNames[roomType] || roomType,
-          selectedTier: globalTierId, // Keep global tier ID
-          totalPrice: globalTierDefinition.price, // Use global default price as fallback
-          selectedAddOns: [],
-          selectedReductions: [],
-          detailedTasks: roomTiers[globalTierDefinition.name]?.detailedTasks || [],
-          notIncludedTasks: roomTiers[globalTierDefinition.name]?.notIncludedTasks || [],
-          upsellMessage: roomTiers[globalTierDefinition.name]?.upsellMessage || "",
-        })
-        return // Exit after fallback
-      }
+      // Find the corresponding room-specific tier ID from defaultTiers based on the global tier name.
+      // This is needed because the cart item stores the specific tier ID (e.g., "bedroom-premium").
+      // We still use `defaultTiers` for the specific ID, but the price comes from `roomTiers`.
+      const roomSpecificTiers = getRoomTiers(roomType) // This uses defaultTiers
+      const selectedRoomSpecificTier = roomSpecificTiers.find((tier) => tier.name === globalTierName)
 
       const currentConfig = currentRoomConfigs[roomType]
       const currentTierId = currentConfig?.selectedTier
       const currentPrice = currentConfig?.totalPrice
 
-      // Only update if the tier or price is different
-      if (currentTierId !== selectedRoomSpecificTier.id || currentPrice !== selectedRoomSpecificTier.price) {
-        // Get generic tier details (tasks, upsell message) using the name from the global tier definition
-        // Note: roomTiers object keys are tier names like "PREMIUM CLEAN"
-        const genericTierDetails = roomTiers[globalTierDefinition.name]
+      // Use the room-specific tier's ID and price if found, otherwise fallback to global tier's basePrice and a generic ID
+      const finalTierId = selectedRoomSpecificTier?.id || `custom-${globalTierName.toLowerCase().replace(/\s/g, "-")}`
+      const finalPrice = selectedRoomSpecificTier?.price || globalTierDetails.basePrice // Use room-specific price if available, else global basePrice
 
+      // Only update if the tier or price is different
+      if (currentTierId !== finalTierId || currentPrice !== finalPrice) {
         updateRoomConfig(roomType, {
           ...currentConfig,
           roomName: roomDisplayNames[roomType] || roomType,
-          selectedTier: selectedRoomSpecificTier.id, // Use the room-specific tier ID
-          totalPrice: selectedRoomSpecificTier.price, // Use the room-specific price
+          selectedTier: finalTierId, // Use the room-specific tier ID or a generated one
+          totalPrice: finalPrice, // Use the room-specific price or global basePrice
           selectedAddOns: [],
           selectedReductions: [],
-          detailedTasks: genericTierDetails?.detailedTasks || [],
-          notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
-          upsellMessage: genericTierDetails?.upsellMessage || "",
+          detailedTasks: globalTierDetails.detailedTasks || [],
+          notIncludedTasks: globalTierDetails.notIncludedTasks || [],
+          upsellMessage: globalTierDetails.upsellMessage || "",
         })
       }
     },
@@ -151,7 +133,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         // Apply the global tier to all rooms that are currently selected or just initialized
         // Pass the current `roomConfigs` to `applyGlobalTierToRoom`
         if (roomCounts[roomType] > 0 || (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 1)) {
-          applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs)
+          applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
         }
       })
       hasInitializedRoomsOnOpenRef.current = true // Mark as initialized
@@ -159,7 +141,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       // Reset the flag when the panel closes
       hasInitializedRoomsOnOpenRef.current = false
     }
-  }, [isOpen, selectedGlobalTierId, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs])
+  }, [isOpen, selectedGlobalTierName, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs])
 
   const selectedRoomTypes = getSelectedRoomTypes()
   const baseTotalPrice = getTotalPrice()
@@ -281,11 +263,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       updateRoomCount(roomType, (roomCounts[roomType] || 0) + 1)
       // When incrementing from 0, apply the global tier
       if (roomCounts[roomType] === 0) {
-        applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
+        applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs) // Pass roomConfigs
       }
       vibrate(50)
     },
-    [roomCounts, updateRoomCount, vibrate, applyGlobalTierToRoom, selectedGlobalTierId, roomConfigs],
+    [roomCounts, updateRoomCount, vibrate, applyGlobalTierToRoom, selectedGlobalTierName, roomConfigs],
   )
 
   const handleDecrementRoom = useCallback(
@@ -299,11 +281,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   )
 
   const handleGlobalTierChange = useCallback(
-    (newTierId: string) => {
-      setSelectedGlobalTierId(newTierId)
-      // Apply the new global tier to all currently selected rooms
+    (newTierName: keyof typeof roomTiers) => {
+      // Change type to keyof typeof roomTiers
+      setSelectedGlobalTierName(newTierName)
       selectedRoomTypes.forEach((roomType) => {
-        applyGlobalTierToRoom(roomType, newTierId, roomConfigs) // Pass roomConfigs
+        applyGlobalTierToRoom(roomType, newTierName, roomConfigs) // Pass newTierName
       })
       vibrate(50)
     },
@@ -322,20 +304,19 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     }
 
     const customRoomId = `other-custom-${Date.now()}` // Unique ID for custom room
-    const selectedDefaultTier = defaultTiers.default.find((t) => t.id === selectedGlobalTierId) // Use global tier
-    const genericTierDetails = roomTiers[selectedDefaultTier?.name || "PREMIUM CLEAN"] // Fallback to PREMIUM CLEAN
+    const selectedGlobalTierDetails = roomTiers[selectedGlobalTierName] // Use selectedGlobalTierName
 
     updateRoomCount(customRoomId, newCustomRoomQuantity)
     updateRoomConfig(customRoomId, {
       roomName: newCustomRoomName.trim(),
-      selectedTier: selectedGlobalTierId, // Use global tier for custom room
-      totalPrice: selectedDefaultTier?.price || 0,
+      selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`, // Generate a custom tier ID
+      totalPrice: selectedGlobalTierDetails?.basePrice || 0, // Use basePrice from roomTiers
       isPriceTBD: false,
       selectedAddOns: [],
       selectedReductions: [],
-      detailedTasks: genericTierDetails?.detailedTasks || [],
-      notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
-      upsellMessage: genericTierDetails?.upsellMessage || "",
+      detailedTasks: selectedGlobalTierDetails?.detailedTasks || [],
+      notIncludedTasks: selectedGlobalTierDetails?.notIncludedTasks || [],
+      upsellMessage: selectedGlobalTierDetails?.upsellMessage || "",
     })
 
     setNewCustomRoomName("")
@@ -348,7 +329,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       duration: 3000,
     })
     vibrate(50)
-  }, [newCustomRoomName, newCustomRoomQuantity, selectedGlobalTierId, updateRoomCount, updateRoomConfig, vibrate])
+  }, [newCustomRoomName, newCustomRoomQuantity, selectedGlobalTierName, updateRoomCount, updateRoomConfig, vibrate])
 
   const handleBackToButton = useCallback(() => {
     onOpenChange(false)
@@ -642,16 +623,20 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
                           Choose Cleaning Level for All Rooms
                         </h3>
-                        <Select value={selectedGlobalTierId} onValueChange={handleGlobalTierChange}>
+                        <Select value={selectedGlobalTierName} onValueChange={handleGlobalTierChange}>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Tier" />
                           </SelectTrigger>
                           <SelectContent>
-                            {defaultTiers.default.map((tier) => (
-                              <SelectItem key={tier.id} value={tier.id}>
-                                {tier.name} ({formatCurrency(tier.price)})
-                              </SelectItem>
-                            ))}
+                            {Object.keys(roomTiers)
+                              .filter((tierName) =>
+                                ["ESSENTIAL CLEAN", "PREMIUM CLEAN", "LUXURY CLEAN"].includes(tierName),
+                              )
+                              .map((tierName) => (
+                                <SelectItem key={tierName} value={tierName}>
+                                  {tierName} ({formatCurrency(roomTiers[tierName].basePrice)})
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                         <p className="text-sm text-gray-500 mt-2">
@@ -683,7 +668,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               onClick={() => {
                                 Object.keys(roomDisplayNames).forEach((roomType) => {
                                   updateRoomCount(roomType, 1)
-                                  applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
+                                  applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs) // Pass roomConfigs
                                 })
                               }}
                               className="text-xs"
@@ -696,13 +681,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {Object.keys(roomDisplayNames).map((roomType) => {
                             const config = roomConfigs[roomType] || {
-                              selectedTier: selectedGlobalTierId, // Default to global tier
-                              totalPrice: defaultTiers.default.find((t) => t.id === selectedGlobalTierId)?.price || 0,
-                              detailedTasks:
-                                roomTiers[
-                                  defaultTiers.default.find((t) => t.id === selectedGlobalTierId)?.name ||
-                                    "PREMIUM CLEAN"
-                                ]?.detailedTasks || [],
+                              selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`, // Generate a custom tier ID
+                              totalPrice: roomTiers[selectedGlobalTierName]?.basePrice || 0, // Use basePrice from roomTiers
+                              detailedTasks: roomTiers[selectedGlobalTierName]?.detailedTasks || [],
                               notIncludedTasks: [],
                               upsellMessage: "",
                             }
@@ -721,7 +702,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                 onClick={() => {
                                   if (count === 0) {
                                     updateRoomCount(roomType, 1)
-                                    applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
+                                    applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs) // Pass roomConfigs
                                   }
                                 }}
                               >
