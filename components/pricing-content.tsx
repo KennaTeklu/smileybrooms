@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
 
 function PricingContent() {
   const { toast } = useToast()
@@ -55,20 +57,82 @@ function PricingContent() {
     return (
       roomConfigs[roomType] || {
         roomName: roomType,
-        selectedTier: "ESSENTIAL CLEAN",
+        selectedTier: "essential-clean", // Use actual tier ID from room-tiers.ts
         selectedAddOns: [],
         selectedReductions: [],
-        basePrice: 25,
-        tierUpgradePrice: 0,
-        addOnsPrice: 0,
-        reductionsPrice: 0,
-        totalPrice: 25,
+        totalPrice: 0, // Will be calculated by RoomContext
+        detailedTasks: [],
+        notIncludedTasks: [],
+        upsellMessage: "",
       }
     )
   }
 
   const getActiveRoomConfigs = () => {
-    return getSelectedRoomTypes()
+    return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
+  }
+
+  const handleAddRoomToCart = (roomType: string) => {
+    const config = getRoomConfig(roomType)
+    if (config && roomCounts[roomType] > 0) {
+      const cartItem = {
+        id: generateRoomCartItemId(config),
+        name: getRoomCartItemDisplayName(config),
+        price: config.totalPrice,
+        priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
+        quantity: roomCounts[roomType],
+        roomType: config.roomName,
+        selectedTier: config.selectedTier,
+        selectedAddOns: config.selectedAddOns,
+        selectedReductions: config.selectedReductions,
+        image: `/images/${roomType}-professional.png`, // Example image path
+        sourceSection: "Pricing Page",
+      }
+      addItem(cartItem)
+    } else {
+      toast({
+        title: "Cannot add to cart",
+        description: `Please select at least one ${roomDisplayNames[roomType]} to add to cart.`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddAllRoomsToCart = () => {
+    const selectedRooms = getActiveRoomConfigs()
+    if (selectedRooms.length === 0) {
+      toast({
+        title: "No Rooms Selected",
+        description: "Please select at least one room before adding to cart.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    selectedRooms.forEach((roomType) => {
+      const config = getRoomConfig(roomType)
+      if (config && roomCounts[roomType] > 0) {
+        const cartItem = {
+          id: generateRoomCartItemId(config),
+          name: getRoomCartItemDisplayName(config),
+          price: config.totalPrice,
+          priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
+          quantity: roomCounts[roomType],
+          roomType: config.roomName,
+          selectedTier: config.selectedTier,
+          selectedAddOns: config.selectedAddOns,
+          selectedReductions: config.selectedReductions,
+          image: `/images/${roomType}-professional.png`, // Example image path
+          sourceSection: "Pricing Page - Add All",
+        }
+        addItem(cartItem)
+      }
+    })
+    toast({
+      title: "All Rooms Added!",
+      description: "All selected rooms have been added to your cart.",
+      variant: "success",
+    })
   }
 
   useEffect(() => {
@@ -154,33 +218,53 @@ function PricingContent() {
                 </CardTitle>
                 <CardDescription>
                   You have selected {getActiveRoomConfigs().length} room{getActiveRoomConfigs().length !== 1 ? "s" : ""}
-                  . Click "Customize" on any room to configure cleaning options and add to cart.
+                  . Click "Add to Cart" on any room to add it, or "Add All" below.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {getActiveRoomConfigs().map((roomType) => (
-                    <div
-                      key={roomType}
-                      className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
-                    >
-                      <div className="text-2xl mb-2">
-                        {roomType === "bedroom" && "🛏️"}
-                        {roomType === "bathroom" && "🚿"}
-                        {roomType === "kitchen" && "🍳"}
-                        {roomType === "livingRoom" && "🛋️"}
-                        {roomType === "diningRoom" && "🍽️"}
-                        {roomType === "homeOffice" && "💻"}
-                        {roomType === "laundryRoom" && "🧺"}
-                        {roomType === "entryway" && "🚪"}
-                        {roomType === "hallway" && "🚶"}
-                        {roomType === "stairs" && "🪜"}
+                  {getActiveRoomConfigs().map((roomType) => {
+                    const config = getRoomConfig(roomType)
+                    return (
+                      <div
+                        key={roomType}
+                        className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
+                      >
+                        <div className="text-2xl mb-2">
+                          {roomType === "bedroom" && "🛏️"}
+                          {roomType === "bathroom" && "🚿"}
+                          {roomType === "kitchen" && "🍳"}
+                          {roomType === "livingRoom" && "🛋️"}
+                          {roomType === "diningRoom" && "🍽️"}
+                          {roomType === "homeOffice" && "💻"}
+                          {roomType === "laundryRoom" && "🧺"}
+                          {roomType === "entryway" && "🚪"}
+                          {roomType === "hallway" && "🚶"}
+                          {roomType === "stairs" && "🪜"}
+                        </div>
+                        <span className="font-medium text-sm text-center">
+                          {roomDisplayNames[roomType]} ({roomCounts[roomType]})
+                        </span>
+                        <span className="text-xs text-gray-500 mt-1">
+                          {config.selectedTier.replace(/-/g, " ").toUpperCase()}
+                        </span>
+                        <span className="text-sm font-bold mt-2">${config.totalPrice.toFixed(2)}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 bg-transparent"
+                          onClick={() => handleAddRoomToCart(roomType)}
+                        >
+                          Add to Cart
+                        </Button>
                       </div>
-                      <span className="font-medium text-sm text-center">
-                        {roomDisplayNames[roomType]} ({roomCounts[roomType]})
-                      </span>
-                    </div>
-                  ))}
+                    )
+                  })}
+                </div>
+                <div className="mt-6 text-center">
+                  <Button onClick={handleAddAllRoomsToCart} disabled={getActiveRoomConfigs().length === 0}>
+                    Add All Selected Rooms to Cart
+                  </Button>
                 </div>
               </CardContent>
             </Card>

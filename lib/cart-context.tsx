@@ -15,6 +15,11 @@ export type CartItem = {
   paymentFrequency?: "per_service" | "monthly" | "yearly"
   isFullHousePromoApplied?: boolean // New field for full house promo
   paymentType?: "online" | "in_person" // Added paymentType
+  // New fields for room configuration details
+  roomType?: string
+  selectedTier?: string
+  selectedAddOns?: string[]
+  selectedReductions?: string[]
 }
 
 type CartState = {
