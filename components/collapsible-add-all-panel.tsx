@@ -227,11 +227,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       if (addedCount > 0) {
         vibrate([100, 50, 100])
 
-        // Unified toast notification
+        // Use the same toast system as individual room additions
         toast({
-          title: "Items Added to Cart!",
-          description: `${addedCount} room type${addedCount !== 1 ? "s" : ""} added successfully.`,
-          variant: "default", // Or 'success' if you have one
+          title: "Added to cart",
+          description: `${addedCount} room type${addedCount !== 1 ? "s" : ""} added to your cart`,
+          variant: "default",
           duration: 3000,
         })
 
@@ -250,7 +250,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       vibrate(300)
       toast({
         title: "Failed to add to cart",
-        description: "There was an error adding all items to your cart. Please try again.",
+        description: "There was an error adding the items to your cart. Please try again.",
         variant: "destructive",
         duration: 3000,
       })
