@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import { createContext, useContext, useReducer, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
 // Import the new matching utilities
 import { advancedMatchCriteria, getItemSignature } from "@/lib/cart-matching"
@@ -64,7 +64,7 @@ const calculateCartTotals = (
   totalPrice: number
   couponDiscount: number
   fullHouseDiscount: number
-  inPersonPaymentTotal: number // New field for in-person payment total
+  inPersonPaymentTotal: number
 } => {
   const onlineItems = items.filter((item) => item.paymentType !== "in_person")
   const inPersonItems = items.filter((item) => item.paymentType === "in_person")
@@ -236,7 +236,7 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children }: { ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
   const { toast } = useToast()
 
