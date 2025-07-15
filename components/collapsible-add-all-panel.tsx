@@ -57,8 +57,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
-  const [addedItemsCount, setAddedItemsCount] = useState(0)
+  // Removed showSuccessNotification and addedItemsCount states as they are no longer needed
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const [isAddingToCart, setIsAddingToCart] = useState(false)
@@ -228,15 +227,16 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       if (addedCount > 0) {
         vibrate([100, 50, 100])
 
-        setAddedItemsCount(addedCount)
-        setShowSuccessNotification(true)
+        // Unified toast notification
+        toast({
+          title: "Items Added to Cart!",
+          description: `${addedCount} room type${addedCount !== 1 ? "s" : ""} added successfully.`,
+          variant: "default", // Or 'success' if you have one
+          duration: 3000,
+        })
 
         onOpenChange(false)
         setReviewStep(0)
-
-        setTimeout(() => {
-          setShowSuccessNotification(false)
-        }, 3000)
       } else {
         toast({
           title: "No rooms selected",
@@ -547,36 +547,12 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
 
-  // Success notification overlay
-  const SuccessNotification = () => (
-    <AnimatePresence>
-      {showSuccessNotification && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 50 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 50 }}
-          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-bold text-sm">Items Added to Cart!</div>
-              <div className="text-xs opacity-90">
-                {addedItemsCount} room type{addedItemsCount !== 1 ? "s" : ""} added successfully
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+  // Removed SuccessNotification component
 
   // Fullscreen review mode
   return (
     <>
-      <SuccessNotification />
+      {/* Removed SuccessNotification component call */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -757,7 +733,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                     />
                                     {count > 0 && (
                                       <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                                        <CheckCircle className="h-5 w-5" />
                                       </div>
                                     )}
                                   </div>

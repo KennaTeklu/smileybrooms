@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Plus, Minus, Settings, CheckCircle } from "lucide-react"
+import { motion } from "framer-motion"
+import { Plus, Minus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -54,8 +54,7 @@ export function RoomCategory({
   const [addingRoomId, setAddingRoomId] = useState<string | null>(null)
   const [initialRenderComplete, setInitialRenderComplete] = useState(false) // New state
   const { vibrate } = useVibration()
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
-  const [addedItemName, setAddedItemName] = useState("")
+  // Removed showSuccessNotification and addedItemName states as they are no longer needed
 
   useEffect(() => {
     setInitialRenderComplete(true) // Set to true after the first render
@@ -105,32 +104,24 @@ export function RoomCategory({
         paymentType: isOtherRoom ? "in_person" : "online", // Set paymentType based on room type
       })
 
-      setAddedItemName(`${config.quantity} x ${config.roomName}`)
-      setShowSuccessNotification(true)
       vibrate([100, 50, 100]) // Success pattern
 
-      // Show specific toast for "other" room
+      // Unified toast notification
       if (isOtherRoom) {
         toast({
           title: "Custom Space Added!",
           description:
             "Price and details for custom spaces will be discussed via email. Payment for additional services will be made in person.",
-          variant: "default", // You might want a specific variant for this
+          variant: "default",
           duration: 8000,
         })
       } else {
-        // Original toast for regular items
         toast({
           title: "Added to cart",
           description: `${config.quantity} x ${config.roomName} has been added to your cart`,
           duration: 3000,
         })
       }
-
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setShowSuccessNotification(false)
-      }, 3000)
 
       handleCloseWizard() // Close the wizard after adding to cart
     } catch (error) {
@@ -214,33 +205,12 @@ export function RoomCategory({
     }
   }
 
-  const SuccessNotification = () => (
-    <AnimatePresence>
-      {showSuccessNotification && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 50 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 50 }}
-          className="fixed top-4 right-4 z-[1000] bg-green-500 text-white px-6 py-4 rounded-xl shadow-2xl border border-green-400"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-bold text-sm">Item Added!</div>
-              <div className="text-xs opacity-90">{addedItemName} added to your cart.</div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+  // Removed SuccessNotification component
 
   return (
     <>
       <TooltipProvider>
-        <SuccessNotification />
+        {/* Removed SuccessNotification component call */}
         <Card className="shadow-sm">
           <CardHeader className={getBgColor()}>
             <CardTitle className="text-2xl flex items-center gap-2">
