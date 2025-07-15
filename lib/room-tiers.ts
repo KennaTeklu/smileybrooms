@@ -35,6 +35,20 @@ export interface RoomTier {
   upsellMessage: string
 }
 
+export interface RoomAddOn {
+  id: string
+  name: string
+  price: number
+  description?: string
+}
+
+export interface RoomReduction {
+  id: string
+  name: string
+  discount: number
+  description?: string
+}
+
 export const roomTiers: Record<string, RoomTier> = {
   "ESSENTIAL CLEAN": {
     id: "essential-clean",
@@ -421,9 +435,34 @@ export const defaultTiers = {
   ],
 }
 
+/* ------------------------------------------------------------------ */
+/*  Add-ons & Reductions                                              */
+/* ------------------------------------------------------------------ */
+export const defaultAddOns: Record<string, RoomAddOn[]> = {
+  bedroom: [
+    { id: "addon-bed-1", name: "Closet organisation", price: 25 },
+    { id: "addon-bed-2", name: "Blind track deep-clean", price: 15 },
+  ],
+  bathroom: [{ id: "addon-bath-1", name: "Grout scrub", price: 30 }],
+  default: [{ id: "addon-def-1", name: "Wall spot cleaning", price: 12 }],
+}
+
+export const defaultReductions: Record<string, RoomReduction[]> = {
+  bedroom: [{ id: "red-bed-1", name: "Skip mirror cleaning", discount: 5 }],
+  default: [{ id: "red-def-1", name: "Basic surface dusting only", discount: 7 }],
+}
+
 export const getRoomTiers = (roomType: string): RoomTier[] => {
   // Return specific tiers if available, otherwise return default tiers
   return (defaultTiers as any)[roomType] || defaultTiers.default
+}
+
+export const getRoomAddOns = (roomType: string): RoomAddOn[] => {
+  return (defaultAddOns as any)[roomType] || defaultAddOns.default
+}
+
+export const getRoomReductions = (roomType: string): RoomReduction[] => {
+  return (defaultReductions as any)[roomType] || defaultReductions.default
 }
 
 export const requiresEmailPricing = (roomType: string): boolean => {
