@@ -35,6 +35,7 @@ type CartState = {
 
 type CartAction =
   | { type: "ADD_ITEM"; payload: CartItem }
+  | { type: "ADD_MULTIPLE_ITEMS"; payload: CartItem[] } // New action for batch adding
   | { type: "REMOVE_ITEM"; payload: string }
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
@@ -113,39 +114,55 @@ const calculateCartTotals = (
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
-    // Update the ADD_ITEM case in the cartReducer to check for exact ID matches first.
-    // This ensures that if the source provides a new unique ID, it's added as a new item,
-    // preventing consolidation of distinct instances.
-    // The advancedMatchCriteria and getItemSignature from lib/cart-matching will no longer be used for ADD_ITEM
-    // to ensure each newly added room instance is treated as a unique line item.
-
     case "ADD_ITEM": {
-      // Check if an item with the exact same unique ID already exists in the cart.
-      // This is for scenarios where an item might be re-added from another flow,
-      // or if its quantity needs to be explicitly updated by re-adding.
       const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
 
       let updatedItems: CartItem[]
 
       if (existingItemIndex !== -1) {
-        // If the exact item ID already exists, update its quantity.
-        // In our case, RoomCategory will always add quantity: 1, so this will increment
-        // if a truly identical unique item ID is somehow dispatched again.
         updatedItems = state.items.map((item, index) =>
           index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
         )
       } else {
-        // If the item ID is new, add it as a new distinct entry.
         const enhancedItem = {
           ...action.payload,
-          // The ID is expected to be unique from the source (RoomCategory).
-          // paymentType defaults to "online" if not provided.
           paymentType: action.payload.paymentType || "online",
         }
         updatedItems = [...state.items, enhancedItem]
       }
 
-      // Recalculate totals based on the updated (potentially new) items list.
+      const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+        calculateCartTotals(updatedItems, state.couponCode)
+
+      return {
+        ...state,
+        items: updatedItems,
+        totalItems,
+        subtotalPrice,
+        totalPrice,
+        couponDiscount,
+        fullHouseDiscount,
+        inPersonPaymentTotal,
+      }
+    }
+
+    case "ADD_MULTIPLE_ITEMS": {
+      let updatedItems = [...state.items]
+      action.payload.forEach((newItem) => {
+        const existingItemIndex = updatedItems.findIndex((item) => item.id === newItem.id)
+        if (existingItemIndex !== -1) {
+          updatedItems = updatedItems.map((item, index) =>
+            index === existingItemIndex ? { ...item, quantity: item.quantity + newItem.quantity } : item,
+          )
+        } else {
+          const enhancedItem = {
+            ...newItem,
+            paymentType: newItem.paymentType || "online",
+          }
+          updatedItems = [...updatedItems, enhancedItem]
+        }
+      })
+
       const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
         calculateCartTotals(updatedItems, state.couponCode)
 
@@ -243,6 +260,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 type CartContextType = {
   cart: CartState
   addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
+  addMultipleItems: (items: (Omit<CartItem, "quantity"> & { quantity?: number })[]) => void // New function
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
@@ -281,6 +299,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart`,
+        duration: 3000,
+      })
+    }
+  }
+
+  const addMultipleItems = (items: (Omit<CartItem, "quantity"> & { quantity?: number })[]) => {
+    const itemsToDispatch = items.map((item) => ({ ...item, quantity: item.quantity || 1 }))
+    dispatch({
+      type: "ADD_MULTIPLE_ITEMS",
+      payload: itemsToDispatch,
+    })
+
+    if (toast) {
+      toast({
+        title: "Items Added!",
+        description: `${items.length} items have been added to your cart.`,
         duration: 3000,
       })
     }
@@ -338,7 +372,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart, applyCoupon }}>
+    <CartContext.Provider
+      value={{ cart, addItem, addMultipleItems, removeItem, updateQuantity, clearCart, applyCoupon }}
+    >
       {children}
     </CartContext.Provider>
   )

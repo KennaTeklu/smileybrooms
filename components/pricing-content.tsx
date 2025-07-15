@@ -16,7 +16,7 @@ import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/i
 
 function PricingContent() {
   const { toast } = useToast()
-  const { addItem } = useCart()
+  const { addItem, addMultipleItems } = useCart() // Destructure addMultipleItems
   const [activeTab, setActiveTab] = useState("standard")
 
   const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes } = useRoomContext()
@@ -109,30 +109,24 @@ function PricingContent() {
       return
     }
 
-    selectedRooms.forEach((roomType) => {
+    const itemsToAdd = selectedRooms.map((roomType) => {
       const config = getRoomConfig(roomType)
-      if (config && roomCounts[roomType] > 0) {
-        const cartItem = {
-          id: generateRoomCartItemId(config),
-          name: getRoomCartItemDisplayName(config),
-          price: config.totalPrice,
-          priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
-          quantity: roomCounts[roomType],
-          roomType: config.roomName,
-          selectedTier: config.selectedTier,
-          selectedAddOns: config.selectedAddOns,
-          selectedReductions: config.selectedReductions,
-          image: `/images/${roomType}-professional.png`, // Example image path
-          sourceSection: "Pricing Page - Add All",
-        }
-        addItem(cartItem)
+      return {
+        id: generateRoomCartItemId(config),
+        name: getRoomCartItemDisplayName(config),
+        price: config.totalPrice,
+        priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
+        quantity: roomCounts[roomType],
+        roomType: config.roomName,
+        selectedTier: config.selectedTier,
+        selectedAddOns: config.selectedAddOns,
+        selectedReductions: config.selectedReductions,
+        image: `/images/${roomType}-professional.png`, // Example image path
+        sourceSection: "Pricing Page - Add All",
       }
     })
-    toast({
-      title: "All Rooms Added!",
-      description: "All selected rooms have been added to your cart.",
-      variant: "success",
-    })
+
+    addMultipleItems(itemsToAdd) // Use the new batched action
   }
 
   useEffect(() => {
