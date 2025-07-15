@@ -59,7 +59,6 @@ const sharePlatforms: SharePlatform[] = [
     color: "bg-blue-600",
     category: "social",
     description: "Share with friends and family",
-    popular: true,
     template:
       "Check out Smiley Brooms - professional cleaning that will make your home sparkle! ✨ Share on {platformName}: {url}",
   },
@@ -395,7 +394,7 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={handleToggleExpand} // Use the new handler
               className={cn(
-                "flex flex-col items-center gap-1 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl",
+                "flex flex-col items-center gap-1 py-3 px-3 sm:py-4 sm:px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl",
                 "hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50",
                 "transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
                 "relative", // Keep relative for badge positioning
