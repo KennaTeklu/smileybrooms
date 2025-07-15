@@ -108,7 +108,8 @@ const SelectItem = React.forwardRef<
   const removePrice = (text: React.ReactNode) => {
     if (typeof text === "string") {
       // Regex to match patterns like " ($XX.XX)", " $XX.XX", or "$--"
-      return text.replace(/\s*(\$\$\$[\d,.]+\$\$\$|\$[\d,.]+|\$--)/g, "")
+      // Updated regex to specifically handle prices within parentheses like "($80)"
+      return text.replace(/\s*($$\$[\d,.]+$$|\$[\d,.]+|\$--)/g, "")
     }
     return text
   }
