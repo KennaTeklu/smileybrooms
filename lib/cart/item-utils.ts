@@ -1,61 +1,46 @@
 import type { CartItem } from "@/lib/cart-context"
-import type { RoomConfig } from "@/lib/room-context"
-import { RoomTierEnum } from "@/lib/room-tiers"
+import type { RoomConfig } from "@/lib/room-context" // Assuming RoomConfig is defined here or similar
 
 /**
- * Generates a unique and deterministic ID for a CartItem based on its room configuration.
- * This ensures that the same room configuration always results in the same ID,
- * allowing for consistent identification and consolidation in the cart.
- *
- * @param roomConfig The room configuration object.
+ * Generates a unique ID for a cart item based on its room configuration.
+ * This ensures that identical room configurations result in the same cart item ID,
+ * allowing for proper quantity management in the cart.
+ * @param roomConfig The configuration of the room.
  * @returns A unique string ID for the cart item.
  */
 export function generateCartItemId(roomConfig: RoomConfig): string {
-  const { roomType, selectedTier, selectedReductions } = roomConfig
+  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
 
-  // Sort arrays to ensure deterministic stringification regardless of order
+  // Sort add-ons and reductions to ensure consistent ID regardless of order
+  const sortedAddOns = [...selectedAddOns].sort().join("-")
   const sortedReductions = [...selectedReductions].sort().join("-")
 
-  return `${roomType}-${selectedTier}-${sortedReductions}`
+  // Combine relevant properties into a string to form the unique ID
+  // Use a delimiter that won't appear in the actual values (e.g., "::")
+  return `${roomType}::${selectedTier}::${sortedAddOns}::${sortedReductions}`
 }
 
 /**
- * Creates a CartItem object from a RoomConfig and calculated price.
- *
+ * Creates a CartItem object from a RoomConfig.
  * @param roomConfig The room configuration.
- * @param price The calculated price for the room.
- * @param quantity The quantity of this item.
+ * @param quantity The quantity of this room configuration.
  * @returns A CartItem object.
  */
-export function createCartItemFromRoomConfig(roomConfig: RoomConfig, price: number, quantity = 1): CartItem {
-  const { roomType, selectedTier, selectedReductions } = roomConfig
+export function createCartItemFromRoomConfig(roomConfig: RoomConfig, quantity = 1): CartItem {
   const id = generateCartItemId(roomConfig)
-
-  // Determine the display name for the cart item
-  let name = `${roomType.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`
-  if (selectedTier !== RoomTierEnum.Essential) {
-    // Changed from RoomTier.Standard to RoomTierEnum.Essential
-    name += ` (${selectedTier.replace(/\b\w/g, (l) => l.toUpperCase())})`
-  }
-
-  const descriptionParts: string[] = []
-  // Removed add-ons from description
-  if (selectedReductions.length > 0) {
-    descriptionParts.push(`Reductions: ${selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}`)
-  }
-  const description = descriptionParts.join("; ")
+  const name = `${roomConfig.roomName} - ${roomConfig.selectedTier}`
+  const price = roomConfig.totalPrice
+  const imageUrl = roomConfig.roomImage // Assuming roomImage is part of RoomConfig
 
   return {
     id,
     name,
     price,
     quantity,
-    image: `/images/${roomType}-professional.png`, // Example image path
-    metadata: {
-      roomType,
-      selectedTier,
-      selectedReductions,
-      description: description || "Standard cleaning service",
-    },
+    imageUrl,
+    roomType: roomConfig.roomType,
+    selectedTier: roomConfig.selectedTier,
+    selectedAddOns: roomConfig.selectedAddOns,
+    selectedReductions: roomConfig.selectedReductions || [], // Ensure it's an array
   }
 }

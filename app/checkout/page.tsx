@@ -1,51 +1,45 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { useState, useMemo, useCallback } from "react"
 import { ContactStep } from "@/components/checkout/contact-step"
 import { AddressStep } from "@/components/checkout/address-step"
 import { PaymentStep } from "@/components/checkout/payment-step"
 import { ReviewStep } from "@/components/checkout/review-step"
+import { Progress } from "@/components/ui/progress"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { formatCurrency } from "@/lib/utils"
-import { generateCheckoutConfirmationMailtoLink } from "@/lib/email-utils"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
-// Define types for checkout data
-export interface ContactData {
-  fullName: string
-  email: string
-  phone: string
+interface CheckoutData {
+  contact: {
+    fullName: string
+    email: string
+    phone: string
+  }
+  address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+  }
+  payment: {
+    paymentMethod: string
+    cardDetails?: {
+      cardNumber: string
+      expiryDate: string
+      cvc: string
+    }
+    billingAddressSameAsService: boolean
+    billingAddress?: {
+      street: string
+      city: string
+      state: string
+      zip: string
+    }
+  }
 }
-
-export interface AddressData {
-  street: string
-  city: string
-  state: string
-  zipCode: string
-}
-
-export interface PaymentData {
-  method: "card" | "in_person"
-  cardType?: string
-  last4?: string
-  expiryMonth?: string
-  expiryYear?: string
-  cvc?: string
-  billingAddressSameAsService: boolean
-  billingAddress?: AddressData
-}
-
-export interface CheckoutData {
-  contact: ContactData
-  address: AddressData
-  payment: PaymentData
-}
-
-const STEPS = ["Contact Information", "Service Address", "Payment Method", "Review & Confirm"]
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -55,121 +49,115 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     contact: { fullName: "", email: "", phone: "" },
-    address: { street: "", city: "", state: "", zipCode: "" },
-    payment: { method: "card", billingAddressSameAsService: true },
+    address: { street: "", city: "", state: "", zip: "" },
+    payment: { paymentMethod: "credit_card", billingAddressSameAsService: true },
   })
-  const [isProcessing, setIsProcessing] = useState(false)
 
-  useEffect(() => {
-    if (cart.items.length === 0) {
-      toast({
-        title: "Cart is Empty",
-        description: "Please add items to your cart before checking out.",
-        variant: "destructive",
+  const steps = useMemo(
+    () => [
+      { name: "Contact Information", component: ContactStep },
+      { name: "Service Address", component: AddressStep },
+      { name: "Payment Details", component: PaymentStep },
+      { name: "Review Order", component: ReviewStep },
+    ],
+    [],
+  )
+
+  const handleNext = useCallback(
+    (data: any) => {
+      setCheckoutData((prev) => {
+        const updatedData = { ...prev }
+        if (currentStep === 0) {
+          // From ContactStep
+          updatedData.contact = data
+          // Also update address fields that come from contact for consistency
+          updatedData.address = {
+            ...updatedData.address,
+            fullName: data.fullName, // Add fullName to address for review step display
+            email: data.email, // Add email to address for review step display
+            phone: data.phone, // Add phone to address for review step display
+          }
+        } else if (currentStep === 1) {
+          // From AddressStep
+          updatedData.address = data
+          // Ensure contact details are preserved if they were passed from previous step
+          updatedData.contact = {
+            fullName: data.fullName,
+            email: data.email,
+            phone: data.phone,
+          }
+        } else if (currentStep === 2) {
+          // From PaymentStep
+          updatedData.payment = data
+        }
+        return updatedData
       })
-      router.push("/pricing")
-    }
-  }, [cart.items.length, router, toast])
+      setCurrentStep((prev) => prev + 1)
+    },
+    [currentStep],
+  )
 
-  const handleNext = (data: Partial<CheckoutData>) => {
-    setCheckoutData((prev) => {
-      const updatedData = {
-        ...prev,
-        ...data,
-      }
-
-      // Special handling for contact data to also populate address fields if they are empty
-      if (data.contact) {
-        updatedData.address = {
-          ...updatedData.address,
-          fullName: data.contact.fullName || updatedData.address.fullName,
-          email: data.contact.email || updatedData.address.email,
-          phone: data.contact.phone || updatedData.address.phone,
-        } as AddressData // Cast to AddressData to allow these properties
-      }
-
-      return updatedData
-    })
-    setCurrentStep((prev) => prev + 1)
-  }
-
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     setCurrentStep((prev) => prev - 1)
+  }, [])
+
+  const handleSubmitOrder = useCallback(() => {
+    // Simulate order submission
+    console.log("Submitting order:", checkoutData)
+    console.log("Cart items:", cart.items)
+
+    // In a real application, you would send checkoutData and cart.items to your backend
+    // and handle payment processing, order creation, etc.
+
+    // For demonstration, clear cart and redirect to success page
+    clearCart()
+    toast({
+      title: "Order Confirmed!",
+      description: "Your cleaning service has been successfully booked.",
+      duration: 5000,
+    })
+    router.push("/success")
+  }, [checkoutData, cart.items, clearCart, router, toast])
+
+  const progress = ((currentStep + 1) / steps.length) * 100
+
+  if (cart.totalItems === 0 && currentStep === 0) {
+    return (
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
+        <h2 className="text-3xl font-bold mb-4">Your Cart is Empty</h2>
+        <p className="text-lg text-muted-foreground mb-6">
+          Please add some cleaning services to your cart before proceeding to checkout.
+        </p>
+        <Button asChild size="lg">
+          <Link href="/pricing">Browse Services</Link>
+        </Button>
+      </div>
+    )
   }
 
-  const handleSubmitOrder = async () => {
-    setIsProcessing(true)
-    try {
-      // Simulate API call for order submission
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Generate mailto link for confirmation
-      const mailtoLink = generateCheckoutConfirmationMailtoLink(checkoutData)
-
-      // Open email client (optional, can be removed if backend sends email)
-      window.open(mailtoLink, "_blank")
-
-      toast({
-        title: "Order Placed!",
-        description: "Your cleaning service has been booked. Check your email for confirmation.",
-        variant: "success",
-      })
-      clearCart() // Clear cart after successful order
-      router.push("/success") // Redirect to a success page
-    } catch (error) {
-      console.error("Order submission failed:", error)
-      toast({
-        title: "Order Failed",
-        description: "There was an error processing your order. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return <ContactStep data={checkoutData.contact} onNext={handleNext} />
-      case 1:
-        return <AddressStep data={checkoutData.address} onNext={handleNext} onBack={handleBack} />
-      case 2:
-        return <PaymentStep data={checkoutData.payment} onNext={handleNext} onBack={handleBack} />
-      case 3:
-        return <ReviewStep checkoutData={checkoutData} />
-      default:
-        return null
-    }
-  }
-
-  const progress = ((currentStep + 1) / STEPS.length) * 100
+  const CurrentStepComponent = steps[currentStep].component
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Checkout</CardTitle>
-          <CardDescription>Complete your booking in a few simple steps.</CardDescription>
-          <Progress value={progress} className="w-full mt-4" />
-          <p className="text-sm text-gray-500 mt-2">
-            Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep]}
-          </p>
-        </CardHeader>
-        <CardContent className="p-6">
-          {renderStepContent()}
-          {currentStep === STEPS.length - 1 && (
-            <div className="mt-6 flex justify-between">
-              <Button variant="outline" onClick={handleBack} disabled={isProcessing}>
-                Back
-              </Button>
-              <Button onClick={handleSubmitOrder} disabled={isProcessing}>
-                {isProcessing ? "Placing Order..." : `Place Order (${formatCurrency(cart.totalPrice)})`}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-center mb-4">Checkout</h1>
+        <Progress value={progress} className="w-full max-w-2xl mx-auto" />
+        <p className="text-center text-sm text-muted-foreground mt-2">
+          Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}
+        </p>
+      </div>
+
+      {currentStep === 0 && <ContactStep initialData={checkoutData.contact} onNext={handleNext} />}
+      {currentStep === 1 && <AddressStep initialData={checkoutData.address} onNext={handleNext} onBack={handleBack} />}
+      {currentStep === 2 && (
+        <PaymentStep
+          initialData={checkoutData.payment}
+          serviceAddress={checkoutData.address} // Pass service address for billing address comparison
+          onNext={handleNext}
+          onBack={handleBack}
+        />
+      )}
+      {currentStep === 3 && <ReviewStep checkoutData={checkoutData} onBack={handleBack} onSubmit={handleSubmitOrder} />}
     </div>
   )
 }

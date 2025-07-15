@@ -54,3 +54,7 @@ export interface CartItem {
   selectedReductions: string[]
   description?: string
 }
+
+// This file can be used for global types if needed.
+// For now, specific types are defined where they are used (e.g., CartItem in cart-context.tsx)
+// or imported from other modules (e.g., RoomConfig from room-context.tsx).

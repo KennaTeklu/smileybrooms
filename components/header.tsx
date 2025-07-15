@@ -1,86 +1,81 @@
 "use client"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, ShoppingCart } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
+import { Menu, ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { motion } from "framer-motion"
+import { SmileyBroomsLogo } from "./smiley-brooms-logo"
 
 export function Header() {
   const pathname = usePathname()
   const { cart } = useCart()
-  const totalItemsInCart = cart.items.reduce((sum, item) => sum + item.quantity, 0)
 
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/about", label: "About Us" },
-    { href: "/careers", label: "Careers" },
-    { href: "/contact", label: "Contact" },
+    { name: "Home", href: "/" },
+    { name: "Pricing", href: "/pricing" },
+    { name: "About Us", href: "/about" },
+    { name: "Careers", href: "/careers" },
+    { name: "Contact", href: "/contact" },
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg" prefetch={false}>
-          <span className="text-blue-600 text-2xl">🧹</span>
-          Smiley Brooms
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400",
-                pathname === item.href ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300",
-              )}
-              prefetch={false}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center">
+          <Link href="/" className="mr-6 flex items-center space-x-2">
+            <SmileyBroomsLogo className="h-8 w-auto" />
+            <span className="sr-only">Smiley Brooms Home</span>
+          </Link>
+          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "transition-colors hover:text-foreground/80",
+                  pathname === item.href ? "text-foreground" : "text-foreground/60",
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-4">
-          {/* Cart Button */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-10 w-10 rounded-full focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  asChild
-                >
-                  <Link href="/cart" aria-label={`View cart with ${totalItemsInCart} items`}>
-                    <ShoppingCart className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-                    {totalItemsInCart > 0 && (
-                      <motion.span
-                        key={totalItemsInCart} // Key for re-animation on count change
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 text-xs font-bold text-white shadow-sm dark:border-gray-950"
+                <Button asChild variant="ghost" size="icon" className="relative h-9 w-9">
+                  <Link href="/cart">
+                    <ShoppingCart className={cn("h-5 w-5", cart.totalItems > 0 && "text-blue-600")} />
+                    {cart.totalItems > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className={cn(
+                          "absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center rounded-full p-0 text-xs font-bold",
+                          "border-2 border-background",
+                          cart.totalItems > 0 && "animate-pulse-once bg-red-500 text-white shadow-lg",
+                        )}
                       >
-                        {totalItemsInCart}
-                      </motion.span>
+                        {cart.totalItems}
+                      </Badge>
                     )}
+                    <span className="sr-only">View Cart</span>
                   </Link>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {totalItemsInCart === 0 ? "Your cart is empty" : `Cart (${totalItemsInCart} items)`}
+                {cart.totalItems === 0 ? "Your cart is empty" : `Cart: ${cart.totalItems} item(s)`}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
-          {/* Mobile Navigation Toggle */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -88,22 +83,21 @@ export function Header() {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full max-w-xs">
-              <div className="flex flex-col gap-4 p-4">
+            <SheetContent side="right">
+              <nav className="flex flex-col gap-6 pt-6 text-lg font-medium">
                 {navItems.map((item) => (
                   <Link
-                    key={item.href}
+                    key={item.name}
                     href={item.href}
                     className={cn(
-                      "text-lg font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400",
-                      pathname === item.href ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-300",
+                      "transition-colors hover:text-foreground/80",
+                      pathname === item.href ? "text-foreground" : "text-foreground/60",
                     )}
-                    prefetch={false}
                   >
-                    {item.label}
+                    {item.name}
                   </Link>
                 ))}
-              </div>
+              </nav>
             </SheetContent>
           </Sheet>
         </div>

@@ -1,163 +1,160 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { formatCurrency, formatUSPhone, formatAddress } from "@/lib/utils"
+import { formatCurrency, formatUSPhone, formatAddress } from "@/lib/utils" // Assuming formatAddress exists
 import { useCart } from "@/lib/cart-context"
-import { useRoomContext } from "@/lib/room-context"
-import { ROOM_TIERS, ROOM_TYPES, requiresEmailPricing } from "@/lib/room-tiers"
-import type { CheckoutData } from "@/app/checkout/page"
 import Image from "next/image"
 
 interface ReviewStepProps {
-  checkoutData: CheckoutData
+  checkoutData: {
+    contact: {
+      fullName: string
+      email: string
+      phone: string
+    }
+    address: {
+      street: string
+      city: string
+      state: string
+      zip: string
+    }
+    payment: {
+      paymentMethod: string
+      cardDetails?: {
+        cardNumber: string
+        expiryDate: string
+        cvc: string
+      }
+      billingAddressSameAsService: boolean
+      billingAddress?: {
+        street: string
+        city: string
+        state: string
+        zip: string
+      }
+    }
+  }
+  onBack: () => void
+  onSubmit: () => void
 }
 
-export function ReviewStep({ checkoutData }: ReviewStepProps) {
+export function ReviewStep({ checkoutData, onBack, onSubmit }: ReviewStepProps) {
   const { cart } = useCart()
-  const { calculateRoomPrice } = useRoomContext()
 
-  const { contact, address, payment } = checkoutData
-
-  const totalOnlinePrice = cart.items
-    .filter((item) => item.paymentType !== "in_person")
-    .reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  const totalInPersonPrice = cart.items
-    .filter((item) => item.paymentType === "in_person")
-    .reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const displayCardNumber = checkoutData.payment.cardDetails?.cardNumber
+    ? `**** **** **** ${checkoutData.payment.cardDetails.cardNumber.slice(-4)}`
+    : "N/A"
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Details</CardTitle>
-          <CardDescription>Review the cleaning services you've selected.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {cart.items.length === 0 ? (
-            <p className="text-gray-500">No services selected.</p>
-          ) : (
-            cart.items.map((item) => {
-              const roomTypeLabel =
-                ROOM_TYPES.find((r) => r.value === item.metadata?.roomType)?.label || item.metadata?.roomType || "N/A"
-              const tierLabel =
-                ROOM_TIERS.find((t) => t.value === item.metadata?.selectedTier)?.label ||
-                item.metadata?.selectedTier ||
-                "N/A"
-              const pricePerUnit = item.price
-              const totalPriceForItem = item.price * item.quantity
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between border-b pb-3 last:border-b-0 last:pb-0"
-                >
-                  <div className="flex items-center gap-4">
-                    {item.image && (
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        width={64}
-                        height={64}
-                        className="rounded-md object-cover"
-                      />
-                    )}
-                    <div>
-                      <p className="font-medium">
-                        {roomTypeLabel} ({tierLabel})
-                      </p>
-                      <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                      {item.metadata?.selectedReductions && item.metadata.selectedReductions.length > 0 && (
-                        <p className="text-sm text-gray-500">
-                          Reductions: {item.metadata.selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}
-                        </p>
-                      )}
-                      {requiresEmailPricing(item.metadata?.roomType || "") && (
-                        <p className="text-sm text-orange-500">Pricing via email consultation</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(totalPriceForItem)}</p>
-                    {!requiresEmailPricing(item.metadata?.roomType || "") && (
-                      <p className="text-sm text-gray-500">{formatCurrency(pricePerUnit)} / unit</p>
-                    )}
-                  </div>
-                </div>
-              )
-            })
-          )}
-          <Separator className="my-4" />
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total Online Payment:</span>
-            <span>{formatCurrency(totalOnlinePrice)}</span>
-          </div>
-          {totalInPersonPrice > 0 && (
-            <div className="flex justify-between font-bold text-lg text-orange-600">
-              <span>Total In-Person Payment:</span>
-              <span>{formatCurrency(totalInPersonPrice)}</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl">Review Your Order</CardTitle>
+        <CardDescription>Please review all details before confirming your booking.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Contact Information */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
           <p>
-            <span className="font-medium">Full Name:</span> {contact.fullName}
+            <strong>Name:</strong> {checkoutData.contact.fullName}
           </p>
           <p>
-            <span className="font-medium">Email:</span> {contact.email}
+            <strong>Email:</strong> {checkoutData.contact.email}
           </p>
           <p>
-            <span className="font-medium">Phone:</span> {formatUSPhone(contact.phone)}
+            <strong>Phone:</strong> {formatUSPhone(checkoutData.contact.phone)}
           </p>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Address</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p>{formatAddress(address)}</p>
-        </CardContent>
-      </Card>
+        <Separator />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Method</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {payment.method === "card" ? (
+        {/* Service Address */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Service Address</h3>
+          <p>{formatAddress(checkoutData.address)}</p>
+        </div>
+
+        <Separator />
+
+        {/* Payment Information */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Payment Information</h3>
+          <p>
+            <strong>Method:</strong>{" "}
+            {checkoutData.payment.paymentMethod === "credit_card" ? "Credit Card" : "In-Person"}
+          </p>
+          {checkoutData.payment.paymentMethod === "credit_card" && (
             <>
               <p>
-                <span className="font-medium">Card Type:</span> {payment.cardType}
+                <strong>Card Number:</strong> {displayCardNumber}
               </p>
               <p>
-                <span className="font-medium">Last 4 Digits:</span> **** **** **** {payment.last4}
+                <strong>Expiry Date:</strong> {checkoutData.payment.cardDetails?.expiryDate}
               </p>
-              <p>
-                <span className="font-medium">Expiry:</span> {payment.expiryMonth}/{payment.expiryYear}
-              </p>
-              {payment.billingAddressSameAsService ? (
-                <p className="text-sm text-gray-500">Billing address same as service address.</p>
-              ) : (
-                <>
-                  <p className="font-medium mt-4">Billing Address:</p>
-                  <p>{formatAddress(payment.billingAddress)}</p>
-                </>
-              )}
             </>
-          ) : (
-            <p>Payment will be collected in-person.</p>
           )}
-        </CardContent>
-      </Card>
-    </div>
+          <p className="mt-2">
+            <strong>Billing Address:</strong>{" "}
+            {checkoutData.payment.billingAddressSameAsService
+              ? "Same as service address"
+              : checkoutData.payment.billingAddress
+                ? formatAddress(checkoutData.payment.billingAddress)
+                : "N/A"}
+          </p>
+        </div>
+
+        <Separator />
+
+        {/* Cart Items */}
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Your Services</h3>
+          <div className="space-y-4">
+            {cart.items.length === 0 ? (
+              <p className="text-muted-foreground">No services in cart.</p>
+            ) : (
+              cart.items.map((item) => (
+                <div key={item.id} className="flex items-center gap-4">
+                  {item.imageUrl && (
+                    <Image
+                      src={item.imageUrl || "/placeholder.svg"}
+                      alt={item.name}
+                      width={60}
+                      height={60}
+                      className="rounded-md object-cover"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.quantity} x {formatCurrency(item.price)}
+                    </p>
+                  </div>
+                  <div className="font-semibold">{formatCurrency(item.price * item.quantity)}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Total Price */}
+        <div className="flex justify-between items-center font-bold text-xl">
+          <span>Total:</span>
+          <span>{formatCurrency(cart.totalPrice)}</span>
+        </div>
+
+        <div className="flex justify-between gap-4 mt-6">
+          <Button type="button" variant="outline" onClick={onBack} className="w-full bg-transparent">
+            Back to Payment
+          </Button>
+          <Button type="button" onClick={onSubmit} className="w-full">
+            Confirm Booking
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

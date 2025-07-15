@@ -1,258 +1,238 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { RoomCategory } from "@/components/room-category"
+import { RoomConfigurator } from "@/components/room-configurator"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
-import { RoomTierEnum, ROOM_TIERS, ROOM_REDUCTIONS } from "@/lib/room-tiers"
 import { formatCurrency } from "@/lib/utils"
+import { getDisplayPrice, roomDisplayNames, roomIcons } from "@/lib/room-tiers"
 import { createCartItemFromRoomConfig } from "@/lib/cart/item-utils"
 import { useCart } from "@/lib/cart-context"
-import { Check, X, Plus, Minus, ShoppingCart } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { PlusCircle, ShoppingCart } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { CollapsibleAddAllPanel } from "./collapsible-add-all-panel"
+import { RoomCategory } from "./room-category"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
-export default function PricingContent() {
-  const { roomConfigs, updateRoomConfig, calculateRoomPrice, calculateTotalPrice, resetRoomConfigs } = useRoomContext()
-  const { addMultipleItems, addItem, removeItem, updateQuantity, cart } = useCart()
+export function PricingContent() {
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, resetRoomConfigs } = useRoomContext()
+  const { addMultipleItems, addItem } = useCart()
   const { toast } = useToast()
 
-  const [isClient, setIsClient] = useState(false)
+  const [isAddAllPanelOpen, setIsAddAllPanelOpen] = useState(false)
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  const totalRoomsSelected = useMemo(() => {
+    return Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
+  }, [roomCounts])
 
   const totalEstimatedPrice = useMemo(() => {
-    return calculateTotalPrice()
-  }, [roomConfigs, calculateTotalPrice])
+    return Object.values(roomConfigs).reduce((sum, config) => sum + config.totalPrice * config.roomCount, 0)
+  }, [roomConfigs])
 
   const handleAddAllToCart = () => {
     const itemsToAdd = Object.values(roomConfigs)
-      .filter((config) => config.count > 0)
-      .map((config) => {
-        const pricePerRoom = calculateRoomPrice(config.roomType, config.selectedTier, config.selectedReductions)
-        return createCartItemFromRoomConfig(config, pricePerRoom, config.count)
-      })
+      .filter((config) => config.roomCount > 0 && config.totalPrice > 0) // Only add configured rooms with a price
+      .map((config) => createCartItemFromRoomConfig(config, config.roomCount))
 
     if (itemsToAdd.length > 0) {
       addMultipleItems(itemsToAdd)
       toast({
-        title: "Added to Cart!",
-        description: `${itemsToAdd.length} room configurations added to your cart.`,
+        title: "Rooms Added to Cart",
+        description: `Successfully added ${itemsToAdd.length} unique room configurations to your cart.`,
+        action: (
+          <Button
+            variant="outline"
+            className="whitespace-nowrap bg-transparent"
+            onClick={() => (window.location.href = "/cart")}
+          >
+            View Cart
+          </Button>
+        ),
+        duration: 3000,
       })
+      resetRoomConfigs() // Optionally reset configurations after adding to cart
     } else {
       toast({
-        title: "No Rooms Selected",
-        description: "Please select at least one room to add to your cart.",
+        title: "No Rooms to Add",
+        description: "Please configure at least one room with a price to add to cart.",
         variant: "destructive",
+        duration: 3000,
       })
     }
   }
 
-  const handleAddToCart = (roomConfig: RoomConfig) => {
-    const pricePerRoom = calculateRoomPrice(roomConfig.roomType, roomConfig.selectedTier, roomConfig.selectedReductions)
-    const item = createCartItemFromRoomConfig(roomConfig, pricePerRoom, roomConfig.count)
-    addItem(item)
-    toast({
-      title: "Added to Cart!",
-      description: `${roomConfig.count} x ${item.name} added to your cart.`,
-    })
+  const handleAddRoomToCart = (roomConfig: RoomConfig) => {
+    if (roomConfig.roomCount > 0 && roomConfig.totalPrice > 0) {
+      const itemToAdd = createCartItemFromRoomConfig(roomConfig, roomConfig.roomCount)
+      addItem(itemToAdd)
+      toast({
+        title: "Room Added to Cart",
+        description: `${roomConfig.roomName} (${roomConfig.roomCount}) added to your cart.`,
+        action: (
+          <Button
+            variant="outline"
+            className="whitespace-nowrap bg-transparent"
+            onClick={() => (window.location.href = "/cart")}
+          >
+            View Cart
+          </Button>
+        ),
+        duration: 3000,
+      })
+      // Optionally reset this specific room's config after adding to cart
+      updateRoomCount(roomConfig.roomType, 0)
+      updateRoomConfig(roomConfig.roomType, {
+        ...roomConfig,
+        roomCount: 0,
+        selectedTier: "ESSENTIAL CLEAN", // Reset to default tier
+        selectedAddOns: [],
+        selectedReductions: [],
+        basePrice: 0,
+        tierUpgradePrice: 0,
+        addOnsPrice: 0,
+        totalPrice: 0,
+      })
+    } else {
+      toast({
+        title: "Cannot Add Room",
+        description: "Please configure the room with a quantity and a valid price.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
   }
 
-  const handleRemoveFromCart = (roomConfig: RoomConfig) => {
-    const item = createCartItemFromRoomConfig(roomConfig, 0, 0) // Price and quantity don't matter for removal by ID
-    removeItem(item.id)
-    toast({
-      title: "Removed from Cart",
-      description: `${item.name} removed from your cart.`,
-      variant: "destructive",
-    })
-  }
-
-  if (!isClient) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
+  const roomCategories = useMemo(() => {
+    const categories = {
+      "Living Spaces": ["livingRoom", "diningRoom", "homeOffice"],
+      "Bed & Bath": ["bedroom", "bathroom"],
+      "Utility & Other": ["kitchen", "laundryRoom", "entryway", "hallway", "stairs", "other"],
+    }
+    return categories
+  }, [])
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto"
-      >
-        <Card className="mb-8 shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-4xl font-extrabold text-gray-900 dark:text-gray-50 mb-2">
-              Transparent Pricing
-            </CardTitle>
-            <CardDescription className="text-lg text-gray-600 dark:text-gray-400">
-              Customize your cleaning service and get an instant estimate.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 md:p-8 lg:p-10">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Room Selection Column */}
-              <div className="lg:col-span-2 space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Select Your Rooms</h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Choose the rooms you need cleaned and customize their service level.
-                </p>
-                <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.keys(roomConfigs).map((roomType) => (
-                    <RoomCategory
-                      key={roomType}
-                      roomType={roomType as keyof typeof roomConfigs}
-                      config={roomConfigs[roomType as keyof typeof roomConfigs]}
-                      updateConfig={updateRoomConfig}
-                      roomTiers={ROOM_TIERS}
-                      roomReductions={ROOM_REDUCTIONS} // Pass reductions
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-end gap-4 mt-8">
-                  <Button variant="outline" onClick={resetRoomConfigs}>
-                    Reset Selections
-                  </Button>
-                  <Button onClick={handleAddAllToCart} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Add All Selected Rooms to Cart
-                  </Button>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Room Selection */}
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="p-6">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold">Select Your Rooms</CardTitle>
+              <CardDescription>
+                Choose the rooms you&apos;d like us to clean and customize their services.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="space-y-6">
+                {Object.entries(roomCategories).map(([categoryName, roomTypes]) => (
+                  <RoomCategory key={categoryName} title={categoryName}>
+                    {roomTypes.map((roomType) => (
+                      <RoomConfigurator
+                        key={roomType}
+                        roomType={roomType}
+                        roomName={roomDisplayNames[roomType]}
+                        roomIcon={roomIcons[roomType]}
+                        count={roomCounts[roomType]}
+                        onCountChange={(count) => updateRoomCount(roomType, count)}
+                        config={roomConfigs[roomType]}
+                        onConfigChange={(config) => updateRoomConfig(roomType, config)}
+                      />
+                    ))}
+                  </RoomCategory>
+                ))}
               </div>
-
-              {/* Summary Column */}
-              <div className="lg:col-span-1 space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Your Estimated Price</h2>
-                <Card className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-inner">
-                  <CardTitle className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-4">
-                    {formatCurrency(totalEstimatedPrice)}
-                  </CardTitle>
-                  <CardDescription className="text-gray-700 dark:text-gray-300 mb-4">
-                    This is an estimated price based on your selections. Final price may vary.
-                  </CardDescription>
-                  <Separator className="my-4" />
-                  <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-3">Selected Rooms</h3>
-                  <AnimatePresence mode="wait">
-                    {Object.values(roomConfigs).filter((config) => config.count > 0).length === 0 ? (
-                      <motion.p
-                        key="no-rooms"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-gray-500 dark:text-gray-400 italic"
-                      >
-                        No rooms selected yet.
-                      </motion.p>
-                    ) : (
-                      <motion.div
-                        key="room-list"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="space-y-3"
-                      >
-                        {Object.values(roomConfigs)
-                          .filter((config) => config.count > 0)
-                          .map((config) => (
-                            <div
-                              key={config.roomType}
-                              className="flex items-center justify-between text-gray-700 dark:text-gray-300"
-                            >
-                              <div>
-                                <p className="font-medium">
-                                  {config.count} x{" "}
-                                  {config.roomType.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                                  {config.selectedTier !== RoomTierEnum.Essential && ` (${config.selectedTier})`}
-                                </p>
-                                {/* Removed add-ons display */}
-                                {config.selectedReductions.length > 0 && (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Reductions: {config.selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">
-                                  {formatCurrency(
-                                    calculateRoomPrice(
-                                      config.roomType,
-                                      config.selectedTier,
-                                      config.selectedReductions,
-                                    ) * config.count,
-                                  )}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleAddToCart(config)}
-                                  className="h-8 w-8 p-0"
-                                  aria-label={`Add ${config.roomType} to cart`}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleRemoveFromCart(config)}
-                                  className="h-8 w-8 p-0"
-                                  aria-label={`Remove ${config.roomType} from cart`}
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-                <Button className="w-full py-3 text-lg bg-green-600 hover:bg-green-700 text-white">
-                  Proceed to Checkout
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Features Section */}
-        <div className="mt-12 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-50 mb-6">Why Choose Smiley Brooms?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center p-4 bg-white dark:bg-gray-850 rounded-lg shadow-md">
-              <Check className="h-10 w-10 text-blue-500 mb-3" />
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Experienced Professionals</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Our team consists of highly trained and vetted cleaning experts.
-              </p>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-white dark:bg-gray-850 rounded-lg shadow-md">
-              <X className="h-10 w-10 text-red-500 mb-3" /> {/* Changed to X for eco-friendly */}
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Eco-Friendly Products</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                We use non-toxic, environmentally safe cleaning solutions for your home.
-              </p>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-white dark:bg-gray-850 rounded-lg shadow-md">
-              <ShoppingCart className="h-10 w-10 text-purple-500 mb-3" />
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                100% Satisfaction Guarantee
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                If you're not happy, we'll re-clean for free. Your satisfaction is our priority.
-              </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
-      </motion.div>
+
+        {/* Right Column: Summary & Actions */}
+        <div className="lg:col-span-1 space-y-8">
+          {/* Selected Rooms Summary */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-2xl font-bold">Your Selected Rooms</CardTitle>
+              <CardDescription>Review your chosen rooms and their configurations.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="max-h-[400px] lg:max-h-[calc(100vh-300px)]">
+                <div className="space-y-4 p-6">
+                  {totalRoomsSelected === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <ShoppingCart className="mx-auto h-12 w-12 mb-4" />
+                      <p>No rooms selected yet.</p>
+                      <p>Add rooms from the left panel to see them here.</p>
+                    </div>
+                  ) : (
+                    Object.entries(roomConfigs)
+                      .filter(([, config]) => config.roomCount > 0)
+                      .map(([roomType, config]) => (
+                        <div
+                          key={roomType}
+                          className="flex items-center justify-between border-b pb-3 last:border-b-0 last:pb-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{roomIcons[roomType]}</span>
+                            <div>
+                              <p className="font-medium">
+                                {roomDisplayNames[roomType]} ({config.roomCount})
+                              </p>
+                              <p className="text-sm text-muted-foreground">{config.selectedTier}</p>
+                              {config.selectedAddOns.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{config.selectedAddOns.length} Add-on{config.selectedAddOns.length > 1 ? "s" : ""}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="font-semibold">{getDisplayPrice(roomType, config)}</span>
+                            {config.totalPrice > 0 && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => handleAddRoomToCart(config)}
+                              >
+                                <PlusCircle className="h-4 w-4 mr-2" /> Add to Cart
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+            {totalRoomsSelected > 0 && (
+              <CardContent className="p-6 border-t">
+                <div className="flex justify-between items-center font-bold text-lg">
+                  <span>Total Estimated Price:</span>
+                  <span>{formatCurrency(totalEstimatedPrice)}</span>
+                </div>
+                <Button
+                  className="w-full mt-4"
+                  size="lg"
+                  onClick={handleAddAllToCart}
+                  disabled={totalRoomsSelected === 0 || totalEstimatedPrice === 0}
+                >
+                  <ShoppingCart className="h-5 w-5 mr-2" /> Add All Selected Rooms to Cart
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Collapsible Add All Panel */}
+          <CollapsibleAddAllPanel
+            isOpen={isAddAllPanelOpen}
+            onOpenChange={setIsAddAllPanelOpen}
+            roomCounts={roomCounts}
+            roomConfigs={roomConfigs}
+            onAddAllToCart={handleAddAllToCart}
+          />
+        </div>
+      </div>
     </div>
   )
 }

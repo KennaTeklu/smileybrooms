@@ -27,12 +27,12 @@ export const COUNTRY_CODES: Record<string, string> = {
 }
 
 /**
- * Validates if a string is a valid US phone number (10 digits).
- * Allows for various formats but checks for 10 digits after stripping non-digits.
- * @param phone The phone number string to validate.
- * @returns True if valid, false otherwise.
+ * Validates if a string is a properly formatted US phone number
+ * @param phone - The phone number to validate
+ * @returns True if the phone number is valid, false otherwise
  */
 export function isValidUSPhone(phone: string): boolean {
+  // Validates a 10-digit US phone number (digits only, or common formats)
   const cleaned = phone.replace(/\D/g, "")
   return cleaned.length === 10
 }
@@ -75,18 +75,23 @@ export function isValidPhoneForCountry(phone: string, countryCode: string): bool
  * @returns Formatted phone number or original if invalid
  */
 export function formatUSPhone(phone: string): string {
-  if (!phone) return ""
-  // Remove all non-digit characters
+  // Formats a 10-digit phone number into (XXX) XXX-XXXX
   const cleaned = phone.replace(/\D/g, "")
-
-  // Handle numbers with or without country code
-  const hasCountryCode = cleaned.length > 10 && cleaned.startsWith("1")
-  const digits = hasCountryCode ? cleaned.slice(-10) : cleaned
-
-  if (digits.length === 0) return ""
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `(${digits.substring(0, 3)}) ${digits.substring(3)}`
-  return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
+  if (match) {
+    return `(${match[1]}) ${match[2]}-${match[3]}`
+  }
+  // Handle partial input for better UX
+  if (cleaned.length > 6) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`
+  }
+  if (cleaned.length > 3) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}`
+  }
+  if (cleaned.length > 0) {
+    return `(${cleaned.slice(0, 3)}`
+  }
+  return phone // Return original if no match or empty
 }
 
 /**

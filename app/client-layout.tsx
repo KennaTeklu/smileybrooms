@@ -2,44 +2,43 @@
 
 import type React from "react"
 
-import { RoomProvider } from "@/lib/room-context"
+import { ThemeProvider } from "@/components/theme-provider"
 import { CartProvider } from "@/lib/cart-context"
-import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
+import { RoomProvider } from "@/lib/room-context"
 import { Toaster } from "@/components/ui/toaster"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
-import { TourProvider } from "@/contexts/tour-context"
+import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
 import { CookieConsentManager } from "@/components/legal/cookie-consent-manager"
-import { usePathname } from "next/navigation"
-import { useEffect } from "react"
-import { EnhancedHeader } from "@/components/enhanced-header"
-import UnifiedFooter from "@/components/unified-footer"
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
+
+const queryClient = new QueryClient()
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    // Scroll to top on route change
-    window.scrollTo(0, 0)
-  }, [pathname])
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) {
+    return null // Or a loading spinner
+  }
 
   return (
-    <QueryClientProviderWrapper>
-      <AccessibilityProvider>
-        <RoomProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <AccessibilityProvider>
           <CartProvider>
-            <AbandonmentProvider>
-              <TourProvider>
-                <EnhancedHeader />
-                <main className="flex-1">{children}</main>
-                <Toaster />
-                <CookieConsentManager />
-                <UnifiedFooter />
-              </TourProvider>
-            </AbandonmentProvider>
+            <RoomProvider>
+              {children}
+              <Toaster />
+              <AccessibilityToolbar />
+              <CookieConsentManager />
+            </RoomProvider>
           </CartProvider>
-        </RoomProvider>
-      </AccessibilityProvider>
-    </QueryClientProviderWrapper>
+        </AccessibilityProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }

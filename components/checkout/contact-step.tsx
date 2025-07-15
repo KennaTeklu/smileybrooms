@@ -1,60 +1,44 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+
 import { Button } from "@/components/ui/button"
-import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowRight, User } from "lucide-react"
-import { motion } from "framer-motion"
-import { useToast } from "@/components/ui/use-toast"
-import type { CheckoutData } from "@/lib/types"
-import { isValidUSPhone, formatUSPhone } from "@/lib/validation/phone-validation"
-import { isValidEmail } from "@/lib/validation/email-validation" // Assuming this exists or will be created
+import { useState, useEffect } from "react"
+import { isValidEmail } from "@/lib/validation/email-validation" // Assuming this exists
+import { formatUSPhone, isValidUSPhone } from "@/lib/validation/phone-validation" // Assuming this exists
 
 interface ContactStepProps {
-  data: CheckoutData["contact"]
-  onSave: (data: CheckoutData["contact"]) => void
-  onNext: () => void
+  onNext: (data: { fullName: string; email: string; phone: string }) => void
+  initialData: { fullName: string; email: string; phone: string }
 }
 
-export default function ContactStep({ data, onSave, onNext }: ContactStepProps) {
-  const { toast } = useToast()
-  const [contactData, setContactData] = useState(data)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function ContactStep({ onNext, initialData }: ContactStepProps) {
+  const [fullName, setFullName] = useState(initialData.fullName || "")
+  const [email, setEmail] = useState(initialData.email || "")
+  const [phone, setPhone] = useState(initialData.phone || "")
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string; phone?: string }>({})
 
   useEffect(() => {
-    setContactData(data)
-  }, [data])
-
-  const handleChange = (field: string, value: string) => {
-    let processedValue = value
-    if (field === "phone") {
-      processedValue = formatUSPhone(value)
-    }
-    setContactData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }))
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
-      })
-    }
-  }
+    setFullName(initialData.fullName || "")
+    setEmail(initialData.email || "")
+    setPhone(initialData.phone || "")
+    setErrors({}) // Clear errors when initialData changes
+  }, [initialData])
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-    if (!contactData.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!contactData.lastName.trim()) newErrors.lastName = "Last name is required"
-    if (!contactData.email.trim()) newErrors.email = "Email is required"
-    else if (!isValidEmail(contactData.email)) newErrors.email = "Email is invalid" // Using isValidEmail
-    if (!contactData.phone.trim()) newErrors.phone = "Phone is required"
-    else if (!isValidUSPhone(contactData.phone)) newErrors.phone = "Phone number is invalid (e.g., (555) 123-4567)" // Using isValidUSPhone
+    const newErrors: { fullName?: string; email?: string; phone?: string } = {}
+    if (!fullName.trim()) {
+      newErrors.fullName = "Full Name is required."
+    }
+    if (!email.trim() || !isValidEmail(email)) {
+      newErrors.email = "A valid email is required."
+    }
+    if (!phone.trim() || !isValidUSPhone(phone)) {
+      newErrors.phone = "A valid 10-digit US phone number is required."
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -62,106 +46,73 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      setIsSubmitting(true)
-      onSave(contactData)
-      onNext()
-      setIsSubmitting(false)
-    } else {
-      toast({
-        title: "Please check your information",
-        description: "Some required fields are missing or invalid.",
-        variant: "destructive",
-      })
+      onNext({ fullName, email, phone })
+    }
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedPhone = formatUSPhone(e.target.value)
+    setPhone(formattedPhone)
+    if (errors.phone) {
+      setErrors((prev) => ({ ...prev, phone: undefined }))
     }
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
-          Contact Information
-        </CardTitle>
-        <CardDescription>Please provide your contact details for the service</CardDescription>
+        <CardTitle className="text-2xl">Contact Information</CardTitle>
+        <CardDescription>Please provide your contact details for the service.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label htmlFor="firstName" className="text-base">
-                First Name
-              </Label>
-              <Input
-                id="firstName"
-                value={contactData.firstName}
-                onChange={(e) => handleChange("firstName", e.target.value)}
-                className={`mt-2 h-12 ${errors.firstName ? "border-red-500" : ""}`}
-                placeholder="John"
-              />
-              {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
-            </div>
-            <div>
-              <Label htmlFor="lastName" className="text-base">
-                Last Name
-              </Label>
-              <Input
-                id="lastName"
-                value={contactData.lastName}
-                onChange={(e) => handleChange("lastName", e.target.value)}
-                className={`mt-2 h-12 ${errors.lastName ? "border-red-500" : ""}`}
-                placeholder="Doe"
-              />
-              {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="John Doe"
+              value={fullName}
+              onChange={(e) => {
+                setFullName(e.target.value)
+                if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: undefined }))
+              }}
+              required
+            />
+            {errors.fullName && <p className="text-red-500 text-sm">{errors.fullName}</p>}
           </div>
-
-          <div>
-            <Label htmlFor="email" className="text-base">
-              Email
-            </Label>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              value={contactData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className={`mt-2 h-12 ${errors.email ? "border-red-500" : ""}`}
               placeholder="john.doe@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+              }}
+              required
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
           </div>
-
-          <div>
-            <Label htmlFor="phone" className="text-base">
-              Phone
-            </Label>
+          <div className="grid gap-2">
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
-              value={contactData.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              className={`mt-2 h-12 ${errors.phone ? "border-red-500" : ""}`}
-              placeholder="(555) 123-4567"
+              placeholder="(123) 456-7890"
+              value={phone}
+              onChange={handlePhoneChange}
+              required
             />
-            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+            {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
           </div>
-
-          <div className="flex justify-end pt-6">
-            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  Continue to Address
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
+          <Button type="submit" className="w-full">
+            Continue to Address
+          </Button>
         </form>
       </CardContent>
-    </motion.div>
+    </Card>
   )
 }

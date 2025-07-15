@@ -1,23 +1,19 @@
 "use client"
 
-import type React from "react"
-import { createContext, useReducer, useContext, useEffect, useCallback } from "react"
+import React, { createContext, useReducer, useContext, useEffect, useCallback } from "react"
 
 // Define the shape of a single item in the cart
 export interface CartItem {
-  id: string // Unique ID for the item (e.g., roomType-tier-reductions)
-  name: string // Display name (e.g., "Bedroom Cleaning - Standard")
-  price: number // Price per unit
-  quantity: number // Number of units (e.g., number of bedrooms)
-  image?: string // Optional image URL
-  metadata?: {
-    roomType?: string
-    selectedTier?: string
-    selectedReductions?: string[]
-    description?: string
-    [key: string]: any // Flexible metadata for additional details (e.g., frequency)
-  }
-  paymentType?: "online" | "in_person" // How this item is paid for
+  id: string // Unique ID for the item (e.g., product ID + selected options)
+  name: string // Display name of the item
+  price: number // Price per unit of the item
+  quantity: number // Quantity of this item
+  imageUrl?: string // Optional image URL for the item
+  // Specific room configuration details for unique identification
+  roomType: string
+  selectedTier: string
+  selectedAddOns: string[]
+  selectedReductions: string[]
 }
 
 // Define the shape of the cart state
@@ -27,22 +23,23 @@ interface CartState {
   totalPrice: number
 }
 
-// Define action types
+// Define the actions that can be dispatched to modify the cart state
 type CartAction =
   | { type: "ADD_ITEM"; item: CartItem }
+  | { type: "ADD_MULTIPLE_ITEMS"; items: CartItem[] } // New action for batch adding
   | { type: "REMOVE_ITEM"; id: string }
   | { type: "UPDATE_QUANTITY"; id: string; quantity: number }
   | { type: "CLEAR_CART" }
-  | { type: "ADD_MULTIPLE_ITEMS"; items: CartItem[] } // New action type
+  | { type: "LOAD_CART"; payload: CartState } // Action to load initial state
 
-// Define the cart context type
+// Define the context value
 interface CartContextType {
   cart: CartState
   addItem: (item: CartItem) => void
+  addMultipleItems: (items: CartItem[]) => void // New function for batch adding
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
-  addMultipleItems: (items: CartItem[]) => void // New function
 }
 
 // Initial cart state
@@ -52,62 +49,108 @@ const initialCartState: CartState = {
   totalPrice: 0,
 }
 
-// Helper function to calculate totals
-const calculateTotals = (items: CartItem[]) => {
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  return { totalItems, totalPrice }
-}
-
-// Reducer function
+// Reducer function to manage cart state
 const cartReducer = (state: CartState, action: CartAction): CartState => {
-  let updatedItems: CartItem[]
-
   switch (action.type) {
-    case "ADD_ITEM":
-      updatedItems = [...state.items]
-      const existingItemIndex = updatedItems.findIndex((item) => item.id === action.item.id)
+    case "ADD_ITEM": {
+      const existingItemIndex = state.items.findIndex((item) => item.id === action.item.id)
 
       if (existingItemIndex > -1) {
-        // If item exists, update quantity
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + action.item.quantity,
+        // Item exists, update quantity
+        const updatedItems = state.items.map((item, index) =>
+          index === existingItemIndex ? { ...item, quantity: item.quantity + action.item.quantity } : item,
+        )
+        return {
+          ...state,
+          items: updatedItems,
+          totalItems: state.totalItems + action.item.quantity,
+          totalPrice: state.totalPrice + action.item.price * action.item.quantity,
         }
       } else {
-        // Otherwise, add new item
-        updatedItems.push(action.item)
+        // New item, add to cart
+        return {
+          ...state,
+          items: [...state.items, action.item],
+          totalItems: state.totalItems + action.item.quantity,
+          totalPrice: state.totalPrice + action.item.price * action.item.quantity,
+        }
       }
-      return { ...state, items: updatedItems, ...calculateTotals(updatedItems) }
+    }
+    case "ADD_MULTIPLE_ITEMS": {
+      let newItems = [...state.items]
+      let newTotalItems = state.totalItems
+      let newTotalPrice = state.totalPrice
 
-    case "REMOVE_ITEM":
-      updatedItems = state.items.filter((item) => item.id !== action.id)
-      return { ...state, items: updatedItems, ...calculateTotals(updatedItems) }
-
-    case "UPDATE_QUANTITY":
-      updatedItems = state.items
-        .map((item) => (item.id === action.id ? { ...item, quantity: action.quantity } : item))
-        .filter((item) => item.quantity > 0) // Remove if quantity drops to 0
-      return { ...state, items: updatedItems, ...calculateTotals(updatedItems) }
-
-    case "CLEAR_CART":
-      return { ...initialCartState }
-
-    case "ADD_MULTIPLE_ITEMS": // Handle new action
-      updatedItems = [...state.items]
       action.items.forEach((newItem) => {
-        const existingIndex = updatedItems.findIndex((item) => item.id === newItem.id)
-        if (existingIndex > -1) {
-          updatedItems[existingIndex] = {
-            ...updatedItems[existingIndex],
-            quantity: updatedItems[existingIndex].quantity + newItem.quantity,
+        const existingItemIndex = newItems.findIndex((item) => item.id === newItem.id)
+
+        if (existingItemIndex > -1) {
+          // Item exists, update quantity
+          newItems = newItems.map((item, index) =>
+            index === existingItemIndex ? { ...item, quantity: item.quantity + newItem.quantity } : item,
+          )
+        } else {
+          // New item, add to cart
+          newItems.push(newItem)
+        }
+        newTotalItems += newItem.quantity
+        newTotalPrice += newItem.price * newItem.quantity
+      })
+
+      return {
+        ...state,
+        items: newItems,
+        totalItems: newTotalItems,
+        totalPrice: newTotalPrice,
+      }
+    }
+    case "REMOVE_ITEM": {
+      const itemToRemove = state.items.find((item) => item.id === action.id)
+      if (!itemToRemove) return state
+
+      const updatedItems = state.items.filter((item) => item.id !== action.id)
+      return {
+        ...state,
+        items: updatedItems,
+        totalItems: state.totalItems - itemToRemove.quantity,
+        totalPrice: state.totalPrice - itemToRemove.price * itemToRemove.quantity,
+      }
+    }
+    case "UPDATE_QUANTITY": {
+      const existingItemIndex = state.items.findIndex((item) => item.id === action.id)
+
+      if (existingItemIndex > -1) {
+        const itemToUpdate = state.items[existingItemIndex]
+        const quantityDifference = action.quantity - itemToUpdate.quantity
+
+        if (action.quantity <= 0) {
+          // Remove item if quantity is 0 or less
+          const updatedItems = state.items.filter((item) => item.id !== action.id)
+          return {
+            ...state,
+            items: updatedItems,
+            totalItems: state.totalItems - itemToUpdate.quantity,
+            totalPrice: state.totalPrice - itemToUpdate.price * itemToUpdate.quantity,
           }
         } else {
-          updatedItems.push(newItem)
+          // Update quantity
+          const updatedItems = state.items.map((item, index) =>
+            index === existingItemIndex ? { ...item, quantity: action.quantity } : item,
+          )
+          return {
+            ...state,
+            items: updatedItems,
+            totalItems: state.totalItems + quantityDifference,
+            totalPrice: state.totalPrice + itemToUpdate.price * quantityDifference,
+          }
         }
-      })
-      return { ...state, items: updatedItems, ...calculateTotals(updatedItems) }
-
+      }
+      return state // Item not found
+    }
+    case "CLEAR_CART":
+      return initialCartState
+    case "LOAD_CART":
+      return action.payload
     default:
       return state
   }
@@ -117,32 +160,37 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 // Cart Provider component
-export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+export function CartProvider({ children }: { children: React.ReactNode }) {
   // Initialize state from localStorage
-  const init = (initialState: CartState) => {
+  const initializer = useCallback((init: CartState) => {
     if (typeof window !== "undefined") {
       try {
-        const storedCart = localStorage.getItem("smileyBroomsCart")
-        return storedCart ? JSON.parse(storedCart) : initialState
+        const storedCart = localStorage.getItem("smileybrooms_cart")
+        return storedCart ? JSON.parse(storedCart) : init
       } catch (error) {
         console.error("Failed to parse cart from localStorage:", error)
-        return initialState
+        // If parsing fails, return initial state to prevent app crash
+        return init
       }
     }
-    return initialState
-  }
+    return init
+  }, [])
 
-  const [cart, dispatch] = useReducer(cartReducer, initialCartState, init)
+  const [cart, dispatch] = useReducer(cartReducer, initialCartState, initializer)
 
-  // Persist cart to localStorage whenever it changes
+  // Persist cart state to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("smileyBroomsCart", JSON.stringify(cart))
+      localStorage.setItem("smileybrooms_cart", JSON.stringify(cart))
     }
   }, [cart])
 
   const addItem = useCallback((item: CartItem) => {
     dispatch({ type: "ADD_ITEM", item })
+  }, [])
+
+  const addMultipleItems = useCallback((items: CartItem[]) => {
+    dispatch({ type: "ADD_MULTIPLE_ITEMS", items })
   }, [])
 
   const removeItem = useCallback((id: string) => {
@@ -157,19 +205,23 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     dispatch({ type: "CLEAR_CART" })
   }, [])
 
-  const addMultipleItems = useCallback((items: CartItem[]) => {
-    dispatch({ type: "ADD_MULTIPLE_ITEMS", items })
-  }, [])
-
-  return (
-    <CartContext.Provider value={{ cart, addItem, removeItem, updateQuantity, clearCart, addMultipleItems }}>
-      {children}
-    </CartContext.Provider>
+  const contextValue = React.useMemo(
+    () => ({
+      cart,
+      addItem,
+      addMultipleItems,
+      removeItem,
+      updateQuantity,
+      clearCart,
+    }),
+    [cart, addItem, addMultipleItems, removeItem, updateQuantity, clearCart],
   )
+
+  return <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
 }
 
 // Custom hook to use the cart context
-export const useCart = () => {
+export function useCart() {
   const context = useContext(CartContext)
   if (context === undefined) {
     throw new Error("useCart must be used within a CartProvider")
