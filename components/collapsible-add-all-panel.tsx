@@ -169,33 +169,38 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         const config = roomConfigs[roomType]
 
         if (count > 0) {
-          const basePrice = config.totalPrice || 0
-          const adjustedPrice = basePrice * frequencyMultiplier
+          const basePricePerUnit = config.totalPrice || 0 // Assuming totalPrice here is for one unit of the configured room
+          const adjustedPricePerUnit = basePricePerUnit * frequencyMultiplier
 
-          addItem({
-            id: `custom-cleaning-${roomType}-${Date.now()}`,
-            name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
-            price: adjustedPrice,
-            priceId: "price_custom_cleaning",
-            quantity: count,
-            image: roomType.startsWith("other-custom-") ? roomImages.other : roomImages[roomType] || "/placeholder.svg",
-            metadata: {
-              roomType,
-              roomConfig: config,
-              isRecurring: selectedFrequency !== "one_time",
-              frequency: selectedFrequency,
-              detailedTasks: config.detailedTasks,
-              notIncludedTasks: config.notIncludedTasks,
-              upsellMessage: config.upsellMessage,
-              basePrice: basePrice,
-              frequencyMultiplier: frequencyMultiplier,
-            },
-            isFullHousePromoApplied: selectedFrequency !== "one_time" && isFullHouseChecked,
-            paymentType: config.paymentType,
-          })
+          // Add each instance as a separate item with quantity 1
+          for (let i = 0; i < count; i++) {
+            addItem({
+              id: `custom-cleaning-${roomType}-${Date.now()}-${i}`, // Truly unique ID for each instance
+              name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`, // Name for individual instance
+              price: adjustedPricePerUnit, // Price for a single unit
+              priceId: "price_custom_cleaning",
+              quantity: 1, // Always 1 for individual instances
+              image: roomType.startsWith("other-custom-")
+                ? roomImages.other
+                : roomImages[roomType] || "/placeholder.svg",
+              metadata: {
+                roomType,
+                roomConfig: { ...config, quantity: 1 }, // Store config for a single unit
+                isRecurring: selectedFrequency !== "one_time",
+                frequency: selectedFrequency,
+                detailedTasks: config.detailedTasks,
+                notIncludedTasks: config.notIncludedTasks,
+                upsellMessage: config.upsellMessage,
+                basePrice: basePricePerUnit,
+                frequencyMultiplier: frequencyMultiplier,
+              },
+              isFullHousePromoApplied: selectedFrequency !== "one_time" && isFullHouseChecked,
+              paymentType: config.paymentType,
+            })
+          }
 
-          updateRoomCount(roomType, 0)
-          addedCount++
+          updateRoomCount(roomType, 0) // Clear the room count in the panel after adding all instances
+          addedCount++ // Count of room *types* added, not individual instances
         }
       })
 
