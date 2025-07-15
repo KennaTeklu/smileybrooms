@@ -544,7 +544,7 @@ export function CollapsibleCartPanel() {
                           </p>
                         </div>
                       </div>
-                      <div className="space-y-4">{cartList}</div> {/* Now uses grouped cart list */}
+                      <div className="space-y-4">{cartList}</div>
                     </div>
                   </motion.div>
                 ) : (
@@ -735,7 +735,7 @@ export function CollapsibleCartPanel() {
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full right-0 mt-3 w-96 max-w-[90vw] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50",
+                "absolute top-full right-0 mt-3 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50",
                 "relative flex flex-col",
                 showTopShadow && "before:shadow-top-gradient",
                 showBottomShadow && "after:shadow-bottom-gradient",
@@ -798,7 +798,7 @@ export function CollapsibleCartPanel() {
               <ScrollArea
                 className="flex-1"
                 viewportClassName="scroll-smooth snap-y snap-mandatory"
-                onScroll={isMomentumScrollEnabled ? undefined : handleScrollAreaScroll} // Only use handleScrollAreaScroll if momentum is disabled
+                onScroll={isMomentumScrollEnabled ? undefined : handleScrollAreaScroll}
                 ref={scrollViewportRef}
               >
                 <div className="p-4">

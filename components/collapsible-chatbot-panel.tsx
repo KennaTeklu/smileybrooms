@@ -127,7 +127,7 @@ export function CollapsibleChatbotPanel({
   return (
     <div
       ref={panelRef}
-      className={cn(`fixed right-0 flex transition-all ${topTransitionClass} ease-in-out`)} // Removed z-index here
+      className={cn(`fixed right-0 flex transition-all ${topTransitionClass} ease-in-out`)}
       style={{ top: panelTopPosition }}
     >
       <AnimatePresence initial={false}>
@@ -135,10 +135,10 @@ export function CollapsibleChatbotPanel({
           <motion.div
             key="expanded"
             initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "420px", opacity: 1, x: 0 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
+            className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
             style={{
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
             }}
@@ -196,7 +196,7 @@ export function CollapsibleChatbotPanel({
             animate={{ width: "auto", opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={handleToggleExpand} // Use the new handler
+            onClick={handleToggleExpand}
             className="flex flex-col items-center gap-1 py-4 px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             style={{
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
@@ -216,5 +216,3 @@ export function CollapsibleChatbotPanel({
     </div>
   )
 }
-
-export default CollapsibleChatbotPanel
