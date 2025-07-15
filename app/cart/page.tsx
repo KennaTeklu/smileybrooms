@@ -207,7 +207,7 @@ export default function CartPage() {
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
-                <div className="space-y-4 p-6">
+                <div className="space-y-4 p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
                   {cart.items.map((item) => (
                     <div
                       key={item.id}
