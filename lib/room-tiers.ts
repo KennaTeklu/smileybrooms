@@ -57,7 +57,8 @@ export const roomTiers = {
   // Add more tiers as needed
 } as const // Use 'as const' for type safety
 
-// Define specific tiers for each room type, referencing the base prices and details from roomTiers
+// IMPORTANT: Do not change these prices unless directly asked to do so.
+// These prices have been specifically set by the user.
 export const defaultTiers = {
   default: [
     {
@@ -806,7 +807,7 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
       discount: 18.0,
       description: "Detailed cleaning of hallway light fixtures",
     },
-    { id: "hal-r5", name: "Wall sconce cleaning", discount: 12.0, description: "Cleaning of wall sconces" },
+    { id: "hal-5", name: "Wall sconce cleaning", discount: 12.0, description: "Cleaning of wall sconces" },
   ],
   stairs: [
     {
