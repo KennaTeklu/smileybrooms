@@ -1,6 +1,6 @@
 import type { DeviceType } from "./device-detection"
 
-export type PaymentMethod = "card" | "apple" | "google" | "paypal"
+export type PaymentMethod = "card" | "apple_pay" | "google_pay" | "paypal" | "amazon_pay" | "bank_transfer"
 
 export interface PaymentMethodConfig {
   id: PaymentMethod
@@ -20,18 +20,18 @@ export interface DevicePaymentConfig {
 // Payment configuration by device type
 export const paymentConfig: Record<DeviceType, DevicePaymentConfig> = {
   ios: {
-    primary: "apple",
+    primary: "apple_pay",
     secondary: ["card", "paypal"],
     theme: "light-blur",
   },
   android: {
-    primary: "google",
-    secondary: ["card", "paypal"],
+    primary: "google_pay",
+    secondary: ["card", "paypal", "amazon_pay"],
     theme: "material-dark",
   },
   desktop: {
     primary: "card",
-    secondary: ["paypal"],
+    secondary: ["paypal", "bank_transfer"],
     theme: "standard",
   },
   unknown: {
@@ -51,16 +51,16 @@ export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
     priority: 3,
     supportedDevices: ["ios", "android", "desktop", "unknown"],
   },
-  apple: {
-    id: "apple",
+  apple_pay: {
+    id: "apple_pay",
     name: "Apple Pay",
     icon: "apple",
     theme: "black",
     priority: 1,
     supportedDevices: ["ios"],
   },
-  google: {
-    id: "google",
+  google_pay: {
+    id: "google_pay",
     name: "Google Pay",
     icon: "smartphone",
     theme: "material",
@@ -75,39 +75,23 @@ export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
     priority: 2,
     supportedDevices: ["ios", "android", "desktop", "unknown"],
   },
+  amazon_pay: {
+    id: "amazon_pay",
+    name: "Amazon Pay",
+    icon: "shopping-cart",
+    theme: "orange",
+    priority: 4,
+    supportedDevices: ["android", "desktop"],
+  },
+  bank_transfer: {
+    id: "bank_transfer",
+    name: "Bank Transfer",
+    icon: "landmark",
+    theme: "standard",
+    priority: 5,
+    supportedDevices: ["desktop"],
+  },
 }
-
-export const PAYMENT_METHODS: {
-  value: PaymentMethod
-  label: string
-  icon: string // Placeholder for icon path or component name
-  description: string
-}[] = [
-  {
-    value: "card",
-    label: "Credit/Debit Card",
-    icon: "CreditCard",
-    description: "Visa, Mastercard, American Express",
-  },
-  {
-    value: "paypal",
-    label: "PayPal",
-    icon: "PayPal",
-    description: "Pay with your PayPal account",
-  },
-  {
-    value: "apple",
-    label: "Apple Pay",
-    icon: "Apple",
-    description: "Fast and secure payment with Apple Pay",
-  },
-  {
-    value: "google",
-    label: "Google Pay",
-    icon: "Google",
-    description: "Quick checkout with Google Pay",
-  },
-]
 
 export function getDeviceOptimizedPaymentMethods(deviceType: DeviceType): PaymentMethodConfig[] {
   const config = paymentConfig[deviceType] || paymentConfig.unknown
