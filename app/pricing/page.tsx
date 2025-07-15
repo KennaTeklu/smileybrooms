@@ -18,7 +18,7 @@ export default function PricingPage() {
   const totalPrice = getTotalPrice()
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
       <div className="flex items-center justify-center mb-8 gap-4">
         {" "}
         {/* Added gap for spacing */}
