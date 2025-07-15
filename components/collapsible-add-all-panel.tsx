@@ -29,7 +29,15 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import { roomImages, roomDisplayNames, defaultTiers, getRoomTiers, roomTiers } from "@/lib/room-tiers"
+import {
+  roomImages,
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
@@ -747,7 +755,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-medium text-sm truncate">{displayName}</h4>
                                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                                      {roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
+                                      {requiresEmailPricing(roomType)
                                         ? "Email for Pricing"
                                         : formatCurrency(config?.totalPrice || 0)}
                                     </p>
@@ -884,10 +892,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         >
                           <Plus className="h-4 w-4 mr-2" /> Add Space
                         </Button>
-                        <p className="text-xs text-gray-400 mt-2">
-                          <span className="font-semibold text-blue-500">Note:</span> Pricing for custom spaces will be
-                          provided via email, with payment collected in-person via Zelle.
-                        </p>
+                        <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                          <p className="font-semibold text-blue-600 mb-1">Custom Space Pricing:</p>
+                          <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
+                        </div>
                       </div>
                     </motion.div>
                   ) : (

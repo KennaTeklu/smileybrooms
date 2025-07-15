@@ -1,3 +1,5 @@
+import { formatCurrency } from "./path-to-format-currency" // Assuming formatCurrency is imported from another file
+
 export interface RoomTier {
   id: string
   name: string
@@ -377,6 +379,41 @@ export const defaultTiers = {
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
       upsellMessage: roomTiers["LUXURY CLEAN"].upsellMessage,
+    },
+  ],
+  other: [
+    {
+      id: "other-essential",
+      name: "ESSENTIAL CLEAN",
+      price: 0, // Price is 0, will show "Email for Pricing"
+      description: "Basic cleaning for custom spaces - pricing via email.",
+      detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
+      upsellMessage: "Contact us for detailed pricing on your custom space.",
+      isPriceTBD: true,
+      paymentType: "in_person",
+    },
+    {
+      id: "other-premium",
+      name: "PREMIUM CLEAN",
+      price: 0, // Price is 0, will show "Email for Pricing"
+      description: "Thorough cleaning for custom spaces - pricing via email.",
+      detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
+      upsellMessage: "Contact us for detailed pricing on your custom space.",
+      isPriceTBD: true,
+      paymentType: "in_person",
+    },
+    {
+      id: "other-luxury",
+      name: "LUXURY CLEAN",
+      price: 0, // Price is 0, will show "Email for Pricing"
+      description: "Deep cleaning for custom spaces - pricing via email.",
+      detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
+      notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
+      upsellMessage: "Contact us for detailed pricing on your custom space.",
+      isPriceTBD: true,
+      paymentType: "in_person",
     },
   ],
 }
@@ -865,3 +902,23 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
 
 // Re-export roomTiers to make it accessible
 export type RoomTierName = keyof typeof roomTiers
+
+/**
+ * Check if a room type requires email pricing (custom spaces)
+ */
+export function requiresEmailPricing(roomType: string): boolean {
+  return roomType === "other" || roomType.startsWith("other-custom-")
+}
+
+/**
+ * Get display price for a room configuration
+ */
+export function getDisplayPrice(roomType: string, config: any): string {
+  if (requiresEmailPricing(roomType) || config?.paymentType === "in_person" || config?.isPriceTBD) {
+    return "Email for Pricing"
+  }
+  return formatCurrency(config?.totalPrice || 0)
+}
+
+export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
+  "Custom spaces require personalized assessment. Pricing will be provided via email consultation, with payment collected in-person through Zelle upon service completion. All custom service bookings are subject to our standard Terms of Service."

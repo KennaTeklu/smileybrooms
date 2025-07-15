@@ -23,6 +23,7 @@ import { analyzeCartHealth, type CartHealthReport } from "@/lib/cart-health"
 import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
+import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems }: { currentCartItems: any[] }) {
@@ -249,7 +250,7 @@ export default function CartPage() {
                           </div>
 
                           <div className="text-right">
-                            {item.paymentType === "in_person" ? (
+                            {requiresEmailPricing(item.metadata?.roomType) || item.paymentType === "in_person" ? (
                               <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                                 Email for Pricing
                               </p>
@@ -258,9 +259,11 @@ export default function CartPage() {
                                 ${(item.price * item.quantity).toFixed(2)}
                               </p>
                             )}
-                            {item.quantity > 1 && item.paymentType !== "in_person" && (
-                              <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
-                            )}
+                            {item.quantity > 1 &&
+                              !requiresEmailPricing(item.metadata?.roomType) &&
+                              item.paymentType !== "in_person" && (
+                                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -342,10 +345,16 @@ export default function CartPage() {
                   <span className="text-blue-600 dark:text-blue-400">${cart.totalPrice.toFixed(2)}</span>
                 </div>
                 {cart.inPersonPaymentTotal > 0 && (
-                  <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                    <span>Custom Services</span>
-                    <span>Email for Pricing</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
+                      <span>Custom Services</span>
+                      <span>Email for Pricing</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
+                      <p className="font-semibold text-orange-700 dark:text-orange-400 mb-1">Payment Notice:</p>
+                      <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
+                    </div>
+                  </>
                 )}
                 {/* New descriptive text */}
                 <p className="text-sm text-muted-foreground mb-4 text-center">

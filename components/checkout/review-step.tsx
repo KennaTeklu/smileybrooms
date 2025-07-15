@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
 import { createCheckoutSession } from "@/lib/actions"
 import type { CheckoutData } from "@/lib/types"
+import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 
 interface ReviewStepProps {
   checkoutData: CheckoutData
@@ -209,7 +210,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                       )}
                     </div>
                   </div>
-                  {item.paymentType === "in_person" ? (
+                  {item.paymentType === "in_person" || requiresEmailPricing(item.metadata?.roomType) ? (
                     <span className="font-medium text-lg text-orange-600">Email for Pricing</span>
                   ) : (
                     <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
@@ -392,9 +393,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
           </Button>
         </div>
         {totalInPerson > 0 && (
-          <p className="text-center text-sm text-orange-500 mt-4">
-            Note: Custom services require an in-person payment via Zelle, with pricing confirmed via email.
-          </p>
+          <p className="text-center text-sm text-orange-500 mt-4">Note: {CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
         )}
         <p className="text-center text-sm text-gray-500 mt-4">
           By clicking "Complete Order", you agree to our Terms of Service and Privacy Policy.
