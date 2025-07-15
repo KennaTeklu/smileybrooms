@@ -93,3 +93,20 @@ export function openGmailWithFormData(formData: Record<string, any>, emailTo = "
   // Open in a new tab
   window.open(gmailUrl, "_blank")
 }
+
+/**
+ * Generate a mailto link for out-of-service area inquiry
+ */
+export function generateOutOfServiceMailtoLink(state: string, emailTo = "support@smileybrooms.com"): string {
+  const subject = `Service Inquiry for ${state}`
+  const body = `Dear Smiley Brooms Team,
+
+I was wondering if you guys work in ${state}? If not, what is your plan for future expansion into this area?
+
+Best regards,
+[Your Name]
+[Your Email]
+[Your Phone Number (Optional)]`
+
+  return `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}

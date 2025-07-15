@@ -7,12 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from "lucide-react"
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation, Mail } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { US_STATES } from "@/lib/location-data"
 import { motion } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { generateOutOfServiceMailtoLink } from "@/lib/email-utils"
 
 interface AddressStepProps {
   data: CheckoutData["address"]
@@ -26,6 +35,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
   const [addressData, setAddressData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showOutOfServiceDialog, setShowOutOfServiceDialog] = useState(false)
 
   useEffect(() => {
     setAddressData(data)
@@ -62,10 +72,20 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      setIsSubmitting(true)
-      onSave(addressData)
-      onNext()
-      setIsSubmitting(false)
+      if (addressData.state !== "AZ") {
+        // Check if state is not Arizona
+        setShowOutOfServiceDialog(true)
+        toast({
+          title: "Service Area Limitation",
+          description: "Currently, we only provide services in Arizona. Please contact us for future plans.",
+          variant: "destructive",
+        })
+      } else {
+        setIsSubmitting(true)
+        onSave(addressData)
+        onNext()
+        setIsSubmitting(false)
+      }
     } else {
       toast({
         title: "Please check your information",
@@ -253,7 +273,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Contact
             </Button>
-            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting || showOutOfServiceDialog}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
@@ -269,6 +289,34 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
           </div>
         </form>
       </CardContent>
+
+      <Dialog open={showOutOfServiceDialog} onOpenChange={setShowOutOfServiceDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Service Area Limitation</DialogTitle>
+            <DialogDescription>
+              Currently, we only provide services in Arizona. We'd love to hear from you if you're interested in our
+              services in {addressData.state}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <p>Click the button below to send us an email with your inquiry.</p>
+          </div>
+          <DialogFooter>
+            <a
+              href={generateOutOfServiceMailtoLink(addressData.state)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setShowOutOfServiceDialog(false)}
+            >
+              <Button type="button">
+                <Mail className="mr-2 h-4 w-4" />
+                Email Us About {addressData.state}
+              </Button>
+            </a>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }
