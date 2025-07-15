@@ -3,48 +3,28 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  ShoppingCart,
-  Plus,
-  Trash2,
-  X,
-  ArrowLeft,
-  ArrowRight,
-  ListChecks,
-  ListX,
-  Lightbulb,
-  CheckCircle,
-  Minus,
-  PlusIcon,
-  ChevronDown,
-} from "lucide-react"
+import { ShoppingCart, Plus, X, ArrowLeft, ArrowRight, CheckCircle, Minus, PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { useRoomContext } from "@/lib/room-context"
 import { useMultiSelection } from "@/hooks/use-multi-selection"
 import { useCart } from "@/lib/cart-context"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/components/ui/toast"
 import { formatCurrency } from "@/lib/utils"
-import {
-  roomImages,
-  roomDisplayNames,
-  defaultTiers,
-  getRoomTiers,
-  roomTiers,
-  requiresEmailPricing,
-  CUSTOM_SPACE_LEGAL_DISCLAIMER,
-} from "@/lib/room-tiers"
 import Image from "next/image"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
+import { defaultTiers, roomTiers, roomDisplayNames, roomImages } from "@/lib/room-data" // Import defaultTiers, roomTiers, roomDisplayNames, roomImages
+import { getRoomTiers } from "@/lib/room-utils" // Import getRoomTiers
+import { updateRoomConfig } from "@/lib/room-config-utils" // Import updateRoomConfig
+import { getActiveBorderColor } from "@/lib/ui-utils" // Import getActiveBorderColor
+import { requiresEmailPricing } from "@/lib/pricing-utils" // Import requiresEmailPricing
+import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/legal-disclaimers" // Import CUSTOM_SPACE_LEGAL_DISCLAIMER
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -52,8 +32,7 @@ interface CollapsibleAddAllPanelProps {
 }
 
 export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddAllPanelProps) {
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } =
-    useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
@@ -98,19 +77,17 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       const finalTierId = selectedRoomSpecificTier?.id || `custom-${globalTierName.toLowerCase().replace(/\s/g, "-")}`
       const finalPrice = selectedRoomSpecificTier?.price || globalTierDetails.basePrice
 
-      if (currentTierId !== finalTierId || currentPrice !== finalPrice) {
-        updateRoomConfig(roomType, {
-          ...currentConfig,
-          roomName: roomDisplayNames[roomType] || roomType,
-          selectedTier: finalTierId,
-          totalPrice: finalPrice,
-          selectedAddOns: [],
-          selectedReductions: [],
-          detailedTasks: globalTierDetails.detailedTasks || [],
-          notIncludedTasks: globalTierDetails.notIncludedTasks || [],
-          upsellMessage: globalTierDetails.upsellMessage || "",
-        })
-      }
+      updateRoomConfig(roomType, {
+        ...currentConfig,
+        roomName: roomDisplayNames[roomType] || roomType,
+        selectedTier: finalTierId,
+        totalPrice: finalPrice,
+        selectedAddOns: [],
+        selectedReductions: [],
+        detailedTasks: globalTierDetails.detailedTasks || [],
+        notIncludedTasks: globalTierDetails.notIncludedTasks || [],
+        upsellMessage: globalTierDetails.upsellMessage || "",
+      })
     },
     [updateRoomConfig],
   )
@@ -129,22 +106,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       hasInitializedRoomsOnOpenRef.current = false
       setHasClearedAll(false)
     }
-  }, [isOpen, selectedGlobalTierName, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs])
+  }, [isOpen, selectedGlobalTierName, updateRoomCount, applyGlobalTierToRoom, roomConfigs])
 
-  const selectedRoomTypes = getSelectedRoomTypes()
-  const baseTotalPrice = getTotalPrice()
-
-  const displayTotalPrice = useMemo(() => {
-    let price = baseTotalPrice
-    const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0
-
-    price *= frequencyMultiplier
-
-    if (selectedFrequency !== "one_time" && isFullHouseChecked) {
-      price *= 0.95
-    }
-    return price
-  }, [baseTotalPrice, selectedFrequency, isFullHouseChecked])
+  const displayTotalPrice = getTotalPrice()
 
   const totalItems = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
 
@@ -164,7 +128,16 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       let addedCount = 0
       const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0
 
+      // First, update the room counts in the context
+      const selectedRoomTypes = getSelectedRoomTypes()
       selectedRoomTypes.forEach((roomType) => {
+        if (roomCounts[roomType] === 0) {
+          updateRoomCount(roomType, 1)
+        }
+      })
+
+      // Then, iterate over the updated room counts and add items to the cart
+      Object.keys(roomCounts).forEach((roomType) => {
         const count = roomCounts[roomType]
         const config = roomConfigs[roomType]
 
@@ -174,8 +147,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
           // Add each instance as a separate item with quantity 1
           for (let i = 0; i < count; i++) {
+            const uniqueId = `custom-cleaning-${roomType}-${Date.now()}-${i}` // Truly unique ID for each instance
+
             addItem({
-              id: `custom-cleaning-${roomType}-${Date.now()}-${i}`, // Truly unique ID for each instance
+              id: uniqueId, // Each added item gets a new unique ID
               name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`, // Name for individual instance
               price: adjustedPricePerUnit, // Price for a single unit
               priceId: "price_custom_cleaning",
@@ -199,7 +174,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
             })
           }
 
-          updateRoomCount(roomType, 0) // Clear the room count in the panel after adding all instances
           addedCount++ // Count of room *types* added, not individual instances
         }
       })
@@ -237,7 +211,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       setIsAddingToCart(false)
     }
   }, [
-    selectedRoomTypes,
+    getSelectedRoomTypes,
     roomCounts,
     roomConfigs,
     addItem,
@@ -285,12 +259,13 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const handleGlobalTierChange = useCallback(
     (newTierName: keyof typeof roomTiers) => {
       setSelectedGlobalTierName(newTierName)
+      const selectedRoomTypes = getSelectedRoomTypes()
       selectedRoomTypes.forEach((roomType) => {
         applyGlobalTierToRoom(roomType, newTierName, roomConfigs)
       })
       vibrate(50)
     },
-    [selectedRoomTypes, applyGlobalTierToRoom, vibrate, roomConfigs],
+    [getSelectedRoomTypes, applyGlobalTierToRoom, vibrate, roomConfigs],
   )
 
   const handleAddCustomRoom = useCallback(() => {
@@ -381,6 +356,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   }, [checkScrollPosition, isOpen, reviewStep])
 
   const roomList = useMemo(() => {
+    const selectedRoomTypes = getSelectedRoomTypes()
     return selectedRoomTypes.map((roomType, index) => {
       const config = roomConfigs[roomType]
       const count = roomCounts[roomType]
@@ -404,7 +380,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           className="flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600 hover:shadow-lg"
         >
           <div className="flex items-center gap-3">
-            <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
               <Image src={imageSrc || "/placeholder.svg"} alt={displayName} fill className="object-cover" />
             </div>
 
@@ -413,14 +389,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                 {defaultTiers.default.find((t) => t.id === config?.selectedTier)?.name || "Custom Tier"}
               </p>
-              <Badge variant="outline" className="text-xs mt-2">
-                {displayPrice} per room
-              </Badge>
             </div>
 
             <div className="text-right flex-shrink-0">
               <div className="font-bold text-xl text-blue-600 dark:text-blue-400">{displayRoomTotal}</div>
-              <div className="flex items-center justify-end space-x-2 mt-2">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
                   size="icon"
@@ -447,77 +420,16 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                 >
                   <PlusIcon className="h-3 w-3" />
                 </Button>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRemoveRoom(roomType)
-                        }}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-0 h-8 w-8 p-0 opacity-70 group-hover:opacity-100 rounded-full"
-                        aria-label={`Remove ${displayName} from selection`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Remove from selection</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             </div>
           </div>
-
-          <Accordion type="single" collapsible className="w-full mt-2">
-            <AccordionItem value="details">
-              <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
-                View Details
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 space-y-3">
-                {config?.detailedTasks && config.detailedTasks.length > 0 && (
-                  <div>
-                    <h5 className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400 mb-1">
-                      <ListChecks className="h-4 w-4" /> Included Tasks:
-                    </h5>
-                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                      {config.detailedTasks.map((task, i) => (
-                        <li key={i}>{task}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {config?.notIncludedTasks && config.notIncludedTasks.length > 0 && (
-                  <div>
-                    <h5 className="flex items-center gap-1 text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
-                      <ListX className="h-4 w-4" /> Not Included:
-                    </h5>
-                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                      {config.notIncludedTasks.map((task, i) => (
-                        <li key={i}>{task}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {config?.upsellMessage && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-md flex items-start gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-800 dark:text-yellow-300">{config.upsellMessage}</p>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
         </motion.div>
       )
     })
-  }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
+  }, [getSelectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
 
   return (
-    <>
+    <TooltipProvider>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -540,7 +452,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                       variant="ghost"
                       size="icon"
                       onClick={handleBackToButton}
-                      className="text-white hover:bg-white/20 rounded-full h-9 w-9"
+                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                     >
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
@@ -549,26 +461,30 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                       <p className="text-blue-100 text-sm">
                         {reviewStep === 0
                           ? "Choose your cleaning services"
-                          : `${selectedRoomTypes.length} rooms • ${formatCurrency(displayTotalPrice)}`}
+                          : `${getSelectedRoomTypes().length} rooms • ${formatCurrency(displayTotalPrice)}`}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-2 h-2 rounded-full transition-colors ${reviewStep === 0 ? "bg-white" : "bg-white/50"}`}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          reviewStep === 0 ? "bg-white" : "bg-white/50"
+                        }`}
                       />
                       <div className={`w-8 h-0.5 transition-colors ${reviewStep === 1 ? "bg-white" : "bg-white/30"}`} />
                       <div
-                        className={`w-2 h-2 rounded-full transition-colors ${reviewStep === 1 ? "bg-white" : "bg-white/50"}`}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          reviewStep === 1 ? "bg-white" : "bg-white/50"
+                        }`}
                       />
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={handleBackToButton}
-                      className="text-white hover:bg-white/20 rounded-full h-9 w-9"
+                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -593,7 +509,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Tier" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-60 overflow-y-auto">
                             {Object.keys(roomTiers)
                               .filter((tierName) =>
                                 ["ESSENTIAL CLEAN", "PREMIUM CLEAN", "LUXURY CLEAN"].includes(tierName),
@@ -608,18 +524,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <p className="text-sm text-gray-500 mt-2">
                           This selection will apply to all rooms you add below.
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          <span className="font-semibold text-blue-500">Note:</span> Please disregard any price numbers
-                          in this dropdown; our team is actively working on a cleaner display.
-                        </p>
                       </div>
 
                       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Rooms</h3>
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary">{selectedRoomTypes.length} selected</Badge>
-                            {selectedRoomTypes.length > 0 && (
+                            <Badge variant="secondary">{getSelectedRoomTypes().length} selected</Badge>
+                            {getSelectedRoomTypes().length > 0 && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -672,9 +584,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               <motion.div
                                 key={roomType}
                                 className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                                  count > 0
-                                    ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
-                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                  count > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
                                 }`}
                                 onClick={() => {
                                   if (count === 0) {
@@ -714,6 +624,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                           e.stopPropagation()
                                           handleDecrementRoom(roomType)
                                         }}
+                                        disabled={count <= 0}
                                         className="h-6 w-6"
                                       >
                                         <Minus className="h-3 w-3" />
@@ -737,58 +648,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                             )
                           })}
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                          <h4 className="font-semibold mb-3">Frequency</h4>
-                          <Select
-                            value={selectedFrequency}
-                            onValueChange={(value: keyof typeof ROOM_CONFIG.frequencyMultipliers) => {
-                              setSelectedFrequency(value)
-                              if (value === "one_time") {
-                                setIsFullHouseChecked(false)
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-60 overflow-y-auto">
-                              {Object.keys(ROOM_CONFIG.frequencyMultipliers).map((key) => (
-                                <SelectItem key={key} value={key}>
-                                  {key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {selectedFrequency !== "one_time" && (
-                          <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700">
-                            <h4 className="font-semibold mb-3 text-green-800 dark:text-green-300">
-                              Recurring Service Discount
-                            </h4>
-                            <div className="flex items-start space-x-2">
-                              <Checkbox
-                                id="full-house"
-                                checked={isFullHouseChecked}
-                                onCheckedChange={(checked) => setIsFullHouseChecked(!!checked)}
-                              />
-                              <div>
-                                <Label
-                                  htmlFor="full-house"
-                                  className="cursor-pointer font-medium text-green-800 dark:text-green-300"
-                                >
-                                  Full House - Save 5%
-                                </Label>
-                                <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                                  Check if booking entire home for recurring service
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
 
                       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -871,12 +730,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                       className="flex-1 flex flex-col"
                     >
                       <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                        <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                          <ShoppingCart className="h-5 w-5" />
-                          Order Summary
-                        </h4>
+                        <h4 className="font-bold text-lg mb-4 flex items-center">Order Summary</h4>
                         <div className="space-y-2">
-                          {selectedRoomTypes.map((roomType) => {
+                          {getSelectedRoomTypes().map((roomType) => {
                             const config = roomConfigs[roomType]
                             const count = roomCounts[roomType]
                             const roomTotal = (config?.totalPrice || 0) * count
@@ -922,56 +778,17 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                             )
                           })}
                         </div>
-
-                        <div className="border-t pt-3 mt-4">
-                          <div className="flex justify-between items-center text-lg font-bold">
-                            <span>Total</span>
-                            <span className="text-blue-600 dark:text-blue-400">
-                              {formatCurrency(displayTotalPrice)}{" "}
-                              {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
-                            </span>
-                          </div>
-                          {selectedFrequency !== "one_time" && isFullHouseChecked && (
-                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400 mt-1">
-                              <span>Full House Discount (5%)</span>
-                              <span>
-                                -
-                                {formatCurrency(
-                                  baseTotalPrice * ROOM_CONFIG.frequencyMultipliers[selectedFrequency] * 0.05,
-                                )}
-                              </span>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </motion.div>
                   )}
                 </div>
               </div>
 
-              {reviewStep === 0 && showScrollToBottom && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="absolute bottom-20 right-4 z-50"
-                >
-                  <Button
-                    onClick={scrollToBottom}
-                    className="rounded-full p-2 shadow-lg bg-blue-500 hover:bg-blue-600 text-white"
-                    size="icon"
-                    aria-label="Scroll to bottom"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
-                </motion.div>
-              )}
-
               <div className="border-t bg-white dark:bg-gray-900 p-4 flex-shrink-0">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 order-2 sm:order-1">
+                  <div className="flex items-center space-x-2 order-2 sm:order-1">
                     <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
-                    {selectedRoomTypes.length > 0 && (
+                    {getSelectedRoomTypes().length > 0 && (
                       <Badge variant="outline" className="text-xs">
                         {totalItems} items • {formatCurrency(displayTotalPrice)}
                       </Badge>
@@ -991,7 +808,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         </Button>
                         <Button
                           onClick={handleAddAllToCart}
-                          disabled={!isOnline || isAddingToCart || selectedRoomTypes.length === 0}
+                          disabled={!isOnline || isAddingToCart || getSelectedRoomTypes().length === 0}
                           className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
                         >
                           {isAddingToCart ? (
@@ -1018,7 +835,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         </Button>
                         <Button
                           onClick={handleNextStep}
-                          disabled={selectedRoomTypes.length === 0}
+                          disabled={getSelectedRoomTypes().length === 0}
                           className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
                         >
                           Next
@@ -1033,6 +850,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </TooltipProvider>
   )
 }
