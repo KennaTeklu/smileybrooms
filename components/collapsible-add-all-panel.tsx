@@ -3,21 +3,7 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  ShoppingCart,
-  Plus,
-  Trash2,
-  X,
-  ArrowLeft,
-  ArrowRight,
-  ListChecks,
-  ListX,
-  Lightbulb,
-  CheckCircle,
-  Minus,
-  PlusIcon,
-  ChevronDown,
-} from "lucide-react"
+import { ShoppingCart, Plus, Trash2, X, ArrowLeft, ArrowRight, ListChecks, ListX, Lightbulb, CheckCircle, Minus, PlusIcon, ChevronDown } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -319,17 +305,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       return
     }
 
-    // Open prefilled email for custom room pricing
-    const emailSubject = `Custom Room Pricing Request - ${newCustomRoomName}`
-    const emailBody = `Hello smileybrooms team,
-
-I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustomRoomName}.
-
-Best regards`
-
-    const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(mailtoLink, "_blank")
-
     const customRoomId = `other-custom-${Date.now()}` // Unique ID for custom room
     const selectedGlobalTierDetails = roomTiers[selectedGlobalTierName] // Use selectedGlobalTierName
 
@@ -351,10 +326,10 @@ Best regards`
     setNewCustomRoomQuantity(1)
 
     toast({
-      title: "Custom Room Added & Email Opened",
-      description: `${newCustomRoomName} (x${newCustomRoomQuantity}) added to your selection. Email opened for pricing inquiry.`,
+      title: "Custom Room Added",
+      description: `${newCustomRoomName} (x${newCustomRoomQuantity}) added to your selection.`,
       variant: "success",
-      duration: 4000,
+      duration: 3000,
     })
     vibrate(50)
   }, [newCustomRoomName, newCustomRoomQuantity, selectedGlobalTierName, updateRoomCount, updateRoomConfig, vibrate])
@@ -896,13 +871,38 @@ Best regards`
                             </Button>
                           </div>
                         </div>
-                        <Button
-                          onClick={handleAddCustomRoom}
-                          className="mt-3 w-full"
-                          disabled={!newCustomRoomName.trim()}
-                        >
-                          <Plus className="h-4 w-4 mr-2" /> Add Space & Request Pricing
-                        </Button>
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            onClick={handleAddCustomRoom}
+                            className="flex-1"
+                            disabled={!newCustomRoomName.trim()}
+                          >
+                            <Plus className="h-4 w-4 mr-2" /> Add Space
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              if (!newCustomRoomName.trim()) {
+                                toast({
+                                  title: "Please enter a space name",
+                                  description: "Enter the name of your custom space to get a price quote.",
+                                  variant: "default",
+                                  duration: 3000,
+                                })
+                                return
+                              }
+
+                              const subject = "Custom Space Pricing Request"
+                              const body = `Hello smileybrooms team, I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustomRoomName}. Best regards`
+                              const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+                              window.open(mailtoLink, '_blank')
+                            }}
+                            disabled={!newCustomRoomName.trim()}
+                            className="flex-1"
+                          >
+                            Get Quote
+                          </Button>
+                        </div>
                         <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
                           <p className="font-semibold text-blue-600 mb-1">Custom Space Pricing:</p>
                           <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
@@ -1013,13 +1013,16 @@ Best regards`
               {/* Footer with Clear Navigation */}
               <div className="border-t bg-white dark:bg-gray-900 p-4 flex-shrink-0">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
-                  {selectedRoomTypes.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      {totalItems} items • {formatCurrency(displayTotalPrice)}
-                    </Badge>
-                  )}
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-3 order-2 sm:order-1">
+                    <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
+                    {selectedRoomTypes.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {totalItems} items • {formatCurrency(displayTotalPrice)}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
                     {reviewStep === 1 ? (
                       <>
                         <Button
