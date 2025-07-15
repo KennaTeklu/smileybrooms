@@ -5,13 +5,12 @@ const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
 
 /**
- * Validates a US ZIP code
- * @param zipCode - The ZIP code to validate
- * @returns True if the ZIP code is valid, false otherwise
+ * Validates a US ZIP code (5 digits).
+ * @param zipCode The ZIP code string to validate.
+ * @returns True if valid, false otherwise.
  */
 export function isValidUSZip(zipCode: string): boolean {
-  if (!zipCode || typeof zipCode !== "string") return false
-  return US_ZIP_REGEX.test(zipCode.trim())
+  return US_ZIP_REGEX.test(zipCode)
 }
 
 /**
@@ -71,11 +70,11 @@ export function isValidPostalCode(postalCode: string, countryCode: string): bool
 }
 
 /**
- * Validates a US state code
- * @param stateCode - The state code to validate
- * @returns True if the state code is valid, false otherwise
+ * Validates if a string is a valid US state abbreviation.
+ * @param state The state abbreviation string to validate.
+ * @returns True if valid, false otherwise.
  */
-export function isValidUSState(stateCode: string): boolean {
+export function isValidUSState(state: string): boolean {
   const usStates = [
     "AL",
     "AK",
@@ -128,55 +127,25 @@ export function isValidUSState(stateCode: string): boolean {
     "WI",
     "WY",
   ]
-  return usStates.includes(stateCode.toUpperCase())
+  return usStates.includes(state.toUpperCase())
 }
 
 /**
- * Formats a US ZIP code (adds hyphen if needed)
- * @param zip - The ZIP code to format
- * @returns Formatted ZIP code
- */
-export function formatUSZip(zip: string): string {
-  // Removes non-digits and truncates to 5 digits
-  return zip.replace(/\D/g, "").slice(0, 5)
-}
-
-/**
- * Formats a Canadian postal code (adds space if needed)
- * @param postalCode - The postal code to format
- * @returns Formatted postal code
- */
-export function formatCAPostal(postalCode: string): string {
-  // Remove all spaces and convert to uppercase
-  const cleaned = postalCode.replace(/\s+/g, "").toUpperCase()
-
-  // Format as XXX XXX
-  if (cleaned.length === 6) {
-    return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)}`
-  }
-
-  // Return original if invalid
-  return postalCode
-}
-
-/**
- * Validates a street address (basic validation)
- * @param address - The street address to validate
- * @returns True if the address appears valid, false otherwise
+ * Validates if a string is a non-empty street address.
+ * @param address The street address string to validate.
+ * @returns True if valid, false otherwise.
  */
 export function isValidStreetAddress(address: string): boolean {
-  // Simple validation: not empty and contains at least one digit or letter
-  return address.trim().length > 0 && /[a-zA-Z0-9]/.test(address)
+  return address.trim().length > 0
 }
 
 /**
- * Validates a city name (basic validation)
- * @param city - The city name to validate
- * @returns True if the city appears valid, false otherwise
+ * Validates if a string is a non-empty city name.
+ * @param city The city name string to validate.
+ * @returns True if valid, false otherwise.
  */
 export function isValidCity(city: string): boolean {
-  // Simple validation: not empty and contains only letters and spaces
-  return city.trim().length > 0 && /^[a-zA-Z\s]+$/.test(city)
+  return city.trim().length > 0
 }
 
 /**
@@ -198,6 +167,42 @@ export function isValidAddress(address: {
     (address.country.toUpperCase() === "US" ? isValidUSState(address.state) : address.state.trim().length > 0) &&
     isValidPostalCode(address.postalCode, address.country)
   )
+}
+
+/**
+ * Formats a US ZIP code (adds hyphen if needed)
+ * @param zipCode - The ZIP code to format
+ * @returns Formatted ZIP code
+ */
+export function formatUSZip(zipCode: string): string {
+  // Remove all non-numeric characters
+  const cleaned = zipCode.replace(/\D/g, "")
+
+  // Format as XXXXX-XXXX if it's a 9-digit ZIP
+  if (cleaned.length === 9) {
+    return `${cleaned.substring(0, 5)}-${cleaned.substring(5, 9)}`
+  }
+
+  // Return original for 5-digit or invalid ZIPs
+  return zipCode
+}
+
+/**
+ * Formats a Canadian postal code (adds space if needed)
+ * @param postalCode - The postal code to format
+ * @returns Formatted postal code
+ */
+export function formatCAPostal(postalCode: string): string {
+  // Remove all spaces and convert to uppercase
+  const cleaned = postalCode.replace(/\s+/g, "").toUpperCase()
+
+  // Format as XXX XXX
+  if (cleaned.length === 6) {
+    return `${cleaned.substring(0, 3)} ${cleaned.substring(3, 6)}`
+  }
+
+  // Return original if invalid
+  return postalCode
 }
 
 /**

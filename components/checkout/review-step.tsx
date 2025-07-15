@@ -1,185 +1,163 @@
 "use client"
 
-import type React from "react"
-
-import { Button } from "@/components/ui/button"
-import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { formatCurrency } from "@/lib/utils"
-import { formatUSPhone } from "@/lib/validation/phone-validation"
-import { useState } from "react"
+import { formatCurrency, formatUSPhone, formatAddress } from "@/lib/utils"
+import { useCart } from "@/lib/cart-context"
+import { useRoomContext } from "@/lib/room-context"
+import { ROOM_TIERS, ROOM_TYPES, requiresEmailPricing } from "@/lib/room-tiers"
+import type { CheckoutData } from "@/app/checkout/page"
+import Image from "next/image"
 
 interface ReviewStepProps {
-  checkoutData: {
-    contact: {
-      fullName: string
-      email: string
-      phone: string
-    }
-    address: {
-      street: string
-      city: string
-      state: string
-      zip: string
-    }
-    payment: {
-      method: "card" | "in_person" | ""
-      cardDetails?: {
-        cardNumber: string
-        expiryDate: string
-        cvc: string
-      }
-      billingAddressSameAsService: boolean
-      billingAddress?: {
-        street: string
-        city: string
-        state: string
-        zip: string
-      }
-    }
-    termsAgreed: boolean
-  }
-  cartItems: any[] // Replace 'any' with actual CartItem type if available
-  totalAmount: number
-  onBack: () => void
-  onSubmitOrder: () => void
+  checkoutData: CheckoutData
 }
 
-export function ReviewStep({ checkoutData, cartItems, totalAmount, onBack, onSubmitOrder }: ReviewStepProps) {
-  const [termsAgreed, setTermsAgreed] = useState(checkoutData.termsAgreed)
-  const [error, setError] = useState<string | null>(null)
+export function ReviewStep({ checkoutData }: ReviewStepProps) {
+  const { cart } = useCart()
+  const { calculateRoomPrice } = useRoomContext()
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!termsAgreed) {
-      setError("You must agree to the terms and conditions to place your order.")
-      return
-    }
-    setError(null)
-    onSubmitOrder()
-  }
+  const { contact, address, payment } = checkoutData
 
-  const formatAddress = (address: any) => {
-    if (!address) return "N/A"
-    return `${address.street}, ${address.city}, ${address.state} ${address.zip}`
-  }
+  const totalOnlinePrice = cart.items
+    .filter((item) => item.paymentType !== "in_person")
+    .reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  const formatCardNumberDisplay = (cardNumber?: string) => {
-    if (!cardNumber) return "N/A"
-    const cleaned = cardNumber.replace(/\s/g, "")
-    return `**** **** **** ${cleaned.slice(-4)}`
-  }
+  const totalInPersonPrice = cart.items
+    .filter((item) => item.paymentType === "in_person")
+    .reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   return (
-    <form onSubmit={handleSubmit}>
-      <CardHeader>
-        <CardTitle>Review Your Order</CardTitle>
-        <CardDescription>Please review all details before confirming your order.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Contact Information */}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
-          <p>
-            Full Name: <strong>{checkoutData.contact.fullName}</strong>
-          </p>
-          <p>
-            Email: <strong>{checkoutData.contact.email}</strong>
-          </p>
-          <p>
-            Phone: <strong>{formatUSPhone(checkoutData.contact.phone)}</strong>
-          </p>
-        </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Service Details</CardTitle>
+          <CardDescription>Review the cleaning services you've selected.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {cart.items.length === 0 ? (
+            <p className="text-gray-500">No services selected.</p>
+          ) : (
+            cart.items.map((item) => {
+              const roomTypeLabel =
+                ROOM_TYPES.find((r) => r.value === item.metadata?.roomType)?.label || item.metadata?.roomType || "N/A"
+              const tierLabel =
+                ROOM_TIERS.find((t) => t.value === item.metadata?.selectedTier)?.label ||
+                item.metadata?.selectedTier ||
+                "N/A"
+              const pricePerUnit = item.price
+              const totalPriceForItem = item.price * item.quantity
 
-        <Separator />
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between border-b pb-3 last:border-b-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-4">
+                    {item.image && (
+                      <Image
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        width={64}
+                        height={64}
+                        className="rounded-md object-cover"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">
+                        {roomTypeLabel} ({tierLabel})
+                      </p>
+                      <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                      {item.metadata?.selectedReductions && item.metadata.selectedReductions.length > 0 && (
+                        <p className="text-sm text-gray-500">
+                          Reductions: {item.metadata.selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}
+                        </p>
+                      )}
+                      {requiresEmailPricing(item.metadata?.roomType || "") && (
+                        <p className="text-sm text-orange-500">Pricing via email consultation</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(totalPriceForItem)}</p>
+                    {!requiresEmailPricing(item.metadata?.roomType || "") && (
+                      <p className="text-sm text-gray-500">{formatCurrency(pricePerUnit)} / unit</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+          <Separator className="my-4" />
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total Online Payment:</span>
+            <span>{formatCurrency(totalOnlinePrice)}</span>
+          </div>
+          {totalInPersonPrice > 0 && (
+            <div className="flex justify-between font-bold text-lg text-orange-600">
+              <span>Total In-Person Payment:</span>
+              <span>{formatCurrency(totalInPersonPrice)}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Service Address */}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Service Address</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
           <p>
-            Address: <strong>{formatAddress(checkoutData.address)}</strong>
+            <span className="font-medium">Full Name:</span> {contact.fullName}
           </p>
-        </div>
-
-        <Separator />
-
-        {/* Payment Method */}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Payment Method</h3>
           <p>
-            Method: <strong>{checkoutData.payment.method === "card" ? "Credit Card" : "Pay In-Person (Zelle)"}</strong>
+            <span className="font-medium">Email:</span> {contact.email}
           </p>
-          {checkoutData.payment.method === "card" && (
+          <p>
+            <span className="font-medium">Phone:</span> {formatUSPhone(contact.phone)}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Service Address</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p>{formatAddress(address)}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Method</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {payment.method === "card" ? (
             <>
               <p>
-                Card Number: <strong>{formatCardNumberDisplay(checkoutData.payment.cardDetails?.cardNumber)}</strong>
+                <span className="font-medium">Card Type:</span> {payment.cardType}
               </p>
               <p>
-                Expiry Date: <strong>{checkoutData.payment.cardDetails?.expiryDate}</strong>
+                <span className="font-medium">Last 4 Digits:</span> **** **** **** {payment.last4}
               </p>
               <p>
-                Billing Address:{" "}
-                <strong>
-                  {checkoutData.payment.billingAddressSameAsService
-                    ? "Same as service address"
-                    : formatAddress(checkoutData.payment.billingAddress)}
-                </strong>
+                <span className="font-medium">Expiry:</span> {payment.expiryMonth}/{payment.expiryYear}
               </p>
+              {payment.billingAddressSameAsService ? (
+                <p className="text-sm text-gray-500">Billing address same as service address.</p>
+              ) : (
+                <>
+                  <p className="font-medium mt-4">Billing Address:</p>
+                  <p>{formatAddress(payment.billingAddress)}</p>
+                </>
+              )}
             </>
+          ) : (
+            <p>Payment will be collected in-person.</p>
           )}
-        </div>
-
-        <Separator />
-
-        {/* Cart Items */}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Order Summary</h3>
-          <div className="space-y-2">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex justify-between items-center">
-                <span>
-                  {item.name} x {item.quantity}
-                </span>
-                <span>{formatCurrency(item.price * item.quantity)}</span>
-              </div>
-            ))}
-          </div>
-          <Separator className="my-2" />
-          <div className="flex justify-between items-center font-bold text-xl">
-            <span>Total:</span>
-            <span>{formatCurrency(totalAmount)}</span>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Terms and Conditions */}
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="terms"
-            checked={termsAgreed}
-            onCheckedChange={(checked) => {
-              setTermsAgreed(checked as boolean)
-              setError(null)
-            }}
-          />
-          <Label htmlFor="terms">
-            I agree to the{" "}
-            <a href="/terms" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
-              Terms and Conditions
-            </a>
-          </Label>
-        </div>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onBack}>
-          Back to Payment
-        </Button>
-        <Button type="submit">Place Order</Button>
-      </CardFooter>
-    </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

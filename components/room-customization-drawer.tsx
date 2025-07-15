@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   Drawer,
   DrawerContent,
@@ -21,17 +21,19 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { formatCurrency } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Check, X, AlertCircle } from "lucide-react"
-import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomReductions, RoomTierEnum } from "@/lib/room-tiers"
 import { getMatrixServices } from "@/lib/matrix-services"
+import { calculateVideoDiscount } from "@/lib/utils"
 
 interface RoomConfig {
   roomName: string
-  selectedTier: string
-  selectedAddOns: string[]
+  selectedTier: RoomTierEnum
+  selectedReductions: string[]
   basePrice: number
   tierUpgradePrice: number
-  addOnsPrice: number
+  reductionsPrice: number
   totalPrice: number
+  videoDiscountAmount?: number
 }
 
 interface RoomCustomizationDrawerProps {
@@ -43,6 +45,7 @@ interface RoomCustomizationDrawerProps {
   roomCount: number
   config: RoomConfig
   onConfigChange: (config: RoomConfig) => void
+  allowVideoRecording?: boolean
 }
 
 export function RoomCustomizationDrawer({
@@ -54,50 +57,74 @@ export function RoomCustomizationDrawer({
   roomCount,
   config,
   onConfigChange,
+  allowVideoRecording = false,
 }: RoomCustomizationDrawerProps) {
   const [activeTab, setActiveTab] = useState("basic")
-  const [selectedTier, setSelectedTier] = useState(config.selectedTier)
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config.selectedAddOns)
+  const [selectedTier, setSelectedTier] = useState<RoomTierEnum>(config.selectedTier)
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(config.selectedReductions)
   const [matrixAddServices, setMatrixAddServices] = useState<string[]>([])
   const [matrixRemoveServices, setMatrixRemoveServices] = useState<string[]>([])
   const [localConfig, setLocalConfig] = useState<RoomConfig>(config)
   const [error, setError] = useState<string | null>(null)
 
-  const tiers = getRoomTiers(roomType) || []
-  const addOns = getRoomAddOns(roomType) || []
-  const matrixServices = getMatrixServices(roomType) || { add: [], remove: [] }
+  // Get room tiers, and reductions
+  const tiers = useMemo(() => getRoomTiers(roomType) || [], [roomType])
+  const reductions = useMemo(() => getRoomReductions(roomType) || [], [roomType])
+  const matrixServices = useMemo(() => getMatrixServices(roomType) || { add: [], remove: [] }, [roomType])
 
-  const baseTier = tiers[0] || { name: "ESSENTIAL CLEAN", price: 25, description: "Basic cleaning", features: [] }
+  // Get base tier (Essential Clean)
+  const baseTier = useMemo(
+    () =>
+      tiers.find((t) => t.name === RoomTierEnum.Essential) || {
+        name: RoomTierEnum.Essential,
+        price: 25,
+        description: "Basic cleaning",
+        features: [],
+      },
+    [tiers],
+  )
 
+  // Calculate prices - memoized to prevent recalculation on every render
   const calculatePrices = useCallback(() => {
     try {
+      // Base price is always the price of the Essential Clean tier
       const basePrice = baseTier.price
 
+      // Calculate tier upgrade price (difference between selected tier and base tier)
       const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
       const tierUpgradePrice = selectedTierObj ? selectedTierObj.price - basePrice : 0
 
-      const addOnsPrice = selectedAddOns.reduce((total, addOnId) => {
-        const addOn = addOns.find((a) => a.id === addOnId)
-        return total + (addOn?.price || 0)
+      // Calculate reductions price
+      const reductionsPrice = selectedReductions.reduce((total, reductionId) => {
+        const reduction = reductions.find((r) => r.id === reductionId)
+        return total + (reduction?.discount || 0)
       }, 0)
 
+      // Calculate matrix add services price
       const matrixAddPrice = matrixAddServices.reduce((total, serviceId) => {
         const service = matrixServices.add.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
+      // Calculate matrix remove services price
       const matrixRemovePrice = matrixRemoveServices.reduce((total, serviceId) => {
         const service = matrixServices.remove.find((s) => s.id === serviceId)
         return total + (service?.price || 0)
       }, 0)
 
-      const totalPrice = basePrice + tierUpgradePrice + addOnsPrice + matrixAddPrice - matrixRemovePrice
+      // Calculate subtotal before video discount
+      let currentSubtotal = basePrice + tierUpgradePrice + matrixAddPrice - reductionsPrice - matrixRemovePrice
+
+      // Apply video recording discount if allowed
+      const videoDiscountAmount = allowVideoRecording ? calculateVideoDiscount(currentSubtotal) : 0
+      currentSubtotal = Math.max(0, currentSubtotal - videoDiscountAmount)
 
       return {
         basePrice,
         tierUpgradePrice,
-        addOnsPrice: addOnsPrice + matrixAddPrice,
-        totalPrice: Math.max(0, totalPrice),
+        reductionsPrice: reductionsPrice + matrixRemovePrice, // Combine reductions
+        totalPrice: currentSubtotal,
+        videoDiscountAmount,
       }
     } catch (err) {
       console.error("Error calculating prices:", err)
@@ -105,29 +132,32 @@ export function RoomCustomizationDrawer({
       return {
         basePrice: baseTier.price,
         tierUpgradePrice: 0,
-        addOnsPrice: 0,
+        reductionsPrice: 0,
         totalPrice: baseTier.price,
+        videoDiscountAmount: 0,
       }
     }
   }, [
     baseTier.price,
     tiers,
     selectedTier,
-    selectedAddOns,
+    selectedReductions,
     matrixAddServices,
     matrixRemoveServices,
-    addOns,
+    reductions,
     matrixServices.add,
     matrixServices.remove,
+    allowVideoRecording,
   ])
 
+  // Update local config when selections change
   useEffect(() => {
     try {
       const prices = calculatePrices()
       setLocalConfig({
         ...config,
         selectedTier,
-        selectedAddOns,
+        selectedReductions,
         ...prices,
       })
       setError(null)
@@ -135,13 +165,14 @@ export function RoomCustomizationDrawer({
       console.error("Error updating local config:", err)
       setError("Error updating configuration. Please try again.")
     }
-  }, [selectedTier, selectedAddOns, matrixAddServices, matrixRemoveServices, calculatePrices, config])
+  }, [selectedTier, selectedReductions, matrixAddServices, matrixRemoveServices, calculatePrices, config])
 
+  // Reset selections when drawer opens with new config
   useEffect(() => {
     if (isOpen) {
       try {
         setSelectedTier(config.selectedTier)
-        setSelectedAddOns([...config.selectedAddOns])
+        setSelectedReductions([...config.selectedReductions])
         setMatrixAddServices([])
         setMatrixRemoveServices([])
         setActiveTab("basic")
@@ -154,18 +185,21 @@ export function RoomCustomizationDrawer({
     }
   }, [isOpen, config])
 
-  const handleTierChange = (tier: string) => {
+  // Handle tier selection
+  const handleTierChange = (tier: RoomTierEnum) => {
     setSelectedTier(tier)
   }
 
-  const handleAddOnChange = (addOnId: string, checked: boolean) => {
+  // Handle reduction selection
+  const handleReductionChange = (reductionId: string, checked: boolean) => {
     if (checked) {
-      setSelectedAddOns((prev) => [...prev, addOnId])
+      setSelectedReductions((prev) => [...prev, reductionId])
     } else {
-      setSelectedAddOns((prev) => prev.filter((id) => id !== addOnId))
+      setSelectedReductions((prev) => prev.filter((id) => id !== reductionId))
     }
   }
 
+  // Handle matrix add service selection
   const handleMatrixAddServiceChange = (serviceId: string, checked: boolean) => {
     if (checked) {
       setMatrixAddServices((prev) => [...prev, serviceId])
@@ -174,6 +208,7 @@ export function RoomCustomizationDrawer({
     }
   }
 
+  // Handle matrix remove service selection
   const handleMatrixRemoveServiceChange = (serviceId: string, checked: boolean) => {
     if (checked) {
       setMatrixRemoveServices((prev) => [...prev, serviceId])
@@ -182,6 +217,7 @@ export function RoomCustomizationDrawer({
     }
   }
 
+  // Handle apply changes - only call parent's onConfigChange when the user explicitly applies changes
   const handleApplyChanges = () => {
     try {
       onConfigChange(localConfig)
@@ -192,6 +228,7 @@ export function RoomCustomizationDrawer({
     }
   }
 
+  // Generate unique IDs for accessibility
   const drawerTitleId = `drawer-title-${roomType}`
   const drawerDescId = `drawer-desc-${roomType}`
 
@@ -267,27 +304,27 @@ export function RoomCustomizationDrawer({
                     </RadioGroup>
                   </div>
 
-                  {addOns.length > 0 && (
+                  {reductions.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Add-on Services</h3>
+                      <h3 className="text-lg font-medium mb-4">Service Reductions</h3>
                       <div className="space-y-3">
-                        {addOns.map((addOn, index) => (
+                        {reductions.map((reduction, index) => (
                           <div key={index} className="flex items-start space-x-3">
                             <Checkbox
-                              id={`addon-${index}`}
-                              checked={selectedAddOns.includes(addOn.id)}
-                              onCheckedChange={(checked) => handleAddOnChange(addOn.id, checked as boolean)}
+                              id={`reduction-${index}`}
+                              checked={selectedReductions.includes(reduction.id)}
+                              onCheckedChange={(checked) => handleReductionChange(reduction.id, checked as boolean)}
                               className="mt-1"
                             />
                             <div className="grid gap-1.5 leading-none">
                               <Label
-                                htmlFor={`addon-${index}`}
+                                htmlFor={`reduction-${index}`}
                                 className="text-base font-medium flex items-center justify-between"
                               >
-                                <span>{addOn.name}</span>
-                                <span>+{formatCurrency(addOn.price)}</span>
+                                <span>{reduction.name}</span>
+                                <span>-{formatCurrency(reduction.discount)}</span>
                               </Label>
-                              <p className="text-sm text-muted-foreground">{addOn.description}</p>
+                              <p className="text-sm text-muted-foreground">{reduction.description}</p>
                             </div>
                           </div>
                         ))}
@@ -402,10 +439,16 @@ export function RoomCustomizationDrawer({
               <span>+{formatCurrency(localConfig.tierUpgradePrice)}</span>
             </div>
           )}
-          {localConfig.addOnsPrice > 0 && (
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">Add-ons:</span>
-              <span>+{formatCurrency(localConfig.addOnsPrice)}</span>
+          {localConfig.reductionsPrice > 0 && (
+            <div className="flex justify-between items-center mb-2 text-red-600">
+              <span className="font-medium">Reductions:</span>
+              <span>-{formatCurrency(localConfig.reductionsPrice)}</span>
+            </div>
+          )}
+          {localConfig.videoDiscountAmount && localConfig.videoDiscountAmount > 0 && (
+            <div className="flex justify-between items-center mb-2 text-green-600">
+              <span className="font-medium">Video Recording Discount:</span>
+              <span>-{formatCurrency(localConfig.videoDiscountAmount)}</span>
             </div>
           )}
           <Separator className="my-2" />

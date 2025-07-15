@@ -27,12 +27,12 @@ export const COUNTRY_CODES: Record<string, string> = {
 }
 
 /**
- * Validates if a string is a properly formatted US phone number
- * @param phone - The phone number to validate
- * @returns True if the phone number is valid, false otherwise
+ * Validates if a string is a valid US phone number (10 digits).
+ * Allows for various formats but checks for 10 digits after stripping non-digits.
+ * @param phone The phone number string to validate.
+ * @returns True if valid, false otherwise.
  */
 export function isValidUSPhone(phone: string): boolean {
-  // Strips all non-digit characters and checks for 10 digits
   const cleaned = phone.replace(/\D/g, "")
   return cleaned.length === 10
 }
@@ -75,13 +75,18 @@ export function isValidPhoneForCountry(phone: string, countryCode: string): bool
  * @returns Formatted phone number or original if invalid
  */
 export function formatUSPhone(phone: string): string {
-  // Strips all non-digit characters
+  if (!phone) return ""
+  // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, "")
-  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-  if (match) {
-    return `(${match[1]}) ${match[2]}-${match[3]}`
-  }
-  return phone // Return original if it doesn't match the pattern yet
+
+  // Handle numbers with or without country code
+  const hasCountryCode = cleaned.length > 10 && cleaned.startsWith("1")
+  const digits = hasCountryCode ? cleaned.slice(-10) : cleaned
+
+  if (digits.length === 0) return ""
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.substring(0, 3)}) ${digits.substring(3)}`
+  return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6, 10)}`
 }
 
 /**

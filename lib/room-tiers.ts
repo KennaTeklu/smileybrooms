@@ -12,13 +12,6 @@ export interface RoomTier {
   paymentType?: "online" | "in_person"
 }
 
-export interface RoomAddOn {
-  id: string
-  name: string
-  price: number
-  description?: string
-}
-
 export interface RoomReduction {
   id: string
   name: string
@@ -462,220 +455,7 @@ export const roomIcons: { [key: string]: string } = {
   other: "🏠",
 }
 
-export const defaultAddOns: Record<string, RoomAddOn[]> = {
-  bedroom: [
-    {
-      id: "bed-1",
-      name: "Closet full reorganization",
-      price: 25.0,
-      description: "Complete organization of closet contents",
-    },
-    {
-      id: "bed-2",
-      name: "Blind track deep clean",
-      price: 15.0,
-      description: "Detailed cleaning of window blind tracks",
-    },
-    { id: "bed-3", name: "Curtain/shade vacuuming", price: 12.0, description: "Dust removal from window treatments" },
-    {
-      id: "bed-4",
-      name: "Wall mark removal (up to 5 spots)",
-      price: 10.0,
-      description: "Cleaning of wall marks and scuffs",
-    },
-    {
-      id: "bed-5",
-      name: "Nightstand drawer organization",
-      price: 8.0,
-      description: "Organization of nightstand contents",
-    },
-  ],
-  bathroom: [
-    {
-      id: "bath-1",
-      name: "Shower door track deep clean",
-      price: 15.0,
-      description: "Detailed cleaning of shower door tracks",
-    },
-    { id: "bath-2", name: "Grout detailed scrubbing", price: 30.0, description: "Deep cleaning of tile grout" },
-    {
-      id: "bath-3",
-      name: "Cabinet interior organization",
-      price: 20.0,
-      description: "Organization of bathroom cabinet contents",
-    },
-    { id: "bath-4", name: "Exhaust fan cleaning", price: 12.0, description: "Cleaning of bathroom exhaust fan" },
-    { id: "bath-5", name: "Mold/mildew treatment", price: 25.0, description: "Treatment of mold and mildew spots" },
-  ],
-  kitchen: [
-    {
-      id: "kit-1",
-      name: "Inside refrigerator cleaning",
-      price: 30.0,
-      description: "Cleaning of refrigerator interior",
-    },
-    { id: "kit-2", name: "Inside oven cleaning", price: 35.0, description: "Deep cleaning of oven interior" },
-    {
-      id: "kit-3",
-      name: "Cabinet interior organization (per cabinet)",
-      price: 15.0,
-      description: "Organization of cabinet contents",
-    },
-    { id: "kit-4", name: "Dishwasher deep clean", price: 20.0, description: "Detailed cleaning of dishwasher" },
-    {
-      id: "kit-5",
-      name: "Small appliance detailed cleaning",
-      price: 10.0,
-      description: "Cleaning of countertop appliances",
-    },
-  ],
-  livingRoom: [
-    {
-      id: "liv-1",
-      name: "Upholstery vacuuming",
-      price: 20.0,
-      description: "Detailed vacuuming of furniture upholstery",
-    },
-    {
-      id: "liv-2",
-      name: "Entertainment center organization",
-      price: 25.0,
-      description: "Organization of entertainment center",
-    },
-    {
-      id: "liv-3",
-      name: "Ceiling fan detailed cleaning",
-      price: 15.0,
-      description: "Detailed cleaning of ceiling fan",
-    },
-    { id: "liv-4", name: "Window treatment dusting", price: 18.0, description: "Dusting of curtains and blinds" },
-    { id: "liv-5", name: "Decor item individual cleaning", price: 12.0, description: "Cleaning of decorative items" },
-  ],
-  diningRoom: [
-    { id: "din-1", name: "China cabinet interior cleaning", price: 25.0, description: "Cleaning inside china cabinet" },
-    { id: "din-2", name: "Chair upholstery cleaning", price: 20.0, description: "Cleaning of dining chair upholstery" },
-    {
-      id: "din-3",
-      name: "Table leaf cleaning & storage",
-      price: 15.0,
-      description: "Cleaning and proper storage of table leaves",
-    },
-    {
-      id: "din-4",
-      name: "Chandelier detailed cleaning",
-      price: 30.0,
-      description: "Detailed cleaning of dining room chandelier",
-    },
-    {
-      id: "din-5",
-      name: "Silverware polishing",
-      price: 25.0,
-      description: "Polishing of silverware and serving pieces",
-    },
-  ],
-  homeOffice: [
-    {
-      id: "off-1",
-      name: "Computer peripheral cleaning",
-      price: 15.0,
-      description: "Cleaning of keyboard, mouse, etc.",
-    },
-    {
-      id: "off-2",
-      name: "File organization (per drawer)",
-      price: 20.0,
-      description: "Organization of file drawer contents",
-    },
-    { id: "off-3", name: "Bookshelf organization", price: 25.0, description: "Organization of books and materials" },
-    { id: "off-4", name: "Cable management", price: 15.0, description: "Organization and securing of cables" },
-    { id: "off-5", name: "Desk drawer organization", price: 18.0, description: "Organization of desk drawer contents" },
-  ],
-  laundryRoom: [
-    { id: "lau-1", name: "Washer deep cleaning", price: 25.0, description: "Deep cleaning of washing machine" },
-    { id: "lau-2", name: "Dryer vent cleaning", price: 20.0, description: "Cleaning of dryer vent and lint trap" },
-    { id: "lau-3", name: "Supply organization", price: 15.0, description: "Organization of laundry supplies" },
-    { id: "lau-4", name: "Under appliance cleaning", price: 18.0, description: "Cleaning under washer and dryer" },
-    { id: "lau-5", name: "Utility sink deep clean", price: 15.0, description: "Deep cleaning of laundry sink" },
-  ],
-  entryway: [
-    { id: "ent-1", name: "Shoe organization", price: 15.0, description: "Organization of shoes and boots" },
-    { id: "ent-2", name: "Coat closet organization", price: 20.0, description: "Organization of coat closet contents" },
-    { id: "ent-3", name: "Entry mat deep cleaning", price: 12.0, description: "Deep cleaning of entry mats" },
-    {
-      id: "ent-4",
-      name: "Door hardware polishing",
-      price: 10.0,
-      description: "Polishing of door handles and hardware",
-    },
-    { id: "ent-5", name: "Mail/key area organization", price: 15.0, description: "Organization of mail and key area" },
-  ],
-  hallway: [
-    {
-      id: "hal-1",
-      name: "Runner/carpet deep cleaning",
-      price: 20.0,
-      description: "Deep cleaning of hallway carpet or runner",
-    },
-    {
-      id: "hal-2",
-      name: "Picture frame detailed cleaning",
-      price: 15.0,
-      description: "Detailed cleaning of picture frames",
-    },
-    {
-      id: "hal-3",
-      name: "Linen closet organization",
-      price: 25.0,
-      description: "Organization of linen closet contents",
-    },
-    {
-      id: "hal-4",
-      name: "Light fixture detailed cleaning",
-      price: 18.0,
-      description: "Detailed cleaning of hallway light fixtures",
-    },
-    { id: "hal-5", name: "Wall sconce cleaning", price: 12.0, description: "Cleaning of wall sconces" },
-  ],
-  stairs: [
-    { id: "sta-1", name: "Carpet deep cleaning", price: 25.0, description: "Deep cleaning of stair carpet" },
-    {
-      id: "sta-2",
-      name: "Banister detailed cleaning",
-      price: 20.0,
-      description: "Detailed cleaning of banister and railings",
-    },
-    { id: "sta-3", name: "Stair riser cleaning", price: 15.0, description: "Cleaning of stair risers" },
-    {
-      id: "sta-4",
-      name: "Under-stair cleaning (if accessible)",
-      price: 30.0,
-      description: "Cleaning of accessible under-stair areas",
-    },
-    {
-      id: "sta-5",
-      name: "Stair runner detailed cleaning",
-      price: 22.0,
-      description: "Detailed cleaning of stair runner",
-    },
-  ],
-  default: [
-    {
-      id: "def-1",
-      name: "Detailed dusting of all surfaces",
-      price: 15.0,
-      description: "Comprehensive dusting of all surfaces",
-    },
-    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
-    {
-      id: "def-3",
-      name: "Ceiling corner cobweb removal",
-      price: 8.0,
-      description: "Removal of cobwebs from ceiling corners",
-    },
-    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
-    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
-  ],
-}
+// Removed defaultAddOns as per user request
 
 export const defaultReductions: Record<string, RoomReduction[]> = {
   bedroom: [
@@ -889,9 +669,7 @@ export function getRoomTiers(roomType: string): RoomTier[] {
  * Return the list of add-ons available for a given room type.
  * Falls back to the generic `default` add-ons if none are defined.
  */
-export function getRoomAddOns(roomType: string): RoomAddOn[] {
-  return (defaultAddOns as any)[roomType] || defaultAddOns.default
-}
+// Removed getRoomAddOns as per user request
 
 /**
  * Return the list of reductions available for a given room type.
@@ -925,17 +703,18 @@ export function getDisplayPrice(roomType: string, config: any): string {
 export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
   "Custom spaces require personalized assessment. Pricing will be provided via email consultation, with payment collected in-person through Zelle upon service completion. All custom service bookings are subject to our standard Terms of Service."
 
+// Define ROOM_TYPES and ROOM_TIERS for use in other components
 export const ROOM_TYPES = [
-  { value: "bedroom", label: "Bedroom", description: "Relaxing and clean sleeping space." },
-  { value: "bathroom", label: "Bathroom", description: "Sparkling clean and sanitized." },
-  { value: "kitchen", label: "Kitchen", description: "Spotless counters and appliances." },
-  { value: "livingRoom", label: "Living Room", description: "Comfortable and inviting." },
-  { value: "diningRoom", label: "Dining Room", description: "Ready for your next meal." },
-  { value: "homeOffice", label: "Home Office", description: "Productive and organized." },
-  { value: "laundryRoom", label: "Laundry Room", description: "Fresh and tidy." },
-  { value: "entryway", label: "Entryway", description: "Welcoming first impression." },
-  { value: "hallway", label: "Hallway", description: "Clean and clear pathways." },
-  { value: "stairs", label: "Stairs", description: "Safe and spotless steps." },
+  { value: "bedroom", label: "Bedroom", description: "Your personal resting space." },
+  { value: "bathroom", label: "Bathroom", description: "Sanitized and sparkling clean." },
+  { value: "kitchen", label: "Kitchen", description: "The heart of your home, spotless." },
+  { value: "livingRoom", label: "Living Room", description: "Relax in a fresh, clean environment." },
+  { value: "diningRoom", label: "Dining Room", description: "Ready for your next meal or gathering." },
+  { value: "homeOffice", label: "Home Office", description: "A productive and tidy workspace." },
+  { value: "laundryRoom", label: "Laundry Room", description: "Fresh and organized." },
+  { value: "entryway", label: "Entryway", description: "A welcoming first impression." },
+  { value: "hallway", label: "Hallway", description: "Clean connections throughout your home." },
+  { value: "stairs", label: "Stairs", description: "Step up to cleanliness." },
   { value: "other", label: "Other Space", description: "Custom cleaning for unique areas." },
 ]
 
@@ -944,3 +723,16 @@ export const ROOM_TIERS = [
   { value: "PREMIUM CLEAN", label: "Premium Clean" },
   { value: "LUXURY CLEAN", label: "Luxury Clean" },
 ]
+
+// Removed ROOM_ADD_ONS as per user request
+
+export const ROOM_REDUCTIONS = [
+  { value: "skip-mirror-cleaning", label: "Skip Mirror Cleaning" },
+  { value: "basic-surface-dusting-only", label: "Basic Surface Dusting Only" },
+]
+
+export enum RoomTierEnum {
+  Essential = "ESSENTIAL CLEAN",
+  Premium = "PREMIUM CLEAN",
+  Luxury = "LUXURY CLEAN",
+}

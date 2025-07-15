@@ -1,38 +1,38 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { Trash2, MinusCircle, PlusCircle, ShoppingCart } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { motion, AnimatePresence } from "framer-motion"
+import { ROOM_TYPES, ROOM_TIERS, requiresEmailPricing } from "@/lib/room-tiers"
 
 export default function CartPage() {
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
-  const [isClient, setIsClient] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  const totalOnlinePrice = useMemo(() => {
+    return cart.items
+      .filter((item) => item.paymentType !== "in_person")
+      .reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }, [cart.items])
 
-  const handleClearCartClick = () => {
+  const totalInPersonPrice = useMemo(() => {
+    return cart.items
+      .filter((item) => item.paymentType === "in_person")
+      .reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }, [cart.items])
+
+  const handleClearCartClick = async () => {
+    setIsClearing(true)
+    // Simulate an async operation if needed, e.g., API call
+    await new Promise((resolve) => setTimeout(resolve, 500))
     clearCart()
-  }
-
-  const handleUpdateQuantity = (id: string, newQuantity: number) => {
-    updateQuantity(id, newQuantity)
-  }
-
-  if (!isClient) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    )
+    setIsClearing(false)
   }
 
   return (
@@ -41,98 +41,133 @@ export default function CartPage() {
         <CardHeader>
           <CardTitle className="text-3xl font-bold flex items-center gap-3">
             <ShoppingCart className="h-8 w-8 text-blue-600" />
-            Your Cart
+            Your Cart ({cart.totalItems} items)
           </CardTitle>
           <CardDescription>Review your selected cleaning services before proceeding to checkout.</CardDescription>
         </CardHeader>
-        <div className="flex justify-end p-6 border-b border-gray-200 dark:border-gray-700">
-          <Button variant="outline" onClick={handleClearCartClick} disabled={cart.items.length === 0}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Clear All Items
-          </Button>
-        </div>
         <CardContent className="p-0">
+          <div className="flex justify-end p-6 border-b border-gray-200 dark:border-gray-700">
+            <Button variant="outline" onClick={handleClearCartClick} disabled={cart.items.length === 0 || isClearing}>
+              {isClearing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2" />
+                  Clearing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All Items
+                </>
+              )}
+            </Button>
+          </div>
           <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
             <div className="space-y-4 p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
               {cart.items.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-12 text-gray-500 dark:text-gray-400"
-                >
-                  <p className="text-lg font-medium mb-2">Your cart is empty.</p>
-                  <p>Add some cleaning services to get started!</p>
-                  <Button asChild className="mt-6">
-                    <Link href="/pricing">Browse Services</Link>
-                  </Button>
-                </motion.div>
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">Your cart is empty.</p>
+                  <Link href="/pricing" className="text-blue-600 hover:underline mt-4 block">
+                    Start building your cleaning service!
+                  </Link>
+                </div>
               ) : (
-                <AnimatePresence>
-                  {cart.items.map((item) => (
-                    <motion.div
+                cart.items.map((item) => {
+                  const roomTypeLabel =
+                    ROOM_TYPES.find((r) => r.value === item.metadata?.roomType)?.label ||
+                    item.metadata?.roomType ||
+                    "N/A"
+                  const tierLabel =
+                    ROOM_TIERS.find((t) => t.value === item.metadata?.selectedTier)?.label ||
+                    item.metadata?.selectedTier ||
+                    "N/A"
+
+                  return (
+                    <div
                       key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex items-center gap-4 border p-4 rounded-lg shadow-sm bg-white dark:bg-gray-850"
+                      className="flex items-center justify-between border-b pb-4 last:border-b-0 last:pb-0"
                     >
-                      {item.image && (
-                        <Image
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.name}
-                          width={80}
-                          height={80}
-                          className="rounded-md object-cover"
-                        />
-                      )}
-                      <div className="flex-1 grid gap-1">
-                        <h3 className="font-semibold text-lg">{item.name}</h3>
-                        {item.metadata?.description && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.metadata.description}</p>
+                      <div className="flex items-center gap-4">
+                        {item.image && (
+                          <Image
+                            src={item.image || "/placeholder.svg"}
+                            alt={item.name}
+                            width={80}
+                            height={80}
+                            className="rounded-md object-cover"
+                          />
                         )}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="font-bold text-lg">{formatCurrency(item.price)}</span>
-                          <span className="text-gray-500">x</span>
+                        <div>
+                          <p className="font-semibold text-lg">{roomTypeLabel}</p>
+                          <p className="text-sm text-gray-600">{tierLabel} Cleaning</p>
+                          {item.metadata?.selectedReductions && item.metadata.selectedReductions.length > 0 && (
+                            <p className="text-sm text-gray-500">
+                              Reductions: {item.metadata.selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}
+                            </p>
+                          )}
+                          {requiresEmailPricing(item.metadata?.roomType || "") && (
+                            <p className="text-sm text-orange-500 font-medium">Pricing via email consultation</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="font-bold text-lg">
+                          {requiresEmailPricing(item.metadata?.roomType || "")
+                            ? "Email for Pricing"
+                            : formatCurrency(item.price * item.quantity)}
+                        </span>
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-7 w-7 bg-transparent"
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                           >
                             <MinusCircle className="h-4 w-4" />
                           </Button>
-                          <span className="font-medium">{item.quantity}</span>
+                          <span className="font-medium w-6 text-center">{item.quantity}</span>
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-7 w-7 bg-transparent"
-                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           >
                             <PlusCircle className="h-4 w-4" />
                           </Button>
+                          <Button variant="destructive" size="icon" onClick={() => removeItem(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                        <Trash2 className="h-5 w-5 text-red-500" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                    </div>
+                  )
+                })
               )}
             </div>
           </ScrollArea>
-        </CardContent>
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center text-xl font-bold mb-4">
-            <span>Subtotal:</span>
-            <span>{formatCurrency(cart.totalPrice)}</span>
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+            <div className="flex justify-between text-xl font-semibold">
+              <span>Subtotal:</span>
+              <span>{formatCurrency(totalOnlinePrice + totalInPersonPrice)}</span>
+            </div>
+            {totalOnlinePrice > 0 && (
+              <div className="flex justify-between text-lg text-gray-700 dark:text-gray-300">
+                <span>Online Payment Total:</span>
+                <span>{formatCurrency(totalOnlinePrice)}</span>
+              </div>
+            )}
+            {totalInPersonPrice > 0 && (
+              <div className="flex justify-between text-lg text-orange-600 font-semibold">
+                <span>In-Person Payment Total:</span>
+                <span>{formatCurrency(totalInPersonPrice)}</span>
+              </div>
+            )}
+            <Button asChild className="w-full text-lg py-3 mt-4">
+              <Link href="/checkout">Proceed to Checkout</Link>
+            </Button>
+            <Button asChild variant="secondary" className="w-full text-lg py-3 mt-2">
+              <Link href="/pricing">Continue Shopping</Link>
+            </Button>
           </div>
-          <Button asChild className="w-full text-lg py-3 bg-blue-600 hover:bg-blue-700 text-white">
-            <Link href="/checkout">Proceed to Checkout</Link>
-          </Button>
-        </div>
+        </CardContent>
       </Card>
     </div>
   )

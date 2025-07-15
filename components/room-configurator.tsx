@@ -1,145 +1,188 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardTitle } from "@/components/ui/card"
-import { Plus, Minus, Trash2, Settings } from "lucide-react"
+import { useEffect } from "react"
+
+import { useState, useMemo, useCallback } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { formatCurrency } from "@/lib/utils"
-import { EnhancedRoomCustomizationPanel } from "./enhanced-room-customization-panel"
-import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
-import { SimpleCustomizationPanel } from "./simple-customization-panel"
-import { RoomCategory } from "./room-category"
-import { useRoomContext } from "@/lib/room-context"
+import { type RoomTierEnum, getRoomTiers, getRoomReductions } from "@/lib/room-tiers"
+import { useToast } from "@/components/ui/use-toast"
+import { Check, Star, Zap, Shield } from "lucide-react"
 
 interface RoomConfiguratorProps {
-  panelType?: "simple" | "enhanced" | "wizard"
+  roomType: string
+  initialConfig: {
+    selectedTier: RoomTierEnum
+    selectedReductions: string[]
+  }
+  onConfigChange: (newConfig: { selectedTier: RoomTierEnum; selectedReductions: string[] }) => void
 }
 
-export function RoomConfigurator({ panelType = "enhanced" }: RoomConfiguratorProps) {
-  const [isCustomizationPanelOpen, setIsCustomizationPanelOpen] = useState(false)
-  const [currentRoomToCustomize, setCurrentRoomToCustomize] = useState<string | null>(null)
+export function RoomConfigurator({ roomType, initialConfig, onConfigChange }: RoomConfiguratorProps) {
+  const { toast } = useToast()
+  const [selectedTier, setSelectedTier] = useState<RoomTierEnum>(initialConfig.selectedTier)
+  const [selectedReductions, setSelectedReductions] = useState<string[]>(initialConfig.selectedReductions)
 
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } =
-    useRoomContext()
+  const tiers = useMemo(() => getRoomTiers(roomType), [roomType])
+  const reductions = useMemo(() => getRoomReductions(roomType), [roomType])
 
-  const selectedRoomTypes = getSelectedRoomTypes()
-  const totalPrice = getTotalPrice()
+  // Update local state when initialConfig changes (e.g., when a new room type is selected)
+  useEffect(() => {
+    setSelectedTier(initialConfig.selectedTier)
+    setSelectedReductions(initialConfig.selectedReductions)
+  }, [initialConfig])
 
-  const handleOpenCustomization = (roomType: string) => {
-    setCurrentRoomToCustomize(roomType)
-    setIsCustomizationPanelOpen(true)
+  const calculateCurrentPrice = useCallback(() => {
+    const selectedTierObj = tiers.find((tier) => tier.name === selectedTier)
+    let price = selectedTierObj ? selectedTierObj.price : 0
+
+    selectedReductions.forEach((reductionId) => {
+      const reduction = reductions.find((r) => r.id === reductionId)
+      if (reduction) {
+        price -= reduction.discount
+      }
+    })
+    return Math.max(0, price)
+  }, [selectedTier, selectedReductions, tiers, reductions])
+
+  const handleTierChange = (tierName: RoomTierEnum) => {
+    setSelectedTier(tierName)
+    onConfigChange({ selectedTier: tierName, selectedReductions })
   }
 
-  const handleCloseCustomization = () => {
-    setCurrentRoomToCustomize(null)
-    setIsCustomizationPanelOpen(false)
+  const handleReductionToggle = (reductionId: string, checked: boolean) => {
+    const newReductions = checked
+      ? [...selectedReductions, reductionId]
+      : selectedReductions.filter((id) => id !== reductionId)
+    setSelectedReductions(newReductions)
+    onConfigChange({ selectedTier, selectedReductions: newReductions })
   }
 
-  const handleConfigChange = (config: any) => {
-    if (currentRoomToCustomize) {
-      updateRoomConfig(currentRoomToCustomize, config)
-    }
-    handleCloseCustomization()
+  const getTierIcon = (tierName: string) => {
+    if (tierName.includes("LUXURY")) return <Star className="h-4 w-4" />
+    if (tierName.includes("PREMIUM")) return <Zap className="h-4 w-4" />
+    return <Shield className="h-4 w-4" />
   }
-
-  const CustomizationPanelComponent = useMemo(() => {
-    if (panelType === "enhanced") return EnhancedRoomCustomizationPanel
-    if (panelType === "wizard") return MultiStepCustomizationWizard
-    return SimpleCustomizationPanel
-  }, [panelType])
 
   return (
-    <div className="container mx-auto p-4 pb-32">
-      <h2 className="text-2xl font-bold mb-6">Configure Your Cleaning Service</h2>
+    <Card className="shadow-sm">
+      <CardContent className="p-4 space-y-6">
+        {/* Service Tiers */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Select Cleaning Tier</h3>
+          <RadioGroup value={selectedTier} onValueChange={handleTierChange} className="space-y-4">
+            {tiers.map((tier) => (
+              <div
+                key={tier.id}
+                className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                  selectedTier === tier.name
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                }`}
+              >
+                <RadioGroupItem value={tier.name} id={tier.id} className="mt-1" />
+                <div className="grid gap-1.5 leading-none flex-1">
+                  <Label
+                    htmlFor={tier.id}
+                    className="text-base font-medium flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      {getTierIcon(tier.name)}
+                      {tier.name}
+                    </span>
+                    <span>{formatCurrency(tier.price)}</span>
+                  </Label>
+                  <p className="text-sm text-muted-foreground">{tier.description}</p>
+                  {tier.detailedTasks && (
+                    <ul className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                      {tier.detailedTasks.map((task, idx) => (
+                        <li key={idx} className="flex items-center gap-1">
+                          <Check className="h-3 w-3 text-green-500" /> {task}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-8">
-        <RoomCategory
-          title="Common Areas"
-          description="Select and customize your living spaces."
-          rooms={["living_room", "dining_room", "hallway", "entryway", "stairs"]}
-          variant="primary"
-        />
+        <Separator />
 
-        <RoomCategory
-          title="Private Spaces"
-          description="Customize your bedrooms and bathrooms."
-          rooms={["bedroom", "bathroom", "home_office", "laundry_room"]}
-          variant="secondary"
-        />
+        {/* Reductions */}
+        {reductions.length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Service Reductions (Optional)</h3>
+            <p className="text-sm text-muted-foreground mb-4">Select services to skip for a reduced price.</p>
+            <div className="space-y-3">
+              {reductions.map((reduction) => (
+                <div
+                  key={reduction.id}
+                  className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    selectedReductions.includes(reduction.id)
+                      ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  }`}
+                >
+                  <Checkbox
+                    id={reduction.id}
+                    checked={selectedReductions.includes(reduction.id)}
+                    onCheckedChange={(checked) => handleReductionToggle(reduction.id, checked as boolean)}
+                    className="mt-1"
+                  />
+                  <div className="grid gap-1.5 leading-none flex-1">
+                    <Label
+                      htmlFor={reduction.id}
+                      className="text-base font-medium flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{reduction.name}</span>
+                      <span className="text-red-600 dark:text-red-400">-{formatCurrency(reduction.discount)}</span>
+                    </Label>
+                    <p className="text-sm text-muted-foreground">{reduction.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <RoomCategory
-          title="Specialty Areas"
-          description="For kitchens and other unique spaces."
-          rooms={["kitchen"]}
-          variant="primary"
-        />
-      </div>
+        <Separator />
 
-      {/* Selected Rooms Summary */}
-      {selectedRoomTypes.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Your Selected Rooms</h3>
-          <div className="space-y-4">
-            {selectedRoomTypes.map((roomType) => {
-              const count = roomCounts[roomType]
-              const config = roomConfigs[roomType]
-              return (
-                <Card key={roomType}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="text-3xl">🏠</span>
-                      <div>
-                        <CardTitle className="text-lg">{config.roomName}</CardTitle>
-                        <p className="text-sm text-gray-600">
-                          {config.selectedTier}
-                          {config.selectedAddOns.length > 0 && ` + ${config.selectedAddOns.length} add-on(s)`}
-                        </p>
-                        <p className="text-sm font-medium">
-                          {formatCurrency(config.totalPrice)} x {count} = {formatCurrency(config.totalPrice * count)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="icon" onClick={() => updateRoomCount(roomType, count - 1)}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="font-medium w-6 text-center">{count}</span>
-                      <Button variant="outline" size="icon" onClick={() => updateRoomCount(roomType, count + 1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleOpenCustomization(roomType)}>
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={() => updateRoomCount(roomType, 0)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+        {/* Price Breakdown for this room */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Price Breakdown for this {roomType.replace(/-/g, " ")}</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Base Tier ({selectedTier})</span>
+              <span>{formatCurrency(tiers.find((t) => t.name === selectedTier)?.price || 0)}</span>
+            </div>
+            {selectedReductions.length > 0 && (
+              <div className="flex justify-between text-red-600 dark:text-red-400">
+                <span>Reductions</span>
+                <span>
+                  -
+                  {formatCurrency(
+                    selectedReductions.reduce(
+                      (sum, id) => sum + (reductions.find((r) => r.id === id)?.discount || 0),
+                      0,
+                    ),
+                  )}
+                </span>
+              </div>
+            )}
+            <Separator className="my-2" />
+            <div className="flex justify-between font-bold text-base">
+              <span>Price Per {roomType.replace(/-/g, " ")}</span>
+              <span>{formatCurrency(calculateCurrentPrice())}</span>
+            </div>
           </div>
         </div>
-      )}
-
-      <div className="flex justify-between items-center text-2xl font-bold mb-8">
-        <span>Total Estimated Price:</span>
-        <span>{formatCurrency(totalPrice)}</span>
-      </div>
-
-      {/* Customization Panel */}
-      {currentRoomToCustomize && (
-        <CustomizationPanelComponent
-          isOpen={isCustomizationPanelOpen}
-          onClose={handleCloseCustomization}
-          roomType={currentRoomToCustomize}
-          roomName={roomConfigs[currentRoomToCustomize].roomName}
-          roomIcon="🏠"
-          roomCount={roomCounts[currentRoomToCustomize]}
-          config={roomConfigs[currentRoomToCustomize]}
-          onConfigChange={handleConfigChange}
-        />
-      )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }

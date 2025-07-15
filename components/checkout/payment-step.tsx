@@ -1,306 +1,208 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import {
-  isValidStreetAddress,
-  isValidCity,
-  isValidUSState,
-  isValidUSZip,
-  formatUSZip,
-} from "@/lib/validation/address-validation"
+import type { PaymentData, AddressData } from "@/app/checkout/page"
+import { isValidUSZip, isValidStreetAddress, isValidCity, isValidUSState } from "@/lib/validation/address-validation"
+import { formatUSZip } from "@/lib/utils" // Assuming formatUSZip is in utils
 
 interface PaymentStepProps {
-  initialData: {
-    method: "card" | "in_person" | ""
-    cardDetails?: {
-      cardNumber: string
-      expiryDate: string
-      cvc: string
-    }
-    billingAddressSameAsService: boolean
-    billingAddress?: {
-      street: string
-      city: string
-      state: string
-      zip: string
-    }
-  }
-  onNext: (data: any) => void
+  data: PaymentData
+  onNext: (data: Partial<PaymentData>) => void
   onBack: () => void
 }
 
-const US_STATES = [
-  { value: "AL", label: "Alabama" },
-  { value: "AK", label: "Alaska" },
-  { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" },
-  { value: "CA", label: "California" },
-  { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" },
-  { value: "DE", label: "Delaware" },
-  { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" },
-  { value: "HI", label: "Hawaii" },
-  { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" },
-  { value: "IN", label: "Indiana" },
-  { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
-  { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" },
-  { value: "MD", label: "Maryland" },
-  { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" },
-  { value: "MN", label: "Minnesota" },
-  { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" },
-  { value: "MT", label: "Montana" },
-  { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" },
-  { value: "NH", label: "New Hampshire" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" },
-  { value: "NY", label: "New York" },
-  { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" },
-  { value: "OH", label: "Ohio" },
-  { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" },
-  { value: "PA", label: "Pennsylvania" },
-  { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" },
-  { value: "SD", label: "South Dakota" },
-  { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" },
-  { value: "UT", label: "Utah" },
-  { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" },
-  { value: "WA", label: "Washington" },
-  { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" },
-  { value: "WY", label: "Wyoming" },
-]
-
-export function PaymentStep({ initialData, onNext, onBack }: PaymentStepProps) {
-  const [method, setMethod] = useState<"card" | "in_person" | "">(initialData.method)
-  const [cardNumber, setCardNumber] = useState(initialData.cardDetails?.cardNumber || "")
-  const [expiryDate, setExpiryDate] = useState(initialData.cardDetails?.expiryDate || "")
-  const [cvc, setCvc] = useState(initialData.cardDetails?.cvc || "")
+export function PaymentStep({ data, onNext, onBack }: PaymentStepProps) {
+  const [paymentMethod, setPaymentMethod] = useState(data.method)
+  const [cardNumber, setCardNumber] = useState(data.last4 ? `************${data.last4}` : "")
+  const [expiryMonth, setExpiryMonth] = useState(data.expiryMonth || "")
+  const [expiryYear, setExpiryYear] = useState(data.expiryYear || "")
+  const [cvc, setCvc] = useState(data.cvc || "")
   const [billingAddressSameAsService, setBillingAddressSameAsService] = useState(
-    initialData.billingAddressSameAsService,
+    data.billingAddressSameAsService ?? true,
   )
-  const [billingStreet, setBillingStreet] = useState(initialData.billingAddress?.street || "")
-  const [billingCity, setBillingCity] = useState(initialData.billingAddress?.city || "")
-  const [billingState, setBillingState] = useState(initialData.billingAddress?.state || "")
-  const [billingZip, setBillingZip] = useState(initialData.billingAddress?.zip || "")
+  const [billingAddress, setBillingAddress] = useState<AddressData>(
+    data.billingAddress || { street: "", city: "", state: "", zipCode: "" },
+  )
 
-  const [errors, setErrors] = useState({
-    method: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvc: "",
-    billingStreet: "",
-    billingCity: "",
-    billingState: "",
-    billingZip: "",
-  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const validateForm = () => {
-    let valid = true
-    const newErrors = {
-      method: "",
-      cardNumber: "",
-      expiryDate: "",
-      cvc: "",
-      billingStreet: "",
-      billingCity: "",
-      billingState: "",
-      billingZip: "",
-    }
+    const newErrors: Record<string, string> = {}
 
-    if (!method) {
-      newErrors.method = "Please select a payment method."
-      valid = false
-    }
-
-    if (method === "card") {
-      // Basic card validation
-      if (!cardNumber.replace(/\s/g, "").match(/^\d{13,19}$/)) {
-        newErrors.cardNumber = "Valid card number required."
-        valid = false
+    if (paymentMethod === "card") {
+      if (!cardNumber || cardNumber.replace(/\D/g, "").length < 13 || cardNumber.replace(/\D/g, "").length > 19) {
+        newErrors.cardNumber = "Card number must be between 13 and 19 digits."
       }
-      if (!expiryDate.match(/^(0[1-9]|1[0-2])\/\d{2}$/)) {
-        newErrors.expiryDate = "MM/YY format required."
-        valid = false
+      if (!expiryMonth || !expiryYear) {
+        newErrors.expiry = "Expiry date is required."
       } else {
-        const [month, year] = expiryDate.split("/").map(Number)
-        const currentYear = new Date().getFullYear() % 100 // Last two digits
-        const currentMonth = new Date().getMonth() + 1 // 1-indexed
-        if (year < currentYear || (year === currentYear && month < currentMonth)) {
-          newErrors.expiryDate = "Card has expired."
-          valid = false
+        const currentYear = new Date().getFullYear() % 100 // Last two digits of current year
+        const currentMonth = new Date().getMonth() + 1 // Month is 0-indexed
+        const expMonthNum = Number.parseInt(expiryMonth, 10)
+        const expYearNum = Number.parseInt(expiryYear, 10)
+
+        if (expYearNum < currentYear || (expYearNum === currentYear && expMonthNum < currentMonth)) {
+          newErrors.expiry = "Expiry date cannot be in the past."
         }
       }
-      if (!cvc.match(/^\d{3,4}$/)) {
-        newErrors.cvc = "Valid CVC required (3-4 digits)."
-        valid = false
+      if (!cvc || cvc.length < 3 || cvc.length > 4) {
+        newErrors.cvc = "CVC must be 3 or 4 digits."
       }
 
       if (!billingAddressSameAsService) {
-        if (!billingStreet.trim() || !isValidStreetAddress(billingStreet)) {
-          newErrors.billingStreet = "A valid street address is required."
-          valid = false
+        if (!isValidStreetAddress(billingAddress.street)) {
+          newErrors.billingStreet = "Invalid street address."
         }
-        if (!billingCity.trim() || !isValidCity(billingCity)) {
-          newErrors.billingCity = "A valid city is required."
-          valid = false
+        if (!isValidCity(billingAddress.city)) {
+          newErrors.billingCity = "Invalid city."
         }
-        if (!billingState || !isValidUSState(billingState)) {
-          newErrors.billingState = "Please select a state."
-          valid = false
+        if (!isValidUSState(billingAddress.state)) {
+          newErrors.billingState = "Invalid state."
         }
-        if (!billingZip.trim() || !isValidUSZip(billingZip)) {
-          newErrors.billingZip = "A valid 5-digit ZIP code is required."
-          valid = false
+        if (!isValidUSZip(billingAddress.zipCode)) {
+          newErrors.billingZipCode = "Invalid ZIP code (5 digits)."
         }
       }
     }
 
     setErrors(newErrors)
-    return valid
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
+      const last4 = cardNumber.replace(/\D/g, "").slice(-4)
       onNext({
-        method,
-        cardDetails: method === "card" ? { cardNumber, expiryDate, cvc } : undefined,
+        method: paymentMethod,
+        cardType: paymentMethod === "card" ? "Visa" : undefined, // Placeholder, ideally detect card type
+        last4: paymentMethod === "card" ? last4 : undefined,
+        expiryMonth: paymentMethod === "card" ? expiryMonth : undefined,
+        expiryYear: paymentMethod === "card" ? expiryYear : undefined,
+        cvc: paymentMethod === "card" ? cvc : undefined,
         billingAddressSameAsService,
-        billingAddress: billingAddressSameAsService
-          ? undefined
-          : {
-              street: billingStreet,
-              city: billingCity,
-              state: billingState,
-              zip: billingZip,
-            },
+        billingAddress: billingAddressSameAsService ? undefined : billingAddress,
       })
     }
   }
 
-  const formatCardNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    const match = cleaned.match(/.{1,4}/g)
-    return match ? match.join(" ") : cleaned
+  const handleBillingAddressChange = (field: keyof AddressData, value: string) => {
+    setBillingAddress((prev) => {
+      const updated = { ...prev, [field]: value }
+      // Apply formatting for zip code
+      if (field === "zipCode") {
+        updated.zipCode = formatUSZip(value)
+      }
+      return updated
+    })
   }
 
-  const formatExpiryDate = (value: string) => {
-    const cleaned = value.replace(/\D/g, "")
-    if (cleaned.length > 2) {
-      return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`
-    }
-    return cleaned
-  }
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 10 }, (_, i) => String(currentYear + i))
+  const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"))
 
   return (
-    <form onSubmit={handleSubmit}>
-      <CardHeader>
-        <CardTitle>Payment Method</CardTitle>
-        <CardDescription>How would you like to pay for your service?</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <RadioGroup value={method} onValueChange={(value: "card" | "in_person") => setMethod(value)}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="card" id="card" />
-            <Label htmlFor="card">Credit Card</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="in_person" id="in_person" />
-            <Label htmlFor="in_person">Pay In-Person (Zelle)</Label>
-          </div>
-        </RadioGroup>
-        {errors.method && <p className="text-sm text-red-500">{errors.method}</p>}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Payment Method</CardTitle>
+          <CardDescription>Choose how you'd like to pay for your service.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="card" id="card" />
+              <Label htmlFor="card">Credit/Debit Card</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="in_person" id="in_person" />
+              <Label htmlFor="in_person">Pay In-Person (Cash/Zelle)</Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
 
-        {method === "card" && (
-          <div className="space-y-4 border p-4 rounded-md">
+      {paymentMethod === "card" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Card Details</CardTitle>
+            <CardDescription>Enter your credit or debit card information.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="cardNumber">Card Number</Label>
               <Input
                 id="cardNumber"
-                value={cardNumber}
-                onChange={(e) => {
-                  setCardNumber(formatCardNumber(e.target.value))
-                  setErrors((prev) => ({ ...prev, cardNumber: "" }))
-                }}
+                type="text"
                 placeholder="XXXX XXXX XXXX XXXX"
-                maxLength={19} // 16 digits + 3 spaces
-                className={cn({ "border-red-500": errors.cardNumber })}
-                aria-invalid={!!errors.cardNumber}
-                aria-describedby="cardNumber-error"
+                value={cardNumber}
+                onChange={(e) =>
+                  setCardNumber(
+                    e.target.value
+                      .replace(/\s/g, "")
+                      .replace(/(\d{4})/g, "$1 ")
+                      .trim(),
+                  )
+                }
+                maxLength={19}
+                required
               />
-              {errors.cardNumber && (
-                <p id="cardNumber-error" className="text-sm text-red-500">
-                  {errors.cardNumber}
-                </p>
-              )}
+              {errors.cardNumber && <p className="text-red-500 text-sm">{errors.cardNumber}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="expiryDate">Expiry Date (MM/YY)</Label>
-                <Input
-                  id="expiryDate"
-                  value={expiryDate}
-                  onChange={(e) => {
-                    setExpiryDate(formatExpiryDate(e.target.value))
-                    setErrors((prev) => ({ ...prev, expiryDate: "" }))
-                  }}
-                  placeholder="MM/YY"
-                  maxLength={5}
-                  className={cn({ "border-red-500": errors.expiryDate })}
-                  aria-invalid={!!errors.expiryDate}
-                  aria-describedby="expiryDate-error"
-                />
-                {errors.expiryDate && (
-                  <p id="expiryDate-error" className="text-sm text-red-500">
-                    {errors.expiryDate}
-                  </p>
-                )}
+                <Label htmlFor="expiryMonth">Expiry Month</Label>
+                <Select value={expiryMonth} onValueChange={setExpiryMonth} required>
+                  <SelectTrigger id="expiryMonth">
+                    <SelectValue placeholder="MM" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.expiry && <p className="text-red-500 text-sm">{errors.expiry}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="expiryYear">Expiry Year</Label>
+                <Select value={expiryYear} onValueChange={setExpiryYear} required>
+                  <SelectTrigger id="expiryYear">
+                    <SelectValue placeholder="YY" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.slice(-2)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cvc">CVC</Label>
                 <Input
                   id="cvc"
-                  value={cvc}
-                  onChange={(e) => {
-                    setCvc(e.target.value.replace(/\D/g, ""))
-                    setErrors((prev) => ({ ...prev, cvc: "" }))
-                  }}
+                  type="text"
                   placeholder="XXX"
+                  value={cvc}
+                  onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   maxLength={4}
-                  className={cn({ "border-red-500": errors.cvc })}
-                  aria-invalid={!!errors.cvc}
-                  aria-describedby="cvc-error"
+                  required
                 />
-                {errors.cvc && (
-                  <p id="cvc-error" className="text-sm text-red-500">
-                    {errors.cvc}
-                  </p>
-                )}
+                {errors.cvc && <p className="text-red-500 text-sm">{errors.cvc}</p>}
               </div>
             </div>
-
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="billingAddressSameAsService"
@@ -309,115 +211,131 @@ export function PaymentStep({ initialData, onNext, onBack }: PaymentStepProps) {
               />
               <Label htmlFor="billingAddressSameAsService">Billing address same as service address</Label>
             </div>
+          </CardContent>
+        </Card>
+      )}
 
-            {!billingAddressSameAsService && (
-              <div className="space-y-4 border p-4 rounded-md">
-                <h3 className="font-semibold text-lg mb-2">Billing Address</h3>
-                <div className="grid gap-2">
-                  <Label htmlFor="billingStreet">Street Address</Label>
-                  <Input
-                    id="billingStreet"
-                    value={billingStreet}
-                    onChange={(e) => {
-                      setBillingStreet(e.target.value)
-                      setErrors((prev) => ({ ...prev, billingStreet: "" }))
-                    }}
-                    placeholder="123 Billing St"
-                    className={cn({ "border-red-500": errors.billingStreet })}
-                    aria-invalid={!!errors.billingStreet}
-                    aria-describedby="billingStreet-error"
-                  />
-                  {errors.billingStreet && (
-                    <p id="billingStreet-error" className="text-sm text-red-500">
-                      {errors.billingStreet}
-                    </p>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="billingCity">City</Label>
-                    <Input
-                      id="billingCity"
-                      value={billingCity}
-                      onChange={(e) => {
-                        setBillingCity(e.target.value)
-                        setErrors((prev) => ({ ...prev, billingCity: "" }))
-                      }}
-                      placeholder="Phoenix"
-                      className={cn({ "border-red-500": errors.billingCity })}
-                      aria-invalid={!!errors.billingCity}
-                      aria-describedby="billingCity-error"
-                    />
-                    {errors.billingCity && (
-                      <p id="billingCity-error" className="text-sm text-red-500">
-                        {errors.billingCity}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="billingState">State</Label>
-                    <Select
-                      value={billingState}
-                      onValueChange={(value) => {
-                        setBillingState(value)
-                        setErrors((prev) => ({ ...prev, billingState: "" }))
-                      }}
-                    >
-                      <SelectTrigger
-                        className={cn({ "border-red-500": errors.billingState })}
-                        aria-invalid={!!errors.billingState}
-                        aria-describedby="billingState-error"
-                      >
-                        <SelectValue placeholder="Select a state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {US_STATES.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>
-                            {s.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.billingState && (
-                      <p id="billingState-error" className="text-sm text-red-500">
-                        {errors.billingState}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="billingZip">ZIP Code</Label>
-                  <Input
-                    id="billingZip"
-                    value={billingZip}
-                    onChange={(e) => {
-                      const formatted = formatUSZip(e.target.value)
-                      setBillingZip(formatted)
-                      setErrors((prev) => ({ ...prev, billingZip: "" }))
-                    }}
-                    placeholder="85001"
-                    maxLength={5}
-                    className={cn({ "border-red-500": errors.billingZip })}
-                    aria-invalid={!!errors.billingZip}
-                    aria-describedby="billingZip-error"
-                  />
-                  {errors.billingZip && (
-                    <p id="billingZip-error" className="text-sm text-red-500">
-                      {errors.billingZip}
-                    </p>
-                  )}
-                </div>
+      {paymentMethod === "card" && !billingAddressSameAsService && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Billing Address</CardTitle>
+            <CardDescription>Enter your billing address details.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="billingStreet">Street Address</Label>
+              <Input
+                id="billingStreet"
+                type="text"
+                placeholder="123 Main St"
+                value={billingAddress.street}
+                onChange={(e) => handleBillingAddressChange("street", e.target.value)}
+                required
+              />
+              {errors.billingStreet && <p className="text-red-500 text-sm">{errors.billingStreet}</p>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="billingCity">City</Label>
+                <Input
+                  id="billingCity"
+                  type="text"
+                  placeholder="Anytown"
+                  value={billingAddress.city}
+                  onChange={(e) => handleBillingAddressChange("city", e.target.value)}
+                  required
+                />
+                {errors.billingCity && <p className="text-red-500 text-sm">{errors.billingCity}</p>}
               </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-between">
+              <div className="grid gap-2">
+                <Label htmlFor="billingState">State</Label>
+                <Select
+                  value={billingAddress.state}
+                  onValueChange={(value) => handleBillingAddressChange("state", value)}
+                  required
+                >
+                  <SelectTrigger id="billingState">
+                    <SelectValue placeholder="Select State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AL">Alabama</SelectItem>
+                    <SelectItem value="AK">Alaska</SelectItem>
+                    <SelectItem value="AZ">Arizona</SelectItem>
+                    <SelectItem value="AR">Arkansas</SelectItem>
+                    <SelectItem value="CA">California</SelectItem>
+                    <SelectItem value="CO">Colorado</SelectItem>
+                    <SelectItem value="CT">Connecticut</SelectItem>
+                    <SelectItem value="DE">Delaware</SelectItem>
+                    <SelectItem value="FL">Florida</SelectItem>
+                    <SelectItem value="GA">Georgia</SelectItem>
+                    <SelectItem value="HI">Hawaii</SelectItem>
+                    <SelectItem value="ID">Idaho</SelectItem>
+                    <SelectItem value="IL">Illinois</SelectItem>
+                    <SelectItem value="IN">Indiana</SelectItem>
+                    <SelectItem value="IA">Iowa</SelectItem>
+                    <SelectItem value="KS">Kansas</SelectItem>
+                    <SelectItem value="KY">Kentucky</SelectItem>
+                    <SelectItem value="LA">Louisiana</SelectItem>
+                    <SelectItem value="ME">Maine</SelectItem>
+                    <SelectItem value="MD">Maryland</SelectItem>
+                    <SelectItem value="MA">Massachusetts</SelectItem>
+                    <SelectItem value="MI">Michigan</SelectItem>
+                    <SelectItem value="MN">Minnesota</SelectItem>
+                    <SelectItem value="MS">Mississippi</SelectItem>
+                    <SelectItem value="MO">Missouri</SelectItem>
+                    <SelectItem value="MT">Montana</SelectItem>
+                    <SelectItem value="NE">Nebraska</SelectItem>
+                    <SelectItem value="NV">Nevada</SelectItem>
+                    <SelectItem value="NH">New Hampshire</SelectItem>
+                    <SelectItem value="NJ">New Jersey</SelectItem>
+                    <SelectItem value="NM">New Mexico</SelectItem>
+                    <SelectItem value="NY">New York</SelectItem>
+                    <SelectItem value="NC">North Carolina</SelectItem>
+                    <SelectItem value="ND">North Dakota</SelectItem>
+                    <SelectItem value="OH">Ohio</SelectItem>
+                    <SelectItem value="OK">Oklahoma</SelectItem>
+                    <SelectItem value="OR">Oregon</SelectItem>
+                    <SelectItem value="PA">Pennsylvania</SelectItem>
+                    <SelectItem value="RI">Rhode Island</SelectItem>
+                    <SelectItem value="SC">South Carolina</SelectItem>
+                    <SelectItem value="SD">South Dakota</SelectItem>
+                    <SelectItem value="TN">Tennessee</SelectItem>
+                    <SelectItem value="TX">Texas</SelectItem>
+                    <SelectItem value="UT">Utah</SelectItem>
+                    <SelectItem value="VT">Vermont</SelectItem>
+                    <SelectItem value="VA">Virginia</SelectItem>
+                    <SelectItem value="WA">Washington</SelectItem>
+                    <SelectItem value="WV">West Virginia</SelectItem>
+                    <SelectItem value="WI">Wisconsin</SelectItem>
+                    <SelectItem value="WY">Wyoming</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.billingState && <p className="text-red-500 text-sm">{errors.billingState}</p>}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="billingZipCode">ZIP Code</Label>
+              <Input
+                id="billingZipCode"
+                type="text"
+                placeholder="90210"
+                value={billingAddress.zipCode}
+                onChange={(e) => handleBillingAddressChange("zipCode", e.target.value)}
+                maxLength={5}
+                required
+              />
+              {errors.billingZipCode && <p className="text-red-500 text-sm">{errors.billingZipCode}</p>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex justify-between mt-6">
         <Button type="button" variant="outline" onClick={onBack}>
-          Back to Address
+          Back
         </Button>
         <Button type="submit">Continue to Review</Button>
-      </CardFooter>
+      </div>
     </form>
   )
 }

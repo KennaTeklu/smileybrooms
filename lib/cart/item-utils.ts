@@ -1,6 +1,6 @@
-import type { CartItem } from "@/lib/cart-context" // Corrected import path
+import type { CartItem } from "@/lib/cart-context"
 import type { RoomConfig } from "@/lib/room-context"
-import { ROOM_TIERS } from "@/lib/room-tiers" // Import ROOM_TIERS for label lookup
+import { RoomTierEnum } from "@/lib/room-tiers"
 
 /**
  * Generates a unique and deterministic ID for a CartItem based on its room configuration.
@@ -11,13 +11,12 @@ import { ROOM_TIERS } from "@/lib/room-tiers" // Import ROOM_TIERS for label loo
  * @returns A unique string ID for the cart item.
  */
 export function generateCartItemId(roomConfig: RoomConfig): string {
-  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
+  const { roomType, selectedTier, selectedReductions } = roomConfig
 
   // Sort arrays to ensure deterministic stringification regardless of order
-  const sortedAddOns = [...selectedAddOns].sort().join("-")
   const sortedReductions = [...selectedReductions].sort().join("-")
 
-  return `${roomType}-${selectedTier}-${sortedAddOns}-${sortedReductions}`
+  return `${roomType}-${selectedTier}-${sortedReductions}`
 }
 
 /**
@@ -29,33 +28,34 @@ export function generateCartItemId(roomConfig: RoomConfig): string {
  * @returns A CartItem object.
  */
 export function createCartItemFromRoomConfig(roomConfig: RoomConfig, price: number, quantity = 1): CartItem {
+  const { roomType, selectedTier, selectedReductions } = roomConfig
   const id = generateCartItemId(roomConfig)
-  const tierLabel = ROOM_TIERS.find((tier) => tier.value === roomConfig.selectedTier)?.label || roomConfig.selectedTier
-  const name = `${roomConfig.roomType.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} Cleaning - ${tierLabel}`
+
+  // Determine the display name for the cart item
+  let name = `${roomType.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`
+  if (selectedTier !== RoomTierEnum.Essential) {
+    // Changed from RoomTier.Standard to RoomTierEnum.Essential
+    name += ` (${selectedTier.replace(/\b\w/g, (l) => l.toUpperCase())})`
+  }
 
   const descriptionParts: string[] = []
-  if (roomConfig.selectedAddOns.length > 0) {
-    descriptionParts.push(`Add-ons: ${roomConfig.selectedAddOns.map((a) => a.replace(/-/g, " ")).join(", ")}`)
+  // Removed add-ons from description
+  if (selectedReductions.length > 0) {
+    descriptionParts.push(`Reductions: ${selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}`)
   }
-  if (roomConfig.selectedReductions.length > 0) {
-    descriptionParts.push(`Reductions: ${roomConfig.selectedReductions.map((r) => r.replace(/-/g, " ")).join(", ")}`)
-  }
-  const description = descriptionParts.join("; ") || "Standard cleaning service"
+  const description = descriptionParts.join("; ")
 
   return {
     id,
     name,
     price,
     quantity,
-    image: `/images/${roomConfig.roomType}-professional.png`, // Example image path
+    image: `/images/${roomType}-professional.png`, // Example image path
     metadata: {
-      roomType: roomConfig.roomType,
-      selectedTier: roomConfig.selectedTier,
-      selectedAddOns: roomConfig.selectedAddOns,
-      selectedReductions: roomConfig.selectedReductions,
-      frequency: "one_time", // Assuming one-time for now
-      description: description,
+      roomType,
+      selectedTier,
+      selectedReductions,
+      description: description || "Standard cleaning service",
     },
-    paymentType: roomConfig.roomType === "other" ? "in_person" : "online", // Assuming 'other' room type implies in-person payment
   }
 }
