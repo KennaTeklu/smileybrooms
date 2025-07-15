@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { VoiceCommandButton } from "@/components/voice/voice-command-button"
-import { PricingContent } from "@/components/pricing-content"
+import PricingContent from "@/components/pricing-content"
 import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel" // Import the modified panel
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
