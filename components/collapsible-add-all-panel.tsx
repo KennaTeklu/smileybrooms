@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, Plus, X, ArrowLeft, ArrowRight, CheckCircle, Minus, PlusIcon } from "lucide-react"
+import { ShoppingCart, Plus, X, ArrowLeft, ArrowRight, CheckCircle, Minus, PlusIcon } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -19,12 +19,2282 @@ import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
-import { defaultTiers, roomTiers, roomDisplayNames, roomImages } from "@/lib/room-data" // Import defaultTiers, roomTiers, roomDisplayNames, roomImages
-import { getRoomTiers } from "@/lib/room-utils" // Import getRoomTiers
-import { updateRoomConfig } from "@/lib/room-config-utils" // Import updateRoomConfig
-import { getActiveBorderColor } from "@/lib/ui-utils" // Import getActiveBorderColor
-import { requiresEmailPricing } from "@/lib/pricing-utils" // Import requiresEmailPricing
-import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/legal-disclaimers" // Import CUSTOM_SPACE_LEGAL_DISCLAIMER
+import {
+  roomImages,
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomDisplayNames,
+  defaultTiers,
+  getRoomTiers,
+  roomTiers,
+  requiresEmailPricing,
+  CUSTOM_SPACE_LEGAL_DISCLAIMER,
+} from "@/lib/room-tiers"
+import {
+  roomCounts,
+  roomConfigs,
+  updateRoomCount,
+  updateRoomConfig,
+  getTotalPrice,
+  getSelectedRoomTypes,
+} from "@/lib/room-context"
+import { useMultiSelection } from "@/hooks/use-multi-selection"
+import { useCart } from "@/lib/cart-context"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { useVibration } from "@/hooks/use-vibration"
+import { useNetworkStatus } from "@/hooks/use-network-status"
+import { toast } from "@/components/ui/toast"
+import { formatCurrency } from "@/lib/utils"
+import Image from "next/image"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -32,7 +2302,7 @@ interface CollapsibleAddAllPanelProps {
 }
 
 export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddAllPanelProps) {
-  const { roomCounts, roomConfigs, updateRoomCount, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } = useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
@@ -584,7 +2854,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               <motion.div
                                 key={roomType}
                                 className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                                  count > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
+                                  count > 0
+                                    ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
+                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                                 }`}
                                 onClick={() => {
                                   if (count === 0) {
