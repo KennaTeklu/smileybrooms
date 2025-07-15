@@ -1,4 +1,4 @@
-import { formatCurrency } from "./path-to-format-currency" // Assuming formatCurrency is imported from another file
+import { formatCurrency } from "@/lib/utils"
 
 export interface RoomTier {
   id: string
@@ -8,6 +8,8 @@ export interface RoomTier {
   detailedTasks: string[]
   notIncludedTasks: string[]
   upsellMessage: string
+  isPriceTBD?: boolean
+  paymentType?: "online" | "in_person"
 }
 
 export interface RoomAddOn {
