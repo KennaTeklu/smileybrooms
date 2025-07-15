@@ -533,44 +533,20 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
   ],
   default: [
     {
-      id: "default-essential",
-      name: "ESSENTIAL CLEAN",
-      description: "Basic cleaning for all spaces",
-      price: 25.0,
-      features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
+      id: "def-1",
+      name: "Detailed dusting of all surfaces",
+      price: 15.0,
+      description: "Comprehensive dusting of all surfaces",
     },
+    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
     {
-      id: "default-premium",
-      name: "PREMIUM CLEAN",
-      description: "Thorough cleaning for all spaces",
-      price: 75.0,
-      features: [
-        "Detailed dusting",
-        "Floor detailed cleaning",
-        "Baseboard attention",
-        "Surface sanitizing",
-        "Trash removal",
-      ],
+      id: "def-3",
+      name: "Ceiling corner cobweb removal",
+      price: 8.0,
+      description: "Removal of cobwebs from ceiling corners",
     },
-    {
-      id: "default-luxury",
-      name: "LUXURY CLEAN",
-      description: "Comprehensive cleaning for all spaces",
-      price: 225.0,
-      features: [
-        "Specialty surface treatment",
-        "Detail work on fixtures",
-        "Hard-to-reach areas",
-        "Aromatherapy finishing",
-        "Wall spot cleaning",
-        "Ceiling corner cleaning",
-        "Door and doorframe cleaning",
-        "Light fixture detailed cleaning",
-        "Air vent cleaning",
-        "Furniture polishing",
-        "Decor item individual cleaning",
-      ],
-    },
+    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
+    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
   ],
 }
 
@@ -742,20 +718,20 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
   ],
   default: [
     {
-      id: "def-1",
+      id: "def-r1",
       name: "Detailed dusting of all surfaces",
-      price: 15.0,
+      discount: 15.0,
       description: "Comprehensive dusting of all surfaces",
     },
-    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
+    { id: "def-r2", name: "Wall spot cleaning", discount: 12.0, description: "Cleaning of wall spots and marks" },
     {
-      id: "def-3",
+      id: "def-r3",
       name: "Ceiling corner cobweb removal",
-      price: 8.0,
+      discount: 8.0,
       description: "Removal of cobwebs from ceiling corners",
     },
-    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
-    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
+    { id: "def-r4", name: "Light fixture cleaning", discount: 10.0, description: "Cleaning of light fixtures" },
+    { id: "def-r5", name: "Door/doorframe cleaning", discount: 10.0, description: "Cleaning of doors and doorframes" },
   ],
 }
 
@@ -984,6 +960,54 @@ export const roomTiers = {
     notIncludedTasks: [], // All tasks are included in Luxury Clean
     upsellMessage: "Experience the pinnacle of kitchen cleanliness!",
   },
+  // Living Room Tiers
+  "LIVING ROOM ESSENTIAL CLEAN": {
+    basePrice: 110,
+    detailedTasks: ["Carpet vacuuming", "Surface dusting", "Couch arrangement", "Basic organizing"],
+    notIncludedTasks: [
+      "Deep vacuuming",
+      "Furniture dusting",
+      "Couch cleaning",
+      "Electronics cleaning",
+      "Fireplace cleaning",
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    upsellMessage: "For a more thorough living room clean, consider our 'Premium Clean' tier!",
+  },
+  "LIVING ROOM PREMIUM CLEAN": {
+    basePrice: 200,
+    detailedTasks: [
+      "Deep vacuuming",
+      "Furniture dusting",
+      "Couch cleaning",
+      "Electronics cleaning",
+      "Fireplace cleaning",
+    ],
+    notIncludedTasks: [
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your living room!",
+  },
+  "LIVING ROOM LUXURY CLEAN": {
+    basePrice: 340,
+    detailedTasks: [
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of living room cleanliness!",
+  },
 }
 
 export const roomAddOns = {
@@ -1042,22 +1066,22 @@ export const roomAddOns = {
 export const roomReductions = {
   noBaseboards: {
     name: "No Baseboards",
-    price: -5,
+    discount: -5,
     description: "Skip baseboard wiping.",
   },
   noInteriorWindows: {
     name: "No Interior Windows",
-    price: -10,
+    discount: -10,
     description: "Skip interior window cleaning.",
   },
   noOvenClean: {
     name: "No Oven Clean",
-    price: -15,
+    discount: -15,
     description: "Skip oven cleaning.",
   },
   noFridgeClean: {
     name: "No Fridge Clean",
-    price: -10,
+    discount: -10,
     description: "Skip refrigerator cleaning.",
   },
 }
