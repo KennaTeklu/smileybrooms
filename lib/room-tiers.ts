@@ -335,9 +335,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
 }
 
-// Keep all the existing add-ons and reductions data...
 export const defaultAddOns: Record<string, RoomAddOn[]> = {
-  // ... existing add-ons data remains the same
   bedroom: [
     {
       id: "bed-1",
@@ -535,20 +533,44 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
   ],
   default: [
     {
-      id: "def-1",
-      name: "Detailed dusting of all surfaces",
-      price: 15.0,
-      description: "Comprehensive dusting of all surfaces",
+      id: "default-essential",
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for all spaces",
+      price: 25.0,
+      features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
     },
-    { id: "def-2", name: "Wall spot cleaning", price: 12.0, description: "Cleaning of wall spots and marks" },
     {
-      id: "def-3",
-      name: "Ceiling corner cobweb removal",
-      price: 8.0,
-      description: "Removal of cobwebs from ceiling corners",
+      id: "default-premium",
+      name: "PREMIUM CLEAN",
+      description: "Thorough cleaning for all spaces",
+      price: 75.0,
+      features: [
+        "Detailed dusting",
+        "Floor detailed cleaning",
+        "Baseboard attention",
+        "Surface sanitizing",
+        "Trash removal",
+      ],
     },
-    { id: "def-4", name: "Light fixture cleaning", price: 10.0, description: "Cleaning of light fixtures" },
-    { id: "def-5", name: "Door/doorframe cleaning", price: 10.0, description: "Cleaning of doors and doorframes" },
+    {
+      id: "default-luxury",
+      name: "LUXURY CLEAN",
+      description: "Comprehensive cleaning for all spaces",
+      price: 225.0,
+      features: [
+        "Specialty surface treatment",
+        "Detail work on fixtures",
+        "Hard-to-reach areas",
+        "Aromatherapy finishing",
+        "Wall spot cleaning",
+        "Ceiling corner cleaning",
+        "Door and doorframe cleaning",
+        "Light fixture detailed cleaning",
+        "Air vent cleaning",
+        "Furniture polishing",
+        "Decor item individual cleaning",
+      ],
+    },
   ],
 }
 
@@ -910,6 +932,57 @@ export const roomTiers = {
     ],
     notIncludedTasks: [], // All tasks are included in Luxury Clean
     upsellMessage: "Experience the pinnacle of bathroom cleanliness!",
+  },
+  // Kitchen Tiers
+  "KITCHEN ESSENTIAL CLEAN": {
+    basePrice: 160,
+    detailedTasks: ["Countertop cleaning", "Sink & faucet", "Stovetop cleaning", "Basic organizing"],
+    notIncludedTasks: [
+      "Countertop detailing",
+      "Sink restoration",
+      "Stovetop & oven",
+      "Cabinet fronts",
+      "Appliance exteriors",
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    upsellMessage: "For a more thorough kitchen clean, consider our 'Premium Clean' tier!",
+  },
+  "KITCHEN PREMIUM CLEAN": {
+    basePrice: 280,
+    detailedTasks: [
+      "Countertop detailing",
+      "Sink restoration",
+      "Stovetop & oven",
+      "Cabinet fronts",
+      "Appliance exteriors",
+    ],
+    notIncludedTasks: [
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your kitchen!",
+  },
+  "KITCHEN LUXURY CLEAN": {
+    basePrice: 480,
+    detailedTasks: [
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of kitchen cleanliness!",
   },
 }
 
