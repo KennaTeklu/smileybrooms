@@ -836,11 +836,34 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
     { id: "def-r4", name: "Light fixture cleaning", discount: 10.0, description: "Cleaning of light fixtures" },
     { id: "def-r5", name: "Door/doorframe cleaning", discount: 10.0, description: "Cleaning of doors and doorframes" },
   ],
+  default: [],
 }
 
 export function getRoomTiers(roomType: string): RoomTier[] {
   // Return specific tiers for the room type if they exist, otherwise return default tiers
   return (defaultTiers as any)[roomType] || defaultTiers.default
+}
+
+// --- NEW HELPERS (restored) ----------------------------------------------
+
+export function getRoomAddOns(roomType: string): RoomAddOn[] {
+  return (defaultAddOns as any)[roomType] || defaultAddOns.default
+}
+
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return (defaultReductions as any)[roomType] || defaultReductions.default
+}
+
+/**
+ * Find a tier price by its ID (searches all room‐specific tier lists).
+ * Returns 0 if the ID is not found.
+ */
+export function getPriceForTier(tierId: string): number {
+  for (const [, tiers] of Object.entries(defaultTiers)) {
+    const tier = (tiers as RoomTier[]).find((t) => t.id === tierId)
+    if (tier) return tier.price
+  }
+  return 0
 }
 
 // Re-export roomTiers to make it accessible
