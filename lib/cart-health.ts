@@ -210,10 +210,3 @@ export function getCartHealthReport(items: CartItem[]): CartHealthReport {
     }
   }
 }
-
-// -----------------------------------------------------------------------------
-// Public helper requested by the UI
-// -----------------------------------------------------------------------------
-export function getCartHealthSuggestions(items: CartItem[]): string[] {
-  return analyzeCartHealth(items).suggestions
-}
