@@ -747,7 +747,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-medium text-sm truncate">{displayName}</h4>
                                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                                      {formatCurrency(config?.totalPrice || 0)}
+                                      {roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
+                                        ? "Email for Pricing"
+                                        : formatCurrency(config?.totalPrice || 0)}
                                     </p>
                                   </div>
                                   {count > 0 && (
