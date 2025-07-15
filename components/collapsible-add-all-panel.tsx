@@ -162,8 +162,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
     price *= frequencyMultiplier // Apply frequency discount first
 
-    if (selectedFrequency === "one_time" && isFullHouseChecked) {
-      price *= 0.95 // Apply 5% discount for one-time full house
+    // Apply full house discount only to recurring frequencies (not one-time)
+    if (selectedFrequency !== "one_time" && isFullHouseChecked) {
+      price *= 0.95 // Apply 5% discount for recurring full house
     }
     return price
   }, [baseTotalPrice, selectedFrequency, isFullHouseChecked])
@@ -214,7 +215,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               basePrice: basePrice, // Store the original base price for reference
               frequencyMultiplier: frequencyMultiplier, // Store the multiplier for reference
             },
-            isFullHousePromoApplied: selectedFrequency === "one_time" && isFullHouseChecked,
+            // Apply full house discount only to recurring frequencies (not one-time)
+            isFullHousePromoApplied: selectedFrequency !== "one_time" && isFullHouseChecked,
             paymentType: config.paymentType, // Pass the paymentType from roomConfig
           })
 
@@ -809,8 +811,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                             value={selectedFrequency}
                             onValueChange={(value: keyof typeof ROOM_CONFIG.frequencyMultipliers) => {
                               setSelectedFrequency(value)
-                              if (value !== "one_time") {
-                                // Only allow full house for one_time
+                              if (value === "one_time") {
+                                // Reset full house checkbox when switching to one-time
                                 setIsFullHouseChecked(false)
                               }
                             }}
@@ -828,9 +830,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           </Select>
                         </div>
 
-                        {selectedFrequency === "one_time" && (
+                        {selectedFrequency !== "one_time" && (
                           <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700">
-                            <h4 className="font-semibold mb-3 text-green-800 dark:text-green-300">Special Offer</h4>
+                            <h4 className="font-semibold mb-3 text-green-800 dark:text-green-300">
+                              Recurring Service Discount
+                            </h4>
                             <div className="flex items-start space-x-2">
                               <Checkbox
                                 id="full-house"
@@ -845,7 +849,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                   Full House - Save 5%
                                 </Label>
                                 <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                                  Check if booking entire home
+                                  Check if booking entire home for recurring service
                                 </p>
                               </div>
                             </div>
@@ -995,10 +999,15 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
                             </span>
                           </div>
-                          {selectedFrequency === "one_time" && isFullHouseChecked && (
+                          {selectedFrequency !== "one_time" && isFullHouseChecked && (
                             <div className="flex justify-between text-sm text-green-600 dark:text-green-400 mt-1">
                               <span>Full House Discount (5%)</span>
-                              <span>-{formatCurrency(baseTotalPrice * 0.05)}</span>
+                              <span>
+                                -
+                                {formatCurrency(
+                                  baseTotalPrice * ROOM_CONFIG.frequencyMultipliers[selectedFrequency] * 0.05,
+                                )}
+                              </span>
                             </div>
                           )}
                         </div>
