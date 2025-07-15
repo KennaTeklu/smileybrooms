@@ -430,7 +430,7 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={cn(
-                "absolute top-full left-1/2 -translate-x-1/2 mt-3 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl border-2 border-purple-200/50 dark:border-purple-800/50",
+                "absolute top-full left-1/2 -translate-x-1/2 mt-3 mx-4 sm:mx-0 w-[calc(100vw-2rem)] sm:w-96 md:w-[28rem] lg:w-[32rem] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl border-2 border-purple-200/50 dark:border-purple-800/50 z-50",
                 "relative flex flex-col",
                 "overflow-y-auto",
               )}
