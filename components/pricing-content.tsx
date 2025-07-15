@@ -104,8 +104,9 @@ function PricingContent() {
         <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
           {/* Core Rooms Category */}
           <RoomCategory
+            title="Core Rooms"
             description="Essential areas for a standard clean."
-            rooms={["bedroom", "bathroom", "kitchen", "living-room", "dining-room"]}
+            rooms={["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
             onRoomConfigChange={handleRoomConfigChange}
@@ -120,7 +121,7 @@ function PricingContent() {
           <RoomCategory
             title="Additional Spaces"
             description="Expand your cleaning to other areas."
-            rooms={["home-office", "laundry-room", "entryway", "hallway", "stairs"]}
+            rooms={["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"]}
             roomCounts={roomCounts}
             onRoomCountChange={handleRoomCountChange}
             onRoomConfigChange={handleRoomConfigChange}

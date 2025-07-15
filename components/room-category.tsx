@@ -12,7 +12,7 @@ import { roomImages, roomDisplayNames, roomIcons, type RoomTier } from "@/lib/ro
 import Image from "next/image"
 import { useVibration } from "@/hooks/use-vibration"
 import { toast } from "@/components/ui/use-toast"
-import { useMultiSelection } from "@/hooks/use-multi-selection" // Import the missing hook
+import { useCart } from "@/lib/cart-context" // Import the missing hook
 
 interface RoomConfig {
   roomName: string
@@ -48,8 +48,9 @@ export function RoomCategory({
   tiers,
 }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
-  const { roomCounts, roomConfigs, updateRoomCount, addItem } = useRoomContext()
-  const isMultiSelection = useMultiSelection(roomCounts)
+  const { roomCounts, roomConfigs, updateRoomCount } = useRoomContext()
+  const { addItem } = useCart()
+  const isMultiSelection = Object.values(roomCounts).some((c) => c > 1)
   const [addingRoomId, setAddingRoomId] = useState<string | null>(null)
   const [initialRenderComplete, setInitialRenderComplete] = useState(false) // New state
   const { vibrate } = useVibration()
