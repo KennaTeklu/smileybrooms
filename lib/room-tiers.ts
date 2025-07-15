@@ -335,6 +335,392 @@ export const defaultTiers: Record<string, RoomTier[]> = {
   ],
 }
 
+/**
+ * Flat lookup of all generic tier templates keyed by tier
+ * name (e.g. "ESSENTIAL CLEAN", "BATHROOM PREMIUM CLEAN").
+ * Components like `CollapsibleAddAllPanel` use this map to
+ * grab tasks, upsell messages, etc.
+ */
+export const roomTiers = {
+  // ---------- Generic tiers ----------
+  "ESSENTIAL CLEAN": {
+    basePrice: 120,
+    detailedTasks: ["Floor vacuuming", "Bed making", "Surface organization", "Basic dusting"],
+    notIncludedTasks: [
+      "Deep floor care",
+      "Mattress steaming",
+      "Complete bed service",
+      "Full surface dusting",
+      "Closet organization",
+      "Comprehensive floor restoration",
+      "Under-bed detailing",
+      "Bed frame deep clean",
+      "Walk-in closet organization",
+      "Laundry service",
+      "Electronics cleaning",
+    ],
+    upsellMessage: "For a more thorough clean, consider our 'Premium Clean' tier!",
+  },
+  "PREMIUM CLEAN": {
+    basePrice: 220,
+    detailedTasks: [
+      "Deep floor care",
+      "Mattress steaming",
+      "Complete bed service",
+      "Full surface dusting",
+      "Closet organization",
+    ],
+    notIncludedTasks: [
+      "Comprehensive floor restoration",
+      "Under-bed detailing",
+      "Bed frame deep clean",
+      "Walk-in closet organization",
+      "Laundry service",
+      "Electronics cleaning",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier!",
+  },
+  "LUXURY CLEAN": {
+    basePrice: 380,
+    detailedTasks: [
+      "Comprehensive floor restoration",
+      "Under-bed detailing",
+      "Bed frame deep clean",
+      "Walk-in closet organization",
+      "Laundry service",
+      "Electronics cleaning",
+    ],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of cleanliness!",
+  },
+
+  // ---------- Room-specific tiers ----------
+  // Bathroom -------------------------------------------------
+  "BATHROOM ESSENTIAL CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Toilet cleaning", "Shower/tub basic clean", "Mirror & sink", "Basic organizing"],
+    notIncludedTasks: [
+      "Toilet deep clean",
+      "Shower/tub restoration",
+      "Vanity detailing",
+      "Floor scrubbing",
+      "Towel service",
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    upsellMessage: "For a more thorough bathroom clean, consider our 'Premium Clean' tier!",
+  },
+  "BATHROOM PREMIUM CLEAN": {
+    basePrice: 250,
+    detailedTasks: [
+      "Toilet deep clean",
+      "Shower/tub restoration",
+      "Vanity detailing",
+      "Floor scrubbing",
+      "Towel service",
+    ],
+    notIncludedTasks: [
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your bathroom!",
+  },
+  "BATHROOM LUXURY CLEAN": {
+    basePrice: 420,
+    detailedTasks: [
+      "Complete toilet restoration",
+      "Shower/tub deep restoration",
+      "Vanity organization",
+      "Floor restoration",
+      "Ventilation cleaning",
+      "Luxury amenities",
+    ],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of bathroom cleanliness!",
+  },
+
+  // Kitchen --------------------------------------------------
+  "KITCHEN ESSENTIAL CLEAN": {
+    basePrice: 160,
+    detailedTasks: ["Countertop cleaning", "Sink & faucet", "Stovetop cleaning", "Basic organizing"],
+    notIncludedTasks: [
+      "Countertop detailing",
+      "Sink restoration",
+      "Stovetop & oven",
+      "Cabinet fronts",
+      "Appliance exteriors",
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    upsellMessage: "For a more thorough kitchen clean, consider our 'Premium Clean' tier!",
+  },
+  "KITCHEN PREMIUM CLEAN": {
+    basePrice: 280,
+    detailedTasks: [
+      "Countertop detailing",
+      "Sink restoration",
+      "Stovetop & oven",
+      "Cabinet fronts",
+      "Appliance exteriors",
+    ],
+    notIncludedTasks: [
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your kitchen!",
+  },
+  "KITCHEN LUXURY CLEAN": {
+    basePrice: 480,
+    detailedTasks: [
+      "Complete countertop restoration",
+      "Sink & faucet restoration",
+      "Oven deep clean",
+      "Cabinet organization",
+      "Refrigerator deep clean",
+      "All appliances",
+    ],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of kitchen cleanliness!",
+  },
+
+  // Living Room ---------------------------------------------
+  "LIVING ROOM ESSENTIAL CLEAN": {
+    basePrice: 110,
+    detailedTasks: ["Carpet vacuuming", "Surface dusting", "Couch arrangement", "Basic organizing"],
+    notIncludedTasks: [
+      "Deep vacuuming",
+      "Furniture dusting",
+      "Couch cleaning",
+      "Electronics cleaning",
+      "Fireplace cleaning",
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    upsellMessage: "For a more thorough living room clean, consider our 'Premium Clean' tier!",
+  },
+  "LIVING ROOM PREMIUM CLEAN": {
+    basePrice: 200,
+    detailedTasks: [
+      "Deep vacuuming",
+      "Furniture dusting",
+      "Couch cleaning",
+      "Electronics cleaning",
+      "Fireplace cleaning",
+    ],
+    notIncludedTasks: [
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your living room!",
+  },
+  "LIVING ROOM LUXURY CLEAN": {
+    basePrice: 340,
+    detailedTasks: [
+      "Carpet restoration",
+      "Furniture restoration",
+      "Upholstery detailing",
+      "Entertainment center",
+      "Complete fireplace restoration",
+    ],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of living room cleanliness!",
+  },
+
+  // Dining Room ---------------------------------------------
+  "DINING ROOM ESSENTIAL CLEAN": {
+    basePrice: 80,
+    detailedTasks: ["Table cleaning", "Floor vacuuming", "Basic organizing"],
+    notIncludedTasks: [
+      "Table & chairs detailing",
+      "Floor deep clean",
+      "China cabinet exterior",
+      "Furniture restoration",
+      "Floor restoration",
+      "China cabinet organization",
+      "Lighting fixtures",
+    ],
+    upsellMessage: "For a more thorough dining room clean, consider our 'Premium Clean' tier!",
+  },
+  "DINING ROOM PREMIUM CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Table & chairs detailing", "Floor deep clean", "China cabinet exterior"],
+    notIncludedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your dining room!",
+  },
+  "DINING ROOM LUXURY CLEAN": {
+    basePrice: 240,
+    detailedTasks: ["Furniture restoration", "Floor restoration", "China cabinet organization", "Lighting fixtures"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of dining room cleanliness!",
+  },
+
+  // Home Office ---------------------------------------------
+  "HOME OFFICE ESSENTIAL CLEAN": {
+    basePrice: 130,
+    detailedTasks: ["Desk cleaning", "Floor vacuuming", "Basic organizing", "Electronics dusting"],
+    notIncludedTasks: [
+      "Desk organization",
+      "Electronics cleaning",
+      "Floor detailing",
+      "Bookshelf organizing",
+      "Complete workstation setup",
+      "Equipment maintenance",
+      "Floor restoration",
+      "Storage optimization",
+    ],
+    upsellMessage: "For a more thorough home office clean, consider our 'Premium Clean' tier!",
+  },
+  "HOME OFFICE PREMIUM CLEAN": {
+    basePrice: 240,
+    detailedTasks: ["Desk organization", "Electronics cleaning", "Floor detailing", "Bookshelf organizing"],
+    notIncludedTasks: [
+      "Complete workstation setup",
+      "Equipment maintenance",
+      "Floor restoration",
+      "Storage optimization",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your home office!",
+  },
+  "HOME OFFICE LUXURY CLEAN": {
+    basePrice: 420,
+    detailedTasks: ["Complete workstation setup", "Equipment maintenance", "Floor restoration", "Storage optimization"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of home office cleanliness!",
+  },
+
+  // Laundry Room --------------------------------------------
+  "LAUNDRY ROOM ESSENTIAL CLEAN": {
+    basePrice: 100,
+    detailedTasks: ["Appliance exteriors", "Floor cleaning", "Basic organizing", "Utility sink"],
+    notIncludedTasks: [
+      "Appliance deep clean",
+      "Floor & walls",
+      "Storage organization",
+      "Utility sink detail",
+      "Appliance restoration",
+      "Deep sanitization",
+      "Complete organization",
+      "Utility optimization",
+    ],
+    upsellMessage: "For a more thorough laundry room clean, consider our 'Premium Clean' tier!",
+  },
+  "LAUNDRY ROOM PREMIUM CLEAN": {
+    basePrice: 190,
+    detailedTasks: ["Appliance deep clean", "Floor & walls", "Storage organization", "Utility sink detail"],
+    notIncludedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your laundry room!",
+  },
+  "LAUNDRY ROOM LUXURY CLEAN": {
+    basePrice: 320,
+    detailedTasks: ["Appliance restoration", "Deep sanitization", "Complete organization", "Utility optimization"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of laundry room cleanliness!",
+  },
+
+  // Entryway -------------------------------------------------
+  "ENTRYWAY ESSENTIAL CLEAN": {
+    basePrice: 60,
+    detailedTasks: ["Floor cleaning", "Surface dusting", "Basic organizing"],
+    notIncludedTasks: [
+      "Floor detailing",
+      "Furniture cleaning",
+      "Closet organization",
+      "Floor restoration",
+      "Complete organization",
+      "Lighting & fixtures",
+    ],
+    upsellMessage: "For a more thorough entryway clean, consider our 'Premium Clean' tier!",
+  },
+  "ENTRYWAY PREMIUM CLEAN": {
+    basePrice: 100,
+    detailedTasks: ["Floor detailing", "Furniture cleaning", "Closet organization"],
+    notIncludedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your entryway!",
+  },
+  "ENTRYWAY LUXURY CLEAN": {
+    basePrice: 160,
+    detailedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of entryway cleanliness!",
+  },
+
+  // Hallway --------------------------------------------------
+  "HALLWAY ESSENTIAL CLEAN": {
+    basePrice: 50,
+    detailedTasks: ["Floor cleaning", "Wall spot cleaning", "Basic organizing"],
+    notIncludedTasks: [
+      "Floor detailing",
+      "Wall cleaning",
+      "Lighting fixtures",
+      "Floor restoration",
+      "Wall restoration",
+      "Lighting optimization",
+    ],
+    upsellMessage: "For a more thorough hallway clean, consider our 'Premium Clean' tier!",
+  },
+  "HALLWAY PREMIUM CLEAN": {
+    basePrice: 90,
+    detailedTasks: ["Floor detailing", "Wall cleaning", "Lighting fixtures"],
+    notIncludedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your hallway!",
+  },
+  "HALLWAY LUXURY CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of hallway cleanliness!",
+  },
+
+  // Stairs ---------------------------------------------------
+  "STAIRS ESSENTIAL CLEAN": {
+    basePrice: 70,
+    detailedTasks: ["Step vacuuming", "Safety check", "Basic organizing"],
+    notIncludedTasks: [
+      "Deep vacuuming",
+      "Handrail polishing",
+      "Wall cleaning",
+      "Carpet restoration",
+      "Railing restoration",
+      "Wall restoration",
+    ],
+    upsellMessage: "For a more thorough stairs clean, consider our 'Premium Clean' tier!",
+  },
+  "STAIRS PREMIUM CLEAN": {
+    basePrice: 120,
+    detailedTasks: ["Deep vacuuming", "Handrail polishing", "Wall cleaning"],
+    notIncludedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your stairs!",
+  },
+  "STAIRS LUXURY CLEAN": {
+    basePrice: 180,
+    detailedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
+    notIncludedTasks: [],
+    upsellMessage: "Experience the pinnacle of stairs cleanliness!",
+  },
+} as const
+
 export const defaultAddOns: Record<string, RoomAddOn[]> = {
   bedroom: [
     {
