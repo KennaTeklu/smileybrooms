@@ -328,7 +328,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       return (
         <motion.div
           key={roomType}
-          layout
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
           className="flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600 hover:shadow-lg"
         >
           <div className="flex items-center gap-3">
@@ -596,7 +598,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                             return (
                               <motion.div
                                 key={roomType}
-                                layout
                                 className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
                                   count > 0
                                     ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
