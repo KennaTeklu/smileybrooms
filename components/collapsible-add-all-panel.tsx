@@ -654,6 +654,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <p className="text-sm text-gray-500 mt-2">
                           This selection will apply to all rooms you add below.
                         </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          <span className="font-semibold text-blue-500">Note:</span> Please disregard any price numbers
+                          in this dropdown; our team is actively working on a cleaner display.
+                        </p>
                       </div>
 
                       {/* Room Grid */}
