@@ -200,6 +200,13 @@ export default function CartPage() {
                             width={112}
                             height={112}
                             className="object-cover w-full h-full"
+                            onError={(e) => {
+                              // Fallback to local placeholder if remote image fails
+                              const target = e.target as HTMLImageElement
+                              if (target && target.src !== "/placeholder.svg") {
+                                target.src = "/placeholder.svg"
+                              }
+                            }}
                           />
                         </div>
                       )}
