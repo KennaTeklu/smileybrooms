@@ -698,28 +698,28 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
     {
       id: "hal-r1",
       name: "Runner/carpet deep cleaning",
-      price: 20.0,
+      discount: 20.0,
       description: "Deep cleaning of hallway carpet or runner",
     },
     {
       id: "hal-r2",
       name: "Picture frame detailed cleaning",
-      price: 15.0,
+      discount: 15.0,
       description: "Detailed cleaning of picture frames",
     },
     {
       id: "hal-r3",
       name: "Linen closet organization",
-      price: 25.0,
+      discount: 25.0,
       description: "Organization of linen closet contents",
     },
     {
       id: "hal-r4",
       name: "Light fixture detailed cleaning",
-      price: 18.0,
+      discount: 18.0,
       description: "Detailed cleaning of hallway light fixtures",
     },
-    { id: "hal-r5", name: "Wall sconce cleaning", price: 12.0, description: "Cleaning of wall sconces" },
+    { id: "hal-r5", name: "Wall sconce cleaning", discount: 12.0, description: "Cleaning of wall sconces" },
   ],
   stairs: [
     {
@@ -752,73 +752,73 @@ export const defaultReductions: Record<string, RoomReduction[]> = {
 }
 
 // Helper function to get tiers for a specific room type
-export function getRoomTiers(roomType: string): RoomTier[] {
-  return defaultTiers[roomType] || defaultTiers.default
-}
+// export function getRoomTiers(roomType: string): RoomTier[] {
+//   return defaultTiers[roomType] || defaultTiers.default
+// }
 
-// Helper function to get add-ons for a specific room type
-export function getRoomAddOns(roomType: string): RoomAddOn[] {
-  return defaultAddOns[roomType] || defaultAddOns.default
-}
+// // Helper function to get add-ons for a specific room type
+// export function getRoomAddOns(roomType: string): RoomAddOn[] {
+//   return defaultAddOns[roomType] || defaultAddOns.default
+// }
 
-// Helper function to get reductions for a specific room type
-export function getRoomReductions(roomType: string): RoomReduction[] {
-  return defaultReductions[roomType] || defaultReductions.default
-}
+// // Helper function to get reductions for a specific room type
+// export function getRoomReductions(roomType: string): RoomReduction[] {
+//   return defaultReductions[roomType] || defaultReductions.default
+// }
 
-// Helper function to get the price for a specific tier ID
-export function getPriceForTier(tierId: string): number {
-  for (const roomType in defaultTiers) {
-    const tier = defaultTiers[roomType].find((t) => t.id === tierId)
-    if (tier) return tier.price
-  }
-  return 0 // Fallback if tier not found
-}
+// // Helper function to get the price for a specific tier ID
+// export function getPriceForTier(tierId: string): number {
+//   for (const roomType in defaultTiers) {
+//     const tier = defaultTiers[roomType].find((t) => t.id === tierId)
+//     if (tier) return tier.price
+//   }
+//   return 0 // Fallback if tier not found
+// }
 
 // Room type to professional image mapping
-export const roomImages: Record<string, string> = {
-  bedroom: "/images/bedroom-professional.png",
-  bathroom: "/images/bathroom-professional.png",
-  kitchen: "/images/kitchen-professional.png",
-  livingRoom: "/images/living-room-professional.png", // Corrected path
-  diningRoom: "/images/dining-room-professional.png", // Corrected path
-  homeOffice: "/images/home-office-professional.png", // Corrected path
-  laundryRoom: "/images/laundry-room-professional.png", // Corrected path
-  entryway: "/images/entryway-professional.png",
-  hallway: "/images/hallway-professional.png",
-  stairs: "/images/stairs-professional.png",
-  other: "/images/bedroom-professional.png", // fallback for custom rooms
-}
+// export const roomImages: Record<string, string> = {
+//   bedroom: "/images/bedroom-professional.png",
+//   bathroom: "/images/bathroom-professional.png",
+//   kitchen: "/images/kitchen-professional.png",
+//   livingRoom: "/images/living-room-professional.png", // Corrected path
+//   diningRoom: "/images/dining-room-professional.png", // Corrected path
+//   homeOffice: "/images/home-office-professional.png", // Corrected path
+//   laundryRoom: "/images/laundry-room-professional.png", // Corrected path
+//   entryway: "/images/entryway-professional.png",
+//   hallway: "/images/hallway-professional.png",
+//   stairs: "/images/stairs-professional.png",
+//   other: "/images/bedroom-professional.png", // fallback for custom rooms
+// }
 
 // Room type to icon mapping (keeping as fallback)
-export const roomIcons: Record<string, string> = {
-  bedroom: "🛏️",
-  bathroom: "🚿",
-  kitchen: "🍳",
-  livingRoom: "🛋️",
-  diningRoom: "🍽️",
-  homeOffice: "💻",
-  laundryRoom: "🧺",
-  entryway: "🚪",
-  hallway: "🚶",
-  stairs: "🪜",
-  other: "➕",
-}
+// export const roomIcons: Record<string, string> = {
+//   bedroom: "🛏️",
+//   bathroom: "🚿",
+//   kitchen: "🍳",
+//   livingRoom: "🛋️",
+//   diningRoom: "🍽️",
+//   homeOffice: "💻",
+//   laundryRoom: "🧺",
+//   entryway: "🚪",
+//   hallway: "🚶",
+//   stairs: "🪜",
+//   other: "➕",
+// }
 
 // Room type to display name mapping
-export const roomDisplayNames: Record<string, string> = {
-  bedroom: "Bedroom",
-  bathroom: "Bathroom",
-  kitchen: "Kitchen",
-  livingRoom: "Living Room",
-  diningRoom: "Dining Room",
-  homeOffice: "Home Office",
-  laundryRoom: "Laundry Room",
-  entryway: "Entryway",
-  hallway: "Hallway",
-  stairs: "Stairs",
-  other: "Other Space",
-}
+// export const roomDisplayNames: Record<string, string> = {
+//   bedroom: "Bedroom",
+//   bathroom: "Bathroom",
+//   kitchen: "Kitchen",
+//   livingRoom: "Living Room",
+//   diningRoom: "Dining Room",
+//   homeOffice: "Home Office",
+//   laundryRoom: "Laundry Room",
+//   entryway: "Entryway",
+//   hallway: "Hallway",
+//   stairs: "Stairs",
+//   other: "Other Space",
+// }
 
 // New room tiers, add-ons, and reductions
 export const roomTiers = {
@@ -1079,6 +1079,158 @@ export const roomTiers = {
     notIncludedTasks: [], // All tasks are included in Luxury Clean
     upsellMessage: "Experience the pinnacle of laundry room cleanliness!",
   },
+  // Home Office Tiers
+  "HOME OFFICE ESSENTIAL CLEAN": {
+    basePrice: 130,
+    detailedTasks: ["Desk cleaning", "Floor vacuuming", "Basic organizing", "Electronics dusting"],
+    notIncludedTasks: [
+      "Desk organization",
+      "Electronics cleaning",
+      "Floor detailing",
+      "Bookshelf organizing",
+      "Complete workstation setup",
+      "Equipment maintenance",
+      "Floor restoration",
+      "Storage optimization",
+    ],
+    upsellMessage: "For a more thorough home office clean, consider our 'Premium Clean' tier!",
+  },
+  "HOME OFFICE PREMIUM CLEAN": {
+    basePrice: 240,
+    detailedTasks: ["Desk organization", "Electronics cleaning", "Floor detailing", "Bookshelf organizing"],
+    notIncludedTasks: [
+      "Complete workstation setup",
+      "Equipment maintenance",
+      "Floor restoration",
+      "Storage optimization",
+    ],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your home office!",
+  },
+  "HOME OFFICE LUXURY CLEAN": {
+    basePrice: 420,
+    detailedTasks: ["Complete workstation setup", "Equipment maintenance", "Floor restoration", "Storage optimization"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of home office cleanliness!",
+  },
+  // Entryway Tiers
+  "ENTRYWAY ESSENTIAL CLEAN": {
+    basePrice: 60,
+    detailedTasks: ["Floor cleaning", "Surface dusting", "Basic organizing"],
+    notIncludedTasks: [
+      "Floor detailing",
+      "Furniture cleaning",
+      "Closet organization",
+      "Floor restoration",
+      "Complete organization",
+      "Lighting & fixtures",
+    ],
+    upsellMessage: "For a more thorough entryway clean, consider our 'Premium Clean' tier!",
+  },
+  "ENTRYWAY PREMIUM CLEAN": {
+    basePrice: 100,
+    detailedTasks: ["Floor detailing", "Furniture cleaning", "Closet organization"],
+    notIncludedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your entryway!",
+  },
+  "ENTRYWAY LUXURY CLEAN": {
+    basePrice: 160,
+    detailedTasks: ["Floor restoration", "Complete organization", "Lighting & fixtures"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of entryway cleanliness!",
+  },
+  // Hallway Tiers
+  "HALLWAY ESSENTIAL CLEAN": {
+    basePrice: 50,
+    detailedTasks: ["Floor cleaning", "Wall spot cleaning", "Basic organizing"],
+    notIncludedTasks: [
+      "Floor detailing",
+      "Wall cleaning",
+      "Lighting fixtures",
+      "Floor restoration",
+      "Wall restoration",
+      "Lighting optimization",
+    ],
+    upsellMessage: "For a more thorough hallway clean, consider our 'Premium Clean' tier!",
+  },
+  "HALLWAY PREMIUM CLEAN": {
+    basePrice: 90,
+    detailedTasks: ["Floor detailing", "Wall cleaning", "Lighting fixtures"],
+    notIncludedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your hallway!",
+  },
+  "HALLWAY LUXURY CLEAN": {
+    basePrice: 140,
+    detailedTasks: ["Floor restoration", "Wall restoration", "Lighting optimization"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of hallway cleanliness!",
+  },
+  // Stairs Tiers
+  "STAIRS ESSENTIAL CLEAN": {
+    basePrice: 70,
+    detailedTasks: ["Step vacuuming", "Safety check", "Basic organizing"],
+    notIncludedTasks: [
+      "Deep vacuuming",
+      "Handrail polishing",
+      "Wall cleaning",
+      "Carpet restoration",
+      "Railing restoration",
+      "Wall restoration",
+    ],
+    upsellMessage: "For a more thorough stairs clean, consider our 'Premium Clean' tier!",
+  },
+  "STAIRS PREMIUM CLEAN": {
+    basePrice: 120,
+    detailedTasks: ["Deep vacuuming", "Handrail polishing", "Wall cleaning"],
+    notIncludedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
+    upsellMessage: "Achieve ultimate freshness with our 'Luxury Clean' tier for your stairs!",
+  },
+  "STAIRS LUXURY CLEAN": {
+    basePrice: 180,
+    detailedTasks: ["Carpet restoration", "Railing restoration", "Wall restoration"],
+    notIncludedTasks: [], // All tasks are included in Luxury Clean
+    upsellMessage: "Experience the pinnacle of stairs cleanliness!",
+  },
+  default: [
+    {
+      id: "default-essential",
+      name: "ESSENTIAL CLEAN",
+      description: "Basic cleaning for all spaces",
+      price: 25.0,
+      features: ["Surface dusting", "Floor vacuum/sweep", "General tidying"],
+    },
+    {
+      id: "default-premium",
+      name: "PREMIUM CLEAN",
+      description: "Thorough cleaning for all spaces",
+      price: 75.0,
+      features: [
+        "Detailed dusting",
+        "Floor detailed cleaning",
+        "Baseboard attention",
+        "Surface sanitizing",
+        "Trash removal",
+      ],
+    },
+    {
+      id: "default-luxury",
+      name: "LUXURY CLEAN",
+      description: "Comprehensive cleaning for all spaces",
+      price: 225.0,
+      features: [
+        "Specialty surface treatment",
+        "Detail work on fixtures",
+        "Hard-to-reach areas",
+        "Aromatherapy finishing",
+        "Wall spot cleaning",
+        "Ceiling corner cleaning",
+        "Door and doorframe cleaning",
+        "Light fixture detailed cleaning",
+        "Air vent cleaning",
+        "Furniture polishing",
+        "Decor item individual cleaning",
+      ],
+    },
+  ],
 }
 
 export const roomAddOns = {
@@ -1155,4 +1307,101 @@ export const roomReductions = {
     discount: -10,
     description: "Skip refrigerator cleaning.",
   },
+}
+
+// Helper function to get tiers for a specific room type
+export function getRoomTiers(roomType: string): RoomTier[] {
+  return roomTiers[roomType]
+    ? Object.entries(roomTiers)
+        .filter(([key]) => key.toUpperCase().includes(roomType.toUpperCase()))
+        .map(([key, value]) => ({
+          id: key,
+          name: key,
+          description: `Tasks: ${value.detailedTasks.join(", ")}`,
+          price: value.basePrice,
+          features: value.detailedTasks,
+        }))
+    : Object.entries(roomTiers)
+        .filter(([key]) => key.toUpperCase().includes("DEFAULT"))
+        .map(([key, value]) => ({
+          id: key,
+          name: key,
+          description: `Tasks: ${value.detailedTasks.join(", ")}`,
+          price: value.basePrice,
+          features: value.detailedTasks,
+        }))
+}
+
+// Helper function to get add-ons for a specific room type
+export function getRoomAddOns(roomType: string): RoomAddOn[] {
+  return Object.entries(roomAddOns).map(([key, value]) => ({
+    id: key,
+    name: value.name,
+    price: value.price,
+    description: value.description,
+  }))
+}
+
+// Helper function to get reductions for a specific room type
+export function getRoomReductions(roomType: string): RoomReduction[] {
+  return Object.entries(roomReductions).map(([key, value]) => ({
+    id: key,
+    name: value.name,
+    discount: value.discount,
+    description: value.description,
+  }))
+}
+
+// Helper function to get the price for a specific tier ID
+export function getPriceForTier(tierId: string): number {
+  const tier = roomTiers[tierId]
+  if (tier) {
+    return tier.basePrice
+  }
+  return 0 // Fallback if tier not found
+}
+
+// Room type to professional image mapping
+export const roomImages: Record<string, string> = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  livingRoom: "/images/living-room-professional.png", // Corrected path
+  diningRoom: "/images/dining-room-professional.png", // Corrected path
+  homeOffice: "/images/home-office-professional.png", // Corrected path
+  laundryRoom: "/images/laundry-room-professional.png", // Corrected path
+  entryway: "/images/entryway-professional.png",
+  hallway: "/images/hallway-professional.png",
+  stairs: "/images/stairs-professional.png",
+  other: "/images/bedroom-professional.png", // fallback for custom rooms
+}
+
+// Room type to icon mapping (keeping as fallback)
+export const roomIcons: Record<string, string> = {
+  bedroom: "🛏️",
+  bathroom: "🚿",
+  kitchen: "🍳",
+  livingRoom: "🛋️",
+  diningRoom: "🍽️",
+  homeOffice: "💻",
+  laundryRoom: "🧺",
+  entryway: "🚪",
+  hallway: "🚶",
+  stairs: "🪜",
+  other: "➕",
+}
+
+// Room type to display name mapping
+export const roomDisplayNames: Record<string, string> = {
+  bedroom: "Bedroom",
+  bathroom: "Bathroom",
+  kitchen: "Kitchen",
+  livingRoom: "Living Room",
+  diningRoom: "Dining Room",
+  homeOffice: "Home Office",
+  laundryRoom: "Laundry Room",
+  entryway: "Entryway",
+  hallway: "Hallway",
+  stairs: "Stairs",
+  other: "Other Space",
 }
