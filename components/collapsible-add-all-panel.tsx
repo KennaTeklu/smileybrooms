@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect } from "react"
-
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -75,16 +74,24 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
+  // Ref to track if initial room setup has been performed for the current open state
+  const hasInitializedRoomsOnOpenRef = useRef(false)
+
   // Function to apply the selected global tier to a specific room
+  // This function now takes currentRoomConfigs as an argument to avoid direct dependency on roomConfigs state
   const applyGlobalTierToRoom = useCallback(
-    (roomType: string, tierId: string) => {
+    (roomType: string, tierId: string, currentRoomConfigs: typeof roomConfigs) => {
       const availableTiers = getRoomTiers(roomType)
       const selectedTierObject = availableTiers.find((t) => t.id === tierId)
 
-      if (selectedTierObject) {
+      const currentConfig = currentRoomConfigs[roomType]
+      const currentTier = currentConfig?.selectedTier
+      const currentPrice = currentConfig?.totalPrice
+
+      if (selectedTierObject && (currentTier !== tierId || currentPrice !== selectedTierObject.price)) {
         const genericTierDetails = roomTiers[selectedTierObject.name]
         updateRoomConfig(roomType, {
-          ...roomConfigs[roomType],
+          ...currentConfig,
           roomName: roomDisplayNames[roomType] || roomType,
           selectedTier: tierId,
           totalPrice: selectedTierObject.price,
@@ -96,24 +103,31 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         })
       }
     },
-    [roomConfigs, updateRoomConfig],
+    [updateRoomConfig], // Only updateRoomConfig is a dependency now
   )
 
-  // Auto-initialize rooms with the selected global tier when modal opens or global tier changes
+  // Effect for initial room setup when the panel opens or global tier changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitializedRoomsOnOpenRef.current) {
+      // This block runs only once when the modal opens
       Object.keys(roomDisplayNames).forEach((roomType) => {
         // Ensure room count is at least 1 if it's a standard room type and not already selected
+        // Use the current `roomCounts` directly from the hook closure, it's the latest on render
         if (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 0) {
           updateRoomCount(roomType, 1)
         }
         // Apply the global tier to all rooms that are currently selected or just initialized
-        if (roomCounts[roomType] > 0 || !roomType.startsWith("other-custom-")) {
-          applyGlobalTierToRoom(roomType, selectedGlobalTierId)
+        // Pass the current `roomConfigs` to `applyGlobalTierToRoom`
+        if (roomCounts[roomType] > 0 || (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 1)) {
+          applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs)
         }
       })
+      hasInitializedRoomsOnOpenRef.current = true // Mark as initialized
+    } else if (!isOpen) {
+      // Reset the flag when the panel closes
+      hasInitializedRoomsOnOpenRef.current = false
     }
-  }, [isOpen, selectedGlobalTierId, roomCounts, updateRoomCount, applyGlobalTierToRoom])
+  }, [isOpen, selectedGlobalTierId, updateRoomCount, applyGlobalTierToRoom, roomCounts, roomConfigs]) // Keep roomCounts and roomConfigs as dependencies for this effect, but ensure updates are conditional. The key is that `applyGlobalTierToRoom` and `updateRoomCount` are now conditionally called *inside* the effect, and `applyGlobalTierToRoom` doesn't depend on `roomConfigs` directly.
 
   const selectedRoomTypes = getSelectedRoomTypes()
   const baseTotalPrice = getTotalPrice()
@@ -235,11 +249,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       updateRoomCount(roomType, (roomCounts[roomType] || 0) + 1)
       // When incrementing from 0, apply the global tier
       if (roomCounts[roomType] === 0) {
-        applyGlobalTierToRoom(roomType, selectedGlobalTierId)
+        applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
       }
       vibrate(50)
     },
-    [roomCounts, updateRoomCount, vibrate, applyGlobalTierToRoom, selectedGlobalTierId],
+    [roomCounts, updateRoomCount, vibrate, applyGlobalTierToRoom, selectedGlobalTierId, roomConfigs],
   )
 
   const handleDecrementRoom = useCallback(
@@ -257,11 +271,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       setSelectedGlobalTierId(newTierId)
       // Apply the new global tier to all currently selected rooms
       selectedRoomTypes.forEach((roomType) => {
-        applyGlobalTierToRoom(roomType, newTierId)
+        applyGlobalTierToRoom(roomType, newTierId, roomConfigs) // Pass roomConfigs
       })
       vibrate(50)
     },
-    [selectedRoomTypes, applyGlobalTierToRoom, vibrate],
+    [selectedRoomTypes, applyGlobalTierToRoom, vibrate, roomConfigs],
   )
 
   const handleAddCustomRoom = useCallback(() => {
@@ -637,7 +651,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               onClick={() => {
                                 Object.keys(roomDisplayNames).forEach((roomType) => {
                                   updateRoomCount(roomType, 1)
-                                  applyGlobalTierToRoom(roomType, selectedGlobalTierId) // Apply global tier
+                                  applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
                                 })
                               }}
                               className="text-xs"
@@ -675,7 +689,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                 onClick={() => {
                                   if (count === 0) {
                                     updateRoomCount(roomType, 1)
-                                    applyGlobalTierToRoom(roomType, selectedGlobalTierId) // Apply global tier
+                                    applyGlobalTierToRoom(roomType, selectedGlobalTierId, roomConfigs) // Pass roomConfigs
                                   }
                                 }}
                               >
