@@ -3,7 +3,21 @@
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShoppingCart, Plus, Trash2, X, ArrowLeft, ArrowRight, ListChecks, ListX, Lightbulb, CheckCircle, Minus, PlusIcon, ChevronDown } from 'lucide-react'
+import {
+  ShoppingCart,
+  Plus,
+  Trash2,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  ListChecks,
+  ListX,
+  Lightbulb,
+  CheckCircle,
+  Minus,
+  PlusIcon,
+  ChevronDown,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -171,16 +185,21 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     setIsAddingToCart(true)
     try {
       let addedCount = 0
+      const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0
 
       selectedRoomTypes.forEach((roomType) => {
         const count = roomCounts[roomType]
         const config = roomConfigs[roomType]
 
         if (count > 0) {
+          // Calculate the final price including frequency adjustment
+          const basePrice = config.totalPrice || 0
+          const adjustedPrice = basePrice * frequencyMultiplier
+
           addItem({
             id: `custom-cleaning-${roomType}-${Date.now()}`,
             name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
-            price: config.totalPrice, // This is the base price for the room/tier
+            price: adjustedPrice, // Use the frequency-adjusted price
             priceId: "price_custom_cleaning",
             quantity: count,
             image: roomType.startsWith("other-custom-") ? roomImages.other : roomImages[roomType] || "/placeholder.svg",
@@ -192,6 +211,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               detailedTasks: config.detailedTasks,
               notIncludedTasks: config.notIncludedTasks,
               upsellMessage: config.upsellMessage,
+              basePrice: basePrice, // Store the original base price for reference
+              frequencyMultiplier: frequencyMultiplier, // Store the multiplier for reference
             },
             isFullHousePromoApplied: selectedFrequency === "one_time" && isFullHouseChecked,
             paymentType: config.paymentType, // Pass the paymentType from roomConfig
@@ -872,11 +893,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           </div>
                         </div>
                         <div className="flex gap-2 mt-3">
-                          <Button
-                            onClick={handleAddCustomRoom}
-                            className="flex-1"
-                            disabled={!newCustomRoomName.trim()}
-                          >
+                          <Button onClick={handleAddCustomRoom} className="flex-1" disabled={!newCustomRoomName.trim()}>
                             <Plus className="h-4 w-4 mr-2" /> Add Space
                           </Button>
                           <Button
@@ -895,7 +912,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               const subject = "Custom Space Pricing Request"
                               const body = `Hello smileybrooms team, I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustomRoomName}. Best regards`
                               const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-                              window.open(mailtoLink, '_blank')
+                              window.open(mailtoLink, "_blank")
                             }}
                             disabled={!newCustomRoomName.trim()}
                             className="flex-1"
