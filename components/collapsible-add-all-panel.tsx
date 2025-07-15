@@ -30,7 +30,7 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import { roomImages, roomDisplayNames, defaultTiers, getRoomTiers } from "@/lib/room-tiers" // Import getRoomTiers
+import { roomImages, roomDisplayNames, defaultTiers, getRoomTiers, roomTiers } from "@/lib/room-tiers" // Import roomTiers
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -38,7 +38,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import React from "react"
-import { Checkbox } from "@/components/ui/checkbox" // Ensure Checkbox is imported
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -71,22 +71,25 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   React.useEffect(() => {
     if (isOpen) {
       Object.keys(roomDisplayNames).forEach((roomType) => {
-        if (!roomCounts[roomType]) {
+        // Ensure room count is at least 1 if it's a standard room type
+        if (!roomType.startsWith("other-custom-") && roomCounts[roomType] === 0) {
           updateRoomCount(roomType, 1)
         }
+
         // Ensure roomConfig is set with the default tier's price and details
         if (!roomConfigs[roomType] || roomConfigs[roomType].selectedTier === undefined) {
           const defaultTierForRoom = getRoomTiers(roomType)[0] // Get the first tier for this specific room type
           if (defaultTierForRoom) {
+            const genericTierDetails = roomTiers[defaultTierForRoom.name] // Get detailed tasks from generic tiers
             updateRoomConfig(roomType, {
-              roomName: roomDisplayNames[roomType] || roomType, // Ensure roomName is set
+              roomName: roomDisplayNames[roomType] || roomType,
               selectedTier: defaultTierForRoom.id,
               totalPrice: defaultTierForRoom.price,
               selectedAddOns: [],
               selectedReductions: [],
-              detailedTasks: defaultTierForRoom.features || [],
-              notIncludedTasks: [],
-              upsellMessage: "",
+              detailedTasks: genericTierDetails?.detailedTasks || [],
+              notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
+              upsellMessage: genericTierDetails?.upsellMessage || "",
             })
           }
         }
@@ -131,11 +134,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         if (count > 0) {
           addItem({
             id: `custom-cleaning-${roomType}-${Date.now()}`,
-            name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`, // Use config.roomName for custom rooms
+            name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning`,
             price: config.totalPrice,
             priceId: "price_custom_cleaning",
             quantity: count,
-            image: roomImages[roomType.split("-")[0]] || "/placeholder.svg", // Use base room type for image
+            image: roomType.startsWith("other-custom-") ? roomImages.other : roomImages[roomType] || "/placeholder.svg",
             metadata: {
               roomType,
               roomConfig: config,
@@ -223,6 +226,28 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     [roomCounts, updateRoomCount, vibrate],
   )
 
+  const handleRoomTierChange = useCallback(
+    (roomType: string, newTierId: string) => {
+      const availableTiers = getRoomTiers(roomType)
+      const selectedTierObject = availableTiers.find((t) => t.id === newTierId)
+
+      if (selectedTierObject) {
+        const genericTierDetails = roomTiers[selectedTierObject.name] // Get detailed tasks from generic tiers
+        updateRoomConfig(roomType, {
+          ...roomConfigs[roomType], // Keep existing config properties
+          roomName: roomDisplayNames[roomType] || roomType, // Ensure roomName is set
+          selectedTier: newTierId,
+          totalPrice: selectedTierObject.price,
+          detailedTasks: genericTierDetails?.detailedTasks || [],
+          notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
+          upsellMessage: genericTierDetails?.upsellMessage || "",
+        })
+        vibrate(50)
+      }
+    },
+    [roomConfigs, updateRoomConfig, vibrate],
+  )
+
   const handleAddCustomRoom = useCallback(() => {
     if (!newCustomRoomName.trim() || newCustomRoomQuantity <= 0) {
       toast({
@@ -235,18 +260,20 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     }
 
     const customRoomId = `other-custom-${Date.now()}` // Unique ID for custom room
-    // For custom rooms, set price to 0 and mark as TBD
+    const selectedDefaultTier = defaultTiers.default.find((t) => t.id === newCustomRoomTier)
+    const genericTierDetails = roomTiers[selectedDefaultTier?.name || "PREMIUM CLEAN"] // Fallback to PREMIUM CLEAN
+
     updateRoomCount(customRoomId, newCustomRoomQuantity)
     updateRoomConfig(customRoomId, {
       roomName: newCustomRoomName.trim(),
       selectedTier: newCustomRoomTier,
-      totalPrice: 0, // Price is TBD for custom rooms
-      isPriceTBD: true, // New flag to indicate price is TBD
+      totalPrice: selectedDefaultTier?.price || 0, // Use price from selected default tier
+      isPriceTBD: false, // Price is now determined by selected tier
       selectedAddOns: [], // Custom rooms start with no add-ons/reductions
       selectedReductions: [],
-      detailedTasks: defaultTiers.default.find((t) => t.id === newCustomRoomTier)?.features || [],
-      upsellMessage: "",
-      notIncludedTasks: [],
+      detailedTasks: genericTierDetails?.detailedTasks || [],
+      notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
+      upsellMessage: genericTierDetails?.upsellMessage || "",
     })
 
     setNewCustomRoomName("")
@@ -330,6 +357,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       const displayPrice = config?.isPriceTBD ? "Price TBD" : formatCurrency(config?.totalPrice || 0)
       const displayRoomTotal = config?.isPriceTBD ? "Price TBD" : formatCurrency(roomTotal)
 
+      const availableTiers = getRoomTiers(roomType)
+
       return (
         <motion.div
           key={roomType}
@@ -342,14 +371,26 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
             <div className="flex-1 min-w-0">
               <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">{displayName}</h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                {defaultTiers.default.find((t) => t.id === config?.selectedTier)?.name || "Custom Tier"}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="text-xs">
-                  {displayPrice} per room
-                </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Select
+                  value={config?.selectedTier || availableTiers[0]?.id}
+                  onValueChange={(newTierId) => handleRoomTierChange(roomType, newTierId)}
+                >
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue placeholder="Select Tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTiers.map((tier) => (
+                      <SelectItem key={tier.id} value={tier.id} className="text-xs">
+                        {tier.name} ({formatCurrency(tier.price)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <Badge variant="outline" className="text-xs mt-2">
+                {displayPrice} per room
+              </Badge>
             </div>
 
             <div className="text-right flex-shrink-0">
@@ -449,7 +490,15 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         </motion.div>
       )
     })
-  }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
+  }, [
+    selectedRoomTypes,
+    roomConfigs,
+    roomCounts,
+    handleRemoveRoom,
+    handleIncrementRoom,
+    handleDecrementRoom,
+    handleRoomTierChange,
+  ])
 
   // Success notification overlay
   const SuccessNotification = () => (
@@ -575,6 +624,20 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               onClick={() => {
                                 Object.keys(roomDisplayNames).forEach((roomType) => {
                                   updateRoomCount(roomType, 1)
+                                  const defaultTierForRoom = getRoomTiers(roomType)[0]
+                                  if (defaultTierForRoom) {
+                                    const genericTierDetails = roomTiers[defaultTierForRoom.name]
+                                    updateRoomConfig(roomType, {
+                                      roomName: roomDisplayNames[roomType] || roomType,
+                                      selectedTier: defaultTierForRoom.id,
+                                      totalPrice: defaultTierForRoom.price,
+                                      selectedAddOns: [],
+                                      selectedReductions: [],
+                                      detailedTasks: genericTierDetails?.detailedTasks || [],
+                                      notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
+                                      upsellMessage: genericTierDetails?.upsellMessage || "",
+                                    })
+                                  }
                                 })
                               }}
                               className="text-xs"
@@ -593,9 +656,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               notIncludedTasks: [],
                               upsellMessage: "",
                             }
-                            const count = roomCounts[roomType] || 1
+                            const count = roomCounts[roomType] || 0 // Initialize count to 0
                             const imageSrc = roomImages[roomType] || "/placeholder.svg"
                             const displayName = roomDisplayNames[roomType] || roomType
+                            const availableTiers = getRoomTiers(roomType)
 
                             return (
                               <motion.div
@@ -610,15 +674,16 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                     updateRoomCount(roomType, 1)
                                     const defaultTierForRoom = getRoomTiers(roomType)[0]
                                     if (defaultTierForRoom) {
+                                      const genericTierDetails = roomTiers[defaultTierForRoom.name]
                                       updateRoomConfig(roomType, {
                                         roomName: roomDisplayNames[roomType] || roomType,
                                         selectedTier: defaultTierForRoom.id,
                                         totalPrice: defaultTierForRoom.price,
                                         selectedAddOns: [],
                                         selectedReductions: [],
-                                        detailedTasks: defaultTierForRoom.features || [],
-                                        notIncludedTasks: [],
-                                        upsellMessage: "",
+                                        detailedTasks: genericTierDetails?.detailedTasks || [],
+                                        notIncludedTasks: genericTierDetails?.notIncludedTasks || [],
+                                        upsellMessage: genericTierDetails?.upsellMessage || "",
                                       })
                                     }
                                   }
@@ -640,9 +705,21 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <h4 className="font-medium text-sm truncate">{displayName}</h4>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                                      {formatCurrency(config?.totalPrice || 0)}
-                                    </p>
+                                    <Select
+                                      value={config?.selectedTier || availableTiers[0]?.id}
+                                      onValueChange={(newTierId) => handleRoomTierChange(roomType, newTierId)}
+                                    >
+                                      <SelectTrigger className="w-[120px] h-7 text-xs mt-1">
+                                        <SelectValue placeholder="Select Tier" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableTiers.map((tier) => (
+                                          <SelectItem key={tier.id} value={tier.id} className="text-xs">
+                                            {tier.name} ({formatCurrency(tier.price)})
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                   {count > 0 && (
                                     <div className="flex items-center gap-1">
@@ -754,7 +831,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               type="number"
                               min="1"
                               value={newCustomRoomQuantity}
-                              onChange={(e) => Number.parseInt(e.target.value) || 1}
+                              onChange={(e) => setNewCustomRoomQuantity(Number.parseInt(e.target.value) || 1)}
                               className="w-16 text-center"
                             />
                             <Button
