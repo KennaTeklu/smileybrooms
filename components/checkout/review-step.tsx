@@ -209,7 +209,11 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                       )}
                     </div>
                   </div>
-                  <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
+                  {item.paymentType === "in_person" ? (
+                    <span className="font-medium text-lg text-orange-600">Email for Pricing</span>
+                  ) : (
+                    <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -267,8 +271,8 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
               </div>
               {totalInPerson > 0 && (
                 <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                  <span>Estimated In-Person Payment</span>
-                  <span>{formatCurrency(totalInPerson)}</span>
+                  <span>Custom Services</span>
+                  <span>Email for Pricing</span>
                 </div>
               )}
             </div>
@@ -389,7 +393,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
         </div>
         {totalInPerson > 0 && (
           <p className="text-center text-sm text-orange-500 mt-4">
-            Note: An additional {formatCurrency(totalInPerson)} will be collected in person for custom services.
+            Note: Custom services require an in-person payment via Zelle, with pricing confirmed via email.
           </p>
         )}
         <p className="text-center text-sm text-gray-500 mt-4">

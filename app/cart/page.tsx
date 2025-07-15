@@ -249,10 +249,16 @@ export default function CartPage() {
                           </div>
 
                           <div className="text-right">
-                            <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </p>
-                            {item.quantity > 1 && (
+                            {item.paymentType === "in_person" ? (
+                              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                                Email for Pricing
+                              </p>
+                            ) : (
+                              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            )}
+                            {item.quantity > 1 && item.paymentType !== "in_person" && (
                               <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
                             )}
                           </div>
@@ -335,6 +341,12 @@ export default function CartPage() {
                   <span>Total</span>
                   <span className="text-blue-600 dark:text-blue-400">${cart.totalPrice.toFixed(2)}</span>
                 </div>
+                {cart.inPersonPaymentTotal > 0 && (
+                  <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
+                    <span>Custom Services</span>
+                    <span>Email for Pricing</span>
+                  </div>
+                )}
                 {/* New descriptive text */}
                 <p className="text-sm text-muted-foreground mb-4 text-center">
                   Ready to finalize your booking? Proceed to our secure checkout to enter your details and complete your

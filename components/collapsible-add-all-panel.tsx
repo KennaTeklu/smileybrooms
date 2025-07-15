@@ -408,8 +408,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       // Check if it's a custom room or marked for in-person payment
       const isCustomOrInPerson = roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
 
-      const displayPrice = isCustomOrInPerson ? "In-person Payment" : formatCurrency(config?.totalPrice || 0)
-      const displayRoomTotal = isCustomOrInPerson ? "In-person Payment" : formatCurrency(roomTotal)
+      const displayPrice = isCustomOrInPerson ? "Email for Pricing" : formatCurrency(config?.totalPrice || 0)
+      const displayRoomTotal = isCustomOrInPerson ? "Email for Pricing" : formatCurrency(roomTotal)
 
       return (
         <motion.div
@@ -882,6 +882,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         >
                           <Plus className="h-4 w-4 mr-2" /> Add Space
                         </Button>
+                        <p className="text-xs text-gray-400 mt-2">
+                          <span className="font-semibold text-blue-500">Note:</span> Pricing for custom spaces will be
+                          provided via email, with payment collected in-person via Zelle.
+                        </p>
                       </div>
                     </motion.div>
                   ) : (
@@ -910,10 +914,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
 
                             const displayPrice = isCustomOrInPerson
-                              ? "In-person Payment"
+                              ? "Email for Pricing"
                               : formatCurrency(config?.totalPrice || 0)
                             const displayRoomTotal = isCustomOrInPerson
-                              ? "In-person Payment"
+                              ? "Email for Pricing"
                               : formatCurrency(roomTotal)
 
                             return (
