@@ -1,25 +1,42 @@
 import type { RoomConfig } from "@/lib/room-context"
 
 /**
- * Generates a unique ID for a cart item based on its room configuration.
- * This ensures that the same room configuration always results in the same ID,
- * allowing for consistent identification and quantity updates in the cart.
- *
- * @param roomConfig The room configuration object.
- * @returns A unique string ID for the cart item.
+ * Generates a unique and deterministic ID for a cart item based on its room configuration.
+ * This ensures that the same room configuration (room type, tier, add-ons, reductions)
+ * always results in the same cart item ID, allowing for proper consolidation or distinction.
+ * @param config The RoomConfig object.
+ * @returns A unique string ID.
  */
-export function generateCartItemId(roomConfig: RoomConfig): string {
-  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
+export function generateRoomCartItemId(config: RoomConfig): string {
+  const sortedAddOns = [...(config.selectedAddOns || [])].sort().join("-")
+  const sortedReductions = [...(config.selectedReductions || [])].sort().join("-")
 
-  // Sort add-ons and reductions to ensure consistent ID regardless of order
-  const sortedAddOns = [...selectedAddOns].sort()
-  const sortedReductions = [...selectedReductions].sort()
+  // Create a signature based on the core properties that define a unique service instance
+  const signature = [config.roomName, config.selectedTier, sortedAddOns, sortedReductions].join("_")
 
-  // Create a unique string based on all relevant properties
-  const uniqueString = `${roomType}-${selectedTier}-${sortedAddOns.join(",")}-${sortedReductions.join(",")}`
+  // Use a simple hash or UUID based on the signature for a stable ID
+  // For simplicity, we'll use a basic string concatenation. In a real app,
+  // you might use a hashing library (e.g., `sha256`) for more robust IDs.
+  return `room-${signature.replace(/[^a-zA-Z0-9-_]/g, "")}`
+}
 
-  // Use a simple hash or just the string itself for the ID
-  // For simplicity, we'll use the string directly. For very long strings or
-  // cryptographic needs, a hashing function would be appropriate.
-  return uniqueString
+/**
+ * Generates a display name for a cart item based on its room configuration.
+ * @param config The RoomConfig object.
+ * @returns A user-friendly string name.
+ */
+export function getRoomCartItemDisplayName(config: RoomConfig): string {
+  const roomName = config.roomName.replace(/([A-Z])/g, " $1").trim() // Convert camelCase to "Camel Case"
+  const tierName = config.selectedTier.replace(/-/g, " ").toUpperCase()
+
+  let displayName = `${roomName} - ${tierName}`
+
+  if (config.selectedAddOns && config.selectedAddOns.length > 0) {
+    displayName += ` (+${config.selectedAddOns.length} Add-ons)`
+  }
+  if (config.selectedReductions && config.selectedReductions.length > 0) {
+    displayName += ` (-${config.selectedReductions.length} Reductions)`
+  }
+
+  return displayName
 }
