@@ -57,3 +57,5 @@ export default function PaymentMethodSelector({ onSelect, selectedMethod }: Paym
     </Card>
   )
 }
+
+export { PaymentMethodSelector }

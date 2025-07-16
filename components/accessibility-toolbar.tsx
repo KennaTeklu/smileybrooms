@@ -5,7 +5,7 @@ import { Sun, Moon, Plus, Minus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export default function AccessibilityToolbar() {
+export function AccessibilityToolbar() {
   const [open, setOpen] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [fontScale, setFontScale] = useState(1)
@@ -78,3 +78,4 @@ export default function AccessibilityToolbar() {
     </>
   )
 }
+export default AccessibilityToolbar

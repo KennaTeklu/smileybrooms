@@ -15,7 +15,7 @@ import { CollapsibleAddAllPanel } from "./collapsible-add-all-panel"
 import { RoomCategory } from "./room-category"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-export function PricingContent() {
+export default function PricingContent() {
   const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, resetRoomConfigs } = useRoomContext()
   const { addMultipleItems, addItem } = useCart()
   const { toast } = useToast()

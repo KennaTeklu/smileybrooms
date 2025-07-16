@@ -40,3 +40,23 @@ export function generateOutOfServiceMailtoLink(state: string, email = "info@smil
   )
   return `mailto:${email}?subject=${subject}&body=${body}`
 }
+
+/**
+ * Converts a flat object into a nicely formatted email body.
+ */
+export function formatFormDataForEmail(formData: Record<string, string>): string {
+  return Object.entries(formData)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n")
+}
+
+/**
+ * Opens a pre-filled Gmail compose window with the provided data.
+ */
+export function openGmailWithFormData(to: string, subject: string, formData: Record<string, string>) {
+  const body = encodeURIComponent(formatFormDataForEmail(formData))
+  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+    to,
+  )}&su=${encodeURIComponent(subject)}&body=${body}`
+  window.open(url, "_blank")
+}
