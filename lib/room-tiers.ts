@@ -677,9 +677,6 @@ export const defaultAddOns: Record<string, RoomAddOn[]> = {
   ],
 }
 
-// Export ROOM_ADD_ONS for compatibility with existing imports
-export const ROOM_ADD_ONS = defaultAddOns
-
 export const defaultReductions: Record<string, RoomReduction[]> = {
   bedroom: [
     { id: "bed-r1", name: "Skip mirror cleaning", discount: 5.0, description: "Mirrors will not be cleaned" },

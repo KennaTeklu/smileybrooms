@@ -1,141 +1,60 @@
 "use client"
 
 import type React from "react"
-
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect } from "react"
-import {
-  isValidStreetAddress,
-  isValidCity,
-  isValidUSState,
-  isValidUSZip,
-  formatUSZip,
-} from "@/lib/validation/address-validation"
-import { generateOutOfServiceMailtoLink } from "@/lib/email-utils"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import Link from "next/link"
+import { US_STATES } from "@/lib/location-data"
+import { motion } from "framer-motion"
+import { useToast } from "@/components/ui/use-toast"
+import type { CheckoutData } from "@/lib/types"
 
 interface AddressStepProps {
-  onNext: (data: {
-    fullName: string
-    email: string
-    phone: string
-    street: string
-    city: string
-    state: string
-    zip: string
-  }) => void
-  onBack: () => void
-  initialData: {
-    fullName: string
-    email: string
-    phone: string
-    street: string
-    city: string
-    state: string
-    zip: string
-  }
+  data: CheckoutData["address"]
+  onSave: (data: CheckoutData["address"]) => void
+  onNext: () => void
+  onPrevious: () => void
 }
 
-const US_STATES = [
-  "AL",
-  "AK",
-  "AZ",
-  "AR",
-  "CA",
-  "CO",
-  "CT",
-  "DE",
-  "FL",
-  "GA",
-  "HI",
-  "ID",
-  "IL",
-  "IN",
-  "IA",
-  "KS",
-  "KY",
-  "LA",
-  "ME",
-  "MD",
-  "MA",
-  "MI",
-  "MN",
-  "MS",
-  "MO",
-  "MT",
-  "NE",
-  "NV",
-  "NH",
-  "NJ",
-  "NM",
-  "NY",
-  "NC",
-  "ND",
-  "OH",
-  "OK",
-  "OR",
-  "PA",
-  "RI",
-  "SC",
-  "SD",
-  "TN",
-  "TX",
-  "UT",
-  "VT",
-  "VA",
-  "WA",
-  "WV",
-  "WI",
-  "WY",
-]
-
-export function AddressStep({ onNext, onBack, initialData }: AddressStepProps) {
-  const [street, setStreet] = useState(initialData.street || "")
-  const [city, setCity] = useState(initialData.city || "")
-  const [state, setState] = useState(initialData.state || "")
-  const [zip, setZip] = useState(initialData.zip || "")
-  const [errors, setErrors] = useState<{
-    street?: string
-    city?: string
-    state?: string
-    zip?: string
-  }>({})
-  const [showOutOfServiceDialog, setShowOutOfServiceDialog] = useState(false)
+export default function AddressStep({ data, onSave, onNext, onPrevious }: AddressStepProps) {
+  const { toast } = useToast()
+  const [addressData, setAddressData] = useState(data)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    setStreet(initialData.street || "")
-    setCity(initialData.city || "")
-    setState(initialData.state || "")
-    setZip(initialData.zip || "")
-    setErrors({}) // Clear errors when initialData changes
-  }, [initialData])
+    setAddressData(data)
+  }, [data])
+
+  const handleChange = (field: string, value: string) => {
+    setAddressData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
 
   const validateForm = () => {
-    const newErrors: { street?: string; city?: string; state?: string; zip?: string } = {}
-    if (!street.trim() || !isValidStreetAddress(street)) {
-      newErrors.street = "A valid street address is required."
-    }
-    if (!city.trim() || !isValidCity(city)) {
-      newErrors.city = "A valid city is required."
-    }
-    if (!state || !isValidUSState(state)) {
-      newErrors.state = "Please select a valid state."
-    }
-    if (!zip.trim() || !isValidUSZip(zip)) {
-      newErrors.zip = "A valid 5-digit ZIP code is required."
-    }
+    const newErrors: Record<string, string> = {}
+    if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
+    if (!addressData.email.trim()) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
+    if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
+    if (!addressData.address.trim()) newErrors.address = "Address is required"
+    if (!addressData.city.trim()) newErrors.city = "City is required"
+    if (!addressData.state) newErrors.state = "State is required"
+    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -143,136 +62,213 @@ export function AddressStep({ onNext, onBack, initialData }: AddressStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      if (state !== "AZ") {
-        setShowOutOfServiceDialog(true)
-      } else {
-        onNext({ ...initialData, street, city, state, zip })
-      }
+      setIsSubmitting(true)
+      onSave(addressData)
+      onNext()
+      setIsSubmitting(false)
+    } else {
+      toast({
+        title: "Please check your information",
+        description: "Some required fields are missing or invalid.",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedZip = formatUSZip(e.target.value)
-    setZip(formattedZip)
-    if (errors.zip) {
-      setErrors((prev) => ({ ...prev, zip: undefined }))
+  const getAddressTypeIcon = () => {
+    switch (addressData.addressType) {
+      case "commercial":
+        return <Building className="h-5 w-5" />
+      case "other":
+        return <Navigation className="h-5 w-5" />
+      default:
+        return <Home className="h-5 w-5" />
     }
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <CardHeader>
-        <CardTitle className="text-2xl">Service Address</CardTitle>
-        <CardDescription>Where would you like us to provide the cleaning service?</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <MapPin className="h-5 w-5" />
+          Service Address
+        </CardTitle>
+        <CardDescription>Where would you like us to provide your cleaning service?</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="street">Street Address</Label>
-            <Input
-              id="street"
-              type="text"
-              placeholder="123 Main St"
-              value={street}
-              onChange={(e) => {
-                setStreet(e.target.value)
-                if (errors.street) setErrors((prev) => ({ ...prev, street: undefined }))
-              }}
-              required
-            />
-            {errors.street && <p className="text-red-500 text-sm">{errors.street}</p>}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                type="text"
-                placeholder="Phoenix"
-                value={city}
-                onChange={(e) => {
-                  setCity(e.target.value)
-                  if (errors.city) setErrors((prev) => ({ ...prev, city: undefined }))
-                }}
-                required
-              />
-              {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Contact Information (pre-filled from previous step) */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium">Contact Information (Pre-filled)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="fullName" className="text-base">
+                  Full Name
+                </Label>
+                <Input id="fullName" value={addressData.fullName} disabled className="mt-2 h-12 bg-gray-100" />
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-base">
+                  Email
+                </Label>
+                <Input id="email" type="email" value={addressData.email} disabled className="mt-2 h-12 bg-gray-100" />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="state">State</Label>
-              <Select
-                value={state}
-                onValueChange={(value) => {
-                  setState(value)
-                  if (errors.state) setErrors((prev) => ({ ...prev, state: undefined }))
-                }}
-                required
+            <div>
+              <Label htmlFor="phone" className="text-base">
+                Phone
+              </Label>
+              <Input id="phone" type="tel" value={addressData.phone} disabled className="mt-2 h-12 bg-gray-100" />
+            </div>
+          </div>
+
+          {/* Address Type */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Address Type</h3>
+            <div className="flex flex-wrap gap-4">
+              <Card
+                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "residential" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                onClick={() => handleChange("addressType", "residential")}
               >
-                <SelectTrigger id="state">
-                  <SelectValue placeholder="Select state" />
-                </SelectTrigger>
-                <SelectContent>
-                  {US_STATES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.state && <p className="text-red-500 text-sm">{errors.state}</p>}
+                <CardContent className="p-4 text-center">
+                  <Home className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                  <p className="font-medium">Residential</p>
+                </CardContent>
+              </Card>
+              <Card
+                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "commercial" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                onClick={() => handleChange("addressType", "commercial")}
+              >
+                <CardContent className="p-4 text-center">
+                  <Building className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                  <p className="font-medium">Commercial</p>
+                </CardContent>
+              </Card>
+              <Card
+                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                onClick={() => handleChange("addressType", "other")}
+              >
+                <CardContent className="p-4 text-center">
+                  <Navigation className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                  <p className="font-medium">Other</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="zip">ZIP Code</Label>
-            <Input
-              id="zip"
-              type="text"
-              placeholder="85001"
-              value={zip}
-              onChange={handleZipChange}
-              maxLength={5}
-              required
-            />
-            {errors.zip && <p className="text-red-500 text-sm">{errors.zip}</p>}
+
+          {/* Address Information */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium flex items-center gap-2">
+              {getAddressTypeIcon()}
+              Service Address
+            </h3>
+            <div>
+              <Label htmlFor="address" className="text-base">
+                Street Address
+              </Label>
+              <Input
+                id="address"
+                value={addressData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+                className={`mt-2 h-12 ${errors.address ? "border-red-500" : ""}`}
+                placeholder="123 Main Street"
+              />
+              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+            </div>
+            <div>
+              <Label htmlFor="address2" className="text-base">
+                Apartment, suite, etc. (optional)
+              </Label>
+              <Input
+                id="address2"
+                value={addressData.address2}
+                onChange={(e) => handleChange("address2", e.target.value)}
+                className="mt-2 h-12"
+                placeholder="Apt 4B"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Label htmlFor="city" className="text-base">
+                  City
+                </Label>
+                <Input
+                  id="city"
+                  value={addressData.city}
+                  onChange={(e) => handleChange("city", e.target.value)}
+                  className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
+                  placeholder="New York"
+                />
+                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+              </div>
+              <div>
+                <Label htmlFor="state" className="text-base">
+                  State
+                </Label>
+                <Select value={addressData.state} onValueChange={(value) => handleChange("state", value)}>
+                  <SelectTrigger id="state" className={`mt-2 h-12 ${errors.state ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {US_STATES.map((state) => (
+                      <SelectItem key={state.value} value={state.value}>
+                        {state.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
+              </div>
+              <div>
+                <Label htmlFor="zipCode" className="text-base">
+                  ZIP Code
+                </Label>
+                <Input
+                  id="zipCode"
+                  value={addressData.zipCode}
+                  onChange={(e) => handleChange("zipCode", e.target.value)}
+                  className={`mt-2 h-12 ${errors.zipCode ? "border-red-500" : ""}`}
+                  placeholder="10001"
+                />
+                {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between gap-4">
-            <Button type="button" variant="outline" onClick={onBack} className="w-full bg-transparent">
+
+          {/* Special Instructions */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Special Instructions (Optional)</h3>
+            <Textarea
+              id="specialInstructions"
+              value={addressData.specialInstructions}
+              onChange={(e) => handleChange("specialInstructions", e.target.value)}
+              placeholder="Entry instructions, pets, areas to avoid, etc."
+              className="h-32"
+            />
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between pt-6">
+            <Button variant="outline" size="lg" className="px-8 bg-transparent" onClick={onPrevious}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Contact
             </Button>
-            <Button type="submit" className="w-full">
-              Continue to Payment
+            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Continue to Payment
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </form>
       </CardContent>
-
-      <Dialog open={showOutOfServiceDialog} onOpenChange={setShowOutOfServiceDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Service Not Available in Your Area</DialogTitle>
-            <DialogDescription>
-              Currently, Smiley Brooms only operates in Arizona. We are working hard to expand our services!
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            If you'd like to inquire about future service in {state}, please send us an email.
-          </p>
-          <DialogFooter>
-            <Button asChild>
-              <Link
-                href={generateOutOfServiceMailtoLink(state, initialData.email)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Email Us About {state}
-              </Link>
-            </Button>
-            <Button variant="outline" onClick={() => setShowOutOfServiceDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+    </motion.div>
   )
 }

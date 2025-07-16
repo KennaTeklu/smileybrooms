@@ -1,46 +1,33 @@
-import type { CartItem } from "@/lib/cart-context"
-import type { RoomConfig } from "@/lib/room-context" // Assuming RoomConfig is defined here or similar
+import type { RoomConfig } from "@/lib/room-context"
 
 /**
  * Generates a unique ID for a cart item based on its room configuration.
- * This ensures that identical room configurations result in the same cart item ID,
- * allowing for proper quantity management in the cart.
- * @param roomConfig The configuration of the room.
+ * This ensures that the same room type with the same tier, add-ons, and reductions
+ * always produces the same ID, allowing for consistent cart management.
+ * @param config The RoomConfig object.
  * @returns A unique string ID for the cart item.
  */
-export function generateCartItemId(roomConfig: RoomConfig): string {
-  const { roomType, selectedTier, selectedAddOns, selectedReductions } = roomConfig
+export function generateRoomCartItemId(config: RoomConfig): string {
+  const sortedAddOns = [...config.selectedAddOns].sort().join("-")
+  const sortedReductions = [...config.selectedReductions].sort().join("-")
 
-  // Sort add-ons and reductions to ensure consistent ID regardless of order
-  const sortedAddOns = [...selectedAddOns].sort().join("-")
-  const sortedReductions = [...selectedReductions].sort().join("-")
-
-  // Combine relevant properties into a string to form the unique ID
-  // Use a delimiter that won't appear in the actual values (e.g., "::")
-  return `${roomType}::${selectedTier}::${sortedAddOns}::${sortedReductions}`
+  // Combine room name, selected tier, sorted add-ons, and sorted reductions
+  // to create a unique and deterministic ID.
+  return `room-${config.roomName}-${config.selectedTier}-${sortedAddOns}-${sortedReductions}`.toLowerCase()
 }
 
 /**
- * Creates a CartItem object from a RoomConfig.
- * @param roomConfig The room configuration.
- * @param quantity The quantity of this room configuration.
- * @returns A CartItem object.
+ * Generates a display name for a cart item based on its room configuration.
+ * @param config The RoomConfig object.
+ * @returns A user-friendly string name for the cart item.
  */
-export function createCartItemFromRoomConfig(roomConfig: RoomConfig, quantity = 1): CartItem {
-  const id = generateCartItemId(roomConfig)
-  const name = `${roomConfig.roomName} - ${roomConfig.selectedTier}`
-  const price = roomConfig.totalPrice
-  const imageUrl = roomConfig.roomImage // Assuming roomImage is part of RoomConfig
-
-  return {
-    id,
-    name,
-    price,
-    quantity,
-    imageUrl,
-    roomType: roomConfig.roomType,
-    selectedTier: roomConfig.selectedTier,
-    selectedAddOns: roomConfig.selectedAddOns,
-    selectedReductions: roomConfig.selectedReductions || [], // Ensure it's an array
+export function getRoomCartItemDisplayName(config: RoomConfig): string {
+  let name = `${config.roomName.replace(/([A-Z])/g, " $1").trim()} - ${config.selectedTier}`
+  if (config.selectedAddOns.length > 0) {
+    name += ` (+${config.selectedAddOns.length} Add-on${config.selectedAddOns.length > 1 ? "s" : ""})`
   }
+  if (config.selectedReductions.length > 0) {
+    name += ` (-${config.selectedReductions.length} Reduction${config.selectedReductions.length > 1 ? "s" : ""})`
+  }
+  return name
 }

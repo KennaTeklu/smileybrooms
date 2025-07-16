@@ -2,43 +2,44 @@
 
 import type React from "react"
 
-import { ThemeProvider } from "@/components/theme-provider"
-import { CartProvider } from "@/lib/cart-context"
 import { RoomProvider } from "@/lib/room-context"
+import { CartProvider } from "@/lib/cart-context"
+import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { AccessibilityToolbar } from "@/components/accessibility-toolbar"
+import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { TourProvider } from "@/contexts/tour-context"
 import { CookieConsentManager } from "@/components/legal/cookie-consent-manager"
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-
-const queryClient = new QueryClient()
+import { usePathname } from "next/navigation"
+import { useEffect } from "react"
+import { EnhancedHeader } from "@/components/enhanced-header"
+import UnifiedFooter from "@/components/unified-footer"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const [isMounted, setIsMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return null // Or a loading spinner
-  }
+    // Scroll to top on route change
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <AccessibilityProvider>
+    <QueryClientProviderWrapper>
+      <AccessibilityProvider>
+        <RoomProvider>
           <CartProvider>
-            <RoomProvider>
-              {children}
-              <Toaster />
-              <AccessibilityToolbar />
-              <CookieConsentManager />
-            </RoomProvider>
+            <AbandonmentProvider>
+              <TourProvider>
+                <EnhancedHeader />
+                <main className="flex-1">{children}</main>
+                <Toaster />
+                <CookieConsentManager />
+                <UnifiedFooter />
+              </TourProvider>
+            </AbandonmentProvider>
           </CartProvider>
-        </AccessibilityProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+        </RoomProvider>
+      </AccessibilityProvider>
+    </QueryClientProviderWrapper>
   )
 }
