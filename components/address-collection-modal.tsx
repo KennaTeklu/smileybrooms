@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { MapPin, CreditCard } from "lucide-react"
 import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+// Removed Checkbox import as it's no longer needed here
 
 export interface AddressData {
   fullName: string
@@ -29,7 +29,7 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
-  wantsLiveVideo: boolean // Add this new field
+  // Removed wantsLiveVideo: boolean
 }
 
 interface AddressCollectionModalProps {
@@ -48,16 +48,16 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     state: "",
     zipCode: "",
     specialInstructions: "",
-    wantsLiveVideo: false, // Initialize the new field
+    // Removed wantsLiveVideo: false
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target // Destructure 'type' and 'checked'
+    const { name, value } = e.target // Removed type and checked as checkbox is gone
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value, // Handle checkbox 'checked' property
+      [name]: value,
     }))
 
     // Clear error when field is edited
@@ -103,7 +103,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         state: "",
         zipCode: "",
         specialInstructions: "",
-        wantsLiveVideo: false,
+        // Removed wantsLiveVideo: false
       })
 
       onClose()
@@ -258,37 +258,6 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                 placeholder="Entry instructions, pets, areas to avoid, etc."
                 className="h-20"
               />
-            </div>
-
-            {/* Live Video Option */}
-            <div className="flex items-start space-x-2 pt-4">
-              <Checkbox
-                id="wantsLiveVideo"
-                name="wantsLiveVideo"
-                checked={formData.wantsLiveVideo}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "wantsLiveVideo",
-                      value: String(checked), // Convert boolean to string for consistency with handleChange's value
-                      type: "checkbox",
-                      checked: Boolean(checked), // Pass the boolean checked value
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="wantsLiveVideo"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Send me a private YouTube Live link to watch my cleaning.
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  By selecting this, you acknowledge that a live video stream of your cleaning will be accessible to
-                  you. This stream is private and for your viewing only.
-                </p>
-              </div>
             </div>
           </div>
 

@@ -31,18 +31,29 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(data.paymentMethod)
   const [agreeToTerms, setAgreeToTerms] = useState(data.agreeToTerms)
   const [allowVideoRecording, setAllowVideoRecording] = useState(data.allowVideoRecording)
+  const [videoConsentDetails, setVideoConsentDetails] = useState<string | undefined>(data.videoConsentDetails) // New state for consent timestamp
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setPaymentMethod(data.paymentMethod)
     setAgreeToTerms(data.agreeToTerms)
     setAllowVideoRecording(data.allowVideoRecording)
+    setVideoConsentDetails(data.videoConsentDetails)
   }, [data])
 
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const videoDiscount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
   const tax = (subtotal - videoDiscount) * 0.08 // 8% tax
   const total = subtotal - videoDiscount + tax
+
+  const handleAllowVideoRecordingChange = (checked: boolean) => {
+    setAllowVideoRecording(checked)
+    if (checked) {
+      setVideoConsentDetails(new Date().toISOString()) // Record timestamp when checked
+    } else {
+      setVideoConsentDetails(undefined) // Clear timestamp when unchecked
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,13 +68,13 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
     }
 
     setIsSubmitting(true)
-    onSave({ paymentMethod, allowVideoRecording, agreeToTerms })
+    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms }) // Pass new field
     onNext()
     setIsSubmitting(false)
   }
 
   const handleStripePaymentSuccess = () => {
-    onSave({ paymentMethod, allowVideoRecording, agreeToTerms: true }) // Assume terms agreed if using Apple/Google Pay
+    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms: true }) // Assume terms agreed if using Apple/Google Pay
     onNext()
   }
 
@@ -103,16 +114,23 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
           <div className="space-y-4 pt-4">
             <h3 className="text-lg font-medium">Additional Options</h3>
 
-            <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="flex items-start space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <Checkbox
                 id="videoRecording"
                 checked={allowVideoRecording}
-                onCheckedChange={(checked) => setAllowVideoRecording(checked as boolean)}
+                onCheckedChange={(checked) => handleAllowVideoRecordingChange(checked as boolean)}
               />
-              <Label htmlFor="videoRecording" className="text-base">
-                Allow video recording for quality assurance and social media use
-                <span className="text-green-600 font-medium ml-2">(Save 10% on your order)</span>
-              </Label>
+              <div className="grid gap-1.5 leading-none">
+                <Label htmlFor="videoRecording" className="text-base">
+                  Allow video recording for quality assurance and social media use
+                  <span className="text-green-600 font-medium ml-2">(Save 10% on your order)</span>
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  By selecting this, you acknowledge that a live video stream of your cleaning may be recorded and used
+                  for internal quality assurance and promotional purposes. Your privacy is important to us; recordings
+                  will be handled in accordance with our Privacy Policy.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
