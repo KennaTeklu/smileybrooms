@@ -137,6 +137,8 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             // Add new metadata fields
             allow_video_recording: customerData.allowVideoRecording ? "true" : "false",
             video_consent_details: customerData.videoConsentDetails || "N/A",
+            // Ensure customerEmail is also in metadata for staff visibility
+            customer_email_for_staff: customerEmail || customerData.email || "N/A",
           }
         : undefined,
     }
