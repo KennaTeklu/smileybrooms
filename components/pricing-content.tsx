@@ -11,6 +11,7 @@ import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 import { Separator } from "@/components/ui/separator"
 import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
+import { getRoomTiers } from "@/lib/room-tiers"
 
 function PricingContent() {
   const { toast } = useToast()
@@ -55,7 +56,7 @@ function PricingContent() {
     return (
       roomConfigs[roomType] || {
         roomName: roomType,
-        selectedTier: "essential-clean", // Use actual tier ID from room-tiers.ts
+        selectedTier: getRoomTiers(roomType)[0]?.id || "default-essential",
         selectedAddOns: [],
         selectedReductions: [],
         totalPrice: 0, // Will be calculated by RoomContext
