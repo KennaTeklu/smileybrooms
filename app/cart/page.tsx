@@ -15,7 +15,7 @@ import { CartItemDisplay } from "@/components/cart/cart-item-display"
 const formatPrice = (price: number) => `$${price.toFixed(2)}`
 
 export default function CartPage() {
-  const cart = useCart()
+  const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
 
   async function handleCheckout() {
@@ -58,15 +58,15 @@ export default function CartPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Shopping Cart</h1>
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="lg:col-span-4">
-            {cart.items.length > 0 ? (
+            {(cart.items?.length ?? 0) > 0 ? (
               <>
                 <ScrollArea>
-                  {cart.items.map((item) => (
+                  {cart.items?.map((item) => (
                     <CartItemDisplay
                       key={item.id}
                       item={item}
-                      onRemoveItem={() => cart.removeItem(item.id)}
-                      onUpdateQuantity={(id, qty) => cart.updateQuantity(id, qty)}
+                      onRemoveItem={() => removeItem(item.id)}
+                      onUpdateQuantity={(id, qty) => updateQuantity(id, qty)}
                     />
                   ))}
                 </ScrollArea>
@@ -89,8 +89,8 @@ export default function CartPage() {
                   </div>
                 </div>
                 <Button
-                  onClick={() => cart.clearCart()}
-                  disabled={cart.items.length === 0}
+                  onClick={() => clearCart()}
+                  disabled={(cart.items?.length ?? 0) === 0}
                   variant="outline"
                   className="w-full mt-6"
                 >
