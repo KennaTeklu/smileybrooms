@@ -128,6 +128,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
       }
 
       updateRoomCount(activeWizard, config.quantity)
+      setAddingRoomId(null) // Reset loading state immediately after cart update
 
       vibrate([100, 50, 100])
 
@@ -158,7 +159,10 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         duration: 3000,
       })
     } finally {
-      setAddingRoomId(null)
+      // Ensure addingRoomId is reset even if there's an error
+      if (addingRoomId !== null) {
+        setAddingRoomId(null)
+      }
     }
   }
 

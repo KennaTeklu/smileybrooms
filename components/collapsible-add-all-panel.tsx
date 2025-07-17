@@ -203,6 +203,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         }
       })
 
+      setIsAddingToCart(false) // Reset loading state immediately after cart update
+
       if (addedCount > 0) {
         vibrate([100, 50, 100])
 
@@ -233,7 +235,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         duration: 3000,
       })
     } finally {
-      setIsAddingToCart(false)
+      // Ensure isAddingToCart is reset even if there's an error
+      if (isAddingToCart) {
+        setIsAddingToCart(false)
+      }
     }
   }, [
     selectedRoomTypes,
@@ -245,6 +250,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     onOpenChange,
     selectedFrequency,
     isFullHouseChecked,
+    isAddingToCart, // Added to dependency array for safety, though it's a state setter
   ])
 
   const handleRemoveRoom = useCallback(

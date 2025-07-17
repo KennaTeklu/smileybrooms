@@ -113,39 +113,23 @@ const calculateCartTotals = (
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
-    // Update the ADD_ITEM case in the cartReducer to check for exact ID matches first.
-    // This ensures that if the source provides a new unique ID, it's added as a new item,
-    // preventing consolidation of distinct instances.
-    // The advancedMatchCriteria and getItemSignature from lib/cart-matching will no longer be used for ADD_ITEM
-    // to ensure each newly added room instance is treated as a unique line item.
-
     case "ADD_ITEM": {
-      // Check if an item with the exact same unique ID already exists in the cart.
-      // This is for scenarios where an item might be re-added from another flow,
-      // or if its quantity needs to be explicitly updated by re-adding.
       const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
 
       let updatedItems: CartItem[]
 
       if (existingItemIndex !== -1) {
-        // If the exact item ID already exists, update its quantity.
-        // In our case, RoomCategory will always add quantity: 1, so this will increment
-        // if a truly identical unique item ID is somehow dispatched again.
         updatedItems = state.items.map((item, index) =>
           index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
         )
       } else {
-        // If the item ID is new, add it as a new distinct entry.
         const enhancedItem = {
           ...action.payload,
-          // The ID is expected to be unique from the source (RoomCategory).
-          // paymentType defaults to "online" if not provided.
           paymentType: action.payload.paymentType || "online",
         }
         updatedItems = [...state.items, enhancedItem]
       }
 
-      // Recalculate totals based on the updated (potentially new) items list.
       const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
         calculateCartTotals(updatedItems, state.couponCode)
 
@@ -254,6 +238,26 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
   const { toast } = useToast()
+
+  // Load cart from localStorage on initial mount
+  useEffect(() => {
+    try {
+      const storedCart = localStorage.getItem("cart")
+      if (storedCart) {
+        const parsedCart: CartState = JSON.parse(storedCart)
+        dispatch({ type: "SET_CART", payload: parsedCart })
+      }
+    } catch (error) {
+      console.error("Error loading cart from localStorage:", error)
+      if (toast) {
+        toast({
+          title: "Error loading cart",
+          description: "There was an error loading your saved cart.",
+          variant: "destructive",
+        })
+      }
+    }
+  }, [toast]) // Run only once on mount
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
