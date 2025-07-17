@@ -32,7 +32,6 @@ interface CheckoutSessionParams {
       postal_code?: string
       country?: string
     }
-    // Add new fields to customerData for metadata
     allowVideoRecording?: boolean
     videoConsentDetails?: string
   }
@@ -134,11 +133,9 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             customer_address_state: customerData.address?.state,
             customer_address_postal_code: customerData.address?.postal_code,
             customer_address_country: customerData.address?.country,
-            // Add new metadata fields
-            allow_video_recording: customerData.allowVideoRecording ? "true" : "false",
+            // Ensure wantsLiveVideo and customer email are in metadata for staff visibility
+            wants_live_video: customerData.allowVideoRecording ? "true" : "false",
             video_consent_details: customerData.videoConsentDetails || "N/A",
-            // Ensure customerEmail is also in metadata for staff visibility
-            customer_email_for_staff: customerEmail || customerData.email || "N/A",
           }
         : undefined,
     }
