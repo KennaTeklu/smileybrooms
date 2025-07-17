@@ -20,7 +20,7 @@ import {
   Lightbulb,
 } from "lucide-react"
 import Image from "next/image"
-import { useRoom, type RoomConfig, calculateRoomPrice } from "@/lib/room-context" // Changed import from useRoomContext to useRoom
+import { useRoom, type RoomConfig, calculateRoomPrice } from "@/lib/room-context" // Corrected import: useRoom instead of useRoomContext
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { roomTiers, roomCategories, requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
@@ -59,7 +59,7 @@ const categoryIcons: Record<RoomCategoryKey, JSX.Element> = {
 }
 
 export function PricingContent() {
-  const { roomState, addRoom, updateRoom, removeRoom, getCalculatedRoomPrice } = useRoom()
+  const { roomState, addRoom, updateRoom, removeRoom, getCalculatedRoomPrice } = useRoom() // Using useRoom
   const { addItem, addItems, cart } = useCart()
   const { toast } = useToast()
 
