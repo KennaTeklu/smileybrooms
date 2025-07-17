@@ -905,10 +905,11 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
 // Re-export roomTiers to make it accessible
 export type RoomTierName = keyof typeof roomTiers
 
-/**
- * Check if a room type requires email pricing (custom spaces)
- */
-export function requiresEmailPricing(roomType: string): boolean {
+// Accepts `roomType` as optional and safely handles `undefined`.
+export function requiresEmailPricing(roomType?: string): boolean {
+  if (typeof roomType !== "string") {
+    return false
+  }
   return roomType === "other" || roomType.startsWith("other-custom-")
 }
 
