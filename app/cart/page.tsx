@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Plus, Minus, Lightbulb, Tag } from "lucide-react"
+import { ShoppingBag, Trash2, Plus, Minus, Lightbulb } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -15,77 +13,75 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { requiresEmailPricing } from "@/lib/room-tiers"
 import { motion, AnimatePresence } from "framer-motion"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CheckoutButton } from "@/components/checkout-button"
+import { CheckCircle, AlertCircle, XCircle } from "lucide-react"
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
-  // In a real application, this would fetch suggestions based on currentCartItems
   const suggestedProducts = [
     {
       id: "deep-clean-add-on",
       name: "Deep Clean Add-on",
       price: 45.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Enhance your cleaning with a deep clean for specific areas.",
+      image: "/placeholder.svg?height=60&width=60",
+      description: "Enhance your cleaning with a deep clean.",
     },
     {
       id: "eco-friendly-products",
       name: "Eco-Friendly Products",
       price: 15.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Upgrade to environmentally friendly cleaning supplies.",
+      image: "/placeholder.svg?height=60&width=60",
+      description: "Environmentally friendly supplies.",
     },
-    {
-      id: "window-cleaning",
-      name: "Window Cleaning",
-      price: 75.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Sparkling clean windows, inside and out.",
-    },
-  ].filter((suggestion) => !currentCartItems.some((item) => item.id === suggestion.id)) // Filter out items already in cart
+  ].filter((suggestion) => !currentCartItems.some((item) => item.id === suggestion.id))
 
   if (suggestedProducts.length === 0) {
     return null
   }
 
   return (
-    <Card className="shadow-lg border-gray-200 dark:border-gray-700" id={id}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-          <Lightbulb className="h-6 w-6 text-yellow-500" /> Suggested for You
+    <Card className="bg-white dark:bg-gray-800 shadow-sm" id={id}>
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Lightbulb className="h-5 w-5 text-yellow-500" />
+          Suggested
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {suggestedProducts.map((product) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:shadow-md transition-shadow"
-          >
-            <Image
-              src={product.image || "/placeholder.svg"}
-              alt={product.name}
-              width={64}
-              height={64}
-              className="rounded-md object-cover border border-gray-200 dark:border-gray-600"
-            />
-            <div className="flex-1">
-              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{product.name}</h4>
-              <p className="text-sm text-muted-foreground">{product.description}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-blue-600 dark:text-blue-400">${product.price.toFixed(2)}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              >
+      <CardContent className="p-6 pt-0">
+        <div className="space-y-3">
+          {suggestedProducts.map((product) => (
+            <div
+              key={product.id}
+              className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <Image
+                src={product.image || "/placeholder.svg"}
+                alt={product.name}
+                width={40}
+                height={40}
+                className="rounded object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm">{product.name}</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{product.description}</p>
+                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                  ${product.price.toFixed(2)}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" className="flex-shrink-0 bg-transparent">
                 Add
               </Button>
             </div>
-          </motion.div>
-        ))}
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -181,233 +177,345 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
-      <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
-        Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
-      </h1>
-
-      {cart.items.length > 0 && (
-        <nav className="mb-8 flex justify-center gap-3 sm:gap-4 flex-wrap">
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#cart-items-list">Items</Link>
-          </Button>
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#order-summary">Summary</Link>
-          </Button>
-          {cartHealth && (
-            <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-              <Link href="#cart-health-report">Health</Link>
-            </Button>
-          )}
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#suggested-products">Suggestions</Link>
-          </Button>
-        </nav>
-      )}
-
-      {cart.items.length === 0 ? (
-        <Card
-          className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
-          id="empty-cart-message"
-        >
-          <ShoppingBag className="h-28 w-28 text-muted-foreground mb-6 opacity-70" />
-          <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
-            Your cart is empty
-          </h3>
-          <p className="text-muted-foreground mb-8 max-w-md text-base">
-            Looks like you haven't added any cleaning services or products yet. Start by exploring our offerings!
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Shopping Cart</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            {cart.items.length === 0 ? "Your cart is empty" : `${cart.totalItems} items in your cart`}
           </p>
-          <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-3 text-base">
-            <Link href="/pricing">Start Shopping</Link>
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-8 flex-1">
-          {/* Cart Items List */}
-          <Card className="lg:col-span-2 shadow-lg border-gray-200 dark:border-gray-700" id="cart-items-list">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                Items in Cart ({cart.totalItems})
-              </CardTitle>
-              <Button
-                variant="outline"
-                onClick={handleClearCartClick}
-                disabled={cart.items.length === 0}
-                className="rounded-lg bg-transparent"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Clear All
+        </div>
+
+        {cart.items.length === 0 ? (
+          /* Empty Cart State */
+          <div className="max-w-md mx-auto">
+            <Card className="text-center p-8 bg-white dark:bg-gray-800 shadow-sm">
+              <ShoppingBag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">Your cart is empty</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Start by exploring our cleaning services</p>
+              <Button asChild size="lg" className="w-full">
+                <Link href="/pricing">Browse Services</Link>
               </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
-                <div className="space-y-4 p-6 overflow-y-auto">
-                  <AnimatePresence mode="popLayout">
-                    {cart.items.map((item) => (
-                      <motion.div
-                        key={item.id}
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -50 }}
-                        transition={{ duration: 0.3 }}
-                        className="group relative bg-background rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+            </Card>
+          </div>
+        ) : (
+          /* Cart Content */
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-12 gap-8">
+              {/* Cart Items - Takes up more space on larger screens */}
+              <div className="lg:col-span-8">
+                <Card className="bg-white dark:bg-gray-800 shadow-sm">
+                  <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl font-semibold">Items ({cart.totalItems})</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearCartClick}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
-                        {/* Item image */}
-                        {item.image && (
-                          <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-                            <Image
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.name}
-                              width={112}
-                              height={112}
-                              className="object-cover w-full h-full"
-                              onError={(e) => {
-                                // Fallback to local placeholder if remote image fails
-                                const target = e.target as HTMLImageElement
-                                if (target && target.src !== "/placeholder.svg") {
-                                  target.src = "/placeholder.svg"
-                                }
-                              }}
-                            />
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Clear All
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      <AnimatePresence mode="popLayout">
+                        {cart.items.map((item) => (
+                          <motion.div
+                            key={item.id}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -50 }}
+                            transition={{ duration: 0.3 }}
+                            className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Item Image */}
+                              {item.image && (
+                                <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                  <Image
+                                    src={item.image || "/placeholder.svg"}
+                                    alt={item.name}
+                                    width={80}
+                                    height={80}
+                                    className="object-cover w-full h-full"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      if (target && target.src !== "/placeholder.svg") {
+                                        target.src = "/placeholder.svg"
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Item Details */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{item.name}</h3>
+                                    {item.sourceSection && (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                                        {item.sourceSection}
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                      {item.metadata?.roomConfig?.name && (
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                                          {item.metadata.roomConfig.name}
+                                        </span>
+                                      )}
+                                      {item.metadata?.roomConfig?.timeEstimate && (
+                                        <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
+                                          {item.metadata.roomConfig.timeEstimate}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Remove Button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveItemClick(item.id, item.name)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 ml-4"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                {/* Quantity and Price Row */}
+                                <div className="flex items-center justify-between mt-4">
+                                  {/* Quantity Controls */}
+                                  <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                      onClick={() => handleQuantityChange(item.id, -1)}
+                                      disabled={item.quantity <= 1}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="px-3 py-1 text-sm font-medium min-w-[2ch] text-center">
+                                      {item.quantity}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                      onClick={() => handleQuantityChange(item.id, 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+
+                                  {/* Price */}
+                                  <div className="text-right">
+                                    {itemRequiresEmailPricing(item) ? (
+                                      <p className="font-semibold text-orange-600 dark:text-orange-400">
+                                        Email for Pricing
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                                          ${(item.price * item.quantity).toFixed(2)}
+                                        </p>
+                                        {item.quantity > 1 && (
+                                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            ${item.price.toFixed(2)} each
+                                          </p>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Order Summary Sidebar */}
+              <div className="lg:col-span-4">
+                <div className="sticky top-6 space-y-6">
+                  {/* Order Summary */}
+                  <Card className="bg-white dark:bg-gray-800 shadow-sm">
+                    <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                      <CardTitle className="text-xl font-semibold">Order Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {/* Subtotal */}
+                        <div className="flex justify-between text-base">
+                          <span className="text-gray-600 dark:text-gray-400">Subtotal ({cart.totalItems} items)</span>
+                          <span className="font-medium">${cart.subtotalPrice.toFixed(2)}</span>
+                        </div>
+
+                        {/* Discounts */}
+                        {cart.couponDiscount > 0 && (
+                          <div className="flex justify-between text-green-600 dark:text-green-400">
+                            <span>Coupon ({cart.couponCode})</span>
+                            <span>-${cart.couponDiscount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {cart.fullHouseDiscount > 0 && (
+                          <div className="flex justify-between text-green-600 dark:text-green-400">
+                            <span>Full House Discount</span>
+                            <span>-${cart.fullHouseDiscount.toFixed(2)}</span>
                           </div>
                         )}
 
-                        {/* Item details */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-lg leading-tight mb-1 text-gray-900 dark:text-gray-100">
-                            {item.name}
-                          </h4>
-                          {item.sourceSection && (
-                            <p className="text-sm text-muted-foreground mb-2">{item.sourceSection}</p>
-                          )}
-                          {item.metadata?.roomConfig?.name && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Tier: {item.metadata.roomConfig.name}
-                            </p>
-                          )}
-                          {item.metadata?.roomConfig?.timeEstimate && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Est. Time: {item.metadata.roomConfig.timeEstimate}
-                            </p>
-                          )}
-
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-                                onClick={() => handleQuantityChange(item.id, -1)}
-                                disabled={item.quantity <= 1}
-                                aria-label={`Decrease quantity of ${item.name}`}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span className="text-base font-medium min-w-[2ch] text-center text-gray-900 dark:text-gray-100">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-                                onClick={() => handleQuantityChange(item.id, 1)}
-                                aria-label={`Increase quantity of ${item.name}`}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            <div className="text-right">
-                              {itemRequiresEmailPricing(item) ? (
-                                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                  Email for Pricing
-                                </p>
-                              ) : (
-                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                  ${(item.price * item.quantity).toFixed(2)}
-                                </p>
-                              )}
-                              {item.quantity > 1 && !itemRequiresEmailPricing(item) && (
-                                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
-                              )}
-                            </div>
+                        {/* Coupon Input */}
+                        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex gap-2">
+                            <Input
+                              type="text"
+                              placeholder="Coupon code"
+                              value={couponInput}
+                              onChange={(e) => setCouponInput(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              onClick={handleApplyCoupon}
+                              disabled={!couponInput.trim() || cart.couponDiscount > 0}
+                              variant="outline"
+                            >
+                              Apply
+                            </Button>
                           </div>
                         </div>
 
-                        {/* Remove button */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-3 right-3 h-8 w-8 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
-                          onClick={() => handleRemoveItemClick(item.id, item.name)}
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                        {/* Total */}
+                        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex justify-between items-center text-xl font-bold">
+                            <span>Total</span>
+                            <span className="text-blue-600 dark:text-blue-400">${cart.totalPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
 
-          {/* Cart Summary & Health */}
-          <div className="lg:col-span-1 flex flex-col gap-8">
-            <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-base">
-                    <span className="text-gray-700 dark:text-gray-300">Subtotal ({cart.totalItems} items)</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      ${cart.subtotalPrice.toFixed(2)}
-                    </span>
-                  </div>
-                  {cart.couponDiscount > 0 && (
-                    <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                      <span>Coupon ({cart.couponCode})</span>
-                      <span>-${cart.couponDiscount.toFixed(2)}</span>
-                    </div>
+                        {/* Custom Services Notice */}
+                        {cart.inPersonPaymentTotal > 0 && (
+                          <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                            <p className="text-sm font-medium text-orange-800 dark:text-orange-300 mb-1">
+                              Custom Services: Email for Pricing
+                            </p>
+                            <p className="text-xs text-orange-700 dark:text-orange-400">
+                              Some items require custom pricing and will be handled separately.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Checkout Button */}
+                        <div className="pt-4">
+                          <CheckoutButton
+                            useCheckoutPage={true}
+                            className="w-full h-12 text-base font-semibold"
+                            size="lg"
+                            disabled={cart.items.length === 0 || isCheckoutLoading}
+                          />
+                          <Button asChild variant="outline" className="w-full mt-3 bg-transparent">
+                            <Link href="/">Continue Shopping</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Cart Health & Suggestions */}
+                  {cartHealth && (
+                    <Card className="bg-white dark:bg-gray-800 shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                          Cart Insights
+                          {cartHealth.overallHealth === "healthy" && <CheckCircle className="h-5 w-5 text-green-500" />}
+                          {cartHealth.overallHealth === "warning" && (
+                            <AlertCircle className="h-5 w-5 text-yellow-500" />
+                          )}
+                          {cartHealth.overallHealth === "critical" && <XCircle className="h-5 w-5 text-red-500" />}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6 pt-0">
+                        <div className="text-sm space-y-3">
+                          <div className="flex justify-between">
+                            <span>Health Score</span>
+                            <span className="font-medium">{cartHealth.score}/100</span>
+                          </div>
+                          {cartHealth.suggestions.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Suggestions:</h4>
+                              <ul className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                                {cartHealth.suggestions.slice(0, 2).map((suggestion, index) => (
+                                  <li key={index} className="flex items-start gap-1">
+                                    <span className="text-blue-500 mt-1">•</span>
+                                    <span>{suggestion}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
-                  {cart.fullHouseDiscount > 0 && (
-                    <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                      <span>Full House Discount</span>
-                      <span>-${cart.fullHouseDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Shipping</span>
-                    <span>Calculated at checkout</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Taxes</span>
-                    <span>Calculated at checkout</span>
-                  </div>
+
+                  {/* Suggested Products */}
+                  <CartSuggestions currentCartItems={cart.items} />
                 </div>
-                <Separator className="my-4" />
-                {/* Coupon Input */}
-                <div className="flex gap-2 mb-4">
-                  <Input
-                    type="text"
-                    placeholder="Enter coupon code"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    className="flex-1 h-10 rounded-lg"
-                    aria-label="Coupon code input"
-                  />
-                  <Button
-                    onClick={handleApplyCoupon}
-                    disabled={!couponInput.trim() || cart.couponDiscount > 0}
-                    className="rounded-lg"
-                  >
-                    <Tag className="h-4 w-4 mr-2" />
-                    Apply
-                  </Button>
-                </div>
-                <Separator className="my-4" />
-                <div className="flex justify-between text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-                  \
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Dialogs remain the same */}
+        {/* Remove Item Confirmation Dialog */}
+        <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Remove Item</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove <strong>{itemToRemoveName}</strong> from your cart?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button variant="outline" onClick={cancelRemoveItem}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmRemoveItem}>
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Clear Cart Confirmation Dialog */}
+        <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Clear Cart</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove all items from your cart? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowClearConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmClearCart}>
+                Clear All
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  )
+}
