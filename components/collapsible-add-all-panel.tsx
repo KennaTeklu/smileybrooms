@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion" // Ensure AnimatePresence is imported
 import {
   ShoppingCart,
   Plus,
@@ -169,23 +169,22 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         const config = roomConfigs[roomType]
 
         if (count > 0) {
-          const basePricePerUnit = config.totalPrice || 0 // Assuming totalPrice here is for one unit of the configured room
+          const basePricePerUnit = config.totalPrice || 0
           const adjustedPricePerUnit = basePricePerUnit * frequencyMultiplier
 
-          // Add each instance as a separate item with quantity 1
           for (let i = 0; i < count; i++) {
             addItem({
-              id: `custom-cleaning-${roomType}-${Date.now()}-${i}`, // Truly unique ID for each instance
-              name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`, // Name for individual instance
-              price: adjustedPricePerUnit, // Price for a single unit
+              id: `custom-cleaning-${roomType}-${Date.now()}-${i}`,
+              name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`,
+              price: adjustedPricePerUnit,
               priceId: "price_custom_cleaning",
-              quantity: 1, // Always 1 for individual instances
+              quantity: 1,
               image: roomType.startsWith("other-custom-")
                 ? roomImages.other
                 : roomImages[roomType] || "/placeholder.svg",
               metadata: {
                 roomType,
-                roomConfig: { ...config, quantity: 1 }, // Store config for a single unit
+                roomConfig: { ...config, quantity: 1 },
                 isRecurring: selectedFrequency !== "one_time",
                 frequency: selectedFrequency,
                 detailedTasks: config.detailedTasks,
@@ -199,8 +198,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
             })
           }
 
-          updateRoomCount(roomType, 0) // Clear the room count in the panel after adding all instances
-          addedCount++ // Count of room *types* added, not individual instances
+          updateRoomCount(roomType, 0)
+          addedCount++
         }
       })
 
@@ -401,6 +400,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       return (
         <motion.div
           key={roomType}
+          layout // Enable layout animations
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, x: -100 }} // Animate out to the left
+          transition={{ duration: 0.3 }}
           className="flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600 hover:shadow-lg"
         >
           <div className="flex items-center gap-3">
@@ -432,7 +436,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                   className="h-7 w-7"
                   aria-label={`Decrease ${displayName} count`}
                 >
-                  <Minus className="h-3 w-3" />
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </motion.div>
                 </Button>
                 <span className="w-6 text-center font-medium">{count}</span>
                 <Button
@@ -445,7 +456,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                   className="h-7 w-7"
                   aria-label={`Increase ${displayName} count`}
                 >
-                  <PlusIcon className="h-3 w-3" />
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PlusIcon className="h-3 w-3" />
+                  </motion.div>
                 </Button>
                 <TooltipProvider>
                   <Tooltip>
@@ -608,7 +626,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <p className="text-sm text-gray-500 mt-2">
                           This selection will apply to all rooms you add below.
                         </p>
-                        {/* Removed the note about price numbers */}
                       </div>
 
                       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -653,86 +670,112 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {Object.keys(roomDisplayNames).map((roomType) => {
-                            const config = roomConfigs[roomType] || {
-                              selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`,
-                              totalPrice: roomTiers[selectedGlobalTierName]?.basePrice || 0,
-                              detailedTasks: roomTiers[selectedGlobalTierName]?.detailedTasks || [],
-                              notIncludedTasks: [],
-                              upsellMessage: "",
-                            }
-                            const count = roomCounts[roomType] || 0
-                            const imageSrc = roomImages[roomType] || "/placeholder.svg"
-                            const displayName = roomDisplayNames[roomType] || roomType
+                          <AnimatePresence>
+                            {" "}
+                            {/* Wrap with AnimatePresence */}
+                            {Object.keys(roomDisplayNames).map((roomType) => {
+                              const config = roomConfigs[roomType] || {
+                                selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`,
+                                totalPrice: roomTiers[selectedGlobalTierName]?.basePrice || 0,
+                                detailedTasks: roomTiers[selectedGlobalTierName]?.detailedTasks || [],
+                                notIncludedTasks: [],
+                                upsellMessage: "",
+                              }
+                              const count = roomCounts[roomType] || 0
+                              const imageSrc = roomImages[roomType] || "/placeholder.svg"
+                              const displayName = roomDisplayNames[roomType] || roomType
 
-                            return (
-                              <motion.div
-                                key={roomType}
-                                className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                                  count > 0
-                                    ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
-                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                                }`}
-                                onClick={() => {
-                                  if (count === 0) {
-                                    updateRoomCount(roomType, 1)
-                                    applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
-                                  }
-                                }}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                                    <Image
-                                      src={imageSrc || "/placeholder.svg"}
-                                      alt={displayName}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                    {count > 0 && (
-                                      <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                        <CheckCircle className="h-5 w-5 text-white" />
+                              return (
+                                <motion.div
+                                  key={roomType}
+                                  layout // Enable layout animations
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.9 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <div
+                                    className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                                      count > 0
+                                        ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
+                                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                    }`}
+                                    onClick={() => {
+                                      if (count === 0) {
+                                        updateRoomCount(roomType, 1)
+                                        applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                                        <Image
+                                          src={imageSrc || "/placeholder.svg"}
+                                          alt={displayName}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                        {count > 0 && (
+                                          <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                                            <CheckCircle className="h-5 w-5 text-white" />
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm truncate">{displayName}</h4>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                                      {requiresEmailPricing(roomType)
-                                        ? "Email for Pricing"
-                                        : formatCurrency(config?.totalPrice || 0)}
-                                    </p>
-                                  </div>
-                                  {count > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleDecrementRoom(roomType)
-                                        }}
-                                        className="h-6 w-6"
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <span className="w-6 text-center text-sm font-medium">{count}</span>
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleIncrementRoom(roomType)
-                                        }}
-                                        className="h-6 w-6"
-                                      >
-                                        <PlusIcon className="h-3 w-3" />
-                                      </Button>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-sm truncate">{displayName}</h4>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                                          {requiresEmailPricing(roomType)
+                                            ? "Email for Pricing"
+                                            : formatCurrency(config?.totalPrice || 0)}
+                                        </p>
+                                      </div>
+                                      {count > 0 && (
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleDecrementRoom(roomType)
+                                            }}
+                                            className="h-6 w-6"
+                                          >
+                                            <motion.div
+                                              initial={{ opacity: 0 }}
+                                              animate={{ opacity: 1 }}
+                                              exit={{ opacity: 0 }}
+                                              transition={{ duration: 0.3 }}
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </motion.div>
+                                          </Button>
+                                          <span className="w-6 text-center text-sm font-medium">{count}</span>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleIncrementRoom(roomType)
+                                            }}
+                                            className="h-6 w-6"
+                                          >
+                                            <motion.div
+                                              initial={{ opacity: 0 }}
+                                              animate={{ opacity: 1 }}
+                                              exit={{ opacity: 0 }}
+                                              transition={{ duration: 0.3 }}
+                                            >
+                                              <PlusIcon className="h-3 w-3" />
+                                            </motion.div>
+                                          </Button>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            )
-                          })}
+                                  </div>
+                                </motion.div>
+                              )
+                            })}
+                          </AnimatePresence>
                         </div>
                       </div>
 
@@ -873,51 +916,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           Order Summary
                         </h4>
                         <div className="space-y-2">
-                          {selectedRoomTypes.map((roomType) => {
-                            const config = roomConfigs[roomType]
-                            const count = roomCounts[roomType]
-                            const roomTotal = (config?.totalPrice || 0) * count
-                            const displayName = roomType.startsWith("other-custom-")
-                              ? config?.roomName || "Custom Space"
-                              : roomDisplayNames[roomType] || roomType
-
-                            const isCustomOrInPerson =
-                              roomType.startsWith("other-custom-") || config?.paymentType === "in_person"
-
-                            const displayPrice = isCustomOrInPerson
-                              ? "Email for Pricing"
-                              : formatCurrency(config?.totalPrice || 0)
-                            const displayRoomTotal = isCustomOrInPerson
-                              ? "Email for Pricing"
-                              : formatCurrency(roomTotal)
-
-                            return (
-                              <div
-                                key={roomType}
-                                className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="relative w-10 h-10 rounded-lg overflow-hidden">
-                                    <Image
-                                      src={
-                                        roomType.startsWith("other-custom-")
-                                          ? roomImages.other
-                                          : roomImages[roomType] || "/placeholder.svg"
-                                      }
-                                      alt={displayName}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                  <div>
-                                    <span className="font-medium text-sm">{displayName}</span>
-                                    <span className="text-gray-500 text-xs ml-1">(×{count})</span>
-                                  </div>
-                                </div>
-                                <span className="font-semibold">{displayRoomTotal}</span>
-                              </div>
-                            )
-                          })}
+                          <AnimatePresence mode="popLayout">
+                            {" "}
+                            {/* Add AnimatePresence here */}
+                            {roomList} {/* Render the memoized roomList */}
+                          </AnimatePresence>
                         </div>
 
                         <div className="border-t pt-3 mt-4">
