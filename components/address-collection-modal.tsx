@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { MapPin, CreditCard } from "lucide-react"
 import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+// Removed Checkbox import as it's no longer used for video consent in this modal
 
 export interface AddressData {
   fullName: string
@@ -29,8 +29,7 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
-  wantsLiveVideo: boolean
-  videoConsentDetails?: string
+  // Removed wantsLiveVideo and videoConsentDetails from this interface
 }
 
 interface AddressCollectionModalProps {
@@ -49,8 +48,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     state: "",
     zipCode: "",
     specialInstructions: "",
-    wantsLiveVideo: false,
-    videoConsentDetails: undefined,
+    // Removed wantsLiveVideo and videoConsentDetails from initial state
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -69,13 +67,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     }
   }
 
-  const handleVideoConsentChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      wantsLiveVideo: checked,
-      videoConsentDetails: checked ? new Date().toISOString() : undefined,
-    }))
-  }
+  // Removed handleVideoConsentChange as it's no longer relevant for this modal
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -110,8 +102,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         state: "",
         zipCode: "",
         specialInstructions: "",
-        wantsLiveVideo: false,
-        videoConsentDetails: undefined,
+        // Removed wantsLiveVideo and videoConsentDetails from reset state
       })
 
       onClose()
@@ -268,27 +259,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
               />
             </div>
 
-            {/* Live Video Option */}
-            <div className="flex items-start space-x-2 pt-4">
-              <Checkbox
-                id="wantsLiveVideo"
-                name="wantsLiveVideo"
-                checked={formData.wantsLiveVideo}
-                onCheckedChange={handleVideoConsentChange}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="wantsLiveVideo"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Send me a private YouTube Live link to watch my cleaning.
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  By selecting this, you acknowledge that a live video stream of your cleaning will be accessible to
-                  you. This stream is private and for your viewing only.
-                </p>
-              </div>
-            </div>
+            {/* Removed Live Video Option from here */}
           </div>
 
           <DialogFooter className="pt-4">
