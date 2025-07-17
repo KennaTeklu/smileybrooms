@@ -185,6 +185,7 @@ export default function CheckoutPage() {
             onSave={(data) => handleSaveStepData("payment", data)}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            checkoutData={checkoutData}
           />
         )
       case "review":
@@ -195,8 +196,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
         <div className="mb-12">
           <Link
@@ -224,7 +225,7 @@ export default function CheckoutPage() {
         {/* Step Navigation */}
         <div className="mb-12">
           <div className="flex justify-center">
-            <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg">
+            <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 rounded-full p-1.5 shadow-lg">
               {steps.map((step, index) => {
                 const Icon = step.icon
                 const isActive = step.id === currentStep
@@ -236,17 +237,21 @@ export default function CheckoutPage() {
                     key={step.id}
                     onClick={() => isClickable && handleStepClick(step.id)}
                     disabled={!isClickable}
-                    className={`flex items-center space-x-2 px-4 py-3 rounded-full transition-all ${
+                    className={`group flex items-center space-x-2 px-4 py-3 rounded-full transition-all ${
                       isActive
-                        ? "bg-blue-600 text-white shadow-md"
+                        ? "bg-blue-600 text-white shadow-md group-hover:bg-blue-700"
                         : isCompleted
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30"
                           : isClickable
-                            ? "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            ? "hover:bg-gray-50 dark:hover:bg-gray-700"
                             : "opacity-50 cursor-not-allowed"
                     }`}
                   >
-                    {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    {isCompleted ? (
+                      <Check className="h-5 w-5 transition-all group-hover:scale-105" />
+                    ) : (
+                      <Icon className="h-5 w-5 transition-all group-hover:scale-105 group-hover:text-white" />
+                    )}
                     <span className="font-medium hidden sm:block">{step.title}</span>
                   </button>
                 )
@@ -256,24 +261,24 @@ export default function CheckoutPage() {
         </div>
 
         {/* Step Content */}
-        <Card className="shadow-lg border-0 mb-12">
+        <Card className="shadow-xl border-0 mb-12 rounded-xl">
           <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
         </Card>
 
         {/* Trust Indicators */}
         <div className="mt-16 text-center">
-          <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
+          <div className="flex justify-center items-center space-x-4 md:space-x-8 text-sm text-muted-foreground">
             <div className="flex items-center">
               <Shield className="mr-2 h-4 w-4" />
-              SSL Secured
+              <span className="font-medium">SSL Secured</span>
             </div>
             <div className="flex items-center">
               <CreditCard className="mr-2 h-4 w-4" />
-              Encrypted Payment
+              <span className="font-medium">Encrypted Payment</span>
             </div>
             <div className="flex items-center">
               <Check className="mr-2 h-4 w-4" />
-              100% Satisfaction Guarantee
+              <span className="font-medium">100% Satisfaction Guarantee</span>
             </div>
           </div>
         </div>

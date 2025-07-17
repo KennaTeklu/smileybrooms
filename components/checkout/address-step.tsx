@@ -101,25 +101,54 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
           <div className="space-y-6">
             <h3 className="text-lg font-medium">Contact Information (Pre-filled)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
                 <Label htmlFor="fullName" className="text-base">
                   Full Name
                 </Label>
-                <Input id="fullName" value={addressData.fullName} disabled className="mt-2 h-12 bg-gray-100" />
-              </div>
-              <div>
+                <Input
+                  id="fullName"
+                  value={addressData.fullName}
+                  disabled
+                  className="mt-2 h-11 rounded-lg bg-gray-100"
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
                 <Label htmlFor="email" className="text-base">
                   Email
                 </Label>
-                <Input id="email" type="email" value={addressData.email} disabled className="mt-2 h-12 bg-gray-100" />
-              </div>
+                <Input
+                  id="email"
+                  type="email"
+                  value={addressData.email}
+                  disabled
+                  className="mt-2 h-11 rounded-lg bg-gray-100"
+                />
+              </motion.div>
             </div>
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
               <Label htmlFor="phone" className="text-base">
                 Phone
               </Label>
-              <Input id="phone" type="tel" value={addressData.phone} disabled className="mt-2 h-12 bg-gray-100" />
-            </div>
+              <Input
+                id="phone"
+                type="tel"
+                value={addressData.phone}
+                disabled
+                className="mt-2 h-11 rounded-lg bg-gray-100"
+              />
+            </motion.div>
           </div>
 
           {/* Address Type */}
@@ -127,7 +156,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
             <h3 className="text-lg font-medium">Address Type</h3>
             <div className="flex flex-wrap gap-4">
               <Card
-                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "residential" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                className={`cursor-pointer flex-1 min-w-[120px] sm:min-w-[150px] transition-all hover:shadow-md ${addressData.addressType === "residential" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500" : ""}`}
                 onClick={() => handleChange("addressType", "residential")}
               >
                 <CardContent className="p-4 text-center">
@@ -136,7 +165,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                 </CardContent>
               </Card>
               <Card
-                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "commercial" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                className={`cursor-pointer flex-1 min-w-[120px] sm:min-w-[150px] transition-all hover:shadow-md ${addressData.addressType === "commercial" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500" : ""}`}
                 onClick={() => handleChange("addressType", "commercial")}
               >
                 <CardContent className="p-4 text-center">
@@ -145,7 +174,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                 </CardContent>
               </Card>
               <Card
-                className={`cursor-pointer flex-1 min-w-[150px] ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""}`}
+                className={`cursor-pointer flex-1 min-w-[120px] sm:min-w-[150px] transition-all hover:shadow-md ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500" : ""}`}
                 onClick={() => handleChange("addressType", "other")}
               >
                 <CardContent className="p-4 text-center">
@@ -162,7 +191,11 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
               {getAddressTypeIcon()}
               Service Address
             </h3>
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+            >
               <Label htmlFor="address" className="text-base">
                 Street Address
               </Label>
@@ -170,12 +203,16 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                 id="address"
                 value={addressData.address}
                 onChange={(e) => handleChange("address", e.target.value)}
-                className={`mt-2 h-12 ${errors.address ? "border-red-500" : ""}`}
+                className={`mt-2 h-11 rounded-lg ${errors.address ? "border-red-500" : ""}`}
                 placeholder="123 Main Street"
               />
-              {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
-            </div>
-            <div>
+              {errors.address && <p className="text-red-500 text-xs mt-1.5">{errors.address}</p>}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.6 }}
+            >
               <Label htmlFor="address2" className="text-base">
                 Apartment, suite, etc. (optional)
               </Label>
@@ -183,12 +220,16 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                 id="address2"
                 value={addressData.address2}
                 onChange={(e) => handleChange("address2", e.target.value)}
-                className="mt-2 h-12"
+                className="mt-2 h-11 rounded-lg"
                 placeholder="Apt 4B"
               />
-            </div>
+            </motion.div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.7 }}
+              >
                 <Label htmlFor="city" className="text-base">
                   City
                 </Label>
@@ -196,17 +237,21 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                   id="city"
                   value={addressData.city}
                   onChange={(e) => handleChange("city", e.target.value)}
-                  className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
+                  className={`mt-2 h-11 rounded-lg ${errors.city ? "border-red-500" : ""}`}
                   placeholder="New York"
                 />
-                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
-              </div>
-              <div>
+                {errors.city && <p className="text-red-500 text-xs mt-1.5">{errors.city}</p>}
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.8 }}
+              >
                 <Label htmlFor="state" className="text-base">
                   State
                 </Label>
                 <Select value={addressData.state} onValueChange={(value) => handleChange("state", value)}>
-                  <SelectTrigger id="state" className={`mt-2 h-12 ${errors.state ? "border-red-500" : ""}`}>
+                  <SelectTrigger id="state" className={`mt-2 h-11 rounded-lg ${errors.state ? "border-red-500" : ""}`}>
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent>
@@ -217,9 +262,13 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state}</p>}
-              </div>
-              <div>
+                {errors.state && <p className="text-red-500 text-xs mt-1.5">{errors.state}</p>}
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.9 }}
+              >
                 <Label htmlFor="zipCode" className="text-base">
                   ZIP Code
                 </Label>
@@ -227,33 +276,39 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
                   id="zipCode"
                   value={addressData.zipCode}
                   onChange={(e) => handleChange("zipCode", e.target.value)}
-                  className={`mt-2 h-12 ${errors.zipCode ? "border-red-500" : ""}`}
+                  className={`mt-2 h-11 rounded-lg ${errors.zipCode ? "border-red-500" : ""}`}
                   placeholder="10001"
                 />
-                {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
-              </div>
+                {errors.zipCode && <p className="text-red-500 text-xs mt-1.5">{errors.zipCode}</p>}
+              </motion.div>
             </div>
           </div>
 
           {/* Special Instructions */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Special Instructions (Optional)</h3>
-            <Textarea
-              id="specialInstructions"
-              value={addressData.specialInstructions}
-              onChange={(e) => handleChange("specialInstructions", e.target.value)}
-              placeholder="Entry instructions, pets, areas to avoid, etc."
-              className="h-32"
-            />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 1.0 }}
+          >
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Special Instructions (Optional)</h3>
+              <Textarea
+                id="specialInstructions"
+                value={addressData.specialInstructions}
+                onChange={(e) => handleChange("specialInstructions", e.target.value)}
+                placeholder="Entry instructions, pets, areas to avoid, etc."
+                className="h-32 rounded-lg"
+              />
+            </div>
+          </motion.div>
 
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-6">
-            <Button variant="outline" size="lg" className="px-8 bg-transparent" onClick={onPrevious}>
+            <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Contact
             </Button>
-            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+            <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />

@@ -74,6 +74,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
         description: "The coupon code you entered is not valid.",
         variant: "destructive",
       })
+      setCouponCode("") // Clear invalid coupon code
     }
   }
 
@@ -185,7 +186,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
       </CardHeader>
       <CardContent>
         {/* Order Summary */}
-        <Card className="shadow-lg border-0 mb-8">
+        <Card className="shadow-xl border-0 mb-8 rounded-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -198,7 +199,10 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
           <CardContent>
             <div className="space-y-4">
               {cart.items.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
+                <div
+                  key={index}
+                  className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
                   <div>
                     <h4 className="font-medium">{item.name}</h4>
                     <div className="text-sm text-gray-500 space-y-1">
@@ -211,9 +215,9 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                     </div>
                   </div>
                   {item.paymentType === "in_person" || requiresEmailPricing(item.metadata?.roomType) ? (
-                    <span className="font-medium text-lg text-orange-600">Email for Pricing</span>
+                    <span className="font-semibold text-lg text-orange-600">Email for Pricing</span>
                   ) : (
-                    <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
+                    <span className="font-semibold text-lg">{formatCurrency(item.price * item.quantity)}</span>
                   )}
                 </div>
               ))}
@@ -222,7 +226,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
             <Separator className="my-6" />
 
             {/* Coupon Code Section */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <Tag className="h-5 w-5" />
                 Coupon Code
@@ -244,7 +248,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4 pt-4">
               <div className="flex justify-between text-lg">
                 <span>Subtotal (Online Payment)</span>
                 <span>{formatCurrency(subtotalOnline)}</span>
@@ -283,7 +287,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
         {/* Customer & Service Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Address Information */}
-          <Card className="shadow-lg border-0">
+          <Card className="shadow-xl border-0 rounded-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -313,7 +317,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
           </Card>
 
           {/* Payment Information */}
-          <Card className="shadow-lg border-0">
+          <Card className="shadow-xl border-0 rounded-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -367,14 +371,14 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
 
         {/* Navigation Buttons */}
         <div className="flex justify-between pt-6">
-          <Button variant="outline" size="lg" className="px-8 bg-transparent" onClick={onPrevious}>
+          <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Payment
           </Button>
           <Button
             onClick={handleCheckout}
-            size="lg"
-            className="w-full h-16 text-lg bg-green-600 hover:bg-green-700"
+            size="default"
+            className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 rounded-xl px-6"
             disabled={isProcessing}
           >
             {isProcessing ? (
@@ -393,7 +397,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
           </Button>
         </div>
         {totalInPerson > 0 && (
-          <p className="text-center text-sm text-orange-500 mt-4">Note: {CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
+          <p className="text-center text-sm text-orange-600 mt-4">Note: {CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
         )}
         <p className="text-center text-sm text-gray-500 mt-4">
           By clicking "Complete Order", you agree to our Terms of Service and Privacy Policy.

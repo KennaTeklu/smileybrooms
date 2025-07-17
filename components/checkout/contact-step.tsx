@@ -80,7 +80,11 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
               <Label htmlFor="firstName" className="text-base">
                 First Name
               </Label>
@@ -88,12 +92,16 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
                 id="firstName"
                 value={contactData.firstName}
                 onChange={(e) => handleChange("firstName", e.target.value)}
-                className={`mt-2 h-12 ${errors.firstName ? "border-red-500" : ""}`}
+                className={`mt-2 h-11 rounded-lg ${errors.firstName ? "border-red-500" : ""}`}
                 placeholder="John"
               />
-              {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
-            </div>
-            <div>
+              {errors.firstName && <p className="text-red-500 text-xs mt-1.5">{errors.firstName}</p>}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
               <Label htmlFor="lastName" className="text-base">
                 Last Name
               </Label>
@@ -101,14 +109,18 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
                 id="lastName"
                 value={contactData.lastName}
                 onChange={(e) => handleChange("lastName", e.target.value)}
-                className={`mt-2 h-12 ${errors.lastName ? "border-red-500" : ""}`}
+                className={`mt-2 h-11 rounded-lg ${errors.lastName ? "border-red-500" : ""}`}
                 placeholder="Doe"
               />
-              {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
-            </div>
+              {errors.lastName && <p className="text-red-500 text-xs mt-1.5">{errors.lastName}</p>}
+            </motion.div>
           </div>
 
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
             <Label htmlFor="email" className="text-base">
               Email
             </Label>
@@ -117,13 +129,17 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
               type="email"
               value={contactData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className={`mt-2 h-12 ${errors.email ? "border-red-500" : ""}`}
+              className={`mt-2 h-11 rounded-lg ${errors.email ? "border-red-500" : ""}`}
               placeholder="john.doe@example.com"
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-          </div>
+            {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>}
+          </motion.div>
 
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
             <Label htmlFor="phone" className="text-base">
               Phone
             </Label>
@@ -132,14 +148,14 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
               type="tel"
               value={contactData.phone}
               onChange={(e) => handleChange("phone", e.target.value)}
-              className={`mt-2 h-12 ${errors.phone ? "border-red-500" : ""}`}
+              className={`mt-2 h-11 rounded-lg ${errors.phone ? "border-red-500" : ""}`}
               placeholder="(555) 123-4567"
             />
-            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-          </div>
+            {errors.phone && <p className="text-red-500 text-xs mt-1.5">{errors.phone}</p>}
+          </motion.div>
 
           <div className="flex justify-end pt-6">
-            <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+            <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
