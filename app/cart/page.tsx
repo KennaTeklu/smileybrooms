@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
-import Image from "next/image"
+import { ShoppingBag, Trash2, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
@@ -17,88 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-import { analyzeCartHealth, type CartHealthReport } from "@/lib/cart-health"
 import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence } from "framer-motion"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
 
-// Placeholder for suggested products component
+// Empty placeholder for suggested products component
 function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
-  // In a real application, this would fetch suggestions based on currentCartItems
-  const suggestedProducts = [
-    {
-      id: "deep-clean-add-on",
-      name: "Deep Clean Add-on",
-      price: 45.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Enhance your cleaning with a deep clean for specific areas.",
-    },
-    {
-      id: "eco-friendly-products",
-      name: "Eco-Friendly Products",
-      price: 15.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Upgrade to environmentally friendly cleaning supplies.",
-    },
-    {
-      id: "window-cleaning",
-      name: "Window Cleaning",
-      price: 75.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Sparkling clean windows, inside and out.",
-    },
-  ].filter((suggestion) => !currentCartItems.some((item) => item.id === suggestion.id)) // Filter out items already in cart
-
-  if (suggestedProducts.length === 0) {
-    return null
-  }
-
-  return (
-    <Card className="shadow-lg border-gray-200 dark:border-gray-700" id={id}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-          <Lightbulb className="h-6 w-6 text-yellow-500" /> Suggested for You
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {suggestedProducts.map((product) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:shadow-md transition-shadow"
-          >
-            <Image
-              src={product.image || "/placeholder.svg"}
-              alt={product.name}
-              width={64}
-              height={64}
-              className="rounded-md object-cover border border-gray-200 dark:border-gray-600"
-            />
-            <div className="flex-1">
-              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{product.name}</h4>
-              <p className="text-sm text-muted-foreground">{product.description}</p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-blue-600 dark:text-blue-400">${product.price.toFixed(2)}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              >
-                Add
-              </Button>
-            </div>
-          </motion.div>
-        ))}
-      </CardContent>
-    </Card>
-  )
+  return null
 }
 
 export default function CartPage() {
@@ -110,18 +37,12 @@ export default function CartPage() {
   const [itemToRemoveId, setItemToRemoveId] = useState<string | null>(null)
   const [itemToRemoveName, setItemToRemoveName] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [cartHealth, setCartHealth] = useState<CartHealthReport | null>(null)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [couponInput, setCouponInput] = useState(cart.couponCode || "")
 
   useEffect(() => {
-    if (cart.items.length > 0) {
-      setCartHealth(analyzeCartHealth(cart.items))
-    } else {
-      setCartHealth(null)
-    }
     setCouponInput(cart.couponCode || "")
-  }, [cart.items, cart.couponCode])
+  }, [cart.couponCode])
 
   const handleQuantityChange = (itemId: string, change: number) => {
     const currentItem = cart.items.find((item) => item.id === itemId)
@@ -193,14 +114,6 @@ export default function CartPage() {
           <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
             <Link href="#order-summary">Summary</Link>
           </Button>
-          {cartHealth && (
-            <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-              <Link href="#cart-health-report">Health</Link>
-            </Button>
-          )}
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#suggested-products">Suggestions</Link>
-          </Button>
         </nav>
       )}
 
@@ -239,7 +152,6 @@ export default function CartPage() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Removed ScrollArea wrapper */}
               <div className="space-y-4 p-6">
                 <AnimatePresence mode="popLayout">
                   {cart.items.map((item) => (
@@ -254,8 +166,7 @@ export default function CartPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Cart Summary & Health */}
+          {/* Cart Summary Only */}
           <div className="lg:col-span-1 flex flex-col gap-8">
             <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
               <CardHeader className="pb-4">
@@ -327,10 +238,9 @@ export default function CartPage() {
                     </div>
                   </>
                 )}
-                {/* New descriptive text */}
+                {/* Checkout focused description */}
                 <p className="text-sm text-muted-foreground mb-4 text-center">
-                  Ready to finalize your booking? Proceed to our secure checkout to enter your details and complete your
-                  order.
+                  Ready to complete your order? Proceed to checkout to finalize your booking.
                 </p>
                 <CheckoutButton
                   useCheckoutPage={true}
@@ -347,71 +257,9 @@ export default function CartPage() {
                 </Button>
               </CardContent>
             </Card>
-
-            {cartHealth && (
-              <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="cart-health-report">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                    Cart Health Report
-                    {cartHealth.overallHealth === "healthy" && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {cartHealth.overallHealth === "warning" && <AlertCircle className="h-6 w-6 text-yellow-500" />}
-                    {cartHealth.overallHealth === "critical" && <XCircle className="h-6 w-6 text-red-500" />}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Overall Status:{" "}
-                    <span
-                      className={cn("font-semibold", {
-                        "text-green-600 dark:text-green-400": cartHealth.overallHealth === "healthy",
-                        "text-yellow-600 dark:text-yellow-400": cartHealth.overallHealth === "warning",
-                        "text-red-600 dark:text-red-400": cartHealth.overallHealth === "critical",
-                      })}
-                    >
-                      {cartHealth.overallHealth.charAt(0).toUpperCase() + cartHealth.overallHealth.slice(1)}
-                    </span>{" "}
-                    (Score: {cartHealth.score}/100)
-                  </p>
-                  {cartHealth.suggestions.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <Lightbulb className="h-5 w-5 text-blue-500" /> Suggestions:
-                      </h3>
-                      <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                        {cartHealth.suggestions.map((suggestion, index) => (
-                          <li key={index}>{suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <Separator className="my-4" />
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Detailed Metrics:</h3>
-                  <div className="space-y-3">
-                    {cartHealth.metrics.map((metric) => (
-                      <div key={metric.id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-700 dark:text-gray-300">{metric.name}</span>
-                        <span
-                          className={cn("font-medium", {
-                            "text-green-600 dark:text-green-400": metric.status === "healthy",
-                            "text-yellow-600 dark:text-yellow-400": metric.status === "warning",
-                            "text-red-600 dark:text-red-400": metric.status === "critical",
-                          })}
-                        >
-                          {metric.value} ({metric.status})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Suggested Products/Upsells */}
-            <CartSuggestions currentCartItems={cart.items} id="suggested-products" />
           </div>
         </div>
       )}
-
       {/* Remove Item Confirmation Dialog */}
       <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
         <DialogContent className="sm:max-w-[425px] rounded-xl">
@@ -434,7 +282,6 @@ export default function CartPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Clear Cart Confirmation Dialog */}
       <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
         <DialogContent className="sm:max-w-[425px] rounded-xl">
