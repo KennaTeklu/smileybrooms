@@ -1,92 +1,73 @@
-/**
- * Temporary, lightweight implementation so the project
- * compiles and deploys without missing-module errors.
- *
- * You can replace this with a richer React Context or state
- * store later if you need cross-component reactivity.
- */
+import { roomDisplayNames } from "@/lib/room-tiers"
+import {
+  Home,
+  Bed,
+  Bath,
+  ChefHat,
+  Sofa,
+  Car,
+  Briefcase,
+  StepBackIcon as Stairs,
+  DoorOpen,
+  Building,
+} from "lucide-react"
 
-import { roomIcons } from "@/lib/room-tiers"
+// Global state for active wizard
+let _activeWizard: string | null = null
+let _addingRoomId: string | null = null
+const _initialRenderComplete = true
 
-/* ------------------------------------------------------------------
- * Basic in-memory “store”
- * -----------------------------------------------------------------*/
-export let activeWizard: string | null = null
-export let addingRoomId: string | null = null
-export let initialRenderComplete = false
+export const activeWizard = _activeWizard
+export const addingRoomId = _addingRoomId
+export const initialRenderComplete = _initialRenderComplete
 
-export const setActiveWizard = (value: string | null) => {
-  activeWizard = value
+export const setActiveWizard = (roomType: string | null) => {
+  _activeWizard = roomType
 }
 
-export const setAddingRoomId = (value: string | null) => {
-  addingRoomId = value
+export const setAddingRoomId = (roomId: string | null) => {
+  _addingRoomId = roomId
 }
 
-export const setInitialRenderComplete = (value: boolean) => {
-  initialRenderComplete = value
+export const roomIcons = {
+  bedroom: Bed,
+  bathroom: Bath,
+  kitchen: ChefHat,
+  living_room: Sofa,
+  dining_room: ChefHat,
+  home_office: Briefcase,
+  laundry_room: Building,
+  garage: Car,
+  stairs: Stairs,
+  hallway: DoorOpen,
+  entryway: DoorOpen,
+  other: Home,
 }
 
-/* ------------------------------------------------------------------
- * Utility helpers duplicated from RoomCategory so that any component
- * importing them continues to work.  Feel free to DRY these up later.
- * -----------------------------------------------------------------*/
-export const getBgColor = (variant: "primary" | "secondary" = "primary") =>
-  variant === "primary"
-    ? "bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30"
-    : "bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30"
-
-export const getIconBgColor = (variant: "primary" | "secondary" = "primary") =>
-  variant === "primary" ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-200 dark:bg-gray-700/30"
-
-export const getIconTextColor = (variant: "primary" | "secondary" = "primary") =>
-  variant === "primary" ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
-
-/* ------------------------------------------------------------------
- * Safe default RoomConfig generator
- * -----------------------------------------------------------------*/
-interface RoomConfig {
-  roomName: string
-  selectedTier: string
-  selectedAddOns: string[]
-  selectedReductions?: string[]
-  basePrice: number
-  tierUpgradePrice: number
-  addOnsPrice: number
-  reductionsPrice?: number
-  totalPrice: number
-  quantity: number
-  detailedTasks: string[]
-  notIncludedTasks: string[]
-  upsellMessage: string
-  isPriceTBD?: boolean
-  paymentType?: "online" | "in_person"
+export const safeGetRoomConfig = (roomType: string) => {
+  // This is a stub - in a real implementation, this would get room config from context
+  return {
+    roomName: roomDisplayNames[roomType] || roomType,
+    selectedTier: "premium",
+    totalPrice: 50,
+    selectedAddOns: [],
+    selectedReductions: [],
+    detailedTasks: [],
+    notIncludedTasks: [],
+    upsellMessage: "",
+    paymentType: "online" as const,
+  }
 }
 
-export const safeGetRoomConfig = (roomType: string): RoomConfig => ({
-  roomName: roomType,
-  selectedTier: "PREMIUM CLEAN",
-  selectedAddOns: [],
-  selectedReductions: [],
-  basePrice: 50,
-  tierUpgradePrice: 0,
-  addOnsPrice: 0,
-  reductionsPrice: 0,
-  totalPrice: 50,
-  quantity: 1,
-  detailedTasks: [],
-  notIncludedTasks: [],
-  upsellMessage: "",
-})
-
-/* ------------------------------------------------------------------
- * No-op handler so imports resolve; replace with real logic as needed
- * -----------------------------------------------------------------*/
-export const handleRoomConfigChange = (_config: RoomConfig) => {
-  /* intentionally empty */
+export const handleRoomConfigChange = (roomType: string, config: any) => {
+  // This is a stub - in a real implementation, this would update room config
+  console.log(`Room config changed for ${roomType}:`, config)
 }
 
-/* ------------------------------------------------------------------
- * Re-export roomIcons so existing imports keep working
- * -----------------------------------------------------------------*/
-export { roomIcons }
+export const getBgColor = () => "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20"
+
+export const getIconBgColor = () => "bg-blue-100 dark:bg-blue-800"
+
+export const getIconTextColor = () => "text-blue-600 dark:text-blue-300"
+
+export const getActiveBorderColor = () => "border-blue-300 dark:border-blue-600"
