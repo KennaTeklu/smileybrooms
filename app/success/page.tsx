@@ -11,6 +11,7 @@ export default function SuccessPage() {
   const { clearCart } = useCart()
   const { toast } = useToast()
   const [emailSent, setEmailSent] = useState(false)
+  const [wantsLiveVideo, setWantsLiveVideo] = useState(false)
 
   useEffect(() => {
     // Clear cart and local storage data after successful checkout
@@ -29,6 +30,9 @@ export default function SuccessPage() {
       const addressData = JSON.parse(localStorage.getItem("checkout-address") || "{}")
       const paymentData = JSON.parse(localStorage.getItem("checkout-payment") || "{}")
       const cartItems = JSON.parse(localStorage.getItem("cartItems") || "[]") // Assuming cart items might still be in local storage before clearCart()
+
+      // Set wantsLiveVideo state based on paymentData
+      setWantsLiveVideo(!!paymentData.allowVideoRecording)
 
       const orderDetails = {
         orderId: `ORD-${Date.now()}`, // Placeholder ID
@@ -88,6 +92,11 @@ export default function SuccessPage() {
               <Mail className="mr-2 h-5 w-5" />
               <p>A confirmation email has been sent to your inbox.</p>
             </div>
+            {wantsLiveVideo && (
+              <div className="flex items-center justify-center text-gray-700 dark:text-gray-200">
+                <p>You’ll receive a private YouTube Live link to watch your cleaning.</p>
+              </div>
+            )}
             <Link
               href="/"
               className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors"
