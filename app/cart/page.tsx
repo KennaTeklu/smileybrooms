@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { ShoppingBag, Trash2, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
