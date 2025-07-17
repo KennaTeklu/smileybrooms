@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Plus, Minus, Lightbulb, Tag, CheckCircle } from "lucide-react"
+import { ShoppingBag, Trash2, Plus, Minus, CheckCircle, Lightbulb, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -34,13 +34,6 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
       image: "/placeholder.svg?height=100&width=100",
       description: "Upgrade to environmentally friendly cleaning supplies.",
     },
-    {
-      id: "window-cleaning",
-      name: "Window Cleaning",
-      price: 75.0,
-      image: "/placeholder.svg?height=100&width=100",
-      description: "Sparkling clean windows, inside and out.",
-    },
   ].filter((suggestion) => !currentCartItems.some((item) => item.id === suggestion.id)) // Filter out items already in cart
 
   if (suggestedProducts.length === 0) {
@@ -48,43 +41,33 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
   }
 
   return (
-    <Card className="shadow-lg border-gray-200 dark:border-gray-700" id={id}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+    <Card className="shadow-lg" id={id}>
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold flex items-center gap-2">
           <Lightbulb className="h-6 w-6 text-yellow-500" /> Suggested for You
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {suggestedProducts.map((product) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:shadow-md transition-shadow"
-          >
+          <div key={product.id} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
             <Image
               src={product.image || "/placeholder.svg"}
               alt={product.name}
               width={64}
               height={64}
-              className="rounded-md object-cover border border-gray-200 dark:border-gray-600"
+              className="rounded-md object-cover"
             />
             <div className="flex-1">
-              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{product.name}</h4>
+              <h4 className="font-semibold text-lg">{product.name}</h4>
               <p className="text-sm text-muted-foreground">{product.description}</p>
             </div>
             <div className="text-right">
               <p className="font-bold text-blue-600 dark:text-blue-400">${product.price.toFixed(2)}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              >
+              <Button variant="outline" size="sm" className="mt-2 bg-transparent">
                 Add
               </Button>
             </div>
-          </motion.div>
+          </div>
         ))}
       </CardContent>
     </Card>
@@ -171,7 +154,7 @@ export default function CartPage() {
 
   // Helper function to safely get room type from item metadata
   const getItemRoomType = (item: any): string | undefined => {
-    return item?.metadata?.roomType || undefined
+    return item?.metadata?.roomConfig?.category || undefined
   }
 
   // Helper function to safely check if item requires email pricing
