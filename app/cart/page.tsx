@@ -369,7 +369,7 @@ export default function CartPage() {
             </Card>
 
             {/* Cart Health Report */}
-            {cartHealth && (
+            {cartHealth && Array.isArray(cartHealth.messages) && cartHealth.messages.length > 0 && (
               <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="cart-health-report">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
@@ -380,7 +380,11 @@ export default function CartPage() {
                   {cartHealth.messages.map((msg, index) => (
                     <div
                       key={index}
-                      className={`flex items-start gap-3 ${msg.type === "warning" ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}
+                      className={`flex items-start gap-3 ${
+                        msg.type === "warning"
+                          ? "text-orange-600 dark:text-orange-400"
+                          : "text-green-600 dark:text-green-400"
+                      }`}
                     >
                       {msg.type === "warning" ? (
                         <Lightbulb className="h-5 w-5 flex-shrink-0 mt-1" />
