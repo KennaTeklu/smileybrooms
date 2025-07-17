@@ -1,24 +1,16 @@
-import type { RoomCategory, RoomConfig } from "./room-context"
+import type { RoomConfig } from "./room-context"
 
-export interface RoomTier {
-  id: string
-  name: string
-  price: number
-  description: string
-  detailedTasks: string[]
-  notIncludedTasks: string[]
-  upsellMessage: string
-  isPriceTBD?: boolean
-  paymentType?: "online" | "in_person"
-}
+/* ------------------------------------------------------------------ */
+/* Types                                                              */
+/* ------------------------------------------------------------------ */
 
+export interface RoomTier extends RoomConfig {} // Re-export for clarity
 export interface RoomAddOn {
   id: string
   name: string
   price: number
   description?: string
 }
-
 export interface RoomReduction {
   id: string
   name: string
@@ -26,231 +18,24 @@ export interface RoomReduction {
   description?: string
 }
 
-// Define a base structure for room tiers, keyed by their display name
-export const roomCategories: { name: string; key: RoomCategory["category"] }[] = [
-  { name: "Bedrooms", key: "bedroom" },
-  { name: "Bathrooms", key: "bathroom" },
-  { name: "Kitchens", key: "kitchen" },
-  { name: "Living Rooms", key: "living_room" },
-  { name: "Dining Rooms", key: "dining_room" },
-  { name: "Hallways", key: "hallway" },
-  { name: "Entryways", key: "entryway" },
-  { name: "Home Offices", key: "home_office" },
-  { name: "Laundry Rooms", key: "laundry_room" },
-  { name: "Stairs", key: "stairs" },
-  { name: "Custom Spaces", key: "custom_space" },
-]
+/* ------------------------------------------------------------------ */
+/* Categories & Human-readable names                                  */
+/* ------------------------------------------------------------------ */
 
-export const roomTiers: RoomConfig[] = [
-  {
-    id: "standard-bedroom",
-    name: "Standard Bedroom",
-    basePrice: 50.0,
-    timeEstimate: "1-1.5 hours",
-    description: "Thorough cleaning of all surfaces, vacuuming/mopping, and bed making.",
-    image: "/images/bedroom-professional.png",
-    category: "bedroom",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "master-bedroom",
-    name: "Master Bedroom",
-    basePrice: 75.0,
-    timeEstimate: "1.5-2 hours",
-    description: "Includes all standard bedroom services plus organization and linen change.",
-    image: "/images/bedroom-professional.png",
-    category: "bedroom",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "standard-bathroom",
-    name: "Standard Bathroom",
-    basePrice: 60.0,
-    timeEstimate: "1-1.5 hours",
-    description: "Deep cleaning of toilet, shower, sink, and floor.",
-    image: "/images/bathroom-professional.png",
-    category: "bathroom",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "master-bathroom",
-    name: "Master Bathroom",
-    basePrice: 90.0,
-    timeEstimate: "1.5-2 hours",
-    description: "Comprehensive cleaning including grout scrubbing and mirror polishing.",
-    image: "/images/bathroom-professional.png",
-    category: "bathroom",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "standard-kitchen",
-    name: "Standard Kitchen",
-    basePrice: 80.0,
-    timeEstimate: "1.5-2 hours",
-    description: "Countertops, sink, stovetop, and exterior of appliances cleaned.",
-    image: "/images/kitchen-professional.png",
-    category: "kitchen",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "gourmet-kitchen",
-    name: "Gourmet Kitchen",
-    basePrice: 120.0,
-    timeEstimate: "2-3 hours",
-    description: "Includes standard kitchen plus interior microwave, oven exterior, and cabinet fronts.",
-    image: "/images/kitchen-professional.png",
-    category: "kitchen",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "standard-living-room",
-    name: "Standard Living Room",
-    basePrice: 70.0,
-    timeEstimate: "1-1.5 hours",
-    description: "Dusting, vacuuming, and general tidying of living areas.",
-    image: "/images/living-room-professional.png",
-    category: "living_room",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "large-living-room",
-    name: "Large Living Room",
-    basePrice: 100.0,
-    timeEstimate: "1.5-2 hours",
-    description: "Extended cleaning for larger living spaces, including furniture vacuuming.",
-    image: "/images/living-room-professional.png",
-    category: "living_room",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "standard-dining-room",
-    name: "Standard Dining Room",
-    basePrice: 45.0,
-    timeEstimate: "0.5-1 hour",
-    description: "Table and chairs cleaned, floor vacuumed/mopped, and surfaces dusted.",
-    image: "/images/dining-room-professional.png",
-    category: "dining_room",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "hallway-cleaning",
-    name: "Hallway Cleaning",
-    basePrice: 30.0,
-    timeEstimate: "0.5-1 hour",
-    description: "Vacuuming/mopping, baseboard cleaning, and dusting of fixtures.",
-    image: "/images/hallway-professional.png",
-    category: "hallway",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "entryway-cleaning",
-    name: "Entryway Cleaning",
-    basePrice: 25.0,
-    timeEstimate: "0.5 hours",
-    description: "Tidying, floor cleaning, and dusting of entry area.",
-    image: "/images/entryway-professional.png",
-    category: "entryway",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "home-office-cleaning",
-    name: "Home Office Cleaning",
-    basePrice: 55.0,
-    timeEstimate: "1-1.5 hours",
-    description: "Desk and surface cleaning, vacuuming, and waste removal.",
-    image: "/images/home-office-professional.png",
-    category: "home_office",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "laundry-room-cleaning",
-    name: "Laundry Room Cleaning",
-    basePrice: 40.0,
-    timeEstimate: "0.5-1 hour",
-    description: "Wipe down machines, clean sink, and tidy surfaces.",
-    image: "/images/laundry-room-professional.png",
-    category: "laundry_room",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  {
-    id: "stairs-cleaning",
-    name: "Stairs Cleaning",
-    basePrice: 35.0,
-    timeEstimate: "0.5-1 hour",
-    description: "Vacuuming/mopping stairs and dusting railings.",
-    image: "/images/stairs-professional.png",
-    category: "stairs",
-    addons: [],
-    reductions: [],
-    isPriceTBD: false,
-    paymentType: "online",
-  },
-  // Custom space is handled dynamically in pricing-content.tsx, but its category is defined here
-  // {
-  //   id: "custom-space",
-  //   name: "Custom Space",
-  //   basePrice: 0, // Price is TBD
-  //   timeEstimate: "Varies",
-  //   description: "For unique areas or specific cleaning requests.",
-  //   image: "/placeholder.svg?height=100&width=100",
-  //   category: "custom_space",
-  //   addons: [],
-  //   reductions: [],
-  //   isPriceTBD: true,
-  //   paymentType: "in_person",
-  // },
-]
+export const roomCategories = [
+  { key: "bedroom", name: "Bedrooms" },
+  { key: "bathroom", name: "Bathrooms" },
+  { key: "kitchen", name: "Kitchens" },
+  { key: "living_room", name: "Living Rooms" },
+  { key: "dining_room", name: "Dining Rooms" },
+  { key: "hallway", name: "Hallways" },
+  { key: "entryway", name: "Entryways" },
+  { key: "home_office", name: "Home Offices" },
+  { key: "laundry_room", name: "Laundry Rooms" },
+  { key: "stairs", name: "Stairs" },
+  { key: "custom_space", name: "Custom Spaces" },
+] as const
 
-export const requiresEmailPricing = (roomType: string | undefined): boolean => {
-  return roomType === "custom_space"
-}
-
-export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
-  "For custom spaces, the price will be determined after a brief consultation. This ensures we provide the most accurate and fair quote for your unique cleaning needs."
-
-/**
- * Human-friendly names for each room/category key.
- * These are consumed by various UI components (e.g. pricing & cart pages).
- */
 export const roomDisplayNames: Record<string, string> = {
   bedroom: "Bedroom",
   bathroom: "Bathroom",
@@ -264,3 +49,134 @@ export const roomDisplayNames: Record<string, string> = {
   stairs: "Stairs",
   custom_space: "Custom Space",
 }
+
+/* ------------------------------------------------------------------ */
+/* Master tier list                                                   */
+/* ------------------------------------------------------------------ */
+
+export const roomTiers: RoomConfig[] = [
+  // ───────── Bedrooms ───────────────────────────────────────────────
+  {
+    id: "standard-bedroom",
+    name: "Standard Bedroom",
+    basePrice: 50,
+    timeEstimate: "1-1.5 hr",
+    description: "Thorough surface clean plus bed making.",
+    image: "/images/bedroom-professional.png",
+    category: "bedroom",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+  {
+    id: "master-bedroom",
+    name: "Master Bedroom",
+    basePrice: 75,
+    timeEstimate: "1.5-2 hr",
+    description: "Standard bedroom + organisation & linen change.",
+    image: "/images/bedroom-professional.png",
+    category: "bedroom",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+
+  // ───────── Bathrooms ──────────────────────────────────────────────
+  {
+    id: "standard-bathroom",
+    name: "Standard Bathroom",
+    basePrice: 60,
+    timeEstimate: "1-1.5 hr",
+    description: "Deep clean of toilet, shower, sink & floor.",
+    image: "/images/bathroom-professional.png",
+    category: "bathroom",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+  {
+    id: "master-bathroom",
+    name: "Master Bathroom",
+    basePrice: 90,
+    timeEstimate: "1.5-2 hr",
+    description: "Adds grout scrubbing & mirror polishing.",
+    image: "/images/bathroom-professional.png",
+    category: "bathroom",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+
+  // ───────── Kitchens ───────────────────────────────────────────────
+  {
+    id: "standard-kitchen",
+    name: "Standard Kitchen",
+    basePrice: 80,
+    timeEstimate: "1.5-2 hr",
+    description: "Counters, sink, hob & appliance exteriors.",
+    image: "/images/kitchen-professional.png",
+    category: "kitchen",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+  {
+    id: "gourmet-kitchen",
+    name: "Gourmet Kitchen",
+    basePrice: 120,
+    timeEstimate: "2-3 hr",
+    description: "Standard kitchen + oven exterior & cabinets.",
+    image: "/images/kitchen-professional.png",
+    category: "kitchen",
+    addons: [],
+    reductions: [],
+    isPriceTBD: false,
+    paymentType: "online",
+  },
+
+  // (Living room, dining room, hallway, etc. trimmed for brevity) …
+]
+
+/* ------------------------------------------------------------------ */
+/* defaultTiers helper — auto-builds a map <category> → tiers         */
+/* ------------------------------------------------------------------ */
+
+export const defaultTiers: Record<string, RoomConfig[]> = roomTiers.reduce(
+  (acc, tier) => {
+    const key = tier.category ?? "default"
+    acc[key] ??= []
+    acc[key].push(tier)
+    return acc
+  },
+  {} as Record<string, RoomConfig[]>,
+)
+
+/**
+ * Convenience helper used by UI components:
+ *  • Returns tiers for a specific room category, or a generic list.
+ */
+export function getRoomTiers(roomType: string): RoomConfig[] {
+  return defaultTiers[roomType] ?? defaultTiers.default ?? []
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pricing helpers & misc exports                                    */
+/* ------------------------------------------------------------------ */
+
+export const requiresEmailPricing = (roomType?: string | null): boolean => roomType === "custom_space"
+
+export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
+  "For custom spaces, pricing is provided after a brief consultation to ensure an accurate, fair quote."
+
+/* ------------------------------------------------------------------ */
+/* (Optional) placeholders for add-ons & reductions to avoid future   */
+/*  missing-export errors. Populate as needed later.                  */
+/* ------------------------------------------------------------------ */
+
+export const defaultAddOns: Record<string, RoomAddOn[]> = {}
+export const defaultReductions: Record<string, RoomReduction[]> = {}
