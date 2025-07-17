@@ -20,7 +20,9 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
           </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 text-sm">
+          <p className="text-muted-foreground text-right">Last Updated: July 17, 2025</p>
+
           <div>
             <h2 className="text-xl font-semibold mb-2">1. Introduction</h2>
             <p>
@@ -93,37 +95,135 @@ export default function PrivacyModal({ isOpen, onClose }: PrivacyModalProps) {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-2">5. Data Sharing</h2>
+            <h2 className="text-xl font-semibold mb-2">5. Data Sharing with Third Parties</h2>
             <p>
               We do not sell, rent, or trade your personal information to third parties for their direct marketing
               purposes. However, we may share your data with trusted third-party service providers who assist us in
               operating our Service, conducting our business, or serving our users, provided that these parties agree to
-              keep this information confidential.
+              keep this information confidential and comply with data protection laws.
             </p>
-            <p className="mt-2">Examples of third-party services we utilize and data shared:</p>
-            <ul className="list-disc pl-6 mt-2 space-y-1">
-              <li>
-                **Payment Processors (e.g., Stripe):** We share necessary transaction data (e.g., amount, billing
-                details, card information - securely tokenized) to process payments. We do not store full credit card
-                details on our servers.
-              </li>
-              <li>
-                **Analytics Providers (e.g., Google Analytics):** We share anonymized usage data, IP addresses, and
-                browser information to understand how our Service is used and to improve it.
-              </li>
-              <li>
-                **Cloud Storage Providers:** Your data may be stored on secure cloud servers for operational purposes.
-              </li>
-              <li>
-                **Email Service Providers:** We share your email address to send transactional and marketing emails.
-              </li>
-              <li>
-                **Google Sheets (for specific features like custom quotes):** If you use features that involve data
-                submission to Google Sheets, relevant form data (e.g., contact details, service preferences) may be
-                shared for processing and record-keeping.
-              </li>
-            </ul>
-            <p className="mt-2">
+            <p className="mt-2 font-semibold">Details of Third-Party Services:</p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-2">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Service
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Data Shared
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Purpose
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Location
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Privacy Policy
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                  <tr>
+                    <td className="px-4 py-2 whitespace-nowrap">Stripe</td>
+                    <td className="px-4 py-2">Payment info (tokenized), billing details, transaction data</td>
+                    <td className="px-4 py-2">Payment processing, fraud prevention</td>
+                    <td className="px-4 py-2">United States (global infrastructure)</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href="https://stripe.com/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        Link
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2 whitespace-nowrap">Google Analytics</td>
+                    <td className="px-4 py-2">Anonymized IP, browsing behavior, device info, referral source</td>
+                    <td className="px-4 py-2">Website analytics, performance monitoring</td>
+                    <td className="px-4 py-2">Global (primarily US servers)</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href="https://policies.google.com/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        Link
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2 whitespace-nowrap">Google Sheets</td>
+                    <td className="px-4 py-2">Form submissions (contact, service preferences, custom quote details)</td>
+                    <td className="px-4 py-2">Store custom quote requests, internal record-keeping</td>
+                    <td className="px-4 py-2">Global (primarily US servers)</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href="https://policies.google.com/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        Link
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2 whitespace-nowrap">Vercel</td>
+                    <td className="px-4 py-2">Application logs, deployment metadata, user requests (IP, timestamps)</td>
+                    <td className="px-4 py-2">Hosting, deployment, logging, performance monitoring</td>
+                    <td className="px-4 py-2">Global (various data centers)</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href="https://vercel.com/legal/privacy-policy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        Link
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2 whitespace-nowrap">Email Service Provider (e.g., SendGrid)</td>
+                    <td className="px-4 py-2">Email address, name, message content, delivery status</td>
+                    <td className="px-4 py-2">Sending transactional and marketing emails</td>
+                    <td className="px-4 py-2">Primarily United States (global infrastructure)</td>
+                    <td className="px-4 py-2">
+                      <a
+                        href="https://sendgrid.com/legal/privacy/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        Link
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4">
               We may also disclose your information when required by law, to enforce our site policies, or protect ours
               or others' rights, property, or safety.
             </p>

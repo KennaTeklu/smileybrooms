@@ -107,6 +107,16 @@ export default function TermsPage({ searchParams }: TermsPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="whitespace-pre-line text-sm leading-relaxed">{section.content}</div>
+                {section.id === "privacy" && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    For detailed information on our data collection, usage, and sharing practices, including with
+                    third-party services, please refer to our comprehensive{" "}
+                    <Link href="/privacy" className="text-primary underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
