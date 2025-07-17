@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import { createContext, useContext, useReducer, type ReactNode, useEffect, useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
+import { cartDB } from "@/lib/cart/persistence" // Import cartDB
 
 export type CartItem = {
   id: string
@@ -238,42 +239,53 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, dispatch] = useReducer(cartReducer, initialState)
   const { toast } = useToast()
+  const [isCartLoaded, setIsCartLoaded] = useState(false) // New state to track if cart is loaded
 
-  // Load cart from localStorage on initial mount
+  // Load cart from IndexedDB/localStorage on initial mount
   useEffect(() => {
-    try {
-      const storedCart = localStorage.getItem("cart")
-      if (storedCart) {
-        const parsedCart: CartState = JSON.parse(storedCart)
-        dispatch({ type: "SET_CART", payload: parsedCart })
-      }
-    } catch (error) {
-      console.error("Error loading cart from localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error loading cart",
-          description: "There was an error loading your saved cart.",
-          variant: "destructive",
-        })
+    const loadCartFromDB = async () => {
+      try {
+        await cartDB.init() // Ensure IndexedDB is initialized
+        const loadedCart = await cartDB.loadCart()
+        if (loadedCart) {
+          dispatch({ type: "SET_CART", payload: loadedCart })
+        }
+      } catch (error) {
+        console.error("Error loading cart from persistence:", error)
+        if (toast) {
+          toast({
+            title: "Error loading cart",
+            description: "There was an error loading your saved cart.",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        setIsCartLoaded(true) // Mark cart as loaded regardless of success or failure
       }
     }
+    loadCartFromDB()
   }, [toast]) // Run only once on mount
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to IndexedDB/localStorage whenever it changes, but only after initial load
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error saving cart",
-          description: "There was an error saving your cart. Please try again.",
-          variant: "destructive",
-        })
+    if (!isCartLoaded) return // Prevent saving initial empty state before loading from DB
+
+    const saveCartToDB = async () => {
+      try {
+        await cartDB.saveCart(cart)
+      } catch (error) {
+        console.error("Error saving cart to persistence:", error)
+        if (toast) {
+          toast({
+            title: "Error saving cart",
+            description: "There was an error saving your cart. Please try again.",
+            variant: "destructive",
+          })
+        }
       }
     }
-  }, [cart, toast])
+    saveCartToDB()
+  }, [cart, isCartLoaded, toast]) // Depend on cart and isCartLoaded
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     dispatch({
