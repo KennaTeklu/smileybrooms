@@ -65,6 +65,7 @@
     "react-dom": "^19",
     "react-error-boundary": "latest",
     "react-hook-form": "^7.54.1",
+    "react-hot-toast": "latest",
     "react-icons": "latest",
     "react-intersection-observer": "latest",
     "react-qr-code": "latest",
