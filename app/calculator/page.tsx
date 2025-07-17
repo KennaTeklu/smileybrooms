@@ -1,37 +1,32 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
-import { isClient } from "@/lib/utils"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
-// Dynamically import components that use CartProvider to prevent SSR issues
-const PriceCalculator = dynamic(() => import("@/components/price-calculator").then((mod) => mod.default), {
-  ssr: false,
-})
-
-function CalculatorLoading() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="w-full h-[500px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading calculator...</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function CalculatorPage() {
-  const [isMounted, setIsMounted] = useState(false)
+export default function CalculatorRedirectPage() {
+  const router = useRouter()
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    // Redirect after a short delay so users see the apology message first
+    const timer = setTimeout(() => {
+      router.replace("/pricing")
+    }, 3500)
 
-  if (!isMounted || !isClient()) {
-    return <CalculatorLoading />
-  }
+    return () => clearTimeout(timer)
+  }, [router])
 
-  return <PriceCalculator />
+  return (
+    <div className="container mx-auto py-16 px-4 text-center">
+      <h1 className="text-3xl font-bold mb-4">Calculator Page Unavailable</h1>
+      <p className="text-lg mb-8">
+        Sorry, our calculator page is no longer available. <br />
+        Please check out our{" "}
+        <a href="/pricing" className="text-primary underline">
+          Pricing
+        </a>{" "}
+        page for detailed quotes and services.
+      </p>
+      <p className="text-sm text-muted-foreground">You’ll be redirected automatically in a few seconds.</p>
+    </div>
+  )
 }
