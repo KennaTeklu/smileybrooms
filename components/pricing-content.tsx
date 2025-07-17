@@ -20,7 +20,7 @@ import {
   Lightbulb,
 } from "lucide-react"
 import Image from "next/image"
-import { useRoom, type RoomConfig } from "@/lib/room-context"
+import { useRoom, type RoomConfig, calculateRoomPrice } from "@/lib/room-context"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { roomTiers, roomCategories, requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { calculateRoomPrice } from "@/lib/utils" // Import calculateRoomPrice
+import type { JSX } from "react/jsx-runtime" // Import JSX to fix the undeclared variable error
 
 type RoomCategoryKey =
   | "bedroom"
