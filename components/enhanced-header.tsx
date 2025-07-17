@@ -53,22 +53,23 @@ export function EnhancedHeader() {
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/">
+          <Link href="/" aria-label="Home page">
             <Logo />
           </Link>
 
-          <nav className="hidden md:flex gap-1" role="navigation">
+          <nav className="hidden md:flex gap-1" role="menubar">
             {navigationLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center space-x-2 px-3 py-2 rounded-md", // Added padding and rounded corners
-                  "text-sm font-medium transition-colors duration-200",
-                  "text-foreground/70 hover:text-foreground hover:bg-accent/50", // Enhanced hover effect
+                  "flex items-center space-x-2 px-3 py-2 rounded-md",
+                  "text-sm font-medium transition-all duration-200", // Changed to transition-all
+                  "text-foreground/70 hover:text-foreground hover:bg-accent/50 hover:scale-[1.02]", // Added scale on hover
                   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                  pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground", // More distinct active link
+                  pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground",
                 )}
+                role="menuitem"
               >
                 <link.icon className="h-4 w-4" />
                 <span>{link.label}</span>
@@ -80,11 +81,11 @@ export function EnhancedHeader() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          <Button variant="outline" size="icon" aria-label="Open cart" asChild>
-            <Link href="/cart">
+          <Button variant="outline" size="icon" aria-label={`Open cart with ${cart.items?.length || 0} items`} asChild>
+            <Link href="/cart" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {hasItems && (
-                <span className="absolute -top-2 -right-2 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-background">
                   {cart.items?.length}
                 </span>
               )}
@@ -93,24 +94,27 @@ export function EnhancedHeader() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden bg-transparent">
+              <Button variant="outline" size="icon" className="md:hidden bg-background">
+                {" "}
+                {/* Ensure background is always set */}
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <div className="flex flex-col gap-6 pt-6">
+              <div className="flex flex-col gap-6 pt-6" role="menu">
                 {navigationLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "flex items-center space-x-3 px-4 py-3 rounded-lg", // Added padding and rounded corners for mobile
+                      "flex items-center space-x-3 px-4 py-3 rounded-lg",
                       "text-lg font-medium transition-colors duration-200",
-                      "text-foreground hover:bg-accent", // Enhanced hover effect for mobile
+                      "text-foreground hover:bg-accent",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                      pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground", // More distinct active link for mobile
+                      pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground",
                     )}
+                    role="menuitem"
                   >
                     <link.icon className="h-5 w-5" />
                     <span>{link.label}</span>
@@ -119,6 +123,7 @@ export function EnhancedHeader() {
                 <Link
                   href="/download"
                   className="text-lg font-medium flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent transition-colors duration-200"
+                  role="menuitem"
                 >
                   <Download className="h-5 w-5" />
                   Download App
