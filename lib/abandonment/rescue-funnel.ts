@@ -8,8 +8,8 @@ interface RescueFunnelOptions {
   exitIntentEnabled?: boolean
   inactivityTimeoutMs?: number
   abandonedCartReminderMs?: number
-  discountPercentage?: number
-  maxDiscountPercentage?: number
+  discountPercentage?: number // This default will no longer be used for offers
+  maxDiscountPercentage?: number // This will no longer be used for offers
   discountSteps?: number[]
   enableSmsReminders?: boolean
   enableChatIntervention?: boolean
@@ -28,9 +28,9 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
     exitIntentEnabled = true,
     inactivityTimeoutMs = 60000, // 1 minute
     abandonedCartReminderMs = 300000, // 5 minutes
-    discountPercentage = 10,
-    maxDiscountPercentage = 20,
-    discountSteps = [10, 15, 20],
+    discountPercentage = 10, // Default, but will not be used for offers if discountSteps is empty
+    maxDiscountPercentage = 20, // Will not be used for offers if discountSteps is empty
+    discountSteps = [10, 15, 20], // This will be overridden by the provider to []
     enableSmsReminders = false,
     enableChatIntervention = true,
   } = options
@@ -108,6 +108,7 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
         if (document.visibilityState === "hidden") {
           sendAbandonmentNotification()
         } else {
+          // If discountSteps is empty, this will fall through to chat intervention
           offerDiscount()
         }
       }, abandonedCartReminderMs)
@@ -120,13 +121,14 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
       localStorage.getItem("cart") && JSON.parse(localStorage.getItem("cart") || '{"items":[]}').items.length > 0
 
     if (hasItemsInCart && state.remindersSent === 0) {
+      // If discountSteps is empty, this will fall through to chat intervention
       offerDiscount()
     }
   }
 
-  // Offer discount
+  // Offer discount (or trigger chat if no discounts are configured)
   const offerDiscount = () => {
-    if (state.remindersSent < discountSteps.length) {
+    if (discountSteps.length > 0 && state.remindersSent < discountSteps.length) {
       const currentDiscount = discountSteps[state.remindersSent]
 
       setState((prev) => ({
@@ -149,7 +151,7 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
     if (isSupported) {
       sendNotification({
         title: "Your cleaning service is waiting!",
-        body: `Complete your booking now and save ${discountSteps[state.remindersSent] || discountPercentage}%!`,
+        body: `Complete your booking now!`, // Removed discount mention
         priority: "normal",
         actions: [
           {
@@ -171,7 +173,7 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
   // Send SMS reminder (would connect to actual SMS service)
   const sendSmsReminder = (phoneNumber: string) => {
     if (enableSmsReminders) {
-      console.log(`Would send SMS to ${phoneNumber} with discount offer`)
+      console.log(`Would send SMS to ${phoneNumber} with offer`) // Removed discount mention
       // In real implementation, this would call an API to send SMS
     }
   }
@@ -181,7 +183,7 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
     setShowDiscountModal,
     showChatPrompt,
     setShowChatPrompt,
-    currentDiscount: state.discountOffered,
+    currentDiscount: state.discountOffered, // This will now be 0 if no discounts are offered
     sendSmsReminder,
     rescueState: state,
   }

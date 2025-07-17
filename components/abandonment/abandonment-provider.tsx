@@ -25,7 +25,7 @@ export function AbandonmentProvider({ children }: { children: ReactNode }) {
   } = useAbandonmentRescue({
     exitIntentEnabled: true,
     inactivityTimeoutMs: 60000, // 1 minute for demo purposes
-    discountSteps: [10, 15, 20],
+    discountSteps: [], // Changed to an empty array to disable discounts
   })
 
   const [capturedEmail, setCapturedEmail] = useState<string | undefined>()
@@ -38,6 +38,7 @@ export function AbandonmentProvider({ children }: { children: ReactNode }) {
     }
 
     // Apply discount to localStorage or context
+    // This will now store 0 if no discount is offered
     localStorage.setItem("appliedDiscount", currentDiscount.toString())
   }
 
