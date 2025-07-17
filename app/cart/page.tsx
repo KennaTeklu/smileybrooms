@@ -247,7 +247,7 @@ export default function CartPage() {
                   variant="outline"
                   className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                 >
-                  <Link href="/">Continue Shopping</Link>
+                  <Link href="/pricing">Continue Shopping</Link>
                 </Button>
               </CardContent>
             </Card>
