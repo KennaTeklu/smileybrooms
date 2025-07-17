@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { ShoppingBag, Trash2, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
@@ -25,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 import { motion, AnimatePresence } from "framer-motion"
-import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
+import { CartItemDisplay } from "@/components/cart/cart-item-display"
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
@@ -240,22 +239,19 @@ export default function CartPage() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
-                <div className="space-y-4 p-6">
-                  {" "}
-                  {/* Removed overflow-y-auto from here */}
-                  <AnimatePresence mode="popLayout">
-                    {cart.items.map((item) => (
-                      <CartItemDisplay
-                        key={item.id}
-                        item={item}
-                        onRemoveItem={handleRemoveItemClick}
-                        onUpdateQuantity={handleQuantityChange}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </ScrollArea>
+              {/* Removed ScrollArea wrapper */}
+              <div className="space-y-4 p-6">
+                <AnimatePresence mode="popLayout">
+                  {cart.items.map((item) => (
+                    <CartItemDisplay
+                      key={item.id}
+                      item={item}
+                      onRemoveItem={handleRemoveItemClick}
+                      onUpdateQuantity={handleQuantityChange}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
             </CardContent>
           </Card>
 
