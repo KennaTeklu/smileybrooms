@@ -13,7 +13,6 @@ import Image from "next/image"
 import { useVibration } from "@/hooks/use-vibration"
 import { toast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
-import type { CartItem } from "@/lib/cart-context" // Import CartItem type
 
 interface RoomConfig {
   roomName: string
@@ -78,11 +77,9 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
 
       const pricePerUnit = config.quantity > 0 ? config.totalPrice / config.quantity : 0
 
-      // Collect items to remove first
-      const itemsToRemoveIds: string[] = []
-      cart.items.forEach((item) => {
+      const itemsToRemove = cart.items.filter((item) => {
         const itemConfig = item.metadata?.roomConfig
-        if (!itemConfig) return
+        if (!itemConfig) return false
 
         const matchesRoomType = item.metadata?.roomType === activeWizard
         const matchesTier = itemConfig.selectedTier === config.selectedTier
@@ -99,23 +96,18 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         const isItemOtherRoom = item.metadata?.roomType?.startsWith("other-custom-")
 
         if (isConfigOtherRoom && isItemOtherRoom) {
-          if (itemConfig.roomName === config.roomName) {
-            itemsToRemoveIds.push(item.id)
-          }
-        } else if (matchesRoomType && matchesTier && matchesAddOns && matchesReductions) {
-          itemsToRemoveIds.push(item.id)
+          return itemConfig.roomName === config.roomName
         }
+
+        return matchesRoomType && matchesTier && matchesAddOns && matchesReductions
       })
 
-      // Remove identified items from the cart sequentially
-      for (const id of itemsToRemoveIds) {
-        await removeItem(id)
-      }
+      itemsToRemove.forEach((item) => removeItem(item.id))
 
-      // Add the desired quantity of new, distinct items.
       for (let i = 0; i < config.quantity; i++) {
         const uniqueId = `custom-cleaning-${activeWizard}-${Date.now()}-${i}`
-        const itemToAdd: CartItem = {
+
+        addItem({
           id: uniqueId,
           name: `${config.roomName} Cleaning Instance #${i + 1}`,
           price: pricePerUnit,
@@ -132,8 +124,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
             upsellMessage: config.upsellMessage,
           },
           paymentType: isOtherRoom ? "in_person" : "online",
-        }
-        await addItem(itemToAdd)
+        })
       }
 
       updateRoomCount(activeWizard, config.quantity)
@@ -168,6 +159,7 @@ export function RoomCategory({ title, description, rooms, variant = "primary", o
         duration: 3000,
       })
     } finally {
+      // Ensure addingRoomId is reset even if there's an error
       if (addingRoomId !== null) {
         setAddingRoomId(null)
       }

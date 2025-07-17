@@ -7,15 +7,13 @@ import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel" 
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react" // Added ShoppingCart for the button
 import { cn } from "@/lib/utils"
-import { useRoom } from "@/lib/room-context" // Corrected import: useRoom instead of useRoomContext
+import { useRoomContext } from "@/lib/room-context" // To get selected room count for badge
 import { Badge } from "@/components/ui/badge"
 
 export default function PricingPage() {
   const [isAddAllPanelOpen, setIsAddAllPanelOpen] = useState(false)
-  const { roomState, getTotalPrice } = useRoom() // Using useRoom
-  const selectedRoomTypes = Object.keys(roomState.roomConfigs).filter(
-    (roomType) => roomState.roomConfigs[roomType].basePrice > 0 || roomState.roomConfigs[roomType].isPriceTBD,
-  )
+  const { getSelectedRoomTypes, getTotalPrice } = useRoomContext()
+  const selectedRoomTypes = getSelectedRoomTypes()
   const totalPrice = getTotalPrice()
 
   return (

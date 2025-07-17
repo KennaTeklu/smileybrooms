@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion" // Ensure AnimatePresence is imported
 import {
   ShoppingCart,
   Plus,
@@ -17,7 +17,6 @@ import {
   Minus,
   PlusIcon,
   ChevronDown,
-  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,9 +44,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ROOM_CONFIG } from "@/lib/constants"
-import { Progress } from "@/components/ui/progress"
-import { setActiveWizard } from "@/lib/wizard-context" // Declare or import setActiveWizard
+import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -58,12 +55,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
   const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes } =
     useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
-  const { addItems } = useCart() // Use the new batch addItems method
+  const { addItem } = useCart()
   const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const [isAddingToCart, setIsAddingToCart] = useState(false)
-  const [addingProgress, setAddingProgress] = useState(0)
   const [selectedFrequency, setSelectedFrequency] = useState<keyof typeof ROOM_CONFIG.frequencyMultipliers>("one_time")
   const [isFullHouseChecked, setIsFullHouseChecked] = useState(false)
 
@@ -164,15 +160,11 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
   const handleAddAllToCart = useCallback(async () => {
     setIsAddingToCart(true)
-    setAddingProgress(0)
-
     try {
+      let addedCount = 0
       const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0
-      const allItemsToAdd = []
-      let processedRooms = 0
 
-      // Prepare all items for batch addition
-      for (const roomType of selectedRoomTypes) {
+      selectedRoomTypes.forEach((roomType) => {
         const count = roomCounts[roomType]
         const config = roomConfigs[roomType]
 
@@ -181,7 +173,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           const adjustedPricePerUnit = basePricePerUnit * frequencyMultiplier
 
           for (let i = 0; i < count; i++) {
-            allItemsToAdd.push({
+            addItem({
               id: `custom-cleaning-${roomType}-${Date.now()}-${i}`,
               name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`,
               price: adjustedPricePerUnit,
@@ -205,30 +197,22 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               paymentType: config.paymentType,
             })
           }
-        }
 
-        processedRooms++
-        setAddingProgress((processedRooms / selectedRoomTypes.length) * 50) // First 50% for preparation
-      }
-
-      // Add all items in a single batch operation
-      if (allItemsToAdd.length > 0) {
-        setAddingProgress(75) // 75% when starting the batch add
-        await addItems(allItemsToAdd)
-        setAddingProgress(100) // 100% when complete
-
-        // Clear room counts after successful addition
-        selectedRoomTypes.forEach((roomType) => {
           updateRoomCount(roomType, 0)
-        })
+          addedCount++
+        }
+      })
 
+      setIsAddingToCart(false) // Reset loading state immediately after cart update
+
+      if (addedCount > 0) {
         vibrate([100, 50, 100])
 
         toast({
           title: "Added to cart",
-          description: `${selectedRoomTypes.length} room type${selectedRoomTypes.length !== 1 ? "s" : ""} with ${allItemsToAdd.length} total items added to your cart.`,
+          description: `${addedCount} room type${addedCount !== 1 ? "s" : ""} added to your cart.`,
           variant: "default",
-          duration: 4000,
+          duration: 3000,
         })
 
         onOpenChange(false)
@@ -248,22 +232,25 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         title: "Failed to add to cart",
         description: "There was an error adding the items to your cart. Please try again.",
         variant: "destructive",
-        duration: 4000,
+        duration: 3000,
       })
     } finally {
-      setIsAddingToCart(false)
-      setAddingProgress(0)
+      // Ensure isAddingToCart is reset even if there's an error
+      if (isAddingToCart) {
+        setIsAddingToCart(false)
+      }
     }
   }, [
     selectedRoomTypes,
     roomCounts,
     roomConfigs,
-    addItems,
+    addItem,
     updateRoomCount,
     vibrate,
     onOpenChange,
     selectedFrequency,
     isFullHouseChecked,
+    isAddingToCart, // Added to dependency array for safety, though it's a state setter
   ])
 
   const handleRemoveRoom = useCallback(
@@ -419,10 +406,10 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       return (
         <motion.div
           key={roomType}
-          layout
+          layout // Enable layout animations
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, x: -100 }}
+          exit={{ opacity: 0, x: -100 }} // Animate out to the left
           transition={{ duration: 0.3 }}
           className="flex flex-col gap-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl group hover:from-blue-50 hover:to-blue-100 dark:hover:from-blue-900/20 dark:hover:to-blue-800/20 transition-all duration-300 border border-gray-200 dark:border-gray-600 hover:shadow-lg"
         >
@@ -455,7 +442,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                   className="h-7 w-7"
                   aria-label={`Decrease ${displayName} count`}
                 >
-                  <Minus className="h-3 w-3" />
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </motion.div>
                 </Button>
                 <span className="w-6 text-center font-medium">{count}</span>
                 <Button
@@ -468,7 +462,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                   className="h-7 w-7"
                   aria-label={`Increase ${displayName} count`}
                 >
-                  <PlusIcon className="h-3 w-3" />
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PlusIcon className="h-3 w-3" />
+                  </motion.div>
                 </Button>
                 <TooltipProvider>
                   <Tooltip>
@@ -539,13 +540,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
 
-  const rooms = Object.keys(roomDisplayNames)
-
-  const handleCloseWizard = useCallback(() => {
-    setActiveWizard(null)
-    vibrate(50)
-  }, [vibrate])
-
   return (
     <>
       <AnimatePresence>
@@ -563,7 +557,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700"
             >
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-4 flex-shrink-0 border-b border-blue-500/20">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-0 flex-shrink-0 border-b border-blue-500/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Button
@@ -604,17 +598,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                     </Button>
                   </div>
                 </div>
-
-                {/* Progress bar for adding to cart */}
-                {isAddingToCart && (
-                  <div className="mt-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Adding items to cart...</span>
-                    </div>
-                    <Progress value={addingProgress} className="h-2" />
-                  </div>
-                )}
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto" ref={scrollContainerRef}>
@@ -694,6 +677,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           <AnimatePresence>
+                            {" "}
+                            {/* Wrap with AnimatePresence */}
                             {Object.keys(roomDisplayNames).map((roomType) => {
                               const config = roomConfigs[roomType] || {
                                 selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`,
@@ -709,7 +694,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                               return (
                                 <motion.div
                                   key={roomType}
-                                  layout
+                                  layout // Enable layout animations
                                   initial={{ opacity: 0, scale: 0.9 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   exit={{ opacity: 0, scale: 0.9 }}
@@ -761,7 +746,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                             }}
                                             className="h-6 w-6"
                                           >
-                                            <Minus className="h-3 w-3" />
+                                            <motion.div
+                                              initial={{ opacity: 0 }}
+                                              animate={{ opacity: 1 }}
+                                              exit={{ opacity: 0 }}
+                                              transition={{ duration: 0.3 }}
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </motion.div>
                                           </Button>
                                           <span className="w-6 text-center text-sm font-medium">{count}</span>
                                           <Button
@@ -773,7 +765,14 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                             }}
                                             className="h-6 w-6"
                                           >
-                                            <PlusIcon className="h-3 w-3" />
+                                            <motion.div
+                                              initial={{ opacity: 0 }}
+                                              animate={{ opacity: 1 }}
+                                              exit={{ opacity: 0 }}
+                                              transition={{ duration: 0.3 }}
+                                            >
+                                              <PlusIcon className="h-3 w-3" />
+                                            </motion.div>
                                           </Button>
                                         </div>
                                       )}
@@ -917,36 +916,38 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                       exit={{ opacity: 0, x: -20 }}
                       className="flex-1 flex flex-col"
                     >
-                      <div className="flex-1 overflow-y-auto p-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                          <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <ShoppingCart className="h-5 w-5" />
-                            Order Summary
-                          </h4>
-                          <div className="space-y-2">
-                            <AnimatePresence mode="popLayout">{roomList}</AnimatePresence>
-                          </div>
+                      <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                        <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                          <ShoppingCart className="h-5 w-5" />
+                          Order Summary
+                        </h4>
+                        <div className="space-y-2">
+                          <AnimatePresence mode="popLayout">
+                            {" "}
+                            {/* Add AnimatePresence here */}
+                            {roomList} {/* Render the memoized roomList */}
+                          </AnimatePresence>
+                        </div>
 
-                          <div className="border-t pt-3 mt-4">
-                            <div className="flex justify-between items-center text-lg font-bold">
-                              <span>Total</span>
-                              <span className="text-blue-600 dark:text-blue-400">
-                                {formatCurrency(displayTotalPrice)}{" "}
-                                {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
+                        <div className="border-t pt-3 mt-4">
+                          <div className="flex justify-between items-center text-lg font-bold">
+                            <span>Total</span>
+                            <span className="text-blue-600 dark:text-blue-400">
+                              {formatCurrency(displayTotalPrice)}{" "}
+                              {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
+                            </span>
+                          </div>
+                          {selectedFrequency !== "one_time" && isFullHouseChecked && (
+                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400 mt-1">
+                              <span>Full House Discount (5%)</span>
+                              <span>
+                                -
+                                {formatCurrency(
+                                  baseTotalPrice * ROOM_CONFIG.frequencyMultipliers[selectedFrequency] * 0.05,
+                                )}
                               </span>
                             </div>
-                            {selectedFrequency !== "one_time" && isFullHouseChecked && (
-                              <div className="flex justify-between text-sm text-green-600 dark:text-green-400 mt-1">
-                                <span>Full House Discount (5%)</span>
-                                <span>
-                                  -
-                                  {formatCurrency(
-                                    baseTotalPrice * ROOM_CONFIG.frequencyMultipliers[selectedFrequency] * 0.05,
-                                  )}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -990,7 +991,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           variant="outline"
                           onClick={handlePrevStep}
                           className="flex-1 sm:flex-none bg-transparent"
-                          disabled={isAddingToCart}
                         >
                           <ArrowLeft className="h-4 w-4 mr-2" />
                           Previous
@@ -1002,7 +1002,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         >
                           {isAddingToCart ? (
                             <>
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
                               Adding...
                             </>
                           ) : (

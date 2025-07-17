@@ -11,66 +11,6 @@ export class CartOperations {
     this.crdt = new CartCRDT()
   }
 
-  // Batch add multiple items for better performance
-  async addItems(state: NormalizedCartState, items: Partial<CartItem>[]): Promise<NormalizedCartState> {
-    const startTime = performance.now()
-
-    try {
-      const currentState = state
-      const normalizedItems = items.map((item) => normalizeCartItem(item))
-
-      // Process all items in a single operation
-      const updatedItems = [...currentState.items]
-
-      for (const normalizedItem of normalizedItems) {
-        const compositeKey = generateCompositeKey(normalizedItem.id, normalizedItem.sku)
-        const existingIndex = updatedItems.findIndex(
-          (item) => generateCompositeKey(item.id, item.sku).hash === compositeKey.hash,
-        )
-
-        if (existingIndex >= 0) {
-          // Update existing item quantity
-          updatedItems[existingIndex] = {
-            ...updatedItems[existingIndex],
-            quantity: updatedItems[existingIndex].quantity + normalizedItem.quantity,
-          }
-        } else {
-          // Add new item
-          updatedItems.push(normalizedItem)
-        }
-      }
-
-      // Recalculate summary once for all items
-      const summary = calculateCartSummary(updatedItems)
-
-      // Create new state
-      const newState: NormalizedCartState = {
-        ...currentState,
-        items: updatedItems,
-        summary,
-        lastModified: Date.now(),
-        conflictResolution: {
-          vectorClock: this.crdt.getVectorClock(),
-          nodeId: this.crdt.getNodeId(),
-        },
-      }
-
-      // Persist state once
-      await this.persistState(newState)
-
-      // Log performance
-      const duration = performance.now() - startTime
-      if (duration > 200) {
-        console.warn(`Batch add items operation took ${duration}ms (target: <200ms)`)
-      }
-
-      return newState
-    } catch (error) {
-      console.error("Failed to add items:", error)
-      throw error
-    }
-  }
-
   // Add item with normalization and composite key generation
   async addItem(state: NormalizedCartState, itemData: Partial<CartItem>): Promise<NormalizedCartState> {
     const startTime = performance.now()

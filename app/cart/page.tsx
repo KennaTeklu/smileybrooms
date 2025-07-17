@@ -24,6 +24,7 @@ import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
+import { motion, AnimatePresence } from "framer-motion"
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
@@ -43,6 +44,13 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
       image: "/placeholder.svg?height=100&width=100",
       description: "Upgrade to environmentally friendly cleaning supplies.",
     },
+    {
+      id: "window-cleaning",
+      name: "Window Cleaning",
+      price: 75.0,
+      image: "/placeholder.svg?height=100&width=100",
+      description: "Sparkling clean windows, inside and out.",
+    },
   ].filter((suggestion) => !currentCartItems.some((item) => item.id === suggestion.id)) // Filter out items already in cart
 
   if (suggestedProducts.length === 0) {
@@ -50,33 +58,43 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
   }
 
   return (
-    <Card className="shadow-lg" id={id}>
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+    <Card className="shadow-lg border-gray-200 dark:border-gray-700" id={id}>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
           <Lightbulb className="h-6 w-6 text-yellow-500" /> Suggested for You
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {suggestedProducts.map((product) => (
-          <div key={product.id} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
+          <motion.div
+            key={product.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 hover:shadow-md transition-shadow"
+          >
             <Image
               src={product.image || "/placeholder.svg"}
               alt={product.name}
               width={64}
               height={64}
-              className="rounded-md object-cover"
+              className="rounded-md object-cover border border-gray-200 dark:border-gray-600"
             />
             <div className="flex-1">
-              <h4 className="font-semibold text-lg">{product.name}</h4>
+              <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{product.name}</h4>
               <p className="text-sm text-muted-foreground">{product.description}</p>
             </div>
             <div className="text-right">
               <p className="font-bold text-blue-600 dark:text-blue-400">${product.price.toFixed(2)}</p>
-              <Button variant="outline" size="sm" className="mt-2 bg-transparent">
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              >
                 Add
               </Button>
             </div>
-          </div>
+          </motion.div>
         ))}
       </CardContent>
     </Card>
@@ -163,22 +181,24 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
-      <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100">Your Shopping Cart</h1>
+      <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
+        Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
+      </h1>
 
       {cart.items.length > 0 && (
-        <nav className="mb-8 flex justify-center gap-4 flex-wrap">
-          <Button variant="outline" asChild>
+        <nav className="mb-8 flex justify-center gap-3 sm:gap-4 flex-wrap">
+          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
             <Link href="#cart-items-list">Items</Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
             <Link href="#order-summary">Summary</Link>
           </Button>
           {cartHealth && (
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
               <Link href="#cart-health-report">Health</Link>
             </Button>
           )}
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
             <Link href="#suggested-products">Suggestions</Link>
           </Button>
         </nav>
@@ -186,136 +206,149 @@ export default function CartPage() {
 
       {cart.items.length === 0 ? (
         <Card
-          className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-lg shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
+          className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
           id="empty-cart-message"
         >
-          <ShoppingBag className="h-24 w-24 text-muted-foreground mb-6 opacity-70" />
-          <h3 className="text-2xl font-semibold mb-3 text-gray-800 dark:text-gray-200">Your cart is empty</h3>
-          <p className="text-muted-foreground mb-8 max-w-md">
+          <ShoppingBag className="h-28 w-28 text-muted-foreground mb-6 opacity-70" />
+          <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
+            Your cart is empty
+          </h3>
+          <p className="text-muted-foreground mb-8 max-w-md text-base">
             Looks like you haven't added any cleaning services or products yet. Start by exploring our offerings!
           </p>
-          <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-3 text-base">
             <Link href="/pricing">Start Shopping</Link>
           </Button>
         </Card>
       ) : (
         <div className="grid lg:grid-cols-3 gap-8 flex-1">
           {/* Cart Items List */}
-          <Card className="lg:col-span-2 shadow-lg" id="cart-items-list">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold">Items in Cart ({cart.totalItems})</CardTitle>
-            </CardHeader>
-            <div className="flex justify-end p-6 border-b border-gray-200 dark:border-gray-700">
-              <Button variant="outline" onClick={handleClearCartClick} disabled={cart.items.length === 0}>
+          <Card className="lg:col-span-2 shadow-lg border-gray-200 dark:border-gray-700" id="cart-items-list">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Items in Cart ({cart.totalItems})
+              </CardTitle>
+              <Button
+                variant="outline"
+                onClick={handleClearCartClick}
+                disabled={cart.items.length === 0}
+                className="rounded-lg bg-transparent"
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Clear All Items
+                Clear All
               </Button>
-            </div>
+            </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
-                <div className="space-y-4 p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
-                  {cart.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative bg-background rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center"
-                    >
-                      {/* Item image */}
-                      {item.image && (
-                        <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-                          <Image
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            width={112}
-                            height={112}
-                            className="object-cover w-full h-full"
-                            onError={(e) => {
-                              // Fallback to local placeholder if remote image fails
-                              const target = e.target as HTMLImageElement
-                              if (target && target.src !== "/placeholder.svg") {
-                                target.src = "/placeholder.svg"
-                              }
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Item details */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-lg leading-tight mb-1 text-gray-900 dark:text-gray-100">
-                          {item.name}
-                        </h4>
-                        {item.sourceSection && (
-                          <p className="text-sm text-muted-foreground mb-2">{item.sourceSection}</p>
-                        )}
-                        {item.metadata?.roomConfig?.name && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Tier: {item.metadata.roomConfig.name}
-                          </p>
-                        )}
-                        {item.metadata?.roomConfig?.timeEstimate && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Est. Time: {item.metadata.roomConfig.timeEstimate}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => handleQuantityChange(item.id, -1)}
-                              disabled={item.quantity <= 1}
-                              aria-label={`Decrease quantity of ${item.name}`}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="text-base font-medium min-w-[2ch] text-center text-gray-900 dark:text-gray-100">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={() => handleQuantityChange(item.id, 1)}
-                              aria-label={`Increase quantity of ${item.name}`}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          <div className="text-right">
-                            {requiresEmailPricing(item.metadata?.roomConfig?.category) ||
-                            item.paymentType === "in_person" ? (
-                              <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                Email for Pricing
-                              </p>
-                            ) : (
-                              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                ${(item.price * item.quantity).toFixed(2)}
-                              </p>
-                            )}
-                            {item.quantity > 1 &&
-                              !requiresEmailPricing(item.metadata?.roomConfig?.category) &&
-                              item.paymentType !== "in_person" && (
-                                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
-                              )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Remove button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-3 right-3 h-8 w-8 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
-                        onClick={() => handleRemoveItemClick(item.id, item.name)}
-                        aria-label={`Remove ${item.name}`}
+                <div className="space-y-4 p-6 overflow-y-auto">
+                  <AnimatePresence mode="popLayout">
+                    {cart.items.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -50 }}
+                        transition={{ duration: 0.3 }}
+                        className="group relative bg-background rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        {/* Item image */}
+                        {item.image && (
+                          <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                            <Image
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.name}
+                              width={112}
+                              height={112}
+                              className="object-cover w-full h-full"
+                              onError={(e) => {
+                                // Fallback to local placeholder if remote image fails
+                                const target = e.target as HTMLImageElement
+                                if (target && target.src !== "/placeholder.svg") {
+                                  target.src = "/placeholder.svg"
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Item details */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-lg leading-tight mb-1 text-gray-900 dark:text-gray-100">
+                            {item.name}
+                          </h4>
+                          {item.sourceSection && (
+                            <p className="text-sm text-muted-foreground mb-2">{item.sourceSection}</p>
+                          )}
+                          {item.metadata?.roomConfig?.name && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Tier: {item.metadata.roomConfig.name}
+                            </p>
+                          )}
+                          {item.metadata?.roomConfig?.timeEstimate && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Est. Time: {item.metadata.roomConfig.timeEstimate}
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 rounded-md p-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                                onClick={() => handleQuantityChange(item.id, -1)}
+                                disabled={item.quantity <= 1}
+                                aria-label={`Decrease quantity of ${item.name}`}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="text-base font-medium min-w-[2ch] text-center text-gray-900 dark:text-gray-100">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                                onClick={() => handleQuantityChange(item.id, 1)}
+                                aria-label={`Increase quantity of ${item.name}`}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <div className="text-right">
+                              {requiresEmailPricing(item.metadata?.roomType) || item.paymentType === "in_person" ? (
+                                <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                                  Email for Pricing
+                                </p>
+                              ) : (
+                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  ${(item.price * item.quantity).toFixed(2)}
+                                </p>
+                              )}
+                              {item.quantity > 1 &&
+                                !requiresEmailPricing(item.metadata?.roomType) &&
+                                item.paymentType !== "in_person" && (
+                                  <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                                )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Remove button */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-3 right-3 h-8 w-8 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+                          onClick={() => handleRemoveItemClick(item.id, item.name)}
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </ScrollArea>
             </CardContent>
@@ -323,12 +356,11 @@ export default function CartPage() {
 
           {/* Cart Summary & Health */}
           <div className="lg:col-span-1 flex flex-col gap-8">
-            <Card className="shadow-lg" id="order-summary">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold">Order Summary</CardTitle>
+            <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Order Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <Separator className="mb-4" />
                 <div className="space-y-3">
                   <div className="flex justify-between text-base">
                     <span className="text-gray-700 dark:text-gray-300">Subtotal ({cart.totalItems} items)</span>
@@ -340,6 +372,12 @@ export default function CartPage() {
                     <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
                       <span>Coupon ({cart.couponCode})</span>
                       <span>-${cart.couponDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {cart.fullHouseDiscount > 0 && (
+                    <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
+                      <span>Full House Discount</span>
+                      <span>-${cart.fullHouseDiscount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm text-muted-foreground">
@@ -359,10 +397,14 @@ export default function CartPage() {
                     placeholder="Enter coupon code"
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 h-10 rounded-lg"
                     aria-label="Coupon code input"
                   />
-                  <Button onClick={handleApplyCoupon} disabled={!couponInput.trim() || cart.couponDiscount > 0}>
+                  <Button
+                    onClick={handleApplyCoupon}
+                    disabled={!couponInput.trim() || cart.couponDiscount > 0}
+                    className="rounded-lg"
+                  >
                     <Tag className="h-4 w-4 mr-2" />
                     Apply
                   </Button>
@@ -391,14 +433,14 @@ export default function CartPage() {
                 </p>
                 <CheckoutButton
                   useCheckoutPage={true}
-                  className="w-full"
+                  className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={cart.items.length === 0 || isCheckoutLoading}
                 />
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                 >
                   <Link href="/">Continue Shopping</Link>
                 </Button>
@@ -406,9 +448,9 @@ export default function CartPage() {
             </Card>
 
             {cartHealth && (
-              <Card className="shadow-lg" id="cart-health-report">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="cart-health-report">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
                     Cart Health Report
                     {cartHealth.overallHealth === "healthy" && <CheckCircle className="h-6 w-6 text-green-500" />}
                     {cartHealth.overallHealth === "warning" && <AlertCircle className="h-6 w-6 text-yellow-500" />}
@@ -471,21 +513,22 @@ export default function CartPage() {
 
       {/* Remove Item Confirmation Dialog */}
       <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
-            <DialogTitle>Confirm Removal</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove <span className="font-semibold">{itemToRemoveName}</span> from your cart?
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirm Removal</DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              Are you sure you want to remove{" "}
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{itemToRemoveName}</span> from your cart?
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelRemoveItem}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmRemoveItem}>
+          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
+            <Button variant="destructive" onClick={confirmRemoveItem} className="w-full sm:w-auto rounded-lg">
               <Trash2 className="h-4 w-4 mr-2" />
               Remove
+            </Button>
+            <Button variant="outline" onClick={cancelRemoveItem} className="w-full sm:w-auto rounded-lg bg-transparent">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -493,20 +536,26 @@ export default function CartPage() {
 
       {/* Clear Cart Confirmation Dialog */}
       <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
-            <DialogTitle>Clear Cart Confirmation</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Clear Cart Confirmation
+            </DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
               Are you sure you want to clear all items from your cart? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowClearConfirm(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmClearCart}>
+          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
+            <Button variant="destructive" onClick={confirmClearCart} className="w-full sm:w-auto rounded-lg">
               <Trash2 className="h-4 w-4 mr-2" />
               Clear All
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowClearConfirm(false)}
+              className="w-full sm:w-auto rounded-lg"
+            >
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
