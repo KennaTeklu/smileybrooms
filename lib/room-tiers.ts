@@ -50,6 +50,24 @@ export const roomDisplayNames: Record<string, string> = {
   custom_space: "Custom Space",
 }
 
+/**
+ * Static image paths for each room/category – used by UI components
+ * (paths point to files already in /public/images)
+ */
+export const roomImages: Record<string, string> = {
+  bedroom: "/images/bedroom-professional.png",
+  bathroom: "/images/bathroom-professional.png",
+  kitchen: "/images/kitchen-professional.png",
+  living_room: "/images/living-room-professional.png",
+  dining_room: "/images/dining-room-professional.png",
+  hallway: "/images/hallway-professional.png",
+  entryway: "/images/entryway-professional.png",
+  home_office: "/images/home-office-professional.png",
+  laundry_room: "/images/laundry-room-professional.png",
+  stairs: "/images/stairs-professional.png",
+  custom_space: "/public/room-icon.png", // generic icon
+}
+
 /* ------------------------------------------------------------------ */
 /* Master tier list                                                   */
 /* ------------------------------------------------------------------ */
