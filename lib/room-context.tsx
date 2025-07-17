@@ -26,6 +26,7 @@ interface RoomContextType {
   updateRoomConfig: (roomType: string, config: Partial<RoomConfig>) => void
   getSelectedRoomTypes: () => string[]
   getCalculatedRoomPrice: (roomType: string, config: Partial<RoomConfig>) => number // New function
+  getTotalPrice: () => number
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined)
@@ -140,6 +141,13 @@ export function RoomProvider({ children }: { ReactNode }) {
     return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
   }, [roomCounts])
 
+  const getTotalPrice = useCallback(() => {
+    return Object.entries(roomCounts).reduce((total, [roomType, count]) => {
+      const cfg = roomConfigsRef.current[roomType]
+      return total + (cfg ? cfg.totalPrice * count : 0)
+    }, 0)
+  }, [roomCounts])
+
   // Effect to calculate total prices whenever roomConfigs or roomCounts change
   useEffect(() => {
     const newRoomConfigs = { ...roomConfigsRef.current } // Use ref for latest state
@@ -178,6 +186,7 @@ export function RoomProvider({ children }: { ReactNode }) {
         updateRoomConfig,
         getSelectedRoomTypes,
         getCalculatedRoomPrice,
+        getTotalPrice,
       }}
     >
       {children}
