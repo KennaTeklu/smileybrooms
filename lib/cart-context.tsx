@@ -1,35 +1,19 @@
 "use client"
 
-import { createContext, useContext, useReducer, type ReactNode, useEffect } from "react"
+import { createContext, useContext, useReducer, type ReactNode, useEffect, useRef } from "react"
 import { useToast } from "@/components/ui/use-toast"
+import { CartOperations } from "@/lib/cart/operations"
+import { cartDB } from "@/lib/cart/persistence"
+import type { CartItem, NormalizedCartState } from "@/lib/cart/types" // Import types from cart/types
 
-export type CartItem = {
-  id: string
-  name: string
-  price: number
-  priceId: string
-  quantity: number
-  image?: string
-  sourceSection?: string
-  metadata?: Record<string, any>
-  paymentFrequency?: "per_service" | "monthly" | "yearly"
-  isFullHousePromoApplied?: boolean // New field for full house promo
-  paymentType?: "online" | "in_person" // Added paymentType
-  // New fields for room configuration details
-  roomType?: string
-  selectedTier?: string
-  selectedAddOns?: string[]
-  selectedReductions?: string[]
-}
-
-type CartState = {
-  items: CartItem[]
+// Define CartState based on NormalizedCartState for consistency
+type CartState = NormalizedCartState & {
   totalItems: number
-  subtotalPrice: number // Renamed from totalPrice to subtotalPrice
-  totalPrice: number // New field for total after discounts/taxes
+  subtotalPrice: number
+  totalPrice: number
   couponCode: string | null
   couponDiscount: number
-  fullHouseDiscount: number // New field for full house discount
+  fullHouseDiscount: number
   inPersonPaymentTotal: number
 }
 
@@ -39,17 +23,30 @@ type CartAction =
   | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
   | { type: "APPLY_COUPON"; payload: string }
-  | { type: "SET_CART"; payload: CartState } // New action for loading from localStorage
+  | { type: "SET_CART"; payload: NormalizedCartState } // Payload is NormalizedCartState from persistence
 
 const initialState: CartState = {
   items: [],
+  summary: {
+    subTotal: 0,
+    discounts: 0,
+    shipping: 0,
+    taxes: 0,
+    grandTotal: 0,
+  },
+  version: 1,
+  lastModified: Date.now(),
+  conflictResolution: {
+    vectorClock: {},
+    nodeId: "",
+  },
   totalItems: 0,
   subtotalPrice: 0,
   totalPrice: 0,
   couponCode: null,
   couponDiscount: 0,
   fullHouseDiscount: 0,
-  inPersonPaymentTotal: 0, // Added
+  inPersonPaymentTotal: 0,
 }
 
 // Define valid coupons and their effects
@@ -114,8 +111,8 @@ const calculateCartTotals = (
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case "ADD_ITEM": {
+      // This case is now primarily for UI updates, actual persistence handled by CartOperations
       const existingItemIndex = state.items.findIndex((item) => item.id === action.payload.id)
-
       let updatedItems: CartItem[]
 
       if (existingItemIndex !== -1) {
@@ -158,7 +155,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
-        inPersonPaymentTotal, // Added
+        inPersonPaymentTotal,
       }
     }
 
@@ -181,7 +178,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
-        inPersonPaymentTotal, // Added
+        inPersonPaymentTotal,
       }
     }
 
@@ -198,17 +195,21 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         subtotalPrice,
         totalPrice,
         fullHouseDiscount,
-        inPersonPaymentTotal, // Added
+        inPersonPaymentTotal,
       }
     }
 
     case "CLEAR_CART":
-      return initialState
+      return {
+        ...initialState,
+        conflictResolution: { ...initialState.conflictResolution, nodeId: state.conflictResolution.nodeId },
+      }
 
-    case "SET_CART": // For loading from localStorage
-      // Recalculate totals to ensure consistency with current coupon/full house logic
+    case "SET_CART": {
+      // When loading from persistence, recalculate totals to ensure consistency
       const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-        calculateCartTotals(action.payload.items, action.payload.couponCode)
+        calculateCartTotals(action.payload.items, state.couponCode) // Use existing coupon code
+
       return {
         ...action.payload,
         totalItems,
@@ -216,8 +217,10 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         totalPrice,
         couponDiscount,
         fullHouseDiscount,
-        inPersonPaymentTotal, // Added
+        inPersonPaymentTotal,
+        couponCode: state.couponCode, // Preserve coupon code from current state if any
       }
+    }
 
     default:
       return state
@@ -226,94 +229,159 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
 type CartContextType = {
   cart: CartState
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-  applyCoupon: (couponCode: string) => boolean // Returns true if coupon is valid
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => Promise<void>
+  removeItem: (id: string) => Promise<void>
+  updateQuantity: (id: string, quantity: number) => Promise<void>
+  clearCart: () => Promise<void>
+  applyCoupon: (couponCode: string) => boolean
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, dispatch] = useReducer(cartReducer, initialState)
-  const { toast } = useToast()
-
-  // Load cart from localStorage on initial mount
-  useEffect(() => {
-    try {
-      const storedCart = localStorage.getItem("cart")
-      if (storedCart) {
-        const parsedCart: CartState = JSON.parse(storedCart)
-        dispatch({ type: "SET_CART", payload: parsedCart })
+  const [cart, dispatch] = useReducer(cartReducer, initialState, (init) => {
+    // Initializer function for useReducer to load from IndexedDB
+    const loadInitial = async () => {
+      await cartDB.init()
+      const savedCart = await cartDB.loadCart()
+      if (savedCart) {
+        const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+          calculateCartTotals(savedCart.items, null) // Recalculate totals on load
+        return {
+          ...savedCart,
+          totalItems,
+          subtotalPrice,
+          totalPrice,
+          couponDiscount,
+          fullHouseDiscount,
+          inPersonPaymentTotal,
+          couponCode: null, // Coupon code is not persisted with cart state, needs re-application
+        }
       }
-    } catch (error) {
-      console.error("Error loading cart from localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error loading cart",
-          description: "There was an error loading your saved cart.",
-          variant: "destructive",
-        })
-      }
+      return init
     }
-  }, [toast]) // Run only once on mount
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(cart))
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error)
-      if (toast) {
-        toast({
-          title: "Error saving cart",
-          description: "There was an error saving your cart. Please try again.",
-          variant: "destructive",
-        })
-      }
-    }
-  }, [cart, toast])
-
-  const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-    dispatch({
-      type: "ADD_ITEM",
-      payload: { ...item, quantity: item.quantity || 1 },
+    // This is a hack to make useReducer's initializer async.
+    // In a real app, you'd typically load data in a useEffect and then dispatch SET_CART.
+    // For v0's immediate preview, this pattern is sometimes used.
+    loadInitial().then((loadedState) => {
+      dispatch({ type: "SET_CART", payload: loadedState })
     })
+    return init // Return initial state immediately, then update via dispatch
+  })
 
-    if (toast) {
+  const { toast } = useToast()
+  const cartOperationsRef = useRef<CartOperations | null>(null)
+
+  // Initialize CartOperations instance
+  useEffect(() => {
+    cartOperationsRef.current = new CartOperations()
+    // Ensure cartDB is initialized
+    cartDB.init().catch(console.error)
+  }, [])
+
+  // Effect to save cart state to IndexedDB whenever it changes
+  useEffect(() => {
+    const saveCartState = async () => {
+      if (cartOperationsRef.current && cart.conflictResolution.nodeId) {
+        try {
+          // Only save the NormalizedCartState part
+          const { items, summary, version, lastModified, conflictResolution } = cart
+          await cartOperationsRef.current.persistState({ items, summary, version, lastModified, conflictResolution })
+        } catch (error) {
+          console.error("Error saving cart to IndexedDB:", error)
+          toast({
+            title: "Error saving cart",
+            description: "There was an error saving your cart. Please try again.",
+            variant: "destructive",
+          })
+        }
+      }
+    }
+    saveCartState()
+  }, [cart, toast]) // Depend on the entire cart object
+
+  const addItem = async (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
+    if (!cartOperationsRef.current) return
+
+    try {
+      const updatedNormalizedCart = await cartOperationsRef.current.addItem(cart, {
+        ...item,
+        quantity: item.quantity || 1,
+      })
+      dispatch({ type: "SET_CART", payload: updatedNormalizedCart }) // Update local state from persisted state
+
       toast({
         title: "Added to cart",
         description: `${item.name} has been added to your cart`,
         duration: 3000,
       })
+    } catch (error) {
+      console.error("Failed to add item:", error)
+      toast({
+        title: "Failed to add item",
+        description: "There was an error adding the item to your cart. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
-  const removeItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id })
+  const removeItem = async (id: string) => {
+    if (!cartOperationsRef.current) return
 
-    if (toast) {
+    try {
+      const updatedNormalizedCart = await cartOperationsRef.current.removeItem(cart, id, "") // SKU might be needed for composite key
+      dispatch({ type: "SET_CART", payload: updatedNormalizedCart })
+
       toast({
         title: "Removed from cart",
         description: "Item has been removed from your cart",
         duration: 3000,
       })
+    } catch (error) {
+      console.error("Failed to remove item:", error)
+      toast({
+        title: "Failed to remove item",
+        description: "There was an error removing the item from your cart. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
-  const updateQuantity = (id: string, quantity: number) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
+  const updateQuantity = async (id: string, quantity: number) => {
+    if (!cartOperationsRef.current) return
+
+    try {
+      const updatedNormalizedCart = await cartOperationsRef.current.updateQuantity(cart, id, "", quantity) // SKU might be needed
+      dispatch({ type: "SET_CART", payload: updatedNormalizedCart })
+    } catch (error) {
+      console.error("Failed to update quantity:", error)
+      toast({
+        title: "Failed to update quantity",
+        description: "There was an error updating item quantity. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const clearCart = () => {
-    dispatch({ type: "CLEAR_CART" })
+  const clearCart = async () => {
+    if (!cartOperationsRef.current) return
 
-    if (toast) {
+    try {
+      // CartOperations doesn't have a direct clearCart method, so we simulate it
+      const clearedState = await cartOperationsRef.current.loadInitialState() // Loads an empty cart state
+      dispatch({ type: "SET_CART", payload: clearedState })
+
       toast({
         title: "Cart cleared",
         description: "All items have been removed from your cart",
         duration: 3000,
+      })
+    } catch (error) {
+      console.error("Failed to clear cart:", error)
+      toast({
+        title: "Failed to clear cart",
+        description: "There was an error clearing your cart. Please try again.",
+        variant: "destructive",
       })
     }
   }
@@ -321,22 +389,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const applyCoupon = (couponCode: string): boolean => {
     if (VALID_COUPONS[couponCode.toUpperCase()]) {
       dispatch({ type: "APPLY_COUPON", payload: couponCode })
-      if (toast) {
-        toast({
-          title: "Coupon Applied!",
-          description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
-          variant: "success",
-        })
-      }
+      toast({
+        title: "Coupon Applied!",
+        description: `Coupon "${couponCode.toUpperCase()}" has been applied.`,
+        variant: "success",
+      })
       return true
     } else {
-      if (toast) {
-        toast({
-          title: "Invalid Coupon",
-          description: `The coupon code "${couponCode}" is not valid.`,
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Invalid Coupon",
+        description: `The coupon code "${couponCode}" is not valid.`,
+        variant: "destructive",
+      })
       return false
     }
   }

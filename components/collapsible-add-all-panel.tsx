@@ -2,22 +2,8 @@
 
 import { useEffect } from "react"
 import { useState, useCallback, useMemo, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion" // Ensure AnimatePresence is imported
-import {
-  ShoppingCart,
-  Plus,
-  Trash2,
-  X,
-  ArrowLeft,
-  ArrowRight,
-  ListChecks,
-  ListX,
-  Lightbulb,
-  CheckCircle,
-  Minus,
-  PlusIcon,
-  ChevronDown,
-} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Plus, Trash2, ListChecks, ListX, Lightbulb, Minus, PlusIcon, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -29,22 +15,24 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { toast } from "@/components/ui/use-toast"
 import { formatCurrency } from "@/lib/utils"
-import {
-  roomImages,
-  roomDisplayNames,
-  defaultTiers,
-  getRoomTiers,
-  roomTiers,
-  requiresEmailPricing,
-  CUSTOM_SPACE_LEGAL_DISCLAIMER,
-} from "@/lib/room-tiers"
+import { roomImages, roomDisplayNames, defaultTiers, getRoomTiers, roomTiers } from "@/lib/room-tiers"
 import Image from "next/image"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ROOM_CONFIG } from "@/lib/constants" // Import ROOM_CONFIG
+import { ROOM_CONFIG } from "@/lib/constants"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { MultiStepCustomizationWizard } from "@/components/multi-step-customization-wizard"
+import {
+  activeWizard,
+  setActiveWizard,
+  roomIcons,
+  safeGetRoomConfig,
+  handleRoomConfigChange,
+  getBgColor,
+  getIconBgColor,
+  getIconTextColor,
+  initialRenderComplete,
+  addingRoomId,
+} from "@/lib/wizard-context"
 
 interface CollapsibleAddAllPanelProps {
   isOpen: boolean
@@ -56,7 +44,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     useRoomContext()
   const isMultiSelection = useMultiSelection(roomCounts)
   const { addItem } = useCart()
-  const [reviewStep, setReviewStep] = useState(0) // 0: room list, 1: confirmation
+  const [reviewStep, setReviewStep] = useState(0)
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const [isAddingToCart, setIsAddingToCart] = useState(false)
@@ -164,7 +152,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       let addedCount = 0
       const frequencyMultiplier = ROOM_CONFIG.frequencyMultipliers[selectedFrequency] || 1.0
 
-      selectedRoomTypes.forEach((roomType) => {
+      for (const roomType of selectedRoomTypes) {
+        // Use for...of for async/await
         const count = roomCounts[roomType]
         const config = roomConfigs[roomType]
 
@@ -173,7 +162,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           const adjustedPricePerUnit = basePricePerUnit * frequencyMultiplier
 
           for (let i = 0; i < count; i++) {
-            addItem({
+            await addItem({
+              // Await addItem
               id: `custom-cleaning-${roomType}-${Date.now()}-${i}`,
               name: `${config.roomName || roomDisplayNames[roomType] || roomType} Cleaning Instance #${i + 1}`,
               price: adjustedPricePerUnit,
@@ -201,9 +191,9 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
           updateRoomCount(roomType, 0)
           addedCount++
         }
-      })
+      }
 
-      setIsAddingToCart(false) // Reset loading state immediately after cart update
+      setIsAddingToCart(false)
 
       if (addedCount > 0) {
         vibrate([100, 50, 100])
@@ -235,7 +225,6 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
         duration: 3000,
       })
     } finally {
-      // Ensure isAddingToCart is reset even if there's an error
       if (isAddingToCart) {
         setIsAddingToCart(false)
       }
@@ -250,7 +239,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     onOpenChange,
     selectedFrequency,
     isFullHouseChecked,
-    isAddingToCart, // Added to dependency array for safety, though it's a state setter
+    isAddingToCart,
   ])
 
   const handleRemoveRoom = useCallback(
@@ -298,7 +287,8 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     [selectedRoomTypes, applyGlobalTierToRoom, vibrate, roomConfigs],
   )
 
-  const handleAddCustomRoom = useCallback(() => {
+  const handleAddCustomRoom = useCallback(async () => {
+    // Made async
     if (!newCustomRoomName.trim() || newCustomRoomQuantity <= 0) {
       toast({
         title: "Invalid Custom Room",
@@ -312,6 +302,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     const customRoomId = `other-custom-${Date.now()}`
     const selectedGlobalTierDetails = roomTiers[selectedGlobalTierName]
 
+    // Update room context first for immediate UI feedback
     updateRoomCount(customRoomId, newCustomRoomQuantity)
     updateRoomConfig(customRoomId, {
       roomName: newCustomRoomName.trim(),
@@ -326,6 +317,36 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       paymentType: "in_person",
     })
 
+    // Now add to cart via the async addItem
+    for (let i = 0; i < newCustomRoomQuantity; i++) {
+      await addItem({
+        id: `${customRoomId}-${Date.now()}-${i}`, // Ensure unique ID for each instance
+        name: `${newCustomRoomName.trim()} Cleaning Instance #${i + 1}`,
+        price: 0, // Price is TBD for custom rooms
+        priceId: "price_custom_cleaning_tbd",
+        quantity: 1,
+        image: roomImages.other,
+        metadata: {
+          roomType: customRoomId,
+          roomConfig: {
+            roomName: newCustomRoomName.trim(),
+            selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`,
+            totalPrice: 0,
+            isPriceTBD: true,
+            selectedAddOns: [],
+            selectedReductions: [],
+            detailedTasks: selectedGlobalTierDetails?.detailedTasks || [],
+            notIncludedTasks: selectedGlobalTierDetails?.notIncludedTasks || [],
+            upsellMessage: selectedGlobalTierDetails?.upsellMessage || "",
+            quantity: 1, // Store config for a single unit
+          },
+          isRecurring: false,
+          frequency: "one_time",
+        },
+        paymentType: "in_person",
+      })
+    }
+
     setNewCustomRoomName("")
     setNewCustomRoomQuantity(1)
 
@@ -336,7 +357,15 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
       duration: 3000,
     })
     vibrate(50)
-  }, [newCustomRoomName, newCustomRoomQuantity, selectedGlobalTierName, updateRoomCount, updateRoomConfig, vibrate])
+  }, [
+    newCustomRoomName,
+    newCustomRoomQuantity,
+    selectedGlobalTierName,
+    updateRoomCount,
+    updateRoomConfig,
+    vibrate,
+    addItem,
+  ])
 
   const handleBackToButton = useCallback(() => {
     onOpenChange(false)
@@ -540,505 +569,228 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
     })
   }, [selectedRoomTypes, roomConfigs, roomCounts, handleRemoveRoom, handleIncrementRoom, handleDecrementRoom])
 
+  const rooms = Object.keys(roomDisplayNames)
+
+  const handleCloseWizard = useCallback(() => {
+    setActiveWizard(null)
+    vibrate(50)
+  }, [vibrate])
+
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-2 sm:p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700"
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-0 flex-shrink-0 border-b border-blue-500/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleBackToButton}
-                      className="text-white hover:bg-white/20 rounded-full h-9 w-9"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div>
-                      <h2 className="text-lg font-bold">{reviewStep === 0 ? "Select Rooms" : "Confirm Order"}</h2>
-                      <p className="text-blue-100 text-sm">
-                        {reviewStep === 0
-                          ? "Choose your cleaning services"
-                          : `${selectedRoomTypes.length} rooms • ${formatCurrency(displayTotalPrice)}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full transition-colors ${reviewStep === 0 ? "bg-white" : "bg-white/50"}`}
-                      />
-                      <div className={`w-8 h-0.5 transition-colors ${reviewStep === 1 ? "bg-white" : "bg-white/30"}`} />
-                      <div
-                        className={`w-2 h-2 rounded-full transition-colors ${reviewStep === 1 ? "bg-white" : "bg-white/50"}`}
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleBackToButton}
-                      className="text-white hover:bg-white/20 rounded-full h-9 w-9"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 min-h-0 overflow-y-auto" ref={scrollContainerRef}>
-                <div className="h-full overflow-y-auto">
-                  {reviewStep === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="p-4 space-y-4"
-                    >
-                      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">
-                          Choose Cleaning Level for All Rooms
-                        </h3>
-                        <Select value={selectedGlobalTierName} onValueChange={handleGlobalTierChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Tier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.keys(roomTiers)
-                              .filter((tierName) =>
-                                ["ESSENTIAL CLEAN", "PREMIUM CLEAN", "LUXURY CLEAN"].includes(tierName),
-                              )
-                              .map((tierName) => (
-                                <SelectItem key={tierName} value={tierName}>
-                                  {tierName} ({formatCurrency(roomTiers[tierName].basePrice)})
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-sm text-gray-500 mt-2">
-                          This selection will apply to all rooms you add below.
-                        </p>
-                      </div>
-
-                      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Rooms</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary">{selectedRoomTypes.length} selected</Badge>
-                            {selectedRoomTypes.length > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  Object.keys(roomDisplayNames).forEach((roomType) => {
-                                    updateRoomCount(roomType, 0)
-                                  })
-                                  setHasClearedAll(true)
-                                }}
-                                className="text-xs"
-                              >
-                                Clear All
-                              </Button>
-                            )}
-                            {hasClearedAll && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  Object.keys(roomDisplayNames).forEach((roomType) => {
-                                    if (!roomType.startsWith("other-custom-")) {
-                                      updateRoomCount(roomType, 1)
-                                      applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
-                                    }
-                                  })
-                                  setHasClearedAll(false)
-                                }}
-                                className="text-xs"
-                              >
-                                Select All
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          <AnimatePresence>
-                            {" "}
-                            {/* Wrap with AnimatePresence */}
-                            {Object.keys(roomDisplayNames).map((roomType) => {
-                              const config = roomConfigs[roomType] || {
-                                selectedTier: `custom-${selectedGlobalTierName.toLowerCase().replace(/\s/g, "-")}`,
-                                totalPrice: roomTiers[selectedGlobalTierName]?.basePrice || 0,
-                                detailedTasks: roomTiers[selectedGlobalTierName]?.detailedTasks || [],
-                                notIncludedTasks: [],
-                                upsellMessage: "",
-                              }
-                              const count = roomCounts[roomType] || 0
-                              const imageSrc = roomImages[roomType] || "/placeholder.svg"
-                              const displayName = roomDisplayNames[roomType] || roomType
-
-                              return (
-                                <motion.div
-                                  key={roomType}
-                                  layout // Enable layout animations
-                                  initial={{ opacity: 0, scale: 0.9 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.9 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <div
-                                    className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                                      count > 0
-                                        ? "border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20"
-                                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
-                                    }`}
-                                    onClick={() => {
-                                      if (count === 0) {
-                                        updateRoomCount(roomType, 1)
-                                        applyGlobalTierToRoom(roomType, selectedGlobalTierName, roomConfigs)
-                                      }
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                                        <Image
-                                          src={imageSrc || "/placeholder.svg"}
-                                          alt={displayName}
-                                          fill
-                                          className="object-cover"
-                                        />
-                                        {count > 0 && (
-                                          <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                            <CheckCircle className="h-5 w-5 text-white" />
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-sm truncate">{displayName}</h4>
-                                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                                          {requiresEmailPricing(roomType)
-                                            ? "Email for Pricing"
-                                            : formatCurrency(config?.totalPrice || 0)}
-                                        </p>
-                                      </div>
-                                      {count > 0 && (
-                                        <div className="flex items-center gap-1">
-                                          <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleDecrementRoom(roomType)
-                                            }}
-                                            className="h-6 w-6"
-                                          >
-                                            <motion.div
-                                              initial={{ opacity: 0 }}
-                                              animate={{ opacity: 1 }}
-                                              exit={{ opacity: 0 }}
-                                              transition={{ duration: 0.3 }}
-                                            >
-                                              <Minus className="h-3 w-3" />
-                                            </motion.div>
-                                          </Button>
-                                          <span className="w-6 text-center text-sm font-medium">{count}</span>
-                                          <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleIncrementRoom(roomType)
-                                            }}
-                                            className="h-6 w-6"
-                                          >
-                                            <motion.div
-                                              initial={{ opacity: 0 }}
-                                              animate={{ opacity: 1 }}
-                                              exit={{ opacity: 0 }}
-                                              transition={{ duration: 0.3 }}
-                                            >
-                                              <PlusIcon className="h-3 w-3" />
-                                            </motion.div>
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )
-                            })}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                          <h4 className="font-semibold mb-3">Frequency</h4>
-                          <Select
-                            value={selectedFrequency}
-                            onValueChange={(value: keyof typeof ROOM_CONFIG.frequencyMultipliers) => {
-                              setSelectedFrequency(value)
-                              if (value === "one_time") {
-                                setIsFullHouseChecked(false)
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-60 overflow-y-auto">
-                              {Object.keys(ROOM_CONFIG.frequencyMultipliers).map((key) => (
-                                <SelectItem key={key} value={key}>
-                                  {key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {selectedFrequency !== "one_time" && (
-                          <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700">
-                            <h4 className="font-semibold mb-3 text-green-800 dark:text-green-300">
-                              Recurring Service Discount
-                            </h4>
-                            <div className="flex items-start space-x-2">
-                              <Checkbox
-                                id="full-house"
-                                checked={isFullHouseChecked}
-                                onCheckedChange={(checked) => setIsFullHouseChecked(!!checked)}
-                              />
-                              <div>
-                                <Label
-                                  htmlFor="full-house"
-                                  className="cursor-pointer font-medium text-green-800 dark:text-green-300"
-                                >
-                                  Full House - Save 5%
-                                </Label>
-                                <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                                  Check if booking entire home for recurring service
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                        <h4 className="font-semibold mb-3">Add Custom Space</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input
-                            placeholder="Space name"
-                            value={newCustomRoomName}
-                            onChange={(e) => setNewCustomRoomName(e.target.value)}
-                          />
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setNewCustomRoomQuantity(Math.max(1, newCustomRoomQuantity - 1))}
-                              className="h-9 w-9"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={newCustomRoomQuantity}
-                              onChange={(e) =>
-                                Number.parseInt(e.target.value) >= 1
-                                  ? setNewCustomRoomQuantity(Number.parseInt(e.target.value))
-                                  : setNewCustomRoomQuantity(1)
-                              }
-                              className="w-16 text-center"
-                            />
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setNewCustomRoomQuantity(newCustomRoomQuantity + 1)}
-                              className="h-9 w-9"
-                            >
-                              <PlusIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <Button onClick={handleAddCustomRoom} className="flex-1" disabled={!newCustomRoomName.trim()}>
-                            <Plus className="h-4 w-4 mr-2" /> Add Space
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              if (!newCustomRoomName.trim()) {
-                                toast({
-                                  title: "Please enter a space name",
-                                  description: "Enter the name of your custom space to get a price quote.",
-                                  variant: "default",
-                                  duration: 3000,
-                                })
-                                return
-                              }
-
-                              const subject = "Custom Space Pricing Request"
-                              const body = `Hello smileybrooms team, I was wondering what the price would be for ${newCustomRoomQuantity} ${newCustomRoomName}. Best regards`
-                              const mailtoLink = `mailto:customize@smileybrooms.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-                              window.open(mailtoLink, "_blank")
-                            }}
-                            disabled={!newCustomRoomName.trim()}
-                            className="flex-1"
-                          >
-                            Get Quote
-                          </Button>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                          <p className="font-semibold text-blue-600 mb-1">Custom Space Pricing:</p>
-                          <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="flex-1 flex flex-col"
-                    >
-                      <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                        <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                          <ShoppingCart className="h-5 w-5" />
-                          Order Summary
-                        </h4>
-                        <div className="space-y-2">
-                          <AnimatePresence mode="popLayout">
-                            {" "}
-                            {/* Add AnimatePresence here */}
-                            {roomList} {/* Render the memoized roomList */}
-                          </AnimatePresence>
-                        </div>
-
-                        <div className="border-t pt-3 mt-4">
-                          <div className="flex justify-between items-center text-lg font-bold">
-                            <span>Total</span>
-                            <span className="text-blue-600 dark:text-blue-400">
-                              {formatCurrency(displayTotalPrice)}{" "}
-                              {selectedFrequency !== "one_time" ? "/ " + selectedFrequency.replace(/_/g, " ") : ""}
-                            </span>
-                          </div>
-                          {selectedFrequency !== "one_time" && isFullHouseChecked && (
-                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400 mt-1">
-                              <span>Full House Discount (5%)</span>
-                              <span>
-                                -
-                                {formatCurrency(
-                                  baseTotalPrice * ROOM_CONFIG.frequencyMultipliers[selectedFrequency] * 0.05,
-                                )}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              {reviewStep === 0 && showScrollToBottom && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  className="absolute bottom-20 right-4 z-50"
-                >
-                  <Button
-                    onClick={scrollToBottom}
-                    className="rounded-full p-2 shadow-lg bg-blue-500 hover:bg-blue-600 text-white"
-                    size="icon"
-                    aria-label="Scroll to bottom"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </Button>
-                </motion.div>
-              )}
-
-              <div className="border-t bg-white dark:bg-gray-900 p-4 flex-shrink-0">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 order-2 sm:order-1">
-                    <span className="text-sm text-gray-500">Step {reviewStep + 1} of 2</span>
-                    {selectedRoomTypes.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {totalItems} items • {formatCurrency(displayTotalPrice)}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-                    {reviewStep === 1 ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={handlePrevStep}
-                          className="flex-1 sm:flex-none bg-transparent"
-                        >
-                          <ArrowLeft className="h-4 w-4 mr-2" />
-                          Previous
-                        </Button>
-                        <Button
-                          onClick={handleAddAllToCart}
-                          disabled={!isOnline || isAddingToCart || selectedRoomTypes.length === 0}
-                          className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
-                        >
-                          {isAddingToCart ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                              Adding...
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Add to Cart
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={handleBackToButton}
-                          className="flex-1 sm:flex-none bg-transparent"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleNextStep}
-                          disabled={selectedRoomTypes.length === 0}
-                          className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
-                        >
-                          Next
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+      <TooltipProvider>
+        {activeWizard && (
+          <MultiStepCustomizationWizard
+            isOpen={activeWizard !== null}
+            onClose={handleCloseWizard}
+            roomType={activeWizard}
+            roomName={roomDisplayNames[activeWizard] || activeWizard}
+            roomIcon={roomIcons[activeWizard] || roomIcons.bedroom}
+            roomCount={roomCounts[activeWizard] || 0}
+            config={safeGetRoomConfig(activeWizard)}
+            onConfigChange={handleRoomConfigChange}
+          />
         )}
-      </AnimatePresence>
+        <Card className="shadow-sm">
+          <CardHeader className={getBgColor()}>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <span
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
+              ></span>
+              Cleaning Selection
+            </CardTitle>
+            <CardDescription>Select the rooms you want to clean.</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div
+              className={`grid grid-cols-2 md:grid-cols-3 ${
+                rooms.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"
+              } gap-4`}
+            >
+              <AnimatePresence>
+                {rooms.map((roomType) => {
+                  const count = roomCounts[roomType] || 0
+                  const config = safeGetRoomConfig(roomType)
+                  const roomName = roomDisplayNames[roomType] || roomType
+                  const roomImage = roomImages[roomType] || roomImages.other
+                  const handleAdd = () => {
+                    updateRoomCount(roomType, count + 1)
+                    vibrate(50)
+                  }
+
+                  const handleRemove = () => {
+                    if (count > 0) {
+                      updateRoomCount(roomType, count - 1)
+                      vibrate(50)
+                    }
+                  }
+
+                  const handleCustomize = () => {
+                    setActiveWizard(roomType)
+                    vibrate(50)
+                  }
+
+                  return (
+                    <motion.div
+                      key={roomType}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card
+                        className={`border ${
+                          count > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
+                        } cursor-pointer overflow-hidden hover:shadow-md transition-shadow`}
+                        onClick={() => {
+                          handleCustomize()
+                          if (onRoomSelect) {
+                            onRoomSelect(roomType)
+                          }
+                        }}
+                      >
+                        <CardContent className="p-4 flex flex-col items-center text-center">
+                          <div className="w-full h-40 mb-3 relative rounded-t-lg overflow-hidden -mx-4 -mt-4">
+                            <Image
+                              src={roomImage || "/placeholder.svg"}
+                              alt={`Professional ${roomName} cleaning before and after`}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                            />
+                          </div>
+
+                          <h3 className="font-medium mb-2">{roomName}</h3>
+
+                          <AnimatePresence mode="wait">
+                            {count === 0 || !initialRenderComplete ? (
+                              <motion.div
+                                key="add-button"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="w-full"
+                              >
+                                <Button
+                                  id={`add-initial-${roomType}`}
+                                  variant="default"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    handleCustomize()
+                                  }}
+                                  disabled={addingRoomId === roomType}
+                                  aria-label={`Add 1 ${roomName} to cart`}
+                                >
+                                  {addingRoomId === roomType ? (
+                                    "Adding..."
+                                  ) : (
+                                    <>
+                                      <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
+                                      </motion.div>
+                                      Add 1 {roomName}
+                                    </>
+                                  )}
+                                </Button>
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                key="controls"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex flex-col gap-2 mt-3 w-full"
+                              >
+                                <div className="flex items-center gap-3 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleRemove()
+                                    }}
+                                    disabled={count <= 0}
+                                    className="h-8 w-8"
+                                    aria-label={`Decrease ${roomName} count`}
+                                  >
+                                    <motion.div
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      transition={{ duration: 0.3 }}
+                                    >
+                                      <Minus className="h-4 w-4" aria-hidden="true" />
+                                    </motion.div>
+                                  </Button>
+                                  <span className="font-medium text-lg">{count}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleAdd()
+                                    }}
+                                    className="h-8 w-8"
+                                    aria-label={`Increase ${roomName} count`}
+                                  >
+                                    <motion.div
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      transition={{ duration: 0.3 }}
+                                    >
+                                      <Plus className="h-4 w-4" aria-hidden="true" />
+                                    </motion.div>
+                                  </Button>
+                                </div>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleCustomize()
+                                      }}
+                                      className="w-full flex items-center justify-center gap-2"
+                                    >
+                                      <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Settings className="h-4 w-4" />
+                                      </motion.div>
+                                      Customize
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Adjust specific cleaning tasks and preferences for this room.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </div>
+          </CardContent>
+        </Card>
+      </TooltipProvider>
     </>
   )
 }
