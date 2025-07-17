@@ -340,7 +340,7 @@ export default function CartPage() {
                                   </p>
                                 ) : (
                                   <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                    ${(item.price * item.quantity).toFixed(2)}
+                                    ${(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
                                   </p>
                                 )}
                                 {item.quantity > 1 && !itemRequiresEmailPricing(item) && (
