@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { ShoppingBag, Trash2, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
-import Image from "next/image" // Corrected: Ensure Image is imported from next/image
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -241,7 +241,9 @@ export default function CartPage() {
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="max-h-[70vh] lg:max-h-[calc(100vh-250px)]">
-                <div className="space-y-4 p-6 overflow-y-auto">
+                <div className="space-y-4 p-6">
+                  {" "}
+                  {/* Removed overflow-y-auto from here */}
                   <AnimatePresence mode="popLayout">
                     {cart.items.map((item) => (
                       <CartItemDisplay

@@ -1,49 +1,52 @@
 "use client"
 
-import { useCallback } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Button } from "@/components/ui/button"
-import { formatCurrency } from "@/lib/utils"
-import { requiresEmailPricing } from "@/lib/room-tiers"
 import { Trash2, Plus, Minus, ListChecks, ListX, Lightbulb } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn, formatCurrency } from "@/lib/utils"
+import { requiresEmailPricing } from "@/lib/room-tiers"
+import type { CartItem } from "@/lib/cart/types" // Assuming you have a CartItem type defined
 
 interface CartItemDisplayProps {
-  item: any // Replace 'any' with your actual CartItem type if available
-  isFullscreen?: boolean
+  item: CartItem
   onRemoveItem: (itemId: string, itemName: string) => void
   onUpdateQuantity: (itemId: string, newQuantity: number) => void
+  isFullscreen?: boolean // Optional prop to adjust styling for fullscreen view
 }
 
-export function CartItemDisplay({ item, isFullscreen = false, onRemoveItem, onUpdateQuantity }: CartItemDisplayProps) {
-  const handleQuantityChange = useCallback(
-    (change: number) => {
-      onUpdateQuantity(item.id, item.quantity + change)
-    },
-    [item.id, item.quantity, onUpdateQuantity],
-  )
-
+export function CartItemDisplay({ item, onRemoveItem, onUpdateQuantity, isFullscreen }: CartItemDisplayProps) {
   return (
     <motion.div
-      key={item.id}
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -50 }}
       transition={{ duration: 0.3 }}
-      className="group relative bg-background rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+      className={cn(
+        "group relative bg-background rounded-xl p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-4 items-start sm:items-center",
+        isFullscreen && "hover:shadow-lg", // Apply shadow on hover in fullscreen
+        "snap-start", // For scroll snapping in collapsible panel
+      )}
     >
       {/* Item image */}
       {item.image && (
-        <div className="flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+        <div
+          className={cn(
+            "flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm",
+            isFullscreen && "w-20 h-20 sm:w-24 sm:h-24", // Adjust size for fullscreen
+          )}
+        >
           <Image
             src={item.image || "/placeholder.svg"}
             alt={item.name}
-            width={112}
-            height={112}
+            width={isFullscreen ? 96 : 112} // Adjust width based on fullscreen
+            height={isFullscreen ? 96 : 112} // Adjust height based on fullscreen
             className="object-cover w-full h-full"
             onError={(e) => {
+              // Fallback to local placeholder if remote image fails
               const target = e.target as HTMLImageElement
               if (target && target.src !== "/placeholder.svg") {
                 target.src = "/placeholder.svg"
@@ -70,7 +73,7 @@ export function CartItemDisplay({ item, isFullscreen = false, onRemoveItem, onUp
               variant="ghost"
               size="icon"
               className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-              onClick={() => handleQuantityChange(-1)}
+              onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
               disabled={item.quantity <= 1}
               aria-label={`Decrease quantity of ${item.name}`}
             >
@@ -83,7 +86,7 @@ export function CartItemDisplay({ item, isFullscreen = false, onRemoveItem, onUp
               variant="ghost"
               size="icon"
               className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
-              onClick={() => handleQuantityChange(1)}
+              onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
               aria-label={`Increase quantity of ${item.name}`}
             >
               <Plus className="h-4 w-4" />
@@ -108,17 +111,24 @@ export function CartItemDisplay({ item, isFullscreen = false, onRemoveItem, onUp
       </div>
 
       {/* Remove button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-3 right-3 h-8 w-8 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
-        onClick={() => onRemoveItem(item.id, item.name)}
-        aria-label={`Remove ${item.name}`}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 h-8 w-8 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"
+              onClick={() => onRemoveItem(item.id, item.name)}
+              aria-label={`Remove ${item.name}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Remove from cart</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
-      {/* Detailed Breakdown - Always open by default */}
+      {/* Detailed Breakdown */}
       <Accordion type="multiple" defaultValue={["details"]} className="w-full mt-2">
         <AccordionItem value="details">
           <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
