@@ -399,8 +399,8 @@ export function CollapsibleCartPanel() {
                     </Button>
                   </div>
 
-                  {/* Detailed Breakdown */}
-                  <Accordion type="single" collapsible className="w-full mt-2">
+                  {/* Detailed Breakdown - Now always open by default */}
+                  <Accordion type="multiple" defaultValue={["details"]} className="w-full mt-2">
                     <AccordionItem value="details">
                       <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
                         View Service Details

@@ -1,7 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Plus, Minus, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
+import {
+  ShoppingBag,
+  Trash2,
+  Plus,
+  Minus,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Lightbulb,
+  Tag,
+  ListChecks,
+  ListX,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -25,6 +37,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 import { motion, AnimatePresence } from "framer-motion"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion" // Import Accordion components
 
 // Placeholder for suggested products component
 function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
@@ -346,6 +359,51 @@ export default function CartPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+
+                        {/* Detailed Breakdown - Now always open by default */}
+                        <Accordion type="multiple" defaultValue={["details"]} className="w-full mt-2">
+                          <AccordionItem value="details">
+                            <AccordionTrigger className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:no-underline">
+                              View Service Details
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2 space-y-3">
+                              {item.metadata?.detailedTasks && item.metadata.detailedTasks.length > 0 && (
+                                <div>
+                                  <h5 className="flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-400 mb-1">
+                                    <ListChecks className="h-4 w-4" /> Included Tasks:
+                                  </h5>
+                                  <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                    {item.metadata.detailedTasks.map((task: string, i: number) => (
+                                      <li key={i}>{task.replace(/ $$.*?$$/, "")}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {item.metadata?.notIncludedTasks && item.metadata.notIncludedTasks.length > 0 && (
+                                <div>
+                                  <h5 className="flex items-center gap-1 text-sm font-semibold text-red-700 dark:text-red-400 mb-1">
+                                    <ListX className="h-4 w-4" /> Not Included:
+                                  </h5>
+                                  <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                    {item.metadata.notIncludedTasks.map((task: string, i: number) => (
+                                      <li key={i}>{task}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {item.metadata?.upsellMessage && (
+                                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-md flex items-start gap-2">
+                                  <Lightbulb className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                                  <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                                    {item.metadata.upsellMessage}
+                                  </p>
+                                </div>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                       </motion.div>
                     ))}
                   </AnimatePresence>
