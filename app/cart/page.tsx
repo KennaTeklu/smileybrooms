@@ -1,16 +1,18 @@
 "use client"
 
 import { useCart } from "@/lib/cart-context"
-import { formatPrice } from "@/lib/format"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { CartItem } from "@/components/cart-item"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Icons } from "@/components/icons"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
 import { CheckoutButton } from "@/components/checkout-button"
+import { ShoppingBag } from "lucide-react"
+import { CartItemDisplay } from "@/components/cart/cart-item-display"
+
+// Simple price formatter – prepend `$` & keep two decimals
+const formatPrice = (price: number) => `$${price.toFixed(2)}`
 
 export default function CartPage() {
   const cart = useCart()
@@ -60,7 +62,12 @@ export default function CartPage() {
               <>
                 <ScrollArea>
                   {cart.items.map((item) => (
-                    <CartItem key={item.id} item={item} />
+                    <CartItemDisplay
+                      key={item.id}
+                      item={item}
+                      onRemoveItem={() => cart.removeItem(item.id)}
+                      onUpdateQuantity={(id, qty) => cart.updateQuantity(id, qty)}
+                    />
                   ))}
                 </ScrollArea>
                 <Separator className="my-4" />
@@ -92,7 +99,7 @@ export default function CartPage() {
               </>
             ) : (
               <div className="text-center">
-                <Icons.cart className="mx-auto h-6 w-6" />
+                <ShoppingBag className="mx-auto h-6 w-6" />
                 <p className="mt-2 text-sm text-gray-500">Your cart is empty.</p>
                 <Button asChild variant="link" className="mt-6 text-sm text-gray-500 font-medium">
                   <Link href="/products">Add items to your cart to continue</Link>
