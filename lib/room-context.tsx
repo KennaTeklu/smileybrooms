@@ -1,194 +1,188 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode, useCallback, useMemo } from "react"
-import { defaultTiers, getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useRef } from "react"
+import { getRoomTiers, getRoomAddOns, getRoomReductions, requiresEmailPricing } from "@/lib/room-tiers"
+import { useToast } from "@/components/ui/use-toast"
 
-export type RoomConfig = {
+export interface RoomConfig {
   roomName: string
-  selectedTier: string // e.g., "bedroom-essential"
-  selectedAddOns: string[] // e.g., ["bed-1", "bed-2"]
-  selectedReductions: string[] // e.g., ["bed-r1"]
+  count: number
+  selectedTier: string // ID of the selected tier
+  selectedAddOns: string[] // IDs of selected add-ons
+  selectedReductions: string[] // IDs of selected reductions
   totalPrice: number
   detailedTasks: string[]
   notIncludedTasks: string[]
   upsellMessage: string
+  isPriceTBD: boolean
+  timeEstimate?: string // e.g., "2-3 hours"
+  paymentType?: "online" | "in_person"
 }
 
-type RoomCounts = Record<string, number> // e.g., { "bedroom": 2, "bathroom": 1 }
-type RoomConfigs = Record<string, RoomConfig> // e.g., { "bedroom": { ...config }, "bathroom": { ...config } }
-
-type RoomContextType = {
-  roomCounts: RoomCounts
-  roomConfigs: RoomConfigs
+interface RoomContextType {
+  roomCounts: Record<string, number>
+  roomConfigs: Record<string, RoomConfig>
   updateRoomCount: (roomType: string, count: number) => void
-  updateRoomConfig: (roomType: string, config: Partial<RoomConfig>) => void // New function
-  getTotalPrice: () => number
+  updateRoomConfig: (roomType: string, config: Partial<RoomConfig>) => void
   getSelectedRoomTypes: () => string[]
-  getRoomConfig: (roomType: string) => RoomConfig | undefined
+  getCalculatedRoomPrice: (roomType: string, config: Partial<RoomConfig>) => number // New function
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined)
 
 export function RoomProvider({ children }: { children: ReactNode }) {
-  const [roomCounts, setRoomCounts] = useState<RoomCounts>({})
-  const [roomConfigs, setRoomConfigs] = useState<RoomConfigs>({})
+  const [roomCounts, setRoomCounts] = useState<Record<string, number>>({})
+  const [roomConfigs, setRoomConfigs] = useState<Record<string, RoomConfig>>({})
+  const roomConfigsRef = useRef(roomConfigs) // Ref to hold the latest roomConfigs for useEffect
 
-  const calculateRoomPrice = useCallback((roomType: string, config: RoomConfig): number => {
-    const baseTier =
-      defaultTiers[roomType]?.find((tier) => tier.id === config.selectedTier) ||
-      defaultTiers.default.find((tier) => tier.id === config.selectedTier) // Fallback to default tiers
-    let price = baseTier ? baseTier.price : 0
+  const { toast } = useToast()
 
-    const roomAddOns = getRoomAddOns(roomType)
-    config.selectedAddOns.forEach((addOnId) => {
-      const addOn = roomAddOns.find((ao) => ao.id === addOnId)
-      if (addOn) price += addOn.price
+  // Update ref whenever roomConfigs state changes
+  useEffect(() => {
+    roomConfigsRef.current = roomConfigs
+  }, [roomConfigs])
+
+  // Helper to calculate price for a given config
+  const calculatePriceForConfig = useCallback((roomType: string, config: Partial<RoomConfig>): number => {
+    const currentConfig = roomConfigsRef.current[roomType] || config
+    const selectedTier = getRoomTiers(roomType).find((tier) => tier.id === currentConfig.selectedTier)
+    let calculatedPrice = selectedTier ? selectedTier.price : 0
+    ;(currentConfig.selectedAddOns || []).forEach((addOnId) => {
+      const addOn = getRoomAddOns(roomType).find((a) => a.id === addOnId)
+      if (addOn) {
+        calculatedPrice += addOn.price
+      }
+    })
+    ;(currentConfig.selectedReductions || []).forEach((reductionId) => {
+      const reduction = getRoomReductions(roomType).find((r) => r.id === reductionId)
+      if (reduction) {
+        calculatedPrice -= reduction.discount
+      }
     })
 
-    const roomReductions = getRoomReductions(roomType)
-    config.selectedReductions.forEach((reductionId) => {
-      const reduction = roomReductions.find((red) => red.id === reductionId)
-      if (reduction) price -= reduction.discount
+    return Math.max(0, calculatedPrice)
+  }, [])
+
+  // New function to expose calculated price
+  const getCalculatedRoomPrice = useCallback(
+    (roomType: string, config: Partial<RoomConfig>): number => {
+      return calculatePriceForConfig(roomType, config)
+    },
+    [calculatePriceForConfig],
+  )
+
+  const updateRoomCount = useCallback((roomType: string, count: number) => {
+    setRoomCounts((prevCounts) => {
+      const newCounts = { ...prevCounts, [roomType]: count }
+      return newCounts
     })
 
-    return Math.max(0, price) // Ensure price doesn't go below zero
-  }, [])
+    setRoomConfigs((prevConfigs) => {
+      const newRoomConfigs = { ...prevConfigs }
+      const currentRoomConfig = prevConfigs[roomType]
 
-  const generateDetailedTasks = useCallback((roomType: string, config: RoomConfig) => {
-    const tier =
-      defaultTiers[roomType]?.find((t) => t.id === config.selectedTier) ||
-      defaultTiers.default.find((t) => t.id === config.selectedTier)
-    const addOns = getRoomAddOns(roomType).filter((ao) => config.selectedAddOns.includes(ao.id))
-    const reductions = getRoomReductions(roomType).filter((red) => config.selectedReductions.includes(red.id))
-
-    // Corrected from tier.features to tier.detailedTasks
-    const includedTasks = tier ? [...tier.detailedTasks, ...addOns.map((ao) => ao.name)] : []
-    const notIncludedTasks = reductions.map((red) => red.name)
-
-    // Simple upsell message logic (can be expanded)
-    const upsellMessage =
-      tier?.id.includes("essential") && addOns.length === 0 && reductions.length === 0
-        ? `Consider upgrading to a ${roomType}-premium clean for more comprehensive service!`
-        : ""
-
-    return { detailedTasks: includedTasks, notIncludedTasks, upsellMessage }
-  }, [])
-
-  const updateRoomCount = useCallback(
-    (roomType: string, count: number) => {
-      setRoomCounts((prevCounts) => {
-        const newCounts = { ...prevCounts, [roomType]: count }
-        if (count <= 0) {
-          delete newCounts[roomType]
-          setRoomConfigs((prevConfigs) => {
-            const newConfigs = { ...prevConfigs }
-            delete newConfigs[roomType]
-            return newConfigs
-          })
-        } else if (!prevCounts[roomType] || prevCounts[roomType] === 0) {
-          // If adding a new room type or increasing from zero, set a default config
-          const defaultTier = getRoomTiers(roomType)[0] // Get the first tier as default
+      if (count > 0) {
+        if (!currentRoomConfig || (currentRoomConfig.count === 0 && count > 0)) {
+          // Initialize config for newly added room type or if count was 0
+          const defaultTier = getRoomTiers(roomType)[0]
           if (defaultTier) {
-            const initialConfig: RoomConfig = {
-              roomName: roomType, // Will be overwritten by updateRoomConfig if custom
+            newRoomConfigs[roomType] = {
+              roomName: roomType,
+              count: count,
               selectedTier: defaultTier.id,
               selectedAddOns: [],
               selectedReductions: [],
-              totalPrice: defaultTier.price,
-              detailedTasks: defaultTier.detailedTasks, // Corrected here as well for initial config
-              notIncludedTasks: [],
-              upsellMessage: "",
+              totalPrice: 0, // Will be calculated in the useEffect below
+              detailedTasks: defaultTier.detailedTasks,
+              notIncludedTasks: defaultTier.notIncludedTasks,
+              upsellMessage: defaultTier.upsellMessage,
+              isPriceTBD: defaultTier.isPriceTBD,
+              paymentType: defaultTier.paymentType,
             }
-            const { detailedTasks, notIncludedTasks, upsellMessage } = generateDetailedTasks(roomType, initialConfig)
-            setRoomConfigs((prevConfigs) => ({
-              ...prevConfigs,
-              [roomType]: {
-                ...initialConfig,
-                totalPrice: calculateRoomPrice(roomType, initialConfig),
-                detailedTasks,
-                notIncludedTasks,
-                upsellMessage,
-              },
-            }))
           }
+        } else {
+          // Update count for existing config
+          newRoomConfigs[roomType] = { ...currentRoomConfig, count: count }
         }
-        return newCounts
-      })
-    },
-    [calculateRoomPrice, generateDetailedTasks],
-  )
+      } else {
+        // Remove config if count is 0
+        delete newRoomConfigs[roomType]
+      }
+      return newRoomConfigs
+    })
+  }, [])
 
-  const updateRoomConfig = useCallback(
-    (roomType: string, partialConfig: Partial<RoomConfig>) => {
-      setRoomConfigs((prevConfigs) => {
-        const currentConfig = prevConfigs[roomType] || {
-          roomName: roomType,
-          selectedTier: getRoomTiers(roomType)[0]?.id || "default-essential",
-          selectedAddOns: [],
-          selectedReductions: [],
-          totalPrice: 0,
-          detailedTasks: [],
-          notIncludedTasks: [],
-          upsellMessage: "",
-        }
-
-        const updatedConfig = { ...currentConfig, ...partialConfig }
-
-        // Recalculate price and tasks if tier, add-ons, or reductions change
-        const needsRecalculation =
-          partialConfig.selectedTier !== undefined ||
-          partialConfig.selectedAddOns !== undefined ||
-          partialConfig.selectedReductions !== undefined
-
-        if (needsRecalculation) {
-          updatedConfig.totalPrice = calculateRoomPrice(roomType, updatedConfig)
-          const { detailedTasks, notIncludedTasks, upsellMessage } = generateDetailedTasks(roomType, updatedConfig)
-          updatedConfig.detailedTasks = detailedTasks
-          updatedConfig.notIncludedTasks = notIncludedTasks
-          updatedConfig.upsellMessage = upsellMessage
-        }
-
-        return {
-          ...prevConfigs,
-          [roomType]: updatedConfig,
-        }
-      })
-    },
-    [calculateRoomPrice, generateDetailedTasks],
-  )
-
-  const getTotalPrice = useCallback(() => {
-    return Object.entries(roomCounts).reduce((total, [roomType, count]) => {
-      const config = roomConfigs[roomType]
-      return total + (config ? config.totalPrice * count : 0)
-    }, 0)
-  }, [roomCounts, roomConfigs])
+  const updateRoomConfig = useCallback((roomType: string, newConfig: Partial<RoomConfig>) => {
+    setRoomConfigs((prevConfigs) => {
+      const updated = {
+        ...prevConfigs,
+        [roomType]: {
+          ...(prevConfigs[roomType] || {
+            roomName: roomType,
+            count: 0, // Default count for new config
+            selectedTier: getRoomTiers(roomType)[0]?.id || "default-essential", // Ensure default tier is set
+            selectedAddOns: [],
+            selectedReductions: [],
+            totalPrice: 0, // Will be calculated in the useEffect below
+            detailedTasks: [],
+            notIncludedTasks: [],
+            upsellMessage: "",
+            isPriceTBD: false,
+          }),
+          ...newConfig,
+        },
+      }
+      return updated
+    })
+  }, [])
 
   const getSelectedRoomTypes = useCallback(() => {
     return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
   }, [roomCounts])
 
-  const getRoomConfig = useCallback(
-    (roomType: string) => {
-      return roomConfigs[roomType]
-    },
-    [roomConfigs],
-  )
+  // Effect to calculate total prices whenever roomConfigs or roomCounts change
+  useEffect(() => {
+    const newRoomConfigs = { ...roomConfigsRef.current } // Use ref for latest state
+    let hasChanges = false
 
-  const contextValue = useMemo(
-    () => ({
-      roomCounts,
-      roomConfigs,
-      updateRoomCount,
-      updateRoomConfig, // Expose the new function
-      getTotalPrice,
-      getSelectedRoomTypes,
-      getRoomConfig,
-    }),
-    [roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes, getRoomConfig],
-  )
+    Object.keys(newRoomConfigs).forEach((roomType) => {
+      const config = newRoomConfigs[roomType]
+      if (config) {
+        const newCalculatedPrice = calculatePriceForConfig(roomType, config)
+        const newIsPriceTBD =
+          requiresEmailPricing(roomType) ||
+          (getRoomTiers(roomType).find((tier) => tier.id === config.selectedTier)?.isPriceTBD ?? false)
 
-  return <RoomContext.Provider value={contextValue}>{children}</RoomContext.Provider>
+        if (config.totalPrice !== newCalculatedPrice || config.isPriceTBD !== newIsPriceTBD) {
+          newRoomConfigs[roomType] = {
+            ...config,
+            totalPrice: newCalculatedPrice,
+            isPriceTBD: newIsPriceTBD,
+          }
+          hasChanges = true
+        }
+      }
+    })
+
+    if (hasChanges) {
+      setRoomConfigs(newRoomConfigs)
+    }
+  }, [roomCounts, roomConfigsRef, calculatePriceForConfig]) // Depend on roomCounts and the ref
+
+  return (
+    <RoomContext.Provider
+      value={{
+        roomCounts,
+        roomConfigs,
+        updateRoomCount,
+        updateRoomConfig,
+        getSelectedRoomTypes,
+        getCalculatedRoomPrice,
+      }}
+    >
+      {children}
+    </RoomContext.Provider>
+  )
 }
 
 export const useRoomContext = () => {

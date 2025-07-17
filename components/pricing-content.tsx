@@ -18,7 +18,8 @@ function PricingContent() {
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
 
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes } = useRoomContext()
+  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes, getCalculatedRoomPrice } =
+    useRoomContext()
 
   // local highlight-on-map state (was crashing before because undefined)
   const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
@@ -74,10 +75,13 @@ function PricingContent() {
   const handleAddRoomToCart = (roomType: string) => {
     const config = getRoomConfig(roomType)
     if (config && roomCounts[roomType] > 0) {
+      // Use the new getCalculatedRoomPrice function to ensure latest price
+      const calculatedPrice = getCalculatedRoomPrice(roomType, config)
+
       const cartItem = {
         id: generateRoomCartItemId(config),
         name: getRoomCartItemDisplayName(config),
-        price: config.totalPrice,
+        price: calculatedPrice, // Use the calculated price
         priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
         quantity: roomCounts[roomType],
         roomType: config.roomName,
@@ -111,10 +115,13 @@ function PricingContent() {
     selectedRooms.forEach((roomType) => {
       const config = getRoomConfig(roomType)
       if (config && roomCounts[roomType] > 0) {
+        // Use the new getCalculatedRoomPrice function to ensure latest price
+        const calculatedPrice = getCalculatedRoomPrice(roomType, config)
+
         const cartItem = {
           id: generateRoomCartItemId(config),
           name: getRoomCartItemDisplayName(config),
-          price: config.totalPrice,
+          price: calculatedPrice, // Use the calculated price
           priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
           quantity: roomCounts[roomType],
           roomType: config.roomName,
@@ -210,7 +217,7 @@ function PricingContent() {
             <Card className="shadow-sm">
               <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
                 <CardTitle className="text-2xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                  <span className="flex items-center justify-तर w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                     ✓
                   </span>
                   SELECTED ROOMS
