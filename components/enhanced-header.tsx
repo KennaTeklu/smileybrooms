@@ -57,17 +57,21 @@ export function EnhancedHeader() {
             <Logo />
           </Link>
 
-          <nav className="hidden md:flex gap-6">
+          <nav className="hidden md:flex gap-1" role="navigation">
             {navigationLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === link.href && "text-primary", // Highlight active link
+                  "flex items-center space-x-2 px-3 py-2 rounded-md", // Added padding and rounded corners
+                  "text-sm font-medium transition-colors duration-200",
+                  "text-foreground/70 hover:text-foreground hover:bg-accent/50", // Enhanced hover effect
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground", // More distinct active link
                 )}
               >
-                {link.label}
+                <link.icon className="h-4 w-4" />
+                <span>{link.label}</span>
               </Link>
             ))}
           </nav>
@@ -101,14 +105,21 @@ export function EnhancedHeader() {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "text-lg font-medium",
-                      pathname === link.href && "text-primary", // Highlight active link
+                      "flex items-center space-x-3 px-4 py-3 rounded-lg", // Added padding and rounded corners for mobile
+                      "text-lg font-medium transition-colors duration-200",
+                      "text-foreground hover:bg-accent", // Enhanced hover effect for mobile
+                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                      pathname === link.href && "bg-accent text-primary dark:bg-accent/20 dark:text-primary-foreground", // More distinct active link for mobile
                     )}
                   >
-                    {link.label}
+                    <link.icon className="h-5 w-5" />
+                    <span>{link.label}</span>
                   </Link>
                 ))}
-                <Link href="/download" className="text-lg font-medium flex items-center gap-2">
+                <Link
+                  href="/download"
+                  className="text-lg font-medium flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent transition-colors duration-200"
+                >
                   <Download className="h-5 w-5" />
                   Download App
                 </Link>
