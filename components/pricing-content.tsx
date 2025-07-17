@@ -20,7 +20,7 @@ import {
   Lightbulb,
 } from "lucide-react"
 import Image from "next/image"
-import { useRoom, type RoomConfig, calculateRoomPrice } from "@/lib/room-context"
+import { useRoom, type RoomConfig, calculateRoomPrice } from "@/lib/room-context" // Changed import from useRoomContext to useRoom
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { roomTiers, roomCategories, requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
