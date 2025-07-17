@@ -114,7 +114,7 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       subscription_data: isRecurring
         ? {
             trial_period_days: trialPeriodDays,
-            cancel_at_period_end: cancelAtPeriodEnd,
+            cancel_at_period_end: cancelAtPeriodEnd, // Ensure the variable is declared
           }
         : undefined,
       customer_update: customerData
