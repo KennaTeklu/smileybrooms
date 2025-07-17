@@ -10,7 +10,7 @@ export default function CalculatorRedirectPage() {
     // Redirect after a short delay so users see the apology message first
     const timer = setTimeout(() => {
       router.replace("/pricing")
-    }, 3500)
+    }, 0)
 
     return () => clearTimeout(timer)
   }, [router])
