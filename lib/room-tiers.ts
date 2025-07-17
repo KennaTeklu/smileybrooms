@@ -246,3 +246,21 @@ export const requiresEmailPricing = (roomType: string | undefined): boolean => {
 
 export const CUSTOM_SPACE_LEGAL_DISCLAIMER =
   "For custom spaces, the price will be determined after a brief consultation. This ensures we provide the most accurate and fair quote for your unique cleaning needs."
+
+/**
+ * Human-friendly names for each room/category key.
+ * These are consumed by various UI components (e.g. pricing & cart pages).
+ */
+export const roomDisplayNames: Record<string, string> = {
+  bedroom: "Bedroom",
+  bathroom: "Bathroom",
+  kitchen: "Kitchen",
+  living_room: "Living Room",
+  dining_room: "Dining Room",
+  hallway: "Hallway",
+  entryway: "Entryway",
+  home_office: "Home Office",
+  laundry_room: "Laundry Room",
+  stairs: "Stairs",
+  custom_space: "Custom Space",
+}
