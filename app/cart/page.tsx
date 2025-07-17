@@ -1,6 +1,6 @@
 "use client"
 
-import { useCart } from "@/hooks/use-cart"
+import { useCart } from "@/lib/cart-context"
 import { formatPrice } from "@/lib/format"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
