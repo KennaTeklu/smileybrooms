@@ -54,16 +54,19 @@ function PricingContent() {
   }
 
   const getRoomConfig = (roomType: string): RoomConfig => {
+    const defaultTier = getRoomTiers(roomType)[0]
     return (
       roomConfigs[roomType] || {
         roomName: roomType,
-        selectedTier: getRoomTiers(roomType)[0]?.id || "default-essential",
+        selectedTier: defaultTier?.id || "default-essential",
         selectedAddOns: [],
         selectedReductions: [],
         totalPrice: 0, // Will be calculated by RoomContext
-        detailedTasks: [],
-        notIncludedTasks: [],
-        upsellMessage: "",
+        detailedTasks: defaultTier?.detailedTasks || [],
+        notIncludedTasks: defaultTier?.notIncludedTasks || [],
+        upsellMessage: defaultTier?.upsellMessage || "",
+        isPriceTBD: defaultTier?.isPriceTBD || false, // Added this
+        paymentType: defaultTier?.paymentType || "online", // Added this
       }
     )
   }
@@ -217,7 +220,7 @@ function PricingContent() {
             <Card className="shadow-sm">
               <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
                 <CardTitle className="text-2xl flex items-center gap-2">
-                  <span className="flex items-center justify-तर w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
                     ✓
                   </span>
                   SELECTED ROOMS

@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode, useEffect, useRef } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react"
 import { getRoomTiers, getRoomAddOns, getRoomReductions, requiresEmailPricing } from "@/lib/room-tiers"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -30,7 +30,7 @@ interface RoomContextType {
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined)
 
-export function RoomProvider({ children }: { children: ReactNode }) {
+export function RoomProvider({ children }: { ReactNode }) {
   const [roomCounts, setRoomCounts] = useState<Record<string, number>>({})
   const [roomConfigs, setRoomConfigs] = useState<Record<string, RoomConfig>>({})
   const roomConfigsRef = useRef(roomConfigs) // Ref to hold the latest roomConfigs for useEffect
