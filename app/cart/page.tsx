@@ -109,17 +109,6 @@ export default function CartPage() {
         Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
       </h1>
 
-      {(cart.items?.length ?? 0) > 0 && (
-        <nav className="mb-8 flex justify-center gap-3 sm:gap-4 flex-wrap">
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#cart-items-list">Items</Link>
-          </Button>
-          <Button variant="outline" asChild className="rounded-full px-4 py-2 text-sm sm:text-base bg-transparent">
-            <Link href="#order-summary">Summary</Link>
-          </Button>
-        </nav>
-      )}
-
       {(cart.items?.length ?? 0) === 0 ? (
         <Card
           className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
