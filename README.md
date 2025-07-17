@@ -47,3 +47,21 @@ Run the `Build/BuildRelease.ps1` PowerShell script to create a release build and
 ## License
 
 Copyright © 2023 Smiley Brooms Cleaning Services. All rights reserved.
+
+## Third-Party Licenses
+
+This project utilizes the following third-party assets, each governed by its respective license:
+
+### Icons
+
+*   **Lucide React**
+    *   **License Type:** MIT License
+    *   **License Text:** [https://github.com/lucide-icons/lucide/blob/main/LICENSE](https://github.com/lucide-icons/lucide/blob/main/LICENSE)
+    *   **Source:** [https://lucide.dev/](https://lucide.dev/)
+
+### Fonts
+
+*   **Inter**
+    *   **License Type:** SIL Open Font License 1.1
+    *   **License Text:** [https://github.com/rsms/inter/blob/master/LICENSE.txt](https://github.com/rsms/inter/blob/master/LICENSE.txt)
+    *   **Source:** [https://rsms.me/inter/](https://rsms.me/inter/)
