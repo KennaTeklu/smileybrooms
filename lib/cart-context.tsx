@@ -239,35 +239,46 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, dispatch] = useReducer(cartReducer, initialState, (init) => {
-    // Initializer function for useReducer to load from IndexedDB
-    const loadInitial = async () => {
-      await cartDB.init()
-      const savedCart = await cartDB.loadCart()
-      if (savedCart) {
-        const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
-          calculateCartTotals(savedCart.items, null) // Recalculate totals on load
-        return {
-          ...savedCart,
-          totalItems,
-          subtotalPrice,
-          totalPrice,
-          couponDiscount,
-          fullHouseDiscount,
-          inPersonPaymentTotal,
-          couponCode: null, // Coupon code is not persisted with cart state, needs re-application
+  // Plain init – no async side-effects in render
+  const [cart, dispatch] = useReducer(cartReducer, initialState)
+
+  // -- Load persisted cart once on mount -----------------------------------
+  useEffect(() => {
+    const loadPersistedCart = async () => {
+      try {
+        await cartDB.init()
+        const savedCart = await cartDB.loadCart()
+        if (savedCart) {
+          const { totalItems, subtotalPrice, totalPrice, couponDiscount, fullHouseDiscount, inPersonPaymentTotal } =
+            calculateCartTotals(savedCart.items, null)
+
+          dispatch({
+            type: "SET_CART",
+            payload: {
+              ...savedCart,
+              totalItems,
+              subtotalPrice,
+              totalPrice,
+              couponDiscount,
+              fullHouseDiscount,
+              inPersonPaymentTotal,
+              couponCode: null,
+            },
+          })
         }
+      } catch (error) {
+        console.error("Failed to load cart from IndexedDB:", error)
+        toast({
+          title: "Error loading cart",
+          description: "There was an error restoring your cart.",
+          variant: "destructive",
+        })
       }
-      return init
     }
-    // This is a hack to make useReducer's initializer async.
-    // In a real app, you'd typically load data in a useEffect and then dispatch SET_CART.
-    // For v0's immediate preview, this pattern is sometimes used.
-    loadInitial().then((loadedState) => {
-      dispatch({ type: "SET_CART", payload: loadedState })
-    })
-    return init // Return initial state immediately, then update via dispatch
-  })
+
+    loadPersistedCart()
+    // empty dependency array - run once
+  }, [])
 
   const { toast } = useToast()
   const cartOperationsRef = useRef<CartOperations | null>(null)
