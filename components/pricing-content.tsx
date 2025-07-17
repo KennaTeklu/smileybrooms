@@ -4,14 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Contact, Home, Building2 } from "lucide-react"
 import { roomDisplayNames } from "@/lib/room-tiers"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { RoomCategory } from "@/components/room-category"
 import { RequestQuoteButton } from "@/components/request-quote-button"
 import { useToast } from "@/hooks/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
 import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
 
 function PricingContent() {
@@ -26,8 +24,8 @@ function PricingContent() {
 
   const [serviceFee, setServiceFee] = useState(25)
 
-  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom", "homeOffice"]
-  const additionalSpaces = ["laundryRoom", "entryway", "hallway", "stairs"]
+  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]
+  const additionalSpaces = ["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"]
 
   const handleRoomCountChange = (roomType: string, count: number) => {
     const newCount = Math.max(0, count)
@@ -160,12 +158,12 @@ function PricingContent() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-4">
+        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-6">
           {/* Core Rooms Category */}
           <RoomCategory
             title="Core Rooms"
             description="Essential areas for a standard clean."
-            rooms={["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]}
+            rooms={coreRooms} // Use the defined array
             variant="primary"
             onRoomSelect={setSelectedRoomForMap}
           />
@@ -176,7 +174,7 @@ function PricingContent() {
           <RoomCategory
             title="Additional Spaces"
             description="Expand your cleaning to other areas."
-            rooms={["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"]}
+            rooms={additionalSpaces} // Use the defined array
             variant="secondary"
             onRoomSelect={setSelectedRoomForMap}
           />
@@ -218,11 +216,11 @@ function PricingContent() {
                 </CardTitle>
                 <CardDescription>
                   You have selected {getActiveRoomConfigs().length} room{getActiveRoomConfigs().length !== 1 ? "s" : ""}
-                  . Click "Add to Cart" on any room to add it, or "Add All" below.
+                  . Click "Customize" on any room to adjust details.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {getActiveRoomConfigs().map((roomType) => {
                     const config = getRoomConfig(roomType)
                     return (
@@ -241,59 +239,27 @@ function PricingContent() {
                           {roomType === "entryway" && "🚪"}
                           {roomType === "hallway" && "🚶"}
                           {roomType === "stairs" && "🪜"}
+                          {roomType.startsWith("other-custom-") && "✨"} {/* Icon for custom spaces */}
                         </div>
                         <span className="font-medium text-sm text-center">
-                          {roomDisplayNames[roomType]} ({roomCounts[roomType]})
+                          {roomDisplayNames[roomType] || config.roomName} ({roomCounts[roomType]})
                         </span>
                         <span className="text-xs text-gray-500 mt-1">
                           {config.selectedTier.replace(/-/g, " ").toUpperCase()}
                         </span>
-                        <span className="text-sm font-bold mt-2">${config.totalPrice.toFixed(2)}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 bg-transparent"
-                          onClick={() => handleAddRoomToCart(roomType)}
-                        >
-                          Add to Cart
-                        </Button>
+                        <span className="text-sm font-bold mt-2">
+                          {config.isPriceTBD ? "Email for Pricing" : `$${config.totalPrice.toFixed(2)}`}
+                        </span>
+                        {/* Removed "Add to Cart" button here as it's handled by the CollapsibleAddAllPanel */}
                       </div>
                     )
                   })}
-                </div>
-                <div className="mt-6 text-center">
-                  <Button onClick={handleAddAllRoomsToCart} disabled={getActiveRoomConfigs().length === 0}>
-                    Add All Selected Rooms to Cart
-                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="implementation-notes">
-              <AccordionTrigger className="font-bold text-gray-500">IMPLEMENTATION NOTES</AccordionTrigger>
-              <AccordionContent>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>
-                    <strong>ROOM SELECTION:</strong> Select rooms above, then click "Customize" to configure each room
-                  </li>
-                  <li>
-                    <strong>GUIDED CHECKOUT:</strong> Multi-step wizard guides you through all configuration options
-                  </li>
-                  <li>
-                    <strong>TIER STACKING:</strong> Combine multiple tiers per room for customized cleaning
-                  </li>
-                  <li>
-                    <strong>SERVICE INHERITANCE:</strong> Higher tiers include all lower-tier services
-                  </li>
-                  <li>
-                    <strong>CUSTOM PRESETS:</strong> Save frequent configurations for future use
-                  </li>
-                </ol>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          {/* Removed "IMPLEMENTATION NOTES" accordion */}
         </TabsContent>
 
         <TabsContent value="detailing" id="detailing-tab" role="tabpanel">

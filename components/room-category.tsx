@@ -4,11 +4,11 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Plus, Minus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card" // Import CardDescription
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRoomContext } from "@/lib/room-context"
 import { MultiStepCustomizationWizard } from "./multi-step-customization-wizard"
-import { roomImages, roomDisplayNames, roomIcons, type RoomTier } from "@/lib/room-tiers"
+import { roomImages, roomDisplayNames, roomIcons } from "@/lib/room-tiers"
 import Image from "next/image"
 import { useVibration } from "@/hooks/use-vibration"
 import { toast } from "@/components/ui/use-toast"
@@ -28,6 +28,8 @@ interface RoomConfig {
   detailedTasks: string[]
   notIncludedTasks: string[]
   upsellMessage: string
+  isPriceTBD?: boolean // Added for custom spaces
+  paymentType?: "online" | "in_person" // Added for custom spaces
 }
 
 interface RoomCategoryProps {
@@ -36,17 +38,10 @@ interface RoomCategoryProps {
   rooms: string[]
   variant?: "primary" | "secondary"
   onRoomSelect?: (roomType: string) => void
-  tiers: RoomTier[]
+  // tiers: RoomTier[] // Removed as it's not directly used here and can be derived
 }
 
-export function RoomCategory({
-  title,
-  description,
-  rooms,
-  variant = "primary",
-  onRoomSelect,
-  tiers,
-}: RoomCategoryProps) {
+export function RoomCategory({ title, description, rooms, variant = "primary", onRoomSelect }: RoomCategoryProps) {
   const [activeWizard, setActiveWizard] = useState<string | null>(null)
   const { roomCounts, roomConfigs, updateRoomCount } = useRoomContext()
   const { addItem, removeItem, cart } = useCart()
@@ -81,7 +76,7 @@ export function RoomCategory({
 
     setAddingRoomId(activeWizard)
     try {
-      const isOtherRoom = activeWizard === "other"
+      const isOtherRoom = activeWizard.startsWith("other-custom-")
 
       // Calculate price per unit, assuming config.totalPrice is the total for config.quantity.
       const pricePerUnit = config.quantity > 0 ? config.totalPrice / config.quantity : 0
@@ -105,8 +100,9 @@ export function RoomCategory({
           JSON.stringify([...(config.selectedReductions || [])].sort())
 
         // Special handling for "Other Space" to match by name if it's a custom entry.
-        const isConfigOtherRoom = config.roomName === roomDisplayNames.other
-        const isItemOtherRoom = item.metadata?.roomType === "other"
+        const isConfigOtherRoom =
+          config.roomName === roomDisplayNames.other || config.roomName.startsWith("Custom Space")
+        const isItemOtherRoom = item.metadata?.roomType?.startsWith("other-custom-")
 
         if (isConfigOtherRoom && isItemOtherRoom) {
           return itemConfig.roomName === config.roomName
@@ -248,21 +244,18 @@ export function RoomCategory({
     }
   }
 
-  // Removed SuccessNotification component
-
   return (
     <>
       <TooltipProvider>
-        {/* Removed SuccessNotification component call */}
         <Card className="shadow-sm">
           <CardHeader className={getBgColor()}>
             <CardTitle className="text-2xl flex items-center gap-2">
               <span
-                className={`flex items-center justify-center w-0 h-0 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${getIconBgColor()} ${getIconTextColor()}`}
               ></span>
               {title}
             </CardTitle>
-            {/* Removed CardDescription as it was not defined in the existing code */}
+            <CardDescription>{description}</CardDescription> {/* Re-added CardDescription */}
           </CardHeader>
           <CardContent className="pt-6">
             <div
@@ -297,7 +290,7 @@ export function RoomCategory({
                     key={roomType}
                     className={`border ${
                       count > 0 ? getActiveBorderColor() : "border-gray-200 dark:border-gray-700"
-                    } cursor-pointer overflow-hidden`}
+                    } cursor-pointer overflow-hidden hover:shadow-md transition-shadow`}
                     onClick={() => {
                       // Clicking the card always opens the wizard
                       handleCustomize()
@@ -308,10 +301,8 @@ export function RoomCategory({
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center">
                       <div className="w-full h-40 mb-3 relative rounded-t-lg overflow-hidden -mx-4 -mt-4">
-                        {" "}
-                        {/* Changed h-24 to h-40 */}
                         <Image
-                          src={roomImage || "/placeholder.svg"} // This line dynamically loads the image
+                          src={roomImage || "/placeholder.svg"}
                           alt={`Professional ${roomName} cleaning before and after`}
                           fill
                           className="object-cover"
@@ -321,7 +312,7 @@ export function RoomCategory({
 
                       <h3 className="font-medium mb-2">{roomName}</h3>
 
-                      {count === 0 || !initialRenderComplete ? ( // Modified condition
+                      {count === 0 || !initialRenderComplete ? (
                         <Button
                           id={`add-initial-${roomType}`}
                           variant="default"
@@ -419,36 +410,6 @@ export function RoomCategory({
                               Adjust specific cleaning tasks and preferences for this room.
                             </TooltipContent>
                           </Tooltip>
-                          {!isMultiSelection && (
-                            <Button
-                              id={`add-to-cart-${roomType}`}
-                              variant="default"
-                              size="sm"
-                              className="w-full"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleCustomize() // Opens wizard, then add to cart on apply
-                              }}
-                              disabled={addingRoomId === roomType}
-                              aria-label={`Add ${roomName} to cart`}
-                            >
-                              {addingRoomId === roomType ? (
-                                "Adding..."
-                              ) : (
-                                <>
-                                  <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
-                                  </motion.div>
-                                  Add to Cart
-                                </>
-                              )}
-                            </Button>
-                          )}
                         </div>
                       )}
                     </CardContent>

@@ -608,10 +608,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                         <p className="text-sm text-gray-500 mt-2">
                           This selection will apply to all rooms you add below.
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          <span className="font-semibold text-blue-500">Note:</span> Please disregard any price numbers
-                          in this dropdown; our team is actively working on a cleaner display.
-                        </p>
+                        {/* Removed the note about price numbers */}
                       </div>
 
                       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -693,7 +690,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                     />
                                     {count > 0 && (
                                       <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                        <CheckCircle className="h-5 w-5" />
+                                        <CheckCircle className="h-5 w-5 text-white" />
                                       </div>
                                     )}
                                   </div>
