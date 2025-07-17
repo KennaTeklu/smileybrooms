@@ -896,7 +896,7 @@ export function getRoomAddOns(roomType: string): RoomAddOn[] {
 /**
  * Return the list of reductions available for a given room type.
  * Falls back to the generic `default` reductions if none are defined.
- * (Pre-emptively added to avoid a similar “missing export” error.)
+ * (Pre-emptively added to avoid a similar "missing export" error.)
  */
 export function getRoomReductions(roomType: string): RoomReduction[] {
   return (defaultReductions as any)[roomType] || defaultReductions.default
@@ -905,18 +905,24 @@ export function getRoomReductions(roomType: string): RoomReduction[] {
 // Re-export roomTiers to make it accessible
 export type RoomTierName = keyof typeof roomTiers
 
-// Accepts `roomType` as optional and safely handles `undefined`.
-export function requiresEmailPricing(roomType?: string): boolean {
-  if (typeof roomType !== "string") {
+/**
+ * Check if a room type requires email pricing (custom spaces)
+ * Fixed to handle undefined/null values safely
+ */
+export function requiresEmailPricing(roomType: string | undefined | null): boolean {
+  // Handle undefined, null, or empty string cases
+  if (!roomType || typeof roomType !== "string") {
     return false
   }
+
   return roomType === "other" || roomType.startsWith("other-custom-")
 }
 
 /**
  * Get display price for a room configuration
+ * Fixed to handle undefined values safely
  */
-export function getDisplayPrice(roomType: string, config: any): string {
+export function getDisplayPrice(roomType: string | undefined | null, config: any): string {
   if (requiresEmailPricing(roomType) || config?.paymentType === "in_person" || config?.isPriceTBD) {
     return "Email for Pricing"
   }

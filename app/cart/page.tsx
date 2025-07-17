@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Plus, Minus, CheckCircle, AlertCircle, XCircle, Lightbulb, Tag } from "lucide-react"
+import { ShoppingBag, Trash2, Plus, Minus, Lightbulb, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -9,21 +9,11 @@ import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { analyzeCartHealth, type CartHealthReport } from "@/lib/cart-health"
-import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
-import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
+import { requiresEmailPricing } from "@/lib/room-tiers"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Placeholder for suggested products component
@@ -179,6 +169,17 @@ export default function CartPage() {
     }
   }
 
+  // Helper function to safely get room type from item metadata
+  const getItemRoomType = (item: any): string | undefined => {
+    return item?.metadata?.roomType || undefined
+  }
+
+  // Helper function to safely check if item requires email pricing
+  const itemRequiresEmailPricing = (item: any): boolean => {
+    const roomType = getItemRoomType(item)
+    return requiresEmailPricing(roomType) || item?.paymentType === "in_person"
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
       <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
@@ -318,7 +319,7 @@ export default function CartPage() {
                             </div>
 
                             <div className="text-right">
-                              {requiresEmailPricing(item.metadata?.roomType) || item.paymentType === "in_person" ? (
+                              {itemRequiresEmailPricing(item) ? (
                                 <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                                   Email for Pricing
                                 </p>
@@ -327,11 +328,9 @@ export default function CartPage() {
                                   ${(item.price * item.quantity).toFixed(2)}
                                 </p>
                               )}
-                              {item.quantity > 1 &&
-                                !requiresEmailPricing(item.metadata?.roomType) &&
-                                item.paymentType !== "in_person" && (
-                                  <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
-                                )}
+                              {item.quantity > 1 && !itemRequiresEmailPricing(item) && (
+                                <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -411,155 +410,4 @@ export default function CartPage() {
                 </div>
                 <Separator className="my-4" />
                 <div className="flex justify-between text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-                  <span>Total</span>
-                  <span className="text-blue-600 dark:text-blue-400">${cart.totalPrice.toFixed(2)}</span>
-                </div>
-                {cart.inPersonPaymentTotal > 0 && (
-                  <>
-                    <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                      <span>Custom Services</span>
-                      <span>Email for Pricing</span>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
-                      <p className="font-semibold text-orange-700 dark:text-orange-400 mb-1">Payment Notice:</p>
-                      <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
-                    </div>
-                  </>
-                )}
-                {/* New descriptive text */}
-                <p className="text-sm text-muted-foreground mb-4 text-center">
-                  Ready to finalize your booking? Proceed to our secure checkout to enter your details and complete your
-                  order.
-                </p>
-                <CheckoutButton
-                  useCheckoutPage={true}
-                  className="w-full h-12 rounded-lg text-base"
-                  size="lg"
-                  disabled={cart.items.length === 0 || isCheckoutLoading}
-                />
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
-                >
-                  <Link href="/">Continue Shopping</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {cartHealth && (
-              <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="cart-health-report">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                    Cart Health Report
-                    {cartHealth.overallHealth === "healthy" && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {cartHealth.overallHealth === "warning" && <AlertCircle className="h-6 w-6 text-yellow-500" />}
-                    {cartHealth.overallHealth === "critical" && <XCircle className="h-6 w-6 text-red-500" />}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Overall Status:{" "}
-                    <span
-                      className={cn("font-semibold", {
-                        "text-green-600 dark:text-green-400": cartHealth.overallHealth === "healthy",
-                        "text-yellow-600 dark:text-yellow-400": cartHealth.overallHealth === "warning",
-                        "text-red-600 dark:text-red-400": cartHealth.overallHealth === "critical",
-                      })}
-                    >
-                      {cartHealth.overallHealth.charAt(0).toUpperCase() + cartHealth.overallHealth.slice(1)}
-                    </span>{" "}
-                    (Score: {cartHealth.score}/100)
-                  </p>
-                  {cartHealth.suggestions.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                        <Lightbulb className="h-5 w-5 text-blue-500" /> Suggestions:
-                      </h3>
-                      <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                        {cartHealth.suggestions.map((suggestion, index) => (
-                          <li key={index}>{suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <Separator className="my-4" />
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Detailed Metrics:</h3>
-                  <div className="space-y-3">
-                    {cartHealth.metrics.map((metric) => (
-                      <div key={metric.id} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-700 dark:text-gray-300">{metric.name}</span>
-                        <span
-                          className={cn("font-medium", {
-                            "text-green-600 dark:text-green-400": metric.status === "healthy",
-                            "text-yellow-600 dark:text-yellow-400": metric.status === "warning",
-                            "text-red-600 dark:text-red-400": metric.status === "critical",
-                          })}
-                        >
-                          {metric.value} ({metric.status})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Suggested Products/Upsells */}
-            <CartSuggestions currentCartItems={cart.items} id="suggested-products" />
-          </div>
-        </div>
-      )}
-
-      {/* Remove Item Confirmation Dialog */}
-      <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirm Removal</DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground">
-              Are you sure you want to remove{" "}
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{itemToRemoveName}</span> from your cart?
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
-            <Button variant="destructive" onClick={confirmRemoveItem} className="w-full sm:w-auto rounded-lg">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove
-            </Button>
-            <Button variant="outline" onClick={cancelRemoveItem} className="w-full sm:w-auto rounded-lg bg-transparent">
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear Cart Confirmation Dialog */}
-      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Clear Cart Confirmation
-            </DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground">
-              Are you sure you want to clear all items from your cart? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
-            <Button variant="destructive" onClick={confirmClearCart} className="w-full sm:w-auto rounded-lg">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear All
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowClearConfirm(false)}
-              className="w-full sm:w-auto rounded-lg"
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
+                  \
