@@ -92,3 +92,16 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Centered Fixed Panels */
+.centered-fixed-panels {
+  position: fixed;
+  bottom: 1rem; /* Equivalent to Tailwind's bottom-4 */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem; /* Equivalent to Tailwind's space-y-2 */
+}

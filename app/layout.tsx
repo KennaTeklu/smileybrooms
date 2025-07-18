@@ -27,12 +27,11 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ClientLayout>
             {children}
-            {/* Fixed panels for global access, now centered */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center space-y-2">
+            {/* Centered Fixed Panels - Solution 2 */}
+            <div className="centered-fixed-panels">
               <CollapsibleSettingsPanel />
               <CollapsibleSharePanel />
               <CollapsibleChatbotPanel />
-              {/* CollapsibleAddAllPanel is now rendered directly on pricing page */}
             </div>
           </ClientLayout>
         </ThemeProvider>
