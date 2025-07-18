@@ -1,21 +1,20 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
+import { PanelCollapseProvider } from "@/contexts/panel-collapse-context"
+import { MasterCollapseButton } from "@/components/master-collapse-button"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { CartProvider } from "@/lib/cart-context"
-import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
-import { PanelControlProvider } from "@/contexts/panel-control-context" // Import PanelControlProvider
-import { CollapseAllButton } from "@/components/collapse-all-button" // Import CollapseAllButton
+import { cn } from "@/lib/utils"
+import { Inter } from "next/font/google"
+import ClientLayout from "@/components/client-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Smiley Brooms",
-  description: "Professional cleaning services with a smile.",
-    generator: 'v0.dev'
+  title: "v0 App",
+  description: "Created with v0",
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -24,21 +23,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <PanelControlProvider>
-          {" "}
-          {/* Wrap with PanelControlProvider */}
-          <QueryClientProviderWrapper>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-              <AccessibilityProvider>
-                <CartProvider>{children}</CartProvider>
-              </AccessibilityProvider>
-              <Toaster />
-            </ThemeProvider>
-          </QueryClientProviderWrapper>
-          <CollapseAllButton /> {/* Add the collapse all button */}
-        </PanelControlProvider>
+    <html lang="en">
+      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
+        <PanelCollapseProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <div className="relative flex min-h-screen flex-col">
+              <ClientLayout>{children}</ClientLayout>
+            </div>
+            <Toaster />
+            <MasterCollapseButton />
+          </ThemeProvider>
+        </PanelCollapseProvider>
       </body>
     </html>
   )

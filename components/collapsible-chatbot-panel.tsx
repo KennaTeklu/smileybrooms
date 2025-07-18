@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Bot, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 // Extend Window interface for JotForm
 declare global {
@@ -22,13 +22,14 @@ export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  const { registerPanel } = usePanelControl() // Use the panel control hook
+  const { collapseAll } = usePanelCollapse()
 
-  // Register panel setter with the context
+  // Listen for collapse all trigger
   useEffect(() => {
-    const unregister = registerPanel(setIsExpanded)
-    return () => unregister()
-  }, [registerPanel])
+    if (collapseAll) {
+      setIsExpanded(false)
+    }
+  }, [collapseAll])
 
   // Handle clicks outside the panel to collapse it
   useEffect(() => {

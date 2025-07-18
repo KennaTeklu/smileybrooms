@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react" // Added useEffect
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -13,20 +13,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { preferences, updatePreference, resetPreferences } = useAccessibility()
-  const { registerPanel } = usePanelControl() // Use the panel control hook
-
-  // Register panel setter with the context
-  useEffect(() => {
-    const unregister = registerPanel(setIsOpen)
-    return () => unregister()
-  }, [registerPanel])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -39,6 +32,15 @@ export function CollapsibleSettingsPanel() {
     "alt+s": () => setIsOpen((prev) => !prev),
     Escape: () => setIsOpen(false),
   })
+
+  const { collapseAll } = usePanelCollapse()
+
+  // Listen for collapse all trigger
+  useEffect(() => {
+    if (collapseAll) {
+      setIsOpen(false)
+    }
+  }, [collapseAll])
 
   const handleReset = () => {
     resetPreferences()

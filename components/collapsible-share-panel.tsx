@@ -34,8 +34,8 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
-import QRCode from "react-qr-code"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import QRCode from "react-qr-code" // Import the QR code library
+import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 interface SharePlatform {
   id: string
@@ -203,14 +203,6 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
 
-  const { registerPanel } = usePanelControl() // Use the panel control hook
-
-  // Register panel setter with the context
-  useEffect(() => {
-    const unregister = registerPanel(setIsExpanded)
-    return () => unregister()
-  }, [registerPanel])
-
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
@@ -226,6 +218,16 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
+
+  const { collapseAll } = usePanelCollapse()
+
+  // Listen for collapse all trigger
+  useEffect(() => {
+    if (collapseAll) {
+      setIsExpanded(false)
+      setShowQR(false)
+    }
+  }, [collapseAll])
 
   useEffect(() => {
     setIsMounted(true)

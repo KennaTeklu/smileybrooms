@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Link from "next/link"
 import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 export function CollapsibleCartPanel() {
   const { cart, removeItem, updateQuantity } = useCart()
@@ -68,17 +68,16 @@ export function CollapsibleCartPanel() {
 
   const cartHasItems = cartItems.length > 0
 
-  const { registerPanel } = usePanelControl() // Use the panel control hook
+  const { collapseAll } = usePanelCollapse()
 
-  // Register panel setters with the context
+  // Listen for collapse all trigger
   useEffect(() => {
-    const unregisterExpanded = registerPanel(setIsExpanded)
-    const unregisterFullscreen = registerPanel(setIsFullscreen)
-    return () => {
-      unregisterExpanded()
-      unregisterFullscreen()
+    if (collapseAll) {
+      setIsExpanded(false)
+      setIsFullscreen(false)
+      setReviewStep(0)
     }
-  }, [registerPanel])
+  }, [collapseAll])
 
   useEffect(() => {
     setIsMounted(true)
