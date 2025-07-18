@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Link from "next/link"
 import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
-import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 export function CollapsibleCartPanel() {
   const { cart, removeItem, updateQuantity } = useCart()
@@ -67,17 +66,6 @@ export function CollapsibleCartPanel() {
   const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
 
   const cartHasItems = cartItems.length > 0
-
-  const { collapseAll } = usePanelCollapse()
-
-  // Listen for collapse all trigger
-  useEffect(() => {
-    if (collapseAll) {
-      setIsExpanded(false)
-      setIsFullscreen(false)
-      setReviewStep(0)
-    }
-  }, [collapseAll])
 
   useEffect(() => {
     setIsMounted(true)

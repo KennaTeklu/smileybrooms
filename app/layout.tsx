@@ -1,20 +1,19 @@
 import type React from "react"
 import type { Metadata } from "next"
-import "./globals.css"
-import { PanelCollapseProvider } from "@/contexts/panel-collapse-context"
-import { MasterCollapseButton } from "@/components/master-collapse-button"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { cn } from "@/lib/utils"
 import { Inter } from "next/font/google"
-import ClientLayout from "@/app/client-layout"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import ClientLayout from "./client-layout" // Import the client layout
+import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
+import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
+import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.dev",
+  title: "SmileyBrooms",
+  description: "Professional cleaning services for your home and office.",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -23,17 +22,19 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
-        <PanelCollapseProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            <div className="relative flex min-h-screen flex-col">
-              <ClientLayout>{children}</ClientLayout>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ClientLayout>
+            {children}
+            {/* Centered Fixed Panels - Solution 2 */}
+            <div className="centered-fixed-panels">
+              <CollapsibleSettingsPanel />
+              <CollapsibleSharePanel />
+              <CollapsibleChatbotPanel />
             </div>
-            <Toaster />
-            <MasterCollapseButton />
-          </ThemeProvider>
-        </PanelCollapseProvider>
+          </ClientLayout>
+        </ThemeProvider>
       </body>
     </html>
   )

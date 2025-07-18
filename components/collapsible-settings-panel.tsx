@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
-import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
@@ -32,15 +31,6 @@ export function CollapsibleSettingsPanel() {
     "alt+s": () => setIsOpen((prev) => !prev),
     Escape: () => setIsOpen(false),
   })
-
-  const { collapseAll } = usePanelCollapse()
-
-  // Listen for collapse all trigger
-  useEffect(() => {
-    if (collapseAll) {
-      setIsOpen(false)
-    }
-  }, [collapseAll])
 
   const handleReset = () => {
     resetPreferences()

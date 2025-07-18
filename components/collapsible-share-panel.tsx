@@ -35,7 +35,6 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
 import QRCode from "react-qr-code" // Import the QR code library
-import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 
 interface SharePlatform {
   id: string
@@ -218,16 +217,6 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
-
-  const { collapseAll } = usePanelCollapse()
-
-  // Listen for collapse all trigger
-  useEffect(() => {
-    if (collapseAll) {
-      setIsExpanded(false)
-      setShowQR(false)
-    }
-  }, [collapseAll])
 
   useEffect(() => {
     setIsMounted(true)
