@@ -4,9 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import ClientLayout from "./client-layout" // Import the client layout
-import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
-import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
-import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
+import { PanelVisibilityProvider } from "@/contexts/panel-visibility-context" // New import
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,15 +23,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ClientLayout>
-            {children}
-            {/* Centered Fixed Panels - Solution 2 */}
-            <div className="centered-fixed-panels">
-              <CollapsibleSettingsPanel />
-              <CollapsibleSharePanel />
-              <CollapsibleChatbotPanel />
-            </div>
-          </ClientLayout>
+          <PanelVisibilityProvider>
+            {" "}
+            {/* Wrap with the new provider */}
+            <ClientLayout>{children}</ClientLayout>
+          </PanelVisibilityProvider>
         </ThemeProvider>
       </body>
     </html>
