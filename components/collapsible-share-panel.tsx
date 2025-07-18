@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2,
@@ -187,6 +187,12 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
+// Define fixed offsets
+const SHARE_COLLAPSED_BOTTOM_OFFSET = 80 // Distance from bottom when collapsed (above chatbot)
+const SHARE_EXPANDED_TOP_OFFSET = 0 // Distance from top when expanded
+const SHARE_EXPANDED_HEIGHT = 600 // Approximate height of the expanded panel
+const SHARE_COLLAPSED_WIDTH = 50 // Approximate width of the collapsed button
+
 type CollapsibleSharePanelProps = {}
 
 export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
@@ -202,6 +208,35 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
 
+  const { vibrate } = useVibration()
+  const { isOnline } = useNetworkStatus()
+  const { toast } = useToast()
+
+  useEffect(() => {
+    setIsMounted(true)
+    setCurrentUrl(window.location.href)
+  }, [])
+
+  const panelStyle: React.CSSProperties = useMemo(() => {
+    if (isExpanded) {
+      return {
+        top: `${SHARE_EXPANDED_TOP_OFFSET}px`,
+        bottom: "auto",
+        right: "0",
+        width: "auto", // Let motion.div control width
+        height: `${SHARE_EXPANDED_HEIGHT}px`,
+      }
+    } else {
+      return {
+        top: "auto",
+        bottom: `${SHARE_COLLAPSED_BOTTOM_OFFSET}px`,
+        right: "0",
+        width: `${SHARE_COLLAPSED_WIDTH}px`, // Let motion.button control width
+        height: "auto",
+      }
+    }
+  }, [isExpanded])
+
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
@@ -213,15 +248,6 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     "alt+s": () => setIsExpanded((prev) => !prev),
     Escape: () => setIsExpanded(false),
   })
-
-  const { vibrate } = useVibration()
-  const { isOnline } = useNetworkStatus()
-  const { toast } = useToast()
-
-  useEffect(() => {
-    setIsMounted(true)
-    setCurrentUrl(window.location.href)
-  }, [])
 
   if (!isMounted) return null
 
@@ -343,7 +369,6 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     // For all other platforms with sharing URLs
     const shareUrl = platform.url + encodeURIComponent(shareText)
     window.open(shareUrl, "_blank", "width=600,height=400")
-    setShareCount((prev) => prev + 1)
     toast({
       title: "Shared!",
       description: `Content shared successfully on ${platform.name}.`,
@@ -351,37 +376,19 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   }
 
   return (
-    <div className="relative" ref={panelRef}>
-      <Button
-        ref={buttonRef}
-        variant="outline"
-        size="icon"
-        className={cn(
-          `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
-          isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
-        )}
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-label={isExpanded ? "Close share panel" : "Open share panel"}
-        aria-expanded={isExpanded}
-      >
+    <div className="relative" ref={panelRef} style={panelStyle}>
+      <AnimatePresence initial={false}>
         {isExpanded ? (
-          <>
-            <Share2 className="h-4 w-4" />
-            <span className="text-sm font-medium whitespace-nowrap">Share</span>
-          </>
-        ) : (
-          <Share2 className="h-5 w-5" />
-        )}
-      </Button>
-
-      <AnimatePresence>
-        {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            key="expanded"
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
+            className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+            }}
           >
             {/* Enhanced Header */}
             <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5">
@@ -562,6 +569,29 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
               </div>
             </Tabs>
           </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            ref={buttonRef}
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsExpanded(true)}
+            className="flex flex-col items-center gap-1 py-3 px-3 sm:py-4 sm:px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            style={{
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
+            }}
+            aria-label="Open Share Panel"
+          >
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+              <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="[writing-mode:vertical-rl] self-end rotate-180">
+              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Share</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Spread the word</div>
+            </div>
+          </motion.button>
         )}
       </AnimatePresence>
     </div>

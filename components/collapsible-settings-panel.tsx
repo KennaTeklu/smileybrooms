@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useRef } from "react"
+import type React from "react"
+
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -12,13 +14,23 @@ import { useAccessibility } from "@/lib/accessibility-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
-import { cn } from "@/lib/utils"
+
+// Define fixed offsets
+const SETTINGS_COLLAPSED_BOTTOM_OFFSET = 20 // Distance from bottom when collapsed
+const SETTINGS_EXPANDED_TOP_OFFSET = 0 // Distance from top when expanded
+const SETTINGS_EXPANDED_HEIGHT = 500 // Approximate height of the expanded panel
+const SETTINGS_COLLAPSED_WIDTH = 50 // Approximate width of the collapsed button
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { preferences, updatePreference, resetPreferences } = useAccessibility()
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -57,49 +69,58 @@ export function CollapsibleSettingsPanel() {
     { value: "justify", label: "Justify" },
   ]
 
-  return (
-    <div className="relative" ref={panelRef}>
-      <Button
-        ref={buttonRef}
-        variant="outline"
-        size="icon"
-        className={cn(
-          `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
-          isOpen ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
-        )}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label={isOpen ? "Close settings panel" : "Open settings panel"}
-        aria-expanded={isOpen}
-      >
-        {isOpen ? (
-          <>
-            <Settings className="h-4 w-4" />
-            <span className="text-sm font-medium whitespace-nowrap">Settings</span>
-          </>
-        ) : (
-          <Settings className="h-5 w-5" />
-        )}
-      </Button>
+  const panelStyle: React.CSSProperties = useMemo(() => {
+    if (isOpen) {
+      return {
+        top: `${SETTINGS_EXPANDED_TOP_OFFSET}px`,
+        bottom: "auto",
+        left: "0",
+        width: "auto", // Let motion.div control width
+        height: `${SETTINGS_EXPANDED_HEIGHT}px`,
+      }
+    } else {
+      return {
+        top: "auto",
+        bottom: `${SETTINGS_COLLAPSED_BOTTOM_OFFSET}px`,
+        left: "0",
+        width: `${SETTINGS_COLLAPSED_WIDTH}px`, // Let motion.button control width
+        height: "auto",
+      }
+    }
+  }, [isOpen])
 
-      <AnimatePresence>
-        {isOpen && (
+  if (!isMounted) return null
+
+  return (
+    <div ref={panelRef} className="fixed flex" style={panelStyle}>
+      <AnimatePresence initial={false}>
+        {isOpen ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            key="expanded"
+            initial={{ width: 0, opacity: 0, x: -20 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: -20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[300px] max-w-[400px] p-4 z-20"
+            className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-r-2xl shadow-2xl overflow-hidden border-r-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+            }}
           >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Settings className="h-5 w-5 text-purple-600" />
-                Settings
-              </h3>
+            <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5 border-b border-purple-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Settings</h3>
+                  <p className="text-purple-100 text-sm">Customize your experience</p>
+                </div>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                 aria-label="Close settings panel"
               >
                 <X className="h-4 w-4" />
@@ -256,6 +277,29 @@ export function CollapsibleSettingsPanel() {
               </TabsContent>
             </Tabs>
           </motion.div>
+        ) : (
+          <motion.button
+            key="collapsed"
+            ref={buttonRef}
+            initial={{ width: 0, opacity: 0, x: -20 }}
+            animate={{ width: "auto", opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: -20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={() => setIsOpen(true)}
+            className="flex flex-col items-center gap-1 py-3 px-3 sm:py-4 sm:px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-r-2xl shadow-2xl hover:bg-purple-50 dark:hover:bg-purple-900/20 border-r-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            style={{
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
+            }}
+            aria-label="Open settings panel"
+          >
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
+              <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="[writing-mode:vertical-rl] self-end rotate-180">
+              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Settings</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Customize</div>
+            </div>
+          </motion.button>
         )}
       </AnimatePresence>
     </div>
