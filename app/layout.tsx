@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { Inter } from "next/font/google"
-import ClientLayout from "@/components/client-layout"
+import ClientLayout from "@/app/client-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 

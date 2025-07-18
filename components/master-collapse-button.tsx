@@ -1,47 +1,59 @@
 "use client"
 
-import type React from "react"
-
-import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { CaretSortIcon } from "@radix-ui/react-icons"
-import { useState } from "react"
+import { usePanelCollapse } from "@/contexts/panel-collapse-context"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useState } from "react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-interface MasterCollapseButtonProps {
-  children: React.ReactNode
-  title: string
-  defaultOpen?: boolean
-  onCollapseAll: () => void
-}
+export function MasterCollapseButton() {
+  const { triggerCollapseAll } = usePanelCollapse()
+  const [active, setActive] = useState(false)
 
-const MasterCollapseButton = ({ children, title, defaultOpen, onCollapseAll }: MasterCollapseButtonProps) => {
-  const [open, setOpen] = useState(defaultOpen || false)
-
-  const handleCollapseAll = () => {
-    setOpen(false)
-    onCollapseAll()
+  const handleClick = () => {
+    triggerCollapseAll()
+    setActive(true)
+    setTimeout(() => setActive(false), 1500) // visual reset
   }
 
-  // Add keyboard shortcut support
+  // Alt + X keyboard shortcut
   useKeyboardShortcuts({
-    "alt+x": handleCollapseAll,
+    "alt+x": handleClick,
   })
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="flex items-center justify-between space-x-2">
-        <h4 className="text-sm font-semibold">{title}</h4>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            <CaretSortIcon className="h-4 w-4 shrink-0 transition-transform duration-200 peer-data-[state=open]:rotate-180" />
-            <span className="sr-only">Toggle</span>
-          </Button>
-        </CollapsibleTrigger>
-      </div>
-      <CollapsibleContent className="space-y-2">{children}</CollapsibleContent>
-    </Collapsible>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.div
+            initial={{ opacity: 0, x: -20, y: 20 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            className="fixed bottom-4 left-4 z-[1001]"
+          >
+            <Button
+              size="icon"
+              className={`h-8 w-8 rounded-full p-0 ${
+                active ? "bg-green-600" : "bg-gray-800"
+              } text-white shadow-md hover:bg-gray-700 focus:outline-none`}
+              onClick={handleClick}
+              aria-label="Collapse all panels"
+            >
+              <AnimatePresence>
+                {active ? (
+                  <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    ✓
+                  </motion.span>
+                ) : (
+                  <X className="h-4 w-4" key="x" />
+                )}
+              </AnimatePresence>
+            </Button>
+          </motion.div>
+        </TooltipTrigger>
+        <TooltipContent>Collapse all panels (Alt&nbsp;+&nbsp;X)</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
-
-export default MasterCollapseButton
