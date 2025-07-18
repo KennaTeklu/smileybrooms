@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react" // Added useEffect
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -12,7 +12,7 @@ import { useAccessibility } from "@/lib/accessibility-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelControl } from "@/contexts/panel-control-context"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
@@ -23,17 +23,16 @@ export function CollapsibleSettingsPanel() {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { preferences, updatePreference, resetPreferences } = useAccessibility()
-  const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
+  const { registerPanel, unregisterPanel } = usePanelControl()
 
-  // Register panel setter with the context
   useEffect(() => {
-    const unregister = registerPanel("settings-panel", setIsOpen)
+    registerPanel("settings-panel", setIsOpen)
     return () => unregisterPanel("settings-panel")
   }, [registerPanel, unregisterPanel])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-      return // Don't close if the click was on the button itself
+      return
     }
     setIsOpen(false)
   })
@@ -75,8 +74,7 @@ export function CollapsibleSettingsPanel() {
         variant="outline"
         size="icon"
         className={cn(
-          `fixed bottom-20 right-4 z-50 rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
-          isOpen ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
+          `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
         )}
         onClick={() => setIsOpen(true)}
         aria-label="Open settings panel"

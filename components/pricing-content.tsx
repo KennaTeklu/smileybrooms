@@ -1,290 +1,247 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Contact, Home, Building2 } from "lucide-react"
-import { roomDisplayNames } from "@/lib/room-tiers"
-import { RoomCategory } from "@/components/room-category"
-import { RequestQuoteButton } from "@/components/request-quote-button"
-import { useToast } from "@/hooks/use-toast"
-import { useCart } from "@/lib/cart-context"
-import { useRoomContext, type RoomConfig } from "@/lib/room-context"
+
+import { useState, useMemo } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
-import { formatCurrency } from "@/lib/utils"
+import { CheckCircle, XCircle, Plus, Minus, ShoppingCart } from "lucide-react"
+import { cn, formatCurrency } from "@/lib/utils"
+import { useRoom } from "@/lib/room-context"
+import { useCart } from "@/lib/cart-context"
+import { roomTiers } from "@/lib/room-tiers"
+import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
-function PricingContent() {
-  const { toast } = useToast()
-  const { addItem } = useCart()
-  const [activeTab, setActiveTab] = useState("standard")
-
+export function PricingContent() {
   const {
-    roomCounts,
-    roomConfigs,
-    updateRoomCount,
-    updateRoomConfig,
-    getSelectedRoomTypes,
+    selectedRooms,
+    addRoom,
+    removeRoom,
+    updateRoomQuantity,
+    getRoomQuantity,
     getDetailedPricingBreakdown,
-  } = useRoomContext()
+    clearRooms,
+  } = useRoom()
+  const { addItem: addItemToCart } = useCart()
 
-  // local highlight-on-map state (was crashing before because undefined)
-  const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
+  const [activeRoomType, setActiveRoomType] = useState<string>("bedroom")
 
-  const [serviceFee, setServiceFee] = useState(25)
+  const roomTypes = useMemo(() => {
+    const types = new Set<string>()
+    roomTiers.forEach((tier) => types.add(tier.roomType))
+    return Array.from(types)
+  }, [])
 
-  const coreRooms = ["bedroom", "bathroom", "kitchen", "livingRoom", "diningRoom"]
-  const additionalSpaces = ["homeOffice", "laundryRoom", "entryway", "hallway", "stairs"]
-
-  const handleRoomCountChange = (roomType: string, count: number) => {
-    const newCount = Math.max(0, count)
-    updateRoomCount(roomType, newCount)
-
-    if (newCount > 0 && (roomCounts[roomType] || 0) === 0) {
-      if (!selectedRoomForMap) {
-        setSelectedRoomForMap(roomType)
-      }
-    }
-
-    if (newCount === 0 && (roomCounts[roomType] || 0) > 0) {
-      if (selectedRoomForMap === roomType) {
-        const activeRooms = Object.entries(roomCounts)
-          .filter(([key, currentCount]) => key !== roomType && currentCount > 0)
-          .map(([key]) => key)
-        setSelectedRoomForMap(activeRooms.length > 0 ? activeRooms[0] : null)
-      }
-    }
-  }
-
-  const handleRoomConfigChange = (roomType: string, config: RoomConfig) => {
-    updateRoomConfig(roomType, config)
-  }
-
-  const getRoomConfig = (roomType: string): RoomConfig => {
-    return (
-      roomConfigs[roomType] || {
-        roomName: roomType,
-        selectedTier: "default-essential", // Use actual tier ID from room-tiers.ts
-        selectedAddOns: [],
-        selectedReductions: [],
-        totalPrice: 0, // Will be calculated by RoomContext
-        detailedTasks: [],
-        notIncludedTasks: [],
-        upsellMessage: "",
-        isPriceTBD: false,
-        paymentType: "online",
-      }
-    )
-  }
-
-  const handleAddRoomToCart = (roomType: string) => {
-    const config = getRoomConfig(roomType)
-    if (config && roomCounts[roomType] > 0) {
-      const cartItem = {
-        id: generateRoomCartItemId(config),
-        name: getRoomCartItemDisplayName(config),
-        price: config.totalPrice,
-        priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
-        quantity: roomCounts[roomType],
-        roomType: config.roomName,
-        selectedTier: config.selectedTier,
-        selectedAddOns: config.selectedAddOns,
-        selectedReductions: config.selectedReductions,
-        image: `/images/${roomType}-professional.png`, // Example image path
-        sourceSection: "Pricing Page",
-        paymentType: config.paymentType,
-      }
-      addItem(cartItem)
-    } else {
-      toast({
-        title: "Cannot add to cart",
-        description: `Please select at least one ${roomDisplayNames[roomType]} to add to cart.`,
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleAddAllRoomsToCart = () => {
-    const selectedRooms = getSelectedRoomTypes()
-    if (selectedRooms.length === 0) {
-      toast({
-        title: "No Rooms Selected",
-        description: "Please select at least one room before adding to cart.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    selectedRooms.forEach((roomType) => {
-      const config = getRoomConfig(roomType)
-      if (config && roomCounts[roomType] > 0) {
-        const cartItem = {
-          id: generateRoomCartItemId(config),
-          name: getRoomCartItemDisplayName(config),
-          price: config.totalPrice,
-          priceId: `${config.roomName}-${config.selectedTier}-price`, // Example priceId
-          quantity: roomCounts[roomType],
-          roomType: config.roomName,
-          selectedTier: config.selectedTier,
-          selectedAddOns: config.selectedAddOns,
-          selectedReductions: config.selectedReductions,
-          image: `/images/${roomType}-professional.png`, // Example image path
-          sourceSection: "Pricing Page - Add All",
-          paymentType: config.paymentType,
-        }
-        addItem(cartItem)
-      }
-    })
-    toast({
-      title: "All Rooms Added!",
-      description: "All selected rooms have been added to your cart.",
-      variant: "success",
-    })
-  }
-
-  useEffect(() => {
-    const totalRooms = Object.values(roomCounts).reduce((sum, count) => sum + count, 0)
-    if (totalRooms <= 2) {
-      setServiceFee(25)
-    } else if (totalRooms <= 5) {
-      setServiceFee(35)
-    } else {
-      setServiceFee(45)
-    }
-  }, [roomCounts])
+  const tiersForActiveRoom = useMemo(() => {
+    return roomTiers.filter((tier) => tier.roomType === activeRoomType)
+  }, [activeRoomType])
 
   const pricingBreakdown = getDetailedPricingBreakdown()
 
+  const handleAddToCart = (roomType: string, tierId: string) => {
+    const roomConfig = roomTiers.find((tier) => tier.roomType === roomType && tier.id === tierId)
+    if (roomConfig) {
+      const quantity = getRoomQuantity(roomType, tierId)
+      if (quantity > 0) {
+        // If item already in cart, update quantity. Otherwise, add new item.
+        addItemToCart({
+          id: `${roomType}-${tierId}`,
+          name: `${roomConfig.name} ${roomType}`,
+          price: roomConfig.basePrice,
+          quantity: quantity,
+          sourceSection: "rooms",
+          metadata: {
+            roomType: roomType,
+            roomConfig: roomConfig,
+            detailedTasks: roomConfig.detailedTasks,
+            notIncludedTasks: roomConfig.notIncludedTasks,
+            upsellMessage: roomConfig.upsellMessage,
+          },
+        })
+      }
+    }
+  }
+
+  const handleClearAllRooms = () => {
+    clearRooms()
+  }
+
   return (
-    <main className="container mx-auto px-2 pt-2 md:px-4 lg:px-6">
-      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
-        <TabsList className="grid w-full grid-cols-2 mb-2" aria-label="Service types">
-          <TabsTrigger value="standard" className="flex items-center gap-2" aria-controls="standard-tab">
-            <Home className="h-4 w-4" aria-hidden="true" />
-            <span>Residential Services</span>
-          </TabsTrigger>
-          <TabsTrigger value="detailing" className="flex items-center gap-2" aria-controls="detailing-tab">
-            <Building2 className="h-4 w-4" aria-hidden="true" />
-            <span>Commercial Services</span>
-          </TabsTrigger>
-        </TabsList>
+    <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-gray-50 mb-4">
+          Flexible Pricing for Every Home
+        </h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+          Choose the perfect cleaning package for your needs. Our transparent pricing ensures you know exactly what
+          you're paying for.
+        </p>
+      </div>
 
-        <TabsContent value="standard" id="standard-tab" role="tabpanel" className="space-y-6">
-          {/* Core Rooms Category */}
-          <RoomCategory
-            title="Core Rooms"
-            description="Essential areas for a standard clean."
-            rooms={coreRooms} // Use the defined array
-            variant="primary"
-            onRoomSelect={setSelectedRoomForMap}
-          />
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Room Selection and Pricing */}
+        <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Select Your Rooms</h2>
 
-          <Separator />
+          {/* Room Type Tabs */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              {roomTypes.map((type) => (
+                <Button
+                  key={type}
+                  variant={activeRoomType === type ? "default" : "outline"}
+                  onClick={() => setActiveRoomType(type)}
+                  className={cn(
+                    "capitalize",
+                    activeRoomType === type
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200",
+                  )}
+                >
+                  {type}
+                </Button>
+              ))}
+            </div>
+          </div>
 
-          {/* Additional Spaces Category */}
-          <RoomCategory
-            title="Additional Spaces"
-            description="Expand your cleaning to other areas."
-            rooms={additionalSpaces} // Use the defined array
-            variant="secondary"
-            onRoomSelect={setSelectedRoomForMap}
-          />
-
-          {/* Custom Space Card */}
-          <Card className="shadow-sm">
-            <CardHeader className="bg-gray-50 dark:bg-gray-800/20 border-b border-gray-200 dark:border-gray-700/30">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700/30">
-                  <Contact className="h-5 w-5" aria-hidden="true" />
-                </span>
-                CUSTOM SPACES
-              </CardTitle>
-              <CardDescription>Need something not listed above? Request a custom space</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
-                <div className="text-4xl mb-4" aria-hidden="true">
-                  🏠
-                </div>
-                <h3 className="font-medium text-xl mb-2">Other Space</h3>
-                <p className="text-gray-500 mb-4 text-center max-w-md">
-                  Have a unique space that needs cleaning? Contact us for a custom quote.
-                </p>
-                <RequestQuoteButton showIcon={true} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Selected Rooms Summary */}
-          {getSelectedRoomTypes().length > 0 && (
-            <Card className="shadow-sm">
-              <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                    ✓
-                  </span>
-                  SELECTED ROOMS
-                </CardTitle>
-                <CardDescription>
-                  You have selected {getSelectedRoomTypes().length} room{getSelectedRoomTypes().length !== 1 ? "s" : ""}
-                  . Click "Customize" on any room to adjust details.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pricingBreakdown.roomBreakdowns.map((roomBreakdown) => {
-                    const roomType = roomBreakdown.roomType
-                    const config = getRoomConfig(roomType)
-                    return (
-                      <div
-                        key={roomType}
-                        className="flex flex-col items-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/20"
-                      >
-                        <div className="text-2xl mb-2">
-                          {roomType === "bedroom" && "🛏️"}
-                          {roomType === "bathroom" && "🚿"}
-                          {roomType === "kitchen" && "🍳"}
-                          {roomType === "livingRoom" && "🛋️"}
-                          {roomType === "diningRoom" && "🍽️"}
-                          {roomType === "homeOffice" && "💻"}
-                          {roomType === "laundryRoom" && "🧺"}
-                          {roomType === "entryway" && "🚪"}
-                          {roomType === "hallway" && "🚶"}
-                          {roomType === "stairs" && "🪜"}
-                          {roomType.startsWith("other") && "✨"} {/* Icon for custom spaces */}
-                        </div>
-                        <span className="font-medium text-sm text-center">
-                          {roomBreakdown.roomDisplayName} ({roomBreakdown.quantity})
-                        </span>
-                        <span className="text-xs text-gray-500 mt-1">{roomBreakdown.selectedTierName}</span>
-                        <span className="text-sm font-bold mt-2">
-                          {roomBreakdown.isPriceTBD
-                            ? "Email for Pricing"
-                            : formatCurrency(roomBreakdown.roomTotal * roomBreakdown.quantity)}
-                        </span>
+          {/* Room Tiers */}
+          <div className="grid gap-6">
+            {tiersForActiveRoom.map((tier) => (
+              <Card
+                key={tier.id}
+                className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-6 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+              >
+                <div className="flex-1 mb-4 md:mb-0">
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    {tier.name} {activeRoomType}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400 mb-3">
+                    {tier.timeEstimate}
+                  </CardDescription>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1 mb-1">
+                        <CheckCircle className="h-4 w-4 text-green-500" /> Included:
+                      </h4>
+                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-0.5">
+                        {tier.detailedTasks.map((task, i) => (
+                          <li key={i}>{task.replace(/ $$.*?$$/, "")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {tier.notIncludedTasks && tier.notIncludedTasks.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1 mb-1">
+                          <XCircle className="h-4 w-4 text-red-500" /> Not Included:
+                        </h4>
+                        <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-0.5">
+                          {tier.notIncludedTasks.map((task, i) => (
+                            <li key={i}>{task}</li>
+                          ))}
+                        </ul>
                       </div>
-                    )
-                  })}
+                    )}
+                  </div>
+                  {tier.upsellMessage && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-3">{tier.upsellMessage}</p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+                <div className="flex flex-col items-center md:items-end gap-3">
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {formatCurrency(tier.basePrice)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeRoom(activeRoomType, tier.id)}
+                      disabled={getRoomQuantity(activeRoomType, tier.id) === 0}
+                      aria-label={`Decrease quantity of ${tier.name} ${activeRoomType}`}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="text-lg font-semibold w-8 text-center">
+                      {getRoomQuantity(activeRoomType, tier.id)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => addRoom(activeRoomType, tier.id)}
+                      aria-label={`Increase quantity of ${tier.name} ${activeRoomType}`}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={() => handleAddToCart(activeRoomType, tier.id)}
+                    disabled={getRoomQuantity(activeRoomType, tier.id) === 0}
+                    className="mt-2 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" /> Add to Cart
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <CollapsibleAddAllPanel roomType={activeRoomType} />
+        </div>
 
-        <TabsContent value="detailing" id="detailing-tab" role="tabpanel">
-          <Card>
-            <CardHeader>
-              <CardTitle>Commercial Services</CardTitle>
-              <CardDescription>Our premium cleaning services for businesses and commercial spaces</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Content for commercial services will be implemented in future rounds.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </main>
+        {/* Order Summary */}
+        <div className="w-full lg:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 sticky top-24 self-start">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Your Estimate</h2>
+          <ScrollArea className="h-[calc(100vh-300px)] pr-4">
+            {pricingBreakdown.roomBreakdowns.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                No rooms selected yet. Add rooms to see your estimate!
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {pricingBreakdown.roomBreakdowns.map((item, index) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {item.quantity} x {item.roomType} ({item.basePrice})
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {formatCurrency(item.roomTotal)}
+                    </span>
+                  </div>
+                ))}
+                <Separator className="my-4 bg-gray-200 dark:bg-gray-700" />
+                <div className="flex justify-between font-semibold text-gray-900 dark:text-gray-100">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(pricingBreakdown.subtotal)}</span>
+                </div>
+                {pricingBreakdown.discounts.length > 0 && (
+                  <div className="space-y-1">
+                    {pricingBreakdown.discounts.map((discount, index) => (
+                      <div key={index} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                        <span>{discount.name}:</span>
+                        <span>-{formatCurrency(discount.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Separator className="my-4 bg-gray-200 dark:bg-gray-700" />
+                <div className="flex justify-between text-xl font-bold text-blue-600 dark:text-blue-400">
+                  <span>Total Estimate:</span>
+                  <span>{formatCurrency(pricingBreakdown.total)}</span>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+          <CardFooter className="flex flex-col gap-3 mt-6 p-0">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={pricingBreakdown.roomBreakdowns.length === 0}
+            >
+              Proceed to Checkout
+            </Button>
+            <Button variant="outline" className="w-full bg-transparent" onClick={handleClearAllRooms}>
+              Clear All Rooms
+            </Button>
+          </CardFooter>
+        </div>
+      </div>
+    </div>
   )
 }
-
-export default PricingContent
-export { PricingContent }

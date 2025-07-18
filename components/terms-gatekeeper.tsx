@@ -11,7 +11,14 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import {
@@ -40,6 +47,8 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react"
+import Link from "next/link"
+import { useToast } from "@/components/ui/use-toast"
 
 // Sample terms content
 const termsContent = `
@@ -197,6 +206,128 @@ interface TermsGatekeeperProps {
   termsLastUpdated?: string
 }
 
+export function useTermsGatekeeper() {
+  const [showTerms, setShowTerms] = useState(false)
+  const [agreed, setAgreed] = useState(false)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const termsAccepted = localStorage.getItem("termsAccepted")
+    const termsVersion = process.env.NEXT_PUBLIC_TERMS_VERSION || "1.0" // Get version from env
+    const lastAcceptedVersion = localStorage.getItem("lastAcceptedTermsVersion")
+
+    if (!termsAccepted || lastAcceptedVersion !== termsVersion) {
+      setShowTerms(true)
+    }
+  }, [])
+
+  const handleAcceptTerms = () => {
+    if (agreed) {
+      localStorage.setItem("termsAccepted", "true")
+      localStorage.setItem("lastAcceptedTermsVersion", process.env.NEXT_PUBLIC_TERMS_VERSION || "1.0")
+      setShowTerms(false)
+      toast({
+        title: "Terms Accepted!",
+        description: "Thank you for accepting our Terms of Service.",
+        variant: "default",
+      })
+    } else {
+      toast({
+        title: "Action Required",
+        description: "Please agree to the Terms of Service to continue.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const TermsDialog = () => (
+    <Dialog open={showTerms} onOpenChange={setShowTerms}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Terms of Service Update</DialogTitle>
+          <DialogDescription>
+            Please review and accept our updated Terms of Service to continue using our platform.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto pr-4 text-sm text-gray-700 dark:text-gray-300">
+          <h3 className="font-bold text-lg mb-2">1. Introduction</h3>
+          <p className="mb-4">
+            Welcome to SmileyBrooms! These Terms of Service ("Terms") govern your use of our website and services. By
+            accessing or using our services, you agree to be bound by these Terms.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">2. Services Provided</h3>
+          <p className="mb-4">
+            SmileyBrooms provides professional cleaning services for residential and commercial properties. Our services
+            include, but are not limited to, standard cleaning, deep cleaning, move-in/out cleaning, and specialty
+            services.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">3. User Responsibilities</h3>
+          <ul className="list-disc list-inside mb-4 space-y-1">
+            <li>Provide accurate and complete information when booking services.</li>
+            <li>Ensure a safe working environment for our cleaning professionals.</li>
+            <li>Secure valuables and fragile items before service.</li>
+            <li>Notify us of any special instructions or concerns prior to service.</li>
+          </ul>
+
+          <h3 className="font-bold text-lg mb-2">4. Payment and Cancellations</h3>
+          <p className="mb-4">
+            Payment is due upon completion of service. Cancellations must be made at least 24 hours in advance to avoid
+            a cancellation fee.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">5. Limitation of Liability</h3>
+          <p className="mb-4">
+            SmileyBrooms is not liable for any indirect, incidental, special, consequential, or punitive damages, or any
+            loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or
+            other intangible losses, resulting from (a) your access to or use of or inability to access or use the
+            services; (b) any conduct or content of any third party on the services; or (c) unauthorized access, use, or
+            alteration of your transmissions or content.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">6. Governing Law</h3>
+          <p className="mb-4">
+            These Terms shall be governed and construed in accordance with the laws of the State of California, without
+            regard to its conflict of law provisions.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">7. Changes to Terms</h3>
+          <p className="mb-4">
+            We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is
+            material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a
+            material change will be determined at our sole discretion.
+          </p>
+
+          <h3 className="font-bold text-lg mb-2">8. Contact Us</h3>
+          <p className="mb-4">
+            If you have any questions about these Terms, please contact us at info@smileybrooms.com.
+          </p>
+        </div>
+        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center pt-4">
+          <div className="flex items-center space-x-2 mb-4 sm:mb-0">
+            <Checkbox id="terms-agree" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
+            <Label
+              htmlFor="terms-agree"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              I agree to the{" "}
+              <Link href="/terms" className="underline" onClick={() => setShowTerms(false)}>
+                Terms of Service
+              </Link>
+            </Label>
+          </div>
+          <Button onClick={handleAcceptTerms} disabled={!agreed}>
+            Accept and Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+
+  return { TermsDialog }
+}
+
 export default function TermsGatekeeper({
   companyName = "smileybrooms",
   companyLogo = "/sparkling-home-service.png",
@@ -206,6 +337,7 @@ export default function TermsGatekeeper({
   termsLastUpdated = "May 10, 2025",
 }: TermsGatekeeperProps) {
   const router = useRouter()
+  const { TermsDialog } = useTermsGatekeeper()
 
   // State for various features
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -711,6 +843,7 @@ export default function TermsGatekeeper({
         isHighContrast ? "bg-black" : "",
       )}
     >
+      <TermsDialog />
       {/* Header */}
       <header
         className={cn(
@@ -959,7 +1092,7 @@ export default function TermsGatekeeper({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0"
+                      className="h-6 w-6 p-0 bg-transparent"
                       onClick={() => {
                         const currentIndex = fontSizes.findIndex((f) => f.id === fontSize)
                         if (currentIndex > 0) {
@@ -973,7 +1106,7 @@ export default function TermsGatekeeper({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0"
+                      className="h-6 w-6 p-0 bg-transparent"
                       onClick={() => {
                         const currentIndex = fontSizes.findIndex((f) => f.id === fontSize)
                         if (currentIndex < fontSizes.length - 1) {
@@ -1068,19 +1201,19 @@ export default function TermsGatekeeper({
                 Document Actions
               </h2>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" onClick={handlePrint} className="text-xs h-8">
+                <Button variant="outline" size="sm" onClick={handlePrint} className="text-xs h-8 bg-transparent">
                   <Printer className="h-3 w-3 mr-1" />
                   Print
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload} className="text-xs h-8">
+                <Button variant="outline" size="sm" onClick={handleDownload} className="text-xs h-8 bg-transparent">
                   <Download className="h-3 w-3 mr-1" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleCopy} className="text-xs h-8">
+                <Button variant="outline" size="sm" onClick={handleCopy} className="text-xs h-8 bg-transparent">
                   <Copy className="h-3 w-3 mr-1" />
                   Copy
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleShare} className="text-xs h-8">
+                <Button variant="outline" size="sm" onClick={handleShare} className="text-xs h-8 bg-transparent">
                   <Share2 className="h-3 w-3 mr-1" />
                   Share
                 </Button>

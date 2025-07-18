@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,103 +9,48 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { useRouter } from "next/navigation"
+import { Gift, X } from "lucide-react"
 
 interface DiscountRescueModalProps {
   isOpen: boolean
   onClose: () => void
-  discountPercentage: number
-  onEmailCapture?: (email: string) => void
+  onApplyDiscount: () => void
 }
 
-export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEmailCapture }: DiscountRescueModalProps) {
-  const [email, setEmail] = useState("")
-  const [isValid, setIsValid] = useState(false)
-  const [countdown, setCountdown] = useState(300) // 5 minutes in seconds
-  const router = useRouter()
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout
-
-    if (isOpen) {
-      timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
-
-    return () => {
-      if (timer) clearInterval(timer)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    setIsValid(emailRegex.test(email))
-  }, [email])
-
-  const handleSubmit = () => {
-    if (isValid && onEmailCapture) {
-      onEmailCapture(email)
-    }
-
-    // Apply discount to localStorage
-    localStorage.setItem("appliedDiscount", discountPercentage.toString())
-
-    // Redirect to cart
-    router.push("/cart")
-    onClose()
-  }
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
-  }
-
+export function DiscountRescueModal({ isOpen, onClose, onApplyDiscount }: DiscountRescueModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Wait! Special Offer Just For You</DialogTitle>
-          <DialogDescription className="text-center pt-2">
-            <span className="block text-3xl font-bold text-green-600">{discountPercentage}% OFF</span>
-            <span className="block mt-2">Complete your booking now and save!</span>
-            <div className="mt-4 text-amber-600 font-semibold">Offer expires in: {formatTime(countdown)}</div>
+      <DialogContent className="sm:max-w-[425px] p-6 text-center">
+        <DialogHeader className="flex flex-col items-center">
+          <Gift className="h-16 w-16 text-green-500 mb-4 animate-bounce" />
+          <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Don't Leave Empty-Handed!
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400 mt-2">
+            We noticed you're about to leave. Here's a special offer to make your day brighter!
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex flex-col space-y-4 py-4">
-          <p className="text-sm text-gray-500">Enter your email to claim this exclusive discount:</p>
-          <Input
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="col-span-3"
-          />
+        <div className="my-6">
+          <p className="text-4xl font-extrabold text-blue-600 dark:text-blue-400 mb-2">15% OFF</p>
+          <p className="text-lg font-medium text-gray-800 dark:text-gray-200">Your Entire Order!</p>
         </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-4">
-          <Button type="button" variant="outline" onClick={onClose} className="sm:w-auto w-full order-2 sm:order-1">
-            No thanks
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto bg-transparent">
+            No, Thanks
           </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isValid}
-            className="sm:w-auto w-full order-1 sm:order-2 bg-green-600 hover:bg-green-700"
-          >
-            Claim {discountPercentage}% Discount
+          <Button onClick={onApplyDiscount} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
+            <Gift className="h-4 w-4 mr-2" /> Claim Discount
           </Button>
         </DialogFooter>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 rounded-full"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </DialogContent>
     </Dialog>
   )

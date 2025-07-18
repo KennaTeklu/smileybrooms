@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { X, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelControl } from "@/contexts/panel-control-context"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 // Extend Window interface for JotForm
@@ -21,22 +21,20 @@ export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
+  const { registerPanel, unregisterPanel } = usePanelControl()
 
-  // Register panel setter with the context
   useEffect(() => {
     registerPanel("chatbot-panel", setIsOpen)
     return () => unregisterPanel("chatbot-panel")
   }, [registerPanel, unregisterPanel])
 
-  // Handle clicks outside the panel to collapse it
   useEffect(() => {
     if (!isMounted) return
 
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isOpen) {
         if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-          return // Don't close if the click was on the button itself
+          return
         }
         setIsOpen(false)
       }
@@ -46,7 +44,6 @@ export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isOpen, isMounted])
 
-  // Close on Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -62,6 +59,35 @@ export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
       document.removeEventListener("keydown", handleEscape)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && isMounted) {
+      const script = document.createElement("script")
+      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
+      script.onload = () => {
+        try {
+          if (window.jotformEmbedHandler) {
+            window.jotformEmbedHandler(
+              "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
+              "https://www.jotform.com",
+            )
+          }
+        } catch (error) {
+          // Ignore cross-origin errors
+        }
+      }
+      document.head.appendChild(script)
+
+      return () => {
+        const existingScript = document.querySelector(
+          'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
+        )
+        if (existingScript) {
+          document.head.removeChild(existingScript)
+        }
+      }
+    }
+  }, [isOpen, isMounted])
 
   useEffect(() => {
     setIsMounted(true)

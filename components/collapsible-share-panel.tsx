@@ -35,7 +35,7 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
 import QRCode from "react-qr-code"
-import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { usePanelControl } from "@/contexts/panel-control-context"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface SharePlatform {
@@ -193,7 +193,6 @@ type CollapsibleSharePanelProps = {}
 
 export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
@@ -205,13 +204,7 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
 
-  const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
-
-  // Register panel setter with the context
-  useEffect(() => {
-    const unregister = registerPanel(setIsExpanded)
-    return () => unregister()
-  }, [registerPanel])
+  const { registerPanel, unregisterPanel } = usePanelControl()
 
   useEffect(() => {
     registerPanel("share-panel", setIsOpen)
@@ -222,12 +215,12 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
     }
-    setIsExpanded(false)
+    setIsOpen(false)
   })
 
   useKeyboardShortcuts({
-    "alt+s": () => setIsExpanded((prev) => !prev),
-    Escape: () => setIsExpanded(false),
+    "alt+s": () => setIsOpen((prev) => !prev),
+    Escape: () => setIsOpen(false),
   })
 
   const { vibrate } = useVibration()
@@ -403,36 +396,14 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
           </Button>
           {/* Add more sharing options here if needed */}
           <div className="relative" ref={panelRef}>
-            <Button
-              ref={buttonRef}
-              variant="outline"
-              size="icon"
-              className={cn(
-                `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
-                isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
-              )}
-              onClick={() => setIsExpanded(!isExpanded)}
-              aria-label={isExpanded ? "Close share panel" : "Open share panel"}
-              aria-expanded={isExpanded}
-            >
-              {isExpanded ? (
-                <>
-                  <Share2 className="h-4 w-4" />
-                  <span className="text-sm font-medium whitespace-nowrap">Share</span>
-                </>
-              ) : (
-                <Share2 className="h-5 w-5" />
-              )}
-            </Button>
-
             <AnimatePresence>
-              {isExpanded && (
+              {isOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
+                  className="w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
                 >
                   {/* Enhanced Header */}
                   <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5">
@@ -453,7 +424,7 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setIsExpanded(false)}
+                          onClick={() => setIsOpen(false)}
                           className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                           aria-label="Close share panel"
                         >

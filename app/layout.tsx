@@ -12,6 +12,9 @@ import { RoomProvider } from "@/lib/room-context"
 import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
 import { PanelControlProvider } from "@/contexts/panel-control-context"
 import { CollapseAllButton } from "@/components/collapse-all-button"
+import { AccessibilityProvider } from "@/lib/accessibility-context" // Import AccessibilityProvider
+
+import ClientLayout from "./client-layout" // Import the client layout
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,9 +35,13 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <QueryClientProviderWrapper>
             <PanelControlProvider>
-              <CartProvider>
-                <RoomProvider>{children}</RoomProvider>
-              </CartProvider>
+              <AccessibilityProvider>
+                <CartProvider>
+                  <RoomProvider>
+                    <ClientLayout>{children}</ClientLayout>
+                  </RoomProvider>
+                </CartProvider>
+              </AccessibilityProvider>
               <CollapseAllButton />
             </PanelControlProvider>
           </QueryClientProviderWrapper>

@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Logo from "@/components/logo"
 import { cn } from "@/lib/utils"
-import CartButton from "@/components/cart-button"
 import { useCart } from "@/lib/cart-context"
+import { ShoppingCart } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navigationLinks = [
   { href: "/", label: "Home", icon: Home }, // Added Home link
@@ -19,15 +20,11 @@ const navigationLinks = [
   { href: "/accessibility", label: "Accessibility", icon: Accessibility },
 ]
 
-export default function Header() {
+export function Header() {
   const pathname = usePathname()
   const { cart } = useCart()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [hasItems, setHasItems] = useState(false)
-
-  useEffect(() => {
-    setHasItems(cart.items && cart.items.length > 0)
-  }, [cart])
+  const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -101,8 +98,19 @@ export default function Header() {
             <div className="flex items-center space-x-2">
               {/* Cart button - proper touch target */}
               <div className="flex items-center">
-                <CartButton showLabel={false} size="default" />
+                <Button variant="outline" size="icon" aria-label={`Open cart with ${totalItems} items`} asChild>
+                  <Link href="/cart" className="relative">
+                    <ShoppingCart className="h-5 w-5" />
+                    {totalItems > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-background">
+                        {totalItems}
+                      </span>
+                    )}
+                  </Link>
+                </Button>
               </div>
+
+              <ThemeToggle />
 
               {/* Download button - desktop only */}
               <div className="hidden md:flex">
@@ -154,14 +162,6 @@ export default function Header() {
 
                       {/* Mobile action buttons */}
                       <div className="flex flex-col space-y-3 px-4">
-                        {/* Cart button - full width for mobile */}
-                        <CartButton
-                          showLabel={true}
-                          variant="default"
-                          size="default"
-                          className="w-full justify-start h-11"
-                        />
-
                         {/* Download button - full width for mobile */}
                         <Button
                           variant="outline"

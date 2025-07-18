@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { motion, AnimatePresence, useAnimation } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ShoppingCart,
   X,
@@ -18,8 +18,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useCart } from "@/lib/cart-context"
-import { useClickOutside } from "@/hooks/use-click-outside"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { formatCurrency } from "@/lib/utils"
@@ -36,186 +34,32 @@ export function CollapsibleCartPanel() {
   const totalPrice = cart.totalPrice
   const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0)
 
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isOpen, setIsOpen] = useState(false) // Use isOpen for the Sheet component
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [reviewStep, setReviewStep] = useState(0) // 0: cart list, 1: confirmation
   const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [removedItemName, setRemovedItemName] = useState("")
-  const [isVisible, setIsVisible] = useState(false)
-  const [isScrollPaused, setIsScrollPaused] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
-  const controls = useAnimation()
 
   const scrollViewportRef = useRef<HTMLDivElement>(null)
-  const [showScrollToTop, setShowScrollToTop] = useState(false)
-  const [showTopShadow, setShowTopShadow] = useState(false)
-  const [showBottomShadow, setShowBottomShadow] = useState(false)
-  const [isMomentumScrollEnabled, setIsMomentumScrollEnabled] = useState(true)
-
-  const lastItemRef = useRef<HTMLDivElement>(null)
-
-  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
-
-  const cartHasItems = cartItems.length > 0
 
   const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
 
   // Register panel setters with the context
   useEffect(() => {
-    const unregisterExpanded = registerPanel(setIsExpanded)
-    const unregisterFullscreen = registerPanel(setIsFullscreen)
+    registerPanel("cart-panel", setIsOpen)
+    registerPanel("cart-fullscreen-panel", setIsFullscreen)
     return () => {
-      unregisterExpanded()
-      unregisterFullscreen()
+      unregisterPanel("cart-panel")
+      unregisterPanel("cart-fullscreen-panel")
     }
-  }, [registerPanel])
+  }, [registerPanel, unregisterPanel])
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
-
-  useEffect(() => {
-    setIsScrollPaused(isExpanded || isFullscreen)
-  }, [isExpanded, isFullscreen])
-
-  useEffect(() => {
-    if (cartHasItems) {
-      setIsVisible(true)
-
-      const calculateInitialPosition = () => {
-        const scrollY = window.scrollY
-        const initialTop = scrollY + 150
-        setPanelTopPosition(`${initialTop}px`)
-      }
-
-      calculateInitialPosition()
-
-      controls.start({
-        scale: [1, 1.08, 1],
-        boxShadow: [
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
-          "0 12px 50px rgba(59, 130, 246, 0.8)",
-          "0 4px 20px rgba(59, 130, 246, 0.3)",
-        ],
-        transition: { duration: 1.5, repeat: 2, repeatType: "reverse" },
-      })
-
-      vibrate(150)
-    } else {
-      setIsVisible(false)
-      setIsExpanded(false)
-      setIsFullscreen(false)
-      controls.stop()
-    }
-  }, [cartHasItems, controls, vibrate])
-
-  const calculatePanelPosition = useCallback(() => {
-    if (!panelRef.current || isFullscreen || !isVisible || isScrollPaused) return
-
-    const panelHeight = panelRef.current.offsetHeight || 200
-    const viewportHeight = window.innerHeight
-    const scrollY = window.scrollY
-    const documentHeight = document.documentElement.scrollHeight
-
-    const initialViewportTopOffset = 150
-    const bottomPadding = 20
-
-    const desiredTopFromScroll = scrollY + initialViewportTopOffset
-    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
-
-    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
-
-    setPanelTopPosition(`${finalTop}px`)
-  }, [isFullscreen, isVisible, isScrollPaused])
-
-  useEffect(() => {
-    if (!isVisible || isScrollPaused) return
-
-    const handleScrollAndResize = () => {
-      if (!isFullscreen) {
-        calculatePanelPosition()
-      }
-    }
-
-    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
-    window.addEventListener("resize", handleScrollAndResize, { passive: true })
-
-    calculatePanelPosition()
-
-    return () => {
-      window.removeEventListener("scroll", handleScrollAndResize)
-      window.removeEventListener("resize", handleScrollAndResize)
-    }
-  }, [calculatePanelPosition, isVisible, isScrollPaused])
-
-  useClickOutside(panelRef, (event) => {
-    if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
-      return
-    }
-    if (!isFullscreen) {
-      setIsExpanded(false)
-    }
-  })
-
-  useKeyboardShortcuts({
-    "alt+c": () => cartHasItems && setIsExpanded((prev) => !prev),
-    Escape: () => {
-      if (isFullscreen) {
-        setIsFullscreen(false)
-        setReviewStep(0)
-      } else {
-        setIsExpanded(false)
-      }
-    },
-  })
-
-  useEffect(() => {
-    const viewportElement = scrollViewportRef.current
-    if (!viewportElement || !isExpanded) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target !== viewportElement && !viewportElement.contains(event.target as Node)) {
-        return
-      }
-
-      const scrollAmount = 100
-      const { scrollTop, scrollHeight, clientHeight } = viewportElement
-
-      switch (event.key) {
-        case "PageDown":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: scrollTop + clientHeight, behavior: "smooth" })
-          break
-        case "PageUp":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: scrollTop - clientHeight, behavior: "smooth" })
-          break
-        case "Home":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: 0, behavior: "smooth" })
-          break
-        case "End":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: scrollHeight, behavior: "smooth" })
-          break
-        case "ArrowDown":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: scrollTop + scrollAmount, behavior: "smooth" })
-          break
-        case "ArrowUp":
-          event.preventDefault()
-          viewportElement.scrollTo({ top: scrollTop - scrollAmount, behavior: "smooth" })
-          break
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isExpanded])
 
   const handleRemoveItem = useCallback(
     (itemId: string, itemName: string) => {
@@ -245,12 +89,14 @@ export function CollapsibleCartPanel() {
 
   const handleReviewClick = useCallback(() => {
     setIsFullscreen(true)
+    setIsOpen(false) // Close the sheet when going fullscreen
     vibrate(50)
   }, [vibrate])
 
   const handleBackToPanel = useCallback(() => {
     setIsFullscreen(false)
     setReviewStep(0)
+    setIsOpen(true) // Re-open the sheet when exiting fullscreen
     vibrate(50)
   }, [vibrate])
 
@@ -263,20 +109,6 @@ export function CollapsibleCartPanel() {
     setReviewStep(0)
     vibrate(50)
   }, [vibrate])
-
-  const handleScrollAreaScroll = useCallback(() => {
-    const viewport = scrollViewportRef.current
-    if (viewport) {
-      const { scrollTop, scrollHeight, clientHeight } = viewport
-      setShowScrollToTop(scrollTop > 200)
-      setShowTopShadow(scrollTop > 0)
-      setShowBottomShadow(scrollTop + clientHeight < scrollHeight)
-    }
-  }, [])
-
-  const scrollToTop = useCallback(() => {
-    scrollViewportRef.current?.scrollTo({ top: 0, behavior: "smooth" })
-  }, [])
 
   const handleClearCart = () => {
     clearCart()
@@ -331,8 +163,6 @@ export function CollapsibleCartPanel() {
     )
   }, [cartItems, groupedCartItems, handleRemoveItem, handleUpdateQuantity, isFullscreen])
 
-  const [isOpen, setIsOpen] = useState(false)
-
   if (!isMounted) {
     return null
   }
@@ -359,10 +189,6 @@ export function CollapsibleCartPanel() {
       )}
     </AnimatePresence>
   )
-
-  if (!isVisible || !cartHasItems) {
-    return <SuccessNotification />
-  }
 
   if (isFullscreen) {
     return (
@@ -566,7 +392,7 @@ export function CollapsibleCartPanel() {
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg bg-transparent"
+          className="fixed bottom-4 right-4 z-50 rounded-full shadow-lg bg-transparent"
           onClick={() => setIsOpen(true)}
           aria-label={`Open cart with ${totalItems} items`}
         >
