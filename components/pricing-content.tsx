@@ -11,13 +11,21 @@ import { useCart } from "@/lib/cart-context"
 import { useRoomContext, type RoomConfig } from "@/lib/room-context"
 import { Separator } from "@/components/ui/separator"
 import { generateRoomCartItemId, getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
+import { formatCurrency } from "@/lib/utils"
 
 function PricingContent() {
   const { toast } = useToast()
   const { addItem } = useCart()
   const [activeTab, setActiveTab] = useState("standard")
 
-  const { roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getSelectedRoomTypes } = useRoomContext()
+  const {
+    roomCounts,
+    roomConfigs,
+    updateRoomCount,
+    updateRoomConfig,
+    getSelectedRoomTypes,
+    getDetailedPricingBreakdown,
+  } = useRoomContext()
 
   // local highlight-on-map state (was crashing before because undefined)
   const [selectedRoomForMap, setSelectedRoomForMap] = useState<string | null>(null)
@@ -55,19 +63,17 @@ function PricingContent() {
     return (
       roomConfigs[roomType] || {
         roomName: roomType,
-        selectedTier: "essential-clean", // Use actual tier ID from room-tiers.ts
+        selectedTier: "default-essential", // Use actual tier ID from room-tiers.ts
         selectedAddOns: [],
         selectedReductions: [],
         totalPrice: 0, // Will be calculated by RoomContext
         detailedTasks: [],
         notIncludedTasks: [],
         upsellMessage: "",
+        isPriceTBD: false,
+        paymentType: "online",
       }
     )
-  }
-
-  const getActiveRoomConfigs = () => {
-    return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
   }
 
   const handleAddRoomToCart = (roomType: string) => {
@@ -85,6 +91,7 @@ function PricingContent() {
         selectedReductions: config.selectedReductions,
         image: `/images/${roomType}-professional.png`, // Example image path
         sourceSection: "Pricing Page",
+        paymentType: config.paymentType,
       }
       addItem(cartItem)
     } else {
@@ -97,7 +104,7 @@ function PricingContent() {
   }
 
   const handleAddAllRoomsToCart = () => {
-    const selectedRooms = getActiveRoomConfigs()
+    const selectedRooms = getSelectedRoomTypes()
     if (selectedRooms.length === 0) {
       toast({
         title: "No Rooms Selected",
@@ -122,6 +129,7 @@ function PricingContent() {
           selectedReductions: config.selectedReductions,
           image: `/images/${roomType}-professional.png`, // Example image path
           sourceSection: "Pricing Page - Add All",
+          paymentType: config.paymentType,
         }
         addItem(cartItem)
       }
@@ -143,6 +151,8 @@ function PricingContent() {
       setServiceFee(45)
     }
   }, [roomCounts])
+
+  const pricingBreakdown = getDetailedPricingBreakdown()
 
   return (
     <main className="container mx-auto px-2 pt-2 md:px-4 lg:px-6">
@@ -205,7 +215,7 @@ function PricingContent() {
           </Card>
 
           {/* Selected Rooms Summary */}
-          {getActiveRoomConfigs().length > 0 && (
+          {getSelectedRoomTypes().length > 0 && (
             <Card className="shadow-sm">
               <CardHeader className="bg-green-50 dark:bg-green-900/20 border-b border-green-100 dark:border-green-800/30">
                 <CardTitle className="text-2xl flex items-center gap-2">
@@ -215,13 +225,14 @@ function PricingContent() {
                   SELECTED ROOMS
                 </CardTitle>
                 <CardDescription>
-                  You have selected {getActiveRoomConfigs().length} room{getActiveRoomConfigs().length !== 1 ? "s" : ""}
+                  You have selected {getSelectedRoomTypes().length} room{getSelectedRoomTypes().length !== 1 ? "s" : ""}
                   . Click "Customize" on any room to adjust details.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {getActiveRoomConfigs().map((roomType) => {
+                  {pricingBreakdown.roomBreakdowns.map((roomBreakdown) => {
+                    const roomType = roomBreakdown.roomType
                     const config = getRoomConfig(roomType)
                     return (
                       <div
@@ -239,18 +250,17 @@ function PricingContent() {
                           {roomType === "entryway" && "🚪"}
                           {roomType === "hallway" && "🚶"}
                           {roomType === "stairs" && "🪜"}
-                          {roomType.startsWith("other-custom-") && "✨"} {/* Icon for custom spaces */}
+                          {roomType.startsWith("other") && "✨"} {/* Icon for custom spaces */}
                         </div>
                         <span className="font-medium text-sm text-center">
-                          {roomDisplayNames[roomType] || config.roomName} ({roomCounts[roomType]})
+                          {roomBreakdown.roomDisplayName} ({roomBreakdown.quantity})
                         </span>
-                        <span className="text-xs text-gray-500 mt-1">
-                          {config.selectedTier.replace(/-/g, " ").toUpperCase()}
-                        </span>
+                        <span className="text-xs text-gray-500 mt-1">{roomBreakdown.selectedTierName}</span>
                         <span className="text-sm font-bold mt-2">
-                          {config.isPriceTBD ? "Email for Pricing" : `$${config.totalPrice.toFixed(2)}`}
+                          {roomBreakdown.isPriceTBD
+                            ? "Email for Pricing"
+                            : formatCurrency(roomBreakdown.roomTotal * roomBreakdown.quantity)}
                         </span>
-                        {/* Removed "Add to Cart" button here as it's handled by the CollapsibleAddAllPanel */}
                       </div>
                     )
                   })}
@@ -258,8 +268,6 @@ function PricingContent() {
               </CardContent>
             </Card>
           )}
-
-          {/* Removed "IMPLEMENTATION NOTES" accordion */}
         </TabsContent>
 
         <TabsContent value="detailing" id="detailing-tab" role="tabpanel">

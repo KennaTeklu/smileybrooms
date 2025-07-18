@@ -5,42 +5,36 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import {
   ShoppingCart,
   X,
-  ChevronRight,
   ArrowLeft,
   Check,
-  Maximize2,
   Minimize2,
   ArrowRight,
   Info,
   CheckCircle,
-  ArrowUp,
   ListChecks,
   ListX,
   Lightbulb,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { useCart } from "@/lib/cart-context"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { formatCurrency } from "@/lib/utils"
-import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Link from "next/link"
 import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
 import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { CheckoutButton } from "@/components/checkout-button"
 
 export function CollapsibleCartPanel() {
-  const { cart, removeItem, updateQuantity } = useCart()
+  const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const cartItems = cart.items
   const totalPrice = cart.totalPrice
-  const totalItems = cart.totalItems
+  const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0)
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -68,7 +62,7 @@ export function CollapsibleCartPanel() {
 
   const cartHasItems = cartItems.length > 0
 
-  const { registerPanel } = usePanelControl() // Use the panel control hook
+  const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
 
   // Register panel setters with the context
   useEffect(() => {
@@ -284,6 +278,11 @@ export function CollapsibleCartPanel() {
     scrollViewportRef.current?.scrollTo({ top: 0, behavior: "smooth" })
   }, [])
 
+  const handleClearCart = () => {
+    clearCart()
+    setIsOpen(false)
+  }
+
   // Group cart items by sourceSection or roomType for better navigability
   const groupedCartItems = useMemo(() => {
     const groups: { [key: string]: typeof cartItems } = {}
@@ -331,6 +330,8 @@ export function CollapsibleCartPanel() {
       </Accordion>
     )
   }, [cartItems, groupedCartItems, handleRemoveItem, handleUpdateQuantity, isFullscreen])
+
+  const [isOpen, setIsOpen] = useState(false)
 
   if (!isMounted) {
     return null
@@ -561,181 +562,83 @@ export function CollapsibleCartPanel() {
   return (
     <TooltipProvider>
       <SuccessNotification />
-      <motion.div
-        ref={panelRef}
-        className="fixed z-[997]"
-        style={{
-          top: panelTopPosition,
-          right: "clamp(1rem, 3vw, 2rem)",
-          width: "fit-content",
-        }}
-        initial={{ x: "150%" }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      >
-        {/* Trigger Button */}
-        <motion.button
-          ref={buttonRef}
-          animate={controls}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={cn(
-            "flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-            "rounded-2xl shadow-2xl hover:from-blue-700 hover:to-blue-800",
-            "transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-500/50",
-            "border-2 border-blue-500/20 backdrop-blur-sm relative",
-          )}
-          style={{
-            boxShadow: "0 25px 50px -12px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.1)",
-          }}
-          aria-label="Toggle cart panel"
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg bg-transparent"
+          onClick={() => setIsOpen(true)}
+          aria-label={`Open cart with ${totalItems} items`}
         >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <ShoppingCart className="h-6 w-6" />
-              <Badge className="absolute -top-3 -right-3 h-6 w-6 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white shadow-lg">
-                {totalItems}
-              </Badge>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-bold">Cart</div>
-              <div className="text-xs opacity-90">{formatCurrency(totalPrice)}</div>
-            </div>
-            <ChevronRight className={cn("h-5 w-5 transition-transform duration-200", isExpanded && "rotate-90")} />
-          </div>
-        </motion.button>
-
-        {/* Expandable Panel */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={cn(
-                "absolute top-full right-0 mt-3 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50",
-                "relative flex flex-col",
-                showTopShadow && "before:shadow-top-gradient",
-                showBottomShadow && "after:shadow-bottom-gradient",
-              )}
-              style={{
-                maxHeight: "70vh",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
-              }}
-            >
-              {/* Enhanced Header */}
-              <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <ShoppingCart className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">Your Cart</h3>
-                      <p className="text-blue-100 text-sm">
-                        {cartItems.length} item{cartItems.length !== 1 ? "s" : ""} • {formatCurrency(totalPrice)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-white/20 text-white border-white/30">{totalItems}</Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleReviewClick}
-                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                      title="Fullscreen view"
-                    >
-                      <Maximize2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsExpanded(false)}
-                      className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scroll Customization Option */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <Label htmlFor="momentum-scroll-cart" className="text-sm font-medium">
-                  Enable Momentum Scroll
-                </Label>
-                <Switch
-                  id="momentum-scroll-cart"
-                  checked={isMomentumScrollEnabled}
-                  onCheckedChange={setIsMomentumScrollEnabled}
-                />
-              </div>
-
-              {/* Content */}
-              <ScrollArea
-                className="flex-1"
-                viewportClassName="scroll-smooth snap-y snap-mandatory"
-                onScroll={isMomentumScrollEnabled ? undefined : handleScrollAreaScroll}
-                ref={scrollViewportRef}
-              >
-                <div className="p-4">
-                  <div className="space-y-3 mb-4">{cartList}</div>
-                </div>
-              </ScrollArea>
-
-              {/* Scroll to Top Button */}
-              <AnimatePresence>
-                {showScrollToTop && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="absolute bottom-24 right-4 z-10"
-                  >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="rounded-full shadow-md h-10 w-10"
-                          onClick={scrollToTop}
-                          aria-label="Scroll to top"
-                        >
-                          <ArrowUp className="h-5 w-5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Scroll to Top</TooltipContent>
-                    </Tooltip>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Footer */}
-              <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleReviewClick}
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white group relative overflow-hidden h-12 text-base font-bold shadow-lg"
-                  >
-                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="relative flex items-center justify-center">
-                      <Maximize2 className="h-4 w-4 mr-2" />
-                      Review in Fullscreen
-                    </span>
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsExpanded(false)} className="w-full">
-                    Continue Shopping
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
+          <ShoppingCart className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+              {totalItems}
+            </span>
           )}
-        </AnimatePresence>
-      </motion.div>
+        </Button>
+        <SheetContent className="flex flex-col w-full sm:max-w-lg">
+          <SheetHeader className="flex flex-row items-center justify-between pr-6">
+            <SheetTitle className="text-2xl font-bold">Your Cart ({totalItems})</SheetTitle>
+            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="Close cart">
+              <X className="h-6 w-6" />
+            </Button>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto py-4">
+            {cartItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <ShoppingCart className="h-16 w-16 mb-4" />
+                <p className="text-lg">Your cart is empty.</p>
+                <p className="text-sm">Start adding services to get a quote!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cartItems.map((item) => (
+                  <CartItemDisplay key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
+          {cartItems.length > 0 && (
+            <div className="border-t p-4 space-y-4">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Subtotal:</span>
+                <span>{formatCurrency(cart.summary.subTotal)}</span>
+              </div>
+              {cart.summary.discounts > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discounts:</span>
+                  <span>-{formatCurrency(cart.summary.discounts)}</span>
+                </div>
+              )}
+              {cart.summary.shipping > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Shipping:</span>
+                  <span>{formatCurrency(cart.summary.shipping)}</span>
+                </div>
+              )}
+              {cart.summary.taxes > 0 && (
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Taxes:</span>
+                  <span>{formatCurrency(cart.summary.taxes)}</span>
+                </div>
+              )}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+                <div className="flex justify-between font-bold">
+                  <span>Total</span>
+                  <span className="text-blue-600 dark:text-blue-400">{formatCurrency(totalPrice)}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <CheckoutButton />
+                <Button variant="outline" onClick={handleClearCart}>
+                  Clear Cart
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </TooltipProvider>
   )
 }

@@ -1,17 +1,20 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode, useCallback, useMemo } from "react"
-import { defaultTiers, getRoomTiers, getRoomAddOns, getRoomReductions } from "@/lib/room-tiers"
+import { defaultTiers, getRoomTiers, getRoomAddOns, getRoomReductions, roomDisplayNames } from "@/lib/room-tiers"
+import type { PricingBreakdown } from "@/lib/types"
 
 export type RoomConfig = {
   roomName: string
   selectedTier: string // e.g., "bedroom-essential"
   selectedAddOns: string[] // e.g., ["bed-1", "bed-2"]
   selectedReductions: string[] // e.g., ["bed-r1"]
-  totalPrice: number
+  totalPrice: number // This will be calculated and stored for quick access
   detailedTasks: string[]
   notIncludedTasks: string[]
   upsellMessage: string
+  isPriceTBD?: boolean
+  paymentType?: "online" | "in_person"
 }
 
 type RoomCounts = Record<string, number> // e.g., { "bedroom": 2, "bathroom": 1 }
@@ -21,8 +24,9 @@ type RoomContextType = {
   roomCounts: RoomCounts
   roomConfigs: RoomConfigs
   updateRoomCount: (roomType: string, count: number) => void
-  updateRoomConfig: (roomType: string, config: Partial<RoomConfig>) => void // New function
+  updateRoomConfig: (roomType: string, config: Partial<RoomConfig>) => void
   getTotalPrice: () => number
+  getDetailedPricingBreakdown: () => PricingBreakdown // New function to get detailed breakdown
   getSelectedRoomTypes: () => string[]
   getRoomConfig: (roomType: string) => RoomConfig | undefined
 }
@@ -61,14 +65,13 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     const addOns = getRoomAddOns(roomType).filter((ao) => config.selectedAddOns.includes(ao.id))
     const reductions = getRoomReductions(roomType).filter((red) => config.selectedReductions.includes(red.id))
 
-    // Corrected from tier.features to tier.detailedTasks
     const includedTasks = tier ? [...tier.detailedTasks, ...addOns.map((ao) => ao.name)] : []
     const notIncludedTasks = reductions.map((red) => red.name)
 
     // Simple upsell message logic (can be expanded)
     const upsellMessage =
       tier?.id.includes("essential") && addOns.length === 0 && reductions.length === 0
-        ? `Consider upgrading to a ${roomType}-premium clean for more comprehensive service!`
+        ? `Consider upgrading to a ${roomDisplayNames[roomType] || roomType}-premium clean for more comprehensive service!`
         : ""
 
     return { detailedTasks: includedTasks, notIncludedTasks, upsellMessage }
@@ -90,14 +93,16 @@ export function RoomProvider({ children }: { children: ReactNode }) {
           const defaultTier = getRoomTiers(roomType)[0] // Get the first tier as default
           if (defaultTier) {
             const initialConfig: RoomConfig = {
-              roomName: roomType, // Will be overwritten by updateRoomConfig if custom
+              roomName: roomType,
               selectedTier: defaultTier.id,
               selectedAddOns: [],
               selectedReductions: [],
               totalPrice: defaultTier.price,
-              detailedTasks: defaultTier.detailedTasks, // Corrected here as well for initial config
+              detailedTasks: defaultTier.detailedTasks,
               notIncludedTasks: [],
               upsellMessage: "",
+              isPriceTBD: defaultTier.isPriceTBD,
+              paymentType: defaultTier.paymentType,
             }
             const { detailedTasks, notIncludedTasks, upsellMessage } = generateDetailedTasks(roomType, initialConfig)
             setRoomConfigs((prevConfigs) => ({
@@ -130,6 +135,8 @@ export function RoomProvider({ children }: { children: ReactNode }) {
           detailedTasks: [],
           notIncludedTasks: [],
           upsellMessage: "",
+          isPriceTBD: false,
+          paymentType: "online",
         }
 
         const updatedConfig = { ...currentConfig, ...partialConfig }
@@ -146,6 +153,11 @@ export function RoomProvider({ children }: { children: ReactNode }) {
           updatedConfig.detailedTasks = detailedTasks
           updatedConfig.notIncludedTasks = notIncludedTasks
           updatedConfig.upsellMessage = upsellMessage
+
+          // Update isPriceTBD and paymentType based on the selected tier
+          const selectedTierData = getRoomTiers(roomType).find((tier) => tier.id === updatedConfig.selectedTier)
+          updatedConfig.isPriceTBD = selectedTierData?.isPriceTBD || false
+          updatedConfig.paymentType = selectedTierData?.paymentType || "online"
         }
 
         return {
@@ -157,12 +169,75 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     [calculateRoomPrice, generateDetailedTasks],
   )
 
+  const getDetailedPricingBreakdown = useCallback((): PricingBreakdown => {
+    let subtotal = 0
+    const discounts: Array<{ name: string; amount: number }> = []
+    const roomBreakdowns: PricingBreakdown["roomBreakdowns"] = []
+
+    Object.entries(roomCounts).forEach(([roomType, quantity]) => {
+      if (quantity > 0) {
+        const config = roomConfigs[roomType]
+        if (config) {
+          const baseTier =
+            defaultTiers[roomType]?.find((tier) => tier.id === config.selectedTier) ||
+            defaultTiers.default.find((tier) => tier.id === config.selectedTier)
+
+          const basePrice = baseTier ? baseTier.price : 0
+          let roomTotal = basePrice
+
+          const addOnTotal = config.selectedAddOns.reduce((sum, addOnId) => {
+            const addOn = getRoomAddOns(roomType).find((ao) => ao.id === addOnId)
+            return sum + (addOn ? addOn.price : 0)
+          }, 0)
+          roomTotal += addOnTotal
+
+          const reductionTotal = config.selectedReductions.reduce((sum, reductionId) => {
+            const reduction = getRoomReductions(roomType).find((red) => red.id === reductionId)
+            if (reduction) {
+              discounts.push({ name: reduction.name, amount: reduction.discount * quantity })
+            }
+            return sum + (reduction ? reduction.discount : 0)
+          }, 0)
+          roomTotal -= reductionTotal
+
+          roomTotal = Math.max(0, roomTotal) // Ensure room total doesn't go below zero
+
+          const { detailedTasks, notIncludedTasks, upsellMessage } = generateDetailedTasks(roomType, config)
+
+          roomBreakdowns.push({
+            roomType,
+            roomDisplayName: roomDisplayNames[roomType] || config.roomName,
+            quantity,
+            selectedTierName: baseTier?.name || "N/A",
+            basePrice,
+            tierAdjustment: 0, // For now, tier adjustment is baked into basePrice
+            addOnTotal,
+            reductionTotal,
+            roomTotal: roomTotal, // This is the price per room, before quantity multiplication
+            detailedTasks,
+            notIncludedTasks,
+            upsellMessage,
+            isPriceTBD: config.isPriceTBD || false,
+          })
+          subtotal += roomTotal * quantity
+        }
+      }
+    })
+
+    const total = subtotal // For now, no taxes/shipping/additional discounts
+
+    return {
+      subtotal,
+      discounts,
+      total,
+      roomBreakdowns,
+    }
+  }, [roomCounts, roomConfigs, generateDetailedTasks])
+
   const getTotalPrice = useCallback(() => {
-    return Object.entries(roomCounts).reduce((total, [roomType, count]) => {
-      const config = roomConfigs[roomType]
-      return total + (config ? config.totalPrice * count : 0)
-    }, 0)
-  }, [roomCounts, roomConfigs])
+    const breakdown = getDetailedPricingBreakdown()
+    return breakdown.total
+  }, [getDetailedPricingBreakdown])
 
   const getSelectedRoomTypes = useCallback(() => {
     return Object.keys(roomCounts).filter((roomType) => roomCounts[roomType] > 0)
@@ -180,12 +255,22 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       roomCounts,
       roomConfigs,
       updateRoomCount,
-      updateRoomConfig, // Expose the new function
+      updateRoomConfig,
       getTotalPrice,
+      getDetailedPricingBreakdown, // Expose the new function
       getSelectedRoomTypes,
       getRoomConfig,
     }),
-    [roomCounts, roomConfigs, updateRoomCount, updateRoomConfig, getTotalPrice, getSelectedRoomTypes, getRoomConfig],
+    [
+      roomCounts,
+      roomConfigs,
+      updateRoomCount,
+      updateRoomConfig,
+      getTotalPrice,
+      getDetailedPricingBreakdown,
+      getSelectedRoomTypes,
+      getRoomConfig,
+    ],
   )
 
   return <RoomContext.Provider value={contextValue}>{children}</RoomContext.Provider>

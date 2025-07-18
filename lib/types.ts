@@ -70,3 +70,24 @@ export interface CheckoutData {
     agreeToTerms: boolean
   }
 }
+
+// New interface for detailed pricing breakdown
+export interface PricingBreakdown {
+  subtotal: number
+  discounts: Array<{ name: string; amount: number }>
+  total: number
+  roomBreakdowns: Array<{
+    roomType: string
+    roomDisplayName: string
+    quantity: number
+    selectedTierName: string
+    basePrice: number
+    addOnTotal: number
+    reductionTotal: number
+    roomTotal: number
+    detailedTasks: string[]
+    notIncludedTasks: string[]
+    upsellMessage: string
+    isPriceTBD: boolean
+  }>
+}

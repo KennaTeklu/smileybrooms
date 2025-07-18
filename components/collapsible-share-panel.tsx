@@ -36,6 +36,7 @@ import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
 import QRCode from "react-qr-code"
 import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface SharePlatform {
   id: string
@@ -191,6 +192,7 @@ const sharePlatforms: SharePlatform[] = [
 type CollapsibleSharePanelProps = {}
 
 export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -203,13 +205,18 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
 
-  const { registerPanel } = usePanelControl() // Use the panel control hook
+  const { registerPanel, unregisterPanel } = usePanelControl() // Use the panel control hook
 
   // Register panel setter with the context
   useEffect(() => {
     const unregister = registerPanel(setIsExpanded)
     return () => unregister()
   }, [registerPanel])
+
+  useEffect(() => {
+    registerPanel("share-panel", setIsOpen)
+    return () => unregisterPanel("share-panel")
+  }, [registerPanel, unregisterPanel])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -359,221 +366,275 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     })
   }
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: document.title,
+          url: window.location.href,
+        })
+        console.log("Content shared successfully")
+      } catch (error) {
+        console.error("Error sharing:", error)
+      }
+    } else {
+      // Fallback for browsers that do not support Web Share API
+      alert("Web Share API is not supported in your browser. You can copy the URL manually.")
+      navigator.clipboard.writeText(window.location.href)
+    }
+  }
+
   return (
-    <div className="relative" ref={panelRef}>
-      <Button
-        ref={buttonRef}
-        variant="outline"
-        size="icon"
-        className={cn(
-          `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
-          isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
-        )}
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-label={isExpanded ? "Close share panel" : "Open share panel"}
-        aria-expanded={isExpanded}
-      >
-        {isExpanded ? (
-          <>
-            <Share2 className="h-4 w-4" />
-            <span className="text-sm font-medium whitespace-nowrap">Share</span>
-          </>
-        ) : (
-          <Share2 className="h-5 w-5" />
-        )}
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <Button variant="outline" size="sm" onClick={() => setIsOpen(true)} aria-label="Open share options">
+        <Share2 className="h-4 w-4 mr-2" /> Share
       </Button>
+      <SheetContent className="flex flex-col w-full sm:max-w-md">
+        <SheetHeader className="flex flex-row items-center justify-between pr-6">
+          <SheetTitle className="text-2xl font-bold">Share</SheetTitle>
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="Close share panel">
+            <X className="h-6 w-6" />
+          </Button>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto py-4 space-y-4">
+          <p className="text-gray-600">Share this page with your friends and family!</p>
+          <Button onClick={handleShare} className="w-full">
+            <Share2 className="h-5 w-5 mr-2" /> Share Page
+          </Button>
+          {/* Add more sharing options here if needed */}
+          <div className="relative" ref={panelRef}>
+            <Button
+              ref={buttonRef}
+              variant="outline"
+              size="icon"
+              className={cn(
+                `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
+                isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
+              )}
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-label={isExpanded ? "Close share panel" : "Open share panel"}
+              aria-expanded={isExpanded}
+            >
+              {isExpanded ? (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  <span className="text-sm font-medium whitespace-nowrap">Share</span>
+                </>
+              ) : (
+                <Share2 className="h-5 w-5" />
+              )}
+            </Button>
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
-          >
-            {/* Enhanced Header */}
-            <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                    <Share2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold">Share Options</h3>
-                    <p className="text-purple-100 text-sm">Spread the word</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {shareCount > 0 && (
-                    <Badge className="bg-white/20 text-white border-white/30">{shareCount} shared</Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsExpanded(false)}
-                    className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-                    aria-label="Close share panel"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Enhanced Quick Actions */}
-            <div className="p-5 border-b border-gray-200 dark:border-gray-700 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
-                  onClick={copyToClipboard}
-                >
-                  {copied ? <Check className="h-4 w-4 mr-2 text-green-600" /> : <Copy className="h-4 w-4 mr-2" />}
-                  {copied ? "Copied!" : "Copy Link"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
-                  onClick={() => setShowQR(!showQR)}
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  QR Code
-                </Button>
-              </div>
-
-              {showQR && (
+            <AnimatePresence>
+              {isExpanded && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex flex-col items-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
                 >
-                  <div
-                    ref={qrCodeRef}
-                    className="w-32 h-32 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center mb-3 p-2"
-                  >
-                    <QRCode
-                      value="https://www.smileybrooms.com" // QR code leads to smileybrooms.com
-                      size={128}
-                      bgColor="#FFFFFF"
-                      fgColor="#000000"
-                      level="H"
-                    />
+                  {/* Enhanced Header */}
+                  <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                          <Share2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold">Share Options</h3>
+                          <p className="text-purple-100 text-sm">Spread the word</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {shareCount > 0 && (
+                          <Badge className="bg-white/20 text-white border-white/30">{shareCount} shared</Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setIsExpanded(false)}
+                          className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                          aria-label="Close share panel"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center">Scan to share this page</p>
-                  <Button size="sm" variant="outline" onClick={downloadQR}>
-                    <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
+
+                  {/* Enhanced Quick Actions */}
+                  <div className="p-5 border-b border-gray-200 dark:border-gray-700 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                        onClick={copyToClipboard}
+                      >
+                        {copied ? <Check className="h-4 w-4 mr-2 text-green-600" /> : <Copy className="h-4 w-4 mr-2" />}
+                        {copied ? "Copied!" : "Copy Link"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                        onClick={() => setShowQR(!showQR)}
+                      >
+                        <QrCode className="h-4 w-4 mr-2" />
+                        QR Code
+                      </Button>
+                    </div>
+
+                    {showQR && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex flex-col items-center p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50"
+                      >
+                        <div
+                          ref={qrCodeRef}
+                          className="w-32 h-32 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center mb-3 p-2"
+                        >
+                          <QRCode
+                            value="https://www.smileybrooms.com" // QR code leads to smileybrooms.com
+                            size={128}
+                            bgColor="#FFFFFF"
+                            fgColor="#000000"
+                            level="H"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center">
+                          Scan to share this page
+                        </p>
+                        <Button size="sm" variant="outline" onClick={downloadQR}>
+                          <Download className="h-3 w-3 mr-1" />
+                          Download
+                        </Button>
+                      </motion.div>
+                    )}
+
+                    {/* Popular Platforms Quick Access */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Popular</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {popularPlatforms.slice(0, 4).map((platform) => (
+                          <Button
+                            key={platform.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => shareOnPlatform(platform)}
+                            className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                          >
+                            <div className={cn("p-1 rounded text-white mr-2", platform.color)}>{platform.icon}</div>
+                            <span className="text-xs">{platform.name}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
+                    <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                      <TabsTrigger
+                        value="social"
+                        className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300"
+                      >
+                        <Users className="h-3 w-3 mr-1" />
+                        Social
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="chat"
+                        className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300"
+                      >
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        Chat
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="work"
+                        className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300"
+                      >
+                        <Zap className="h-3 w-3 mr-1" />
+                        Work
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="more"
+                        className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300"
+                      >
+                        <Globe className="h-3 w-3 mr-1" />
+                        More
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <div className="p-5 flex-1 overflow-auto max-h-[300px]">
+                      {/* Enhanced Search */}
+                      <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search platforms..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-gray-800 dark:text-gray-200"
+                        />
+                      </div>
+
+                      {/* Enhanced Platform Grid */}
+                      <div className="grid grid-cols-1 gap-3">
+                        {filteredPlatforms.map((platform) => (
+                          <motion.button
+                            key={platform.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => shareOnPlatform(platform)}
+                            className={cn(
+                              "flex items-center gap-3 p-4 rounded-xl border text-left",
+                              "bg-gray-100 dark:bg-gray-700 backdrop-blur-sm",
+                              "hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200",
+                              "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700",
+                              "focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
+                              "text-gray-800 dark:text-gray-200",
+                            )}
+                          >
+                            <div className={cn("p-3 rounded-xl text-white shadow-sm", platform.color)}>
+                              {platform.icon}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{platform.name}</span>
+                                {platform.popular && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                  >
+                                    Popular
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{platform.description}</p>
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                          </motion.button>
+                        ))}
+                      </div>
+
+                      {filteredPlatforms.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No platforms found</p>
+                          <p className="text-xs text-gray-400 mt-1">Try adjusting your search</p>
+                        </div>
+                      )}
+                    </div>
+                  </Tabs>
                 </motion.div>
               )}
-
-              {/* Popular Platforms Quick Access */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Popular</span>
-                </div>
-                <div className="flex gap-2">
-                  {popularPlatforms.slice(0, 4).map((platform) => (
-                    <Button
-                      key={platform.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => shareOnPlatform(platform)}
-                      className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
-                    >
-                      <div className={cn("p-1 rounded text-white mr-2", platform.color)}>{platform.icon}</div>
-                      <span className="text-xs">{platform.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-              <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
-                <TabsTrigger value="social" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
-                  <Users className="h-3 w-3 mr-1" />
-                  Social
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
-                  <MessageCircle className="h-3 w-3 mr-1" />
-                  Chat
-                </TabsTrigger>
-                <TabsTrigger value="work" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Work
-                </TabsTrigger>
-                <TabsTrigger value="more" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
-                  <Globe className="h-3 w-3 mr-1" />
-                  More
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="p-5 flex-1 overflow-auto max-h-[300px]">
-                {/* Enhanced Search */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search platforms..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-gray-800 dark:text-gray-200"
-                  />
-                </div>
-
-                {/* Enhanced Platform Grid */}
-                <div className="grid grid-cols-1 gap-3">
-                  {filteredPlatforms.map((platform) => (
-                    <motion.button
-                      key={platform.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => shareOnPlatform(platform)}
-                      className={cn(
-                        "flex items-center gap-3 p-4 rounded-xl border text-left",
-                        "bg-gray-100 dark:bg-gray-700 backdrop-blur-sm",
-                        "hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200",
-                        "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700",
-                        "focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
-                        "text-gray-800 dark:text-gray-200",
-                      )}
-                    >
-                      <div className={cn("p-3 rounded-xl text-white shadow-sm", platform.color)}>{platform.icon}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{platform.name}</span>
-                          {platform.popular && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                            >
-                              Popular
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{platform.description}</p>
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
-                    </motion.button>
-                  ))}
-                </div>
-
-                {filteredPlatforms.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No platforms found</p>
-                    <p className="text-xs text-gray-400 mt-1">Try adjusting your search</p>
-                  </div>
-                )}
-              </div>
-            </Tabs>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 

@@ -1,44 +1,52 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react"
 
-// Define a type for the panel setter function
-type PanelSetter = (value: boolean) => void
+type SetExpandedFunction = (expanded: boolean) => void
 
 type PanelControlContextType = {
-  registerPanel: (setter: PanelSetter) => () => void
+  registerPanel: (id: string, setExpanded: SetExpandedFunction) => void
+  unregisterPanel: (id: string) => void
   collapseAllPanels: () => void
 }
 
 const PanelControlContext = createContext<PanelControlContextType | undefined>(undefined)
 
 export function PanelControlProvider({ children }: { children: ReactNode }) {
-  // Using a Set to store unique setter functions
-  const [panelSetters, setPanelSetters] = useState<Set<PanelSetter>>(new Set())
+  const [panelSetters, setPanelSetters] = useState<Map<string, SetExpandedFunction>>(new Map())
 
-  const registerPanel = useCallback((setter: PanelSetter) => {
-    setPanelSetters((prevSet) => {
-      const newSet = new Set(prevSet)
-      newSet.add(setter)
-      return newSet
+  const registerPanel = useCallback((id: string, setExpanded: SetExpandedFunction) => {
+    setPanelSetters((prev) => {
+      const newMap = new Map(prev)
+      newMap.set(id, setExpanded)
+      return newMap
     })
-    // Return an unregister function for cleanup
-    return () => {
-      setPanelSetters((prevSet) => {
-        const newSet = new Set(prevSet)
-        newSet.delete(setter)
-        return newSet
-      })
-    }
+  }, [])
+
+  const unregisterPanel = useCallback((id: string) => {
+    setPanelSetters((prev) => {
+      const newMap = new Map(prev)
+      newMap.delete(id)
+      return newMap
+    })
   }, [])
 
   const collapseAllPanels = useCallback(() => {
-    panelSetters.forEach((setter) => setter(false))
+    panelSetters.forEach((setExpanded) => {
+      setExpanded(false)
+    })
   }, [panelSetters])
 
-  return (
-    <PanelControlContext.Provider value={{ registerPanel, collapseAllPanels }}>{children}</PanelControlContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      registerPanel,
+      unregisterPanel,
+      collapseAllPanels,
+    }),
+    [registerPanel, unregisterPanel, collapseAllPanels],
   )
+
+  return <PanelControlContext.Provider value={contextValue}>{children}</PanelControlContext.Provider>
 }
 
 export const usePanelControl = () => {
