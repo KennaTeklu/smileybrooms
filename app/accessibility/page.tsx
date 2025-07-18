@@ -1,33 +1,12 @@
 "use client"
 
-import { useState } from "react"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Share2, Settings } from "lucide-react" // Importing Lucide icons
-import { useToast } from "@/components/ui/use-toast" // Import useToast hook
 
 export default function AccessibilityPage() {
-  const [isAccessibilityPanelOpen, setIsAccessibilityPanelOpen] = useState(false)
-  const { toast } = useToast() // Use the toast function
-
-  const handleLaunchChatbot = () => {
-    toast({
-      title: "Chatbot Available",
-      description: "The AI-Powered Chatbot panel is located on the right side of your screen.",
-      duration: 3000,
-    })
-  }
-
-  const handleOpenSharePanel = () => {
-    toast({
-      title: "Share Panel Available",
-      description: "The Share panel is located on the right side of your screen.",
-      duration: 3000,
-    })
-  }
-
   return (
     <AccessibilityProvider>
       <div className="container py-8">
@@ -66,11 +45,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button
-                variant="outline"
-                className="w-full bg-transparent"
-                onClick={() => setIsAccessibilityPanelOpen(true)}
-              >
+              <Button variant="outline" className="w-full bg-transparent">
                 Explore Settings
               </Button>
             </CardFooter>
@@ -101,7 +76,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent" onClick={handleLaunchChatbot}>
+              <Button variant="outline" className="w-full bg-transparent">
                 Launch Chatbot
               </Button>
             </CardFooter>
@@ -134,7 +109,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent" onClick={handleOpenSharePanel}>
+              <Button variant="outline" className="w-full bg-transparent">
                 Open Share Panel
               </Button>
             </CardFooter>
@@ -142,7 +117,7 @@ export default function AccessibilityPage() {
         </div>
 
         {/* The accessibility panel is available throughout the site */}
-        <EnhancedAccessibilityPanel open={isAccessibilityPanelOpen} onOpenChange={setIsAccessibilityPanelOpen} />
+        <EnhancedAccessibilityPanel />
       </div>
     </AccessibilityProvider>
   )
