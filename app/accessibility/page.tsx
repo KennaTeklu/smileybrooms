@@ -5,8 +5,29 @@ import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Share2, Settings } from "lucide-react" // Importing Lucide icons
+import { useAccessibility } from "@/hooks/use-accessibility" // Import useAccessibility hook
+import { useToast } from "@/components/ui/use-toast" // Import useToast hook
 
 export default function AccessibilityPage() {
+  const { togglePanel } = useAccessibility() // Use the togglePanel function
+  const { toast } = useToast() // Use the toast function
+
+  const handleLaunchChatbot = () => {
+    toast({
+      title: "Chatbot Available",
+      description: "The AI-Powered Chatbot panel is located on the right side of your screen.",
+      duration: 3000,
+    })
+  }
+
+  const handleOpenSharePanel = () => {
+    toast({
+      title: "Share Panel Available",
+      description: "The Share panel is located on the right side of your screen.",
+      duration: 3000,
+    })
+  }
+
   return (
     <AccessibilityProvider>
       <div className="container py-8">
@@ -45,7 +66,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full bg-transparent" onClick={togglePanel}>
                 Explore Settings
               </Button>
             </CardFooter>
@@ -76,7 +97,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full bg-transparent" onClick={handleLaunchChatbot}>
                 Launch Chatbot
               </Button>
             </CardFooter>
@@ -109,7 +130,7 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button variant="outline" className="w-full bg-transparent" onClick={handleOpenSharePanel}>
                 Open Share Panel
               </Button>
             </CardFooter>
