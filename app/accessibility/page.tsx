@@ -1,15 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
 import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Share2, Settings } from "lucide-react" // Importing Lucide icons
-import { useAccessibility } from "@/hooks/use-accessibility" // Import useAccessibility hook
 import { useToast } from "@/components/ui/use-toast" // Import useToast hook
 
 export default function AccessibilityPage() {
-  const { togglePanel } = useAccessibility() // Use the togglePanel function
+  const [isAccessibilityPanelOpen, setIsAccessibilityPanelOpen] = useState(false)
   const { toast } = useToast() // Use the toast function
 
   const handleLaunchChatbot = () => {
@@ -66,7 +66,11 @@ export default function AccessibilityPage() {
               </ul>
             </CardContent>
             <CardFooter className="pt-6">
-              <Button variant="outline" className="w-full bg-transparent" onClick={togglePanel}>
+              <Button
+                variant="outline"
+                className="w-full bg-transparent"
+                onClick={() => setIsAccessibilityPanelOpen(true)}
+              >
                 Explore Settings
               </Button>
             </CardFooter>
@@ -138,7 +142,7 @@ export default function AccessibilityPage() {
         </div>
 
         {/* The accessibility panel is available throughout the site */}
-        <EnhancedAccessibilityPanel />
+        <EnhancedAccessibilityPanel open={isAccessibilityPanelOpen} onOpenChange={setIsAccessibilityPanelOpen} />
       </div>
     </AccessibilityProvider>
   )

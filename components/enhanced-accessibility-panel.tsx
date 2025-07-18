@@ -24,8 +24,19 @@ import { useVoiceCommands } from "@/lib/voice-commands"
 import { useKeyboardNavigation } from "@/lib/keyboard-navigation"
 import { useTheme } from "next-themes"
 
-export function EnhancedAccessibilityPanel() {
-  const [open, setOpen] = useState(false)
+interface EnhancedAccessibilityPanelProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function EnhancedAccessibilityPanel({
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}: EnhancedAccessibilityPanelProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = openProp !== undefined ? openProp : internalOpen
+  const onOpenChange = onOpenChangeProp !== undefined ? onOpenChangeProp : setInternalOpen
+
   const [activeTab, setActiveTab] = useState("preferences")
   const { preferences, updatePreference, resetPreferences } = useAccessibility()
   const voiceCommands = useVoiceCommands()
@@ -157,7 +168,7 @@ export function EnhancedAccessibilityPanel() {
         altKey: true,
         description: "Toggle accessibility panel",
         handler: () => {
-          setOpen(!open)
+          onOpenChange(!open) // Use the onOpenChange prop
         },
       },
       {
@@ -186,14 +197,14 @@ export function EnhancedAccessibilityPanel() {
       <Button
         variant="outline"
         size="icon"
-        className="fixed bottom-4 right-4 z-50 rounded-full h-12 w-12"
-        onClick={() => setOpen(true)}
+        className="fixed bottom-4 right-4 z-50 rounded-full h-12 w-12 bg-transparent"
+        onClick={() => onOpenChange(true)} // Use the onOpenChange prop
         aria-label="Accessibility options"
       >
         <Maximize2 className="h-5 w-5" />
       </Button>
 
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh]">
           <DrawerHeader>
             <DrawerTitle className="text-center">Accessibility Options</DrawerTitle>
@@ -383,7 +394,7 @@ export function EnhancedAccessibilityPanel() {
             <Button variant="outline" onClick={resetPreferences}>
               Reset All Preferences
             </Button>
-            <Button onClick={() => setOpen(false)}>Close</Button>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
