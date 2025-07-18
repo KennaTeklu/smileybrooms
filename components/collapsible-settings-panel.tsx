@@ -1,32 +1,32 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react" // Added useEffect
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Settings, Palette, Accessibility, Text, Languages, X } from 'lucide-react'
+import { Settings, Palette, Accessibility, Text, Languages, X } from "lucide-react"
 import { useAccessibility } from "@/lib/accessibility-context"
 import { motion, AnimatePresence } from "framer-motion"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
-import { useGlobalPanelControl } from "@/contexts/global-panel-control-context"
+import { usePanelControl } from "@/contexts/panel-control-context" // Import usePanelControl
 
 export function CollapsibleSettingsPanel() {
   const [isOpen, setIsOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const { preferences, updatePreference, resetPreferences } = useAccessibility()
-  const { closeAllTrigger } = useGlobalPanelControl()
+  const { registerPanel } = usePanelControl() // Use the panel control hook
 
+  // Register panel setter with the context
   useEffect(() => {
-    if (closeAllTrigger > 0 && isOpen) {
-      setIsOpen(false)
-    }
-  }, [closeAllTrigger, isOpen, setIsOpen])
+    const unregister = registerPanel(setIsOpen)
+    return () => unregister()
+  }, [registerPanel])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
