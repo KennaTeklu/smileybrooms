@@ -4,7 +4,6 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import ClientLayout from "./client-layout" // Import the client layout
-import { PanelVisibilityProvider } from "@/contexts/panel-visibility-context" // New import
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,11 +22,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <PanelVisibilityProvider>
-            {" "}
-            {/* Wrap with the new provider */}
-            <ClientLayout>{children}</ClientLayout>
-          </PanelVisibilityProvider>
+          <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
       </body>
     </html>
