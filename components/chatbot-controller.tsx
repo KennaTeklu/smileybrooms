@@ -1,29 +1,58 @@
 "use client"
 
 import { useEffect } from "react"
-import { useFeatureFlag } from "@/lib/server/feature-key"
 
-export function useChatbotController() {
-  const isChatbotEnabled = useFeatureFlag("NEXT_PUBLIC_CHATBOT_ENABLED")
-
+export default function ChatbotController() {
   useEffect(() => {
-    if (isChatbotEnabled) {
-      // Load external chatbot script if enabled
-      const script = document.createElement("script")
-      script.src = process.env.NEXT_PUBLIC_CHATBOT_API_URL || "https://example.com/chatbot.js" // Replace with actual chatbot script URL
-      script.async = true
-      document.body.appendChild(script)
+    // Override any JotForm auto-open behavior after initialization
+    const overrideChatbotBehavior = () => {
+      if (typeof window !== "undefined") {
+        // Check for JotForm chatbot elements and force them closed
+        const chatbotIframes = document.querySelectorAll('iframe[src*="jotform"]')
+        chatbotIframes.forEach((iframe) => {
+          const iframeElement = iframe as HTMLIFrameElement
+          if (iframeElement.style.display !== "none") {
+            // Don't hide the button, just ensure chat window is closed
+            const chatWindow = document.querySelector("[data-jotform-chat-window]")
+            if (chatWindow) {
+              ;(chatWindow as HTMLElement).style.display = "none"
+            }
+          }
+        })
 
-      return () => {
-        document.body.removeChild(script)
+        // Override any global JotForm auto-open functions
+        if ((window as any).JotFormAgent) {
+          const originalOpen = (window as any).JotFormAgent.open
+          ;(window as any).JotFormAgent.open = function (...args: any[]) {
+            // Only allow manual opens, not automatic ones
+            if (args[0] !== "manual") {
+              console.log("Blocked automatic chatbot opening")
+              return
+            }
+            return originalOpen.apply(this, args)
+          }
+        }
       }
     }
-  }, [isChatbotEnabled])
 
-  // You might return functions to interact with the chatbot,
-  // e.g., openChat, sendMessage, etc., if the external script exposes them.
-  return {
-    isChatbotEnabled,
-    // For now, no direct interaction functions are exposed
-  }
+    // Run immediately and on DOM changes
+    overrideChatbotBehavior()
+
+    // Set up observer to catch any dynamic changes
+    const observer = new MutationObserver(overrideChatbotBehavior)
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+
+    // Also run after a delay to catch late initializations
+    const timeouts = [500, 1000, 2000, 5000].map((delay) => setTimeout(overrideChatbotBehavior, delay))
+
+    return () => {
+      observer.disconnect()
+      timeouts.forEach(clearTimeout)
+    }
+  }, [])
+
+  return null
 }
