@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, Bot } from "lucide-react"
+import { Bot, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils" // Ensure cn utility is imported
+import { cn } from "@/lib/utils"
 
 // Extend Window interface for JotForm
 declare global {
@@ -14,35 +13,13 @@ declare global {
   }
 }
 
-interface CollapsibleChatbotPanelProps {
-  sharePanelInfo?: { expanded: boolean; height: number }
-  onPanelClick?: (panelName: "chatbot" | "share") => void // ← now optional
-}
+type CollapsibleChatbotPanelProps = {}
 
-// Define fixed top offsets for different states
-const DEFAULT_COLLAPSED_TOP_OFFSET = 300 // Chatbot collapsed, Share panel collapsed
-const EXPANDED_CHATBOT_TOP_OFFSET = 0 // Chatbot expanded
-const SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET = 500 // Share panel expanded (overrides other states for chatbot position)
-
-// Define approximate heights for consistent clamping
-const COLLAPSED_PANEL_HEIGHT = 50 // Approximate height of the collapsed button
-const EXPANDED_PANEL_HEIGHT = 750 // Approximate height of the expanded panel (688px iframe + padding/border)
-
-export function CollapsibleChatbotPanel({
-  sharePanelInfo = { expanded: false, height: 0 },
-  onPanelClick = () => {}, // ← safe default
-}: CollapsibleChatbotPanelProps) {
+export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
-
-  const minTopOffset = 20 // Minimum distance from the top of the viewport
-  const bottomPageMargin = 20 // Margin from the very bottom of the document
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   // Handle clicks outside the panel to collapse it
   useEffect(() => {
@@ -50,6 +27,9 @@ export function CollapsibleChatbotPanel({
 
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node) && isExpanded) {
+        if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
+          return // Don't close if the click was on the button itself
+        }
         setIsExpanded(false)
       }
     }
@@ -57,6 +37,23 @@ export function CollapsibleChatbotPanel({
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isExpanded, isMounted])
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false)
+      }
+    }
+
+    if (isExpanded) {
+      document.addEventListener("keydown", handleEscape)
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [isExpanded])
 
   // Load JotForm embed handler script when panel expands
   useEffect(() => {
@@ -88,60 +85,44 @@ export function CollapsibleChatbotPanel({
     }
   }, [isExpanded, isMounted])
 
-  // Add this useEffect hook immediately after the existing useEffect hooks
   useEffect(() => {
-    if (panelRef.current) {
-      const computedStyle = window.getComputedStyle(panelRef.current)
-    }
-  }, [sharePanelInfo, sharePanelInfo.expanded])
+    setIsMounted(true)
+  }, [])
 
   if (!isMounted) return null
 
-  const documentHeight = document.documentElement.scrollHeight
-
-  let desiredTop: number
-
-  if (sharePanelInfo.expanded) {
-    desiredTop = SHARE_PANEL_ACTIVE_CHATBOT_TOP_OFFSET
-  } else if (isExpanded) {
-    desiredTop = EXPANDED_CHATBOT_TOP_OFFSET
-  } else {
-    desiredTop = DEFAULT_COLLAPSED_TOP_OFFSET
-  }
-
-  const currentPanelHeight = isExpanded ? EXPANDED_PANEL_HEIGHT : COLLAPSED_PANEL_HEIGHT
-  const maxPanelTop = documentHeight - currentPanelHeight - bottomPageMargin
-
-  const panelTopPosition = `${Math.max(minTopOffset, Math.min(desiredTop, maxPanelTop))}px`
-
-  const topTransitionClass = sharePanelInfo.expanded ? "duration-0" : "duration-300"
-
-  const handleToggleExpand = () => {
-    const newState = !isExpanded
-    setIsExpanded(newState)
-    if (newState) {
-      onPanelClick("chatbot")
-    }
-  }
-
   return (
-    <div
-      ref={panelRef}
-      className={cn(`fixed right-0 flex transition-all ${topTransitionClass} ease-in-out`)}
-      style={{ top: panelTopPosition }}
-    >
-      <AnimatePresence initial={false}>
+    <div className="relative" ref={panelRef}>
+      <Button
+        ref={buttonRef}
+        variant="outline"
+        size="icon"
+        className={cn(
+          `rounded-full bg-blue-600/90 text-white shadow-lg hover:bg-blue-700 hover:text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-blue-500`,
+          isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
+        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-label={isExpanded ? "Close chatbot panel" : "Open chatbot panel"}
+        aria-expanded={isExpanded}
+      >
         {isExpanded ? (
+          <>
+            <Bot className="h-4 w-4" />
+            <span className="text-sm font-medium whitespace-nowrap">Chatbot</span>
+          </>
+        ) : (
+          <Bot className="h-5 w-5" />
+        )}
+      </Button>
+
+      <AnimatePresence>
+        {isExpanded && (
           <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50"
-            style={{
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
-            }}
+            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
           >
             <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -160,7 +141,7 @@ export function CollapsibleChatbotPanel({
                 className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
                 aria-label="Collapse chatbot panel"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
@@ -189,28 +170,6 @@ export function CollapsibleChatbotPanel({
               />
             </div>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={handleToggleExpand}
-            className="flex flex-col items-center gap-1 py-3 px-3 sm:py-4 sm:px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            style={{
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.05)",
-            }}
-            aria-label="Open Customer Support"
-          >
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-xl">
-              <Bot className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="[writing-mode:vertical-rl] self-end rotate-180">
-              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Support</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Get help now</div>
-            </div>
-          </motion.button>
         )}
       </AnimatePresence>
     </div>

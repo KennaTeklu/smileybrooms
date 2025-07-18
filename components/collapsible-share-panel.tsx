@@ -187,11 +187,9 @@ const sharePlatforms: SharePlatform[] = [
   },
 ]
 
-interface CollapsibleSharePanelProps {
-  onPanelClick?: (panelName: "chatbot" | "share") => void
-}
+type CollapsibleSharePanelProps = {}
 
-export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSharePanelProps) {
+export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -204,7 +202,6 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   const buttonRef = useRef<HTMLButtonElement>(null)
   const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
 
-  // Always run these hooks – they must not be inside a conditional path
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
       return
@@ -221,25 +218,12 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
 
-  // Add state for positioning like chatbot panel
-
-  // Add positioning constants like chatbot panel
-  const DEFAULT_COLLAPSED_BOTTOM_OFFSET = 20 // Share collapsed, bottom position
-  const EXPANDED_SHARE_BOTTOM_OFFSET = 20 // Share expanded, bottom position
-
-  // Handle mounting for SSR
   useEffect(() => {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
 
-  // Add positioning calculation logic
   if (!isMounted) return null
-
-  const documentHeight = document.documentElement.scrollHeight
-  const minBottomOffset = 20 // Minimum distance from the bottom of the viewport
-
-  const panelBottomPosition = `${DEFAULT_COLLAPSED_BOTTOM_OFFSET}px`
 
   const copyToClipboard = async () => {
     try {
@@ -366,25 +350,38 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
     })
   }
 
-  const handleToggleExpand = () => {
-    const newState = !isExpanded
-    setIsExpanded(newState)
-    if (newState) {
-      onPanelClick("share") // Notify parent when expanded
-    }
-  }
-
   return (
-    <div ref={panelRef} className="fixed bottom-4 right-4 z-50">
-      <AnimatePresence initial={false}>
+    <div className="relative" ref={panelRef}>
+      <Button
+        ref={buttonRef}
+        variant="outline"
+        size="icon"
+        className={cn(
+          `rounded-full bg-purple-600/90 text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
+          isExpanded ? "px-4 py-3 min-w-[100px] gap-2" : "w-10 h-10 p-0",
+        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-label={isExpanded ? "Close share panel" : "Open share panel"}
+        aria-expanded={isExpanded}
+      >
         {isExpanded ? (
+          <>
+            <Share2 className="h-4 w-4" />
+            <span className="text-sm font-medium whitespace-nowrap">Share</span>
+          </>
+        ) : (
+          <Share2 className="h-5 w-5" />
+        )}
+      </Button>
+
+      <AnimatePresence>
+        {isExpanded && (
           <motion.div
-            key="expanded"
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50"
+            className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-20"
           >
             {/* Enhanced Header */}
             <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 text-white p-5">
@@ -407,6 +404,7 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
                     size="icon"
                     onClick={() => setIsExpanded(false)}
                     className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                    aria-label="Close share panel"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -415,11 +413,11 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
             </div>
 
             {/* Enhanced Quick Actions */}
-            <div className="p-5 border-b border-gray-200/50 dark:border-gray-800/50 space-y-4">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
-                  className="flex-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-200/50 dark:border-purple-800/50"
+                  className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                   onClick={copyToClipboard}
                 >
                   {copied ? <Check className="h-4 w-4 mr-2 text-green-600" /> : <Copy className="h-4 w-4 mr-2" />}
@@ -427,7 +425,7 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
                 </Button>
                 <Button
                   variant="outline"
-                  className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-200/50 dark:border-purple-800/50"
+                  className="bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                   onClick={() => setShowQR(!showQR)}
                 >
                   <QrCode className="h-4 w-4 mr-2" />
@@ -475,7 +473,7 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
                       variant="outline"
                       size="sm"
                       onClick={() => shareOnPlatform(platform)}
-                      className="flex-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-200/50 dark:border-purple-800/50"
+                      className="flex-1 bg-gray-100 dark:bg-gray-700 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200"
                     >
                       <div className={cn("p-1 rounded text-white mr-2", platform.color)}>{platform.icon}</div>
                       <span className="text-xs">{platform.name}</span>
@@ -486,26 +484,26 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-              <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl">
-                <TabsTrigger value="social" className="rounded-lg font-medium text-xs">
+              <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                <TabsTrigger value="social" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                   <Users className="h-3 w-3 mr-1" />
                   Social
                 </TabsTrigger>
-                <TabsTrigger value="chat" className="rounded-lg font-medium text-xs">
+                <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                   <MessageCircle className="h-3 w-3 mr-1" />
                   Chat
                 </TabsTrigger>
-                <TabsTrigger value="work" className="rounded-lg font-medium text-xs">
+                <TabsTrigger value="work" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                   <Zap className="h-3 w-3 mr-1" />
                   Work
                 </TabsTrigger>
-                <TabsTrigger value="more" className="rounded-lg font-medium text-xs">
+                <TabsTrigger value="more" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                   <Globe className="h-3 w-3 mr-1" />
                   More
                 </TabsTrigger>
               </TabsList>
 
-              <div className="p-5 flex-1 overflow-auto">
+              <div className="p-5 flex-1 overflow-auto max-h-[300px]">
                 {/* Enhanced Search */}
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -513,12 +511,12 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
                     placeholder="Search platforms..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-purple-200/50 dark:border-purple-800/50 focus:border-purple-400 dark:focus:border-purple-600"
+                    className="pl-10 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-gray-800 dark:text-gray-200"
                   />
                 </div>
 
                 {/* Enhanced Platform Grid */}
-                <div className="grid grid-cols-1 gap-3 max-h-[40vh] overflow-auto">
+                <div className="grid grid-cols-1 gap-3">
                   {filteredPlatforms.map((platform) => (
                     <motion.button
                       key={platform.id}
@@ -527,10 +525,11 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
                       onClick={() => shareOnPlatform(platform)}
                       className={cn(
                         "flex items-center gap-3 p-4 rounded-xl border text-left",
-                        "bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm",
+                        "bg-gray-100 dark:bg-gray-700 backdrop-blur-sm",
                         "hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200",
-                        "border-purple-200/50 dark:border-purple-800/50 hover:border-purple-300 dark:hover:border-purple-700",
+                        "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700",
                         "focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
+                        "text-gray-800 dark:text-gray-200",
                       )}
                     >
                       <div className={cn("p-3 rounded-xl text-white shadow-sm", platform.color)}>{platform.icon}</div>
@@ -563,24 +562,6 @@ export function CollapsibleSharePanel({ onPanelClick = () => {} }: CollapsibleSh
               </div>
             </Tabs>
           </motion.div>
-        ) : (
-          <motion.button
-            key="collapsed"
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: "auto", opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            onClick={handleToggleExpand}
-            className="flex flex-col items-center gap-1 py-3 px-3 sm:py-4 sm:px-5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-l-2xl shadow-2xl hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50 transition-all duration-300"
-          >
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-xl">
-              <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="[writing-mode:vertical-rl] self-end rotate-180">
-              <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Share</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Spread the word</div>
-            </div>
-          </motion.button>
         )}
       </AnimatePresence>
     </div>
