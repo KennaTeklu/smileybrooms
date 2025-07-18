@@ -3,27 +3,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Share2,
-  X,
-  Copy,
-  QrCode,
-  Search,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  MessageCircle,
-  Mail,
-  Phone,
-  Check,
-  ExternalLink,
-  Download,
-  Sparkles,
-  Globe,
-  Users,
-  Zap,
-} from "lucide-react"
+import { Share2, X, Copy, QrCode, Search, Facebook, Twitter, Instagram, Linkedin, MessageCircle, Mail, Phone, Check, ExternalLink, Download, Sparkles, Globe, Users, Zap } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -35,6 +15,7 @@ import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
 import QRCode from "react-qr-code" // Import the QR code library
+import { useGlobalPanelControl } from "@/contexts/global-panel-control-context"
 
 interface SharePlatform {
   id: string
@@ -191,6 +172,8 @@ type CollapsibleSharePanelProps = {}
 
 export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const { vibrate } = useVibration()
+  const { closeAllTrigger } = useGlobalPanelControl() // Add this line
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
   const [copied, setCopied] = useState(false)
@@ -214,7 +197,6 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     Escape: () => setIsExpanded(false),
   })
 
-  const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
   const { toast } = useToast()
 
@@ -222,6 +204,12 @@ export function CollapsibleSharePanel({}: CollapsibleSharePanelProps) {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
+
+  useEffect(() => {
+    if (closeAllTrigger > 0 && isExpanded) {
+      setIsExpanded(false)
+    }
+  }, [closeAllTrigger, isExpanded, setIsExpanded]) // Add isExpanded and setIsExpanded to dependencies
 
   if (!isMounted) return null
 

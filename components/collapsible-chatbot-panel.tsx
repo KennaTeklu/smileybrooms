@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, X } from "lucide-react"
+import { Bot, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useGlobalPanelControl } from "@/contexts/global-panel-control-context"
 
 // Extend Window interface for JotForm
 declare global {
@@ -18,6 +19,7 @@ type CollapsibleChatbotPanelProps = {}
 export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const { closeAllTrigger } = useGlobalPanelControl()
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -54,6 +56,12 @@ export function CollapsibleChatbotPanel({}: CollapsibleChatbotPanelProps) {
       document.removeEventListener("keydown", handleEscape)
     }
   }, [isExpanded])
+
+  useEffect(() => {
+    if (closeAllTrigger > 0 && isExpanded) {
+      setIsExpanded(false)
+    }
+  }, [closeAllTrigger, isExpanded, setIsExpanded])
 
   // Load JotForm embed handler script when panel expands
   useEffect(() => {

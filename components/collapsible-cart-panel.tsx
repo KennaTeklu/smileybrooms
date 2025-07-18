@@ -2,22 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
-import {
-  ShoppingCart,
-  X,
-  ChevronRight,
-  ArrowLeft,
-  Check,
-  Maximize2,
-  Minimize2,
-  ArrowRight,
-  Info,
-  CheckCircle,
-  ArrowUp,
-  ListChecks,
-  ListX,
-  Lightbulb,
-} from "lucide-react"
+import { ShoppingCart, X, ChevronRight, ArrowLeft, Check, Maximize2, Minimize2, ArrowRight, Info, CheckCircle, ArrowUp, ListChecks, ListX, Lightbulb } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -34,9 +19,11 @@ import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Link from "next/link"
 import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
+import { useGlobalPanelControl } from "@/contexts/global-panel-control-context"
 
 export function CollapsibleCartPanel() {
   const { cart, removeItem, updateQuantity } = useCart()
+  const { closeAllTrigger } = useGlobalPanelControl() // Add this line
   const cartItems = cart.items
   const totalPrice = cart.totalPrice
   const totalItems = cart.totalItems
@@ -74,6 +61,12 @@ export function CollapsibleCartPanel() {
   useEffect(() => {
     setIsScrollPaused(isExpanded || isFullscreen)
   }, [isExpanded, isFullscreen])
+
+  useEffect(() => {
+    if (closeAllTrigger > 0 && isExpanded) {
+      setIsExpanded(false)
+    }
+  }, [closeAllTrigger, isExpanded, setIsExpanded])
 
   useEffect(() => {
     if (cartHasItems) {
@@ -319,10 +312,6 @@ export function CollapsibleCartPanel() {
     )
   }, [cartItems, groupedCartItems, handleRemoveItem, handleUpdateQuantity, isFullscreen])
 
-  if (!isMounted) {
-    return null
-  }
-
   const SuccessNotification = () => (
     <AnimatePresence>
       {showSuccessNotification && (
@@ -346,8 +335,8 @@ export function CollapsibleCartPanel() {
     </AnimatePresence>
   )
 
-  if (!isVisible || !cartHasItems) {
-    return <SuccessNotification />
+  if (!isMounted) {
+    return null
   }
 
   if (isFullscreen) {
@@ -365,14 +354,9 @@ export function CollapsibleCartPanel() {
             <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-4 shadow-lg">
               <div className="container mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBackToPanel}
-                    className="text-white hover:bg-white/20 rounded-full h-10 w-10"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
+                  <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <ShoppingCart className="h-5 w-5" />
+                  </div>
                   <div>
                     <h2 className="text-xl font-bold">Review Your Cart</h2>
                     <p className="text-blue-100 text-sm">
@@ -380,14 +364,26 @@ export function CollapsibleCartPanel() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBackToPanel}
-                  className="text-white hover:bg-white/20 rounded-full h-10 w-10"
-                >
-                  <Minimize2 className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-white/20 text-white border-white/30">{totalItems}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackToPanel}
+                    className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                    title="Fullscreen view"
+                  >
+                    <Minimize2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsExpanded(false)}
+                    className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
