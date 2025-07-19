@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
 import type { CheckoutData } from "@/lib/types"
 import { createCheckoutSession } from "@/lib/actions"
-import { saveBookingToSupabase } from "@/lib/supabase-actions" // Import the new action
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 
@@ -54,20 +53,7 @@ export default function ReviewPage() {
 
     setIsLoading(true)
     try {
-      // 1. Save booking data to Supabase
-      const savedBookingId = await saveBookingToSupabase({
-        checkoutData,
-        cartItems: cart.items,
-        totalAmount: cart.totalPrice, // Use the calculated total price from cart context
-      })
-      setBookingId(savedBookingId)
-      toast({
-        title: "Booking Saved",
-        description: `Your booking (ID: ${savedBookingId}) has been saved. Redirecting to payment...`,
-        variant: "success",
-      })
-
-      // 2. Create Stripe Checkout Session
+      // Create Stripe Checkout Session
       const customLineItems = cart.items.map((item) => ({
         name: item.name,
         amount: item.price,
@@ -94,8 +80,8 @@ export default function ReviewPage() {
 
       const stripeSessionUrl = await createCheckoutSession({
         customLineItems,
-        successUrl: `${window.location.origin}/success?bookingId=${savedBookingId}`, // Pass booking ID to success page
-        cancelUrl: `${window.location.origin}/canceled?bookingId=${savedBookingId}`, // Pass booking ID to canceled page
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
         customerEmail: checkoutData.contact.email,
         customerData: customerData,
         automaticTax: { enabled: true },
