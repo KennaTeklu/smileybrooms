@@ -70,12 +70,16 @@ const calculateCartTotals = (
   fullHouseDiscount: number
   inPersonPaymentTotal: number
 } => {
+  // Helper to safely get a numeric price
+  const getPrice = (item: CartItem) =>
+    typeof item.unitPrice === "number" ? item.unitPrice : ((item as any).price ?? 0)
+
   const onlineItems = items.filter((item) => item.paymentType !== "in_person")
   const inPersonItems = items.filter((item) => item.paymentType === "in_person")
 
-  const subtotalPrice = items.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
-  const onlineSubtotal = onlineItems.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
-  const inPersonPaymentTotal = inPersonItems.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
+  const subtotalPrice = items.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
+  const onlineSubtotal = onlineItems.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
+  const inPersonPaymentTotal = inPersonItems.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
 
   let couponDiscount = 0
   let fullHouseDiscount = 0
@@ -124,8 +128,13 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
         )
       } else {
-        const enhancedItem = {
+        const enhancedItem: CartItem = {
           ...action.payload,
+          // Guarantee a numeric unitPrice even if callers still send “price”
+          unitPrice:
+            typeof action.payload.unitPrice === "number"
+              ? action.payload.unitPrice
+              : ((action.payload as any).price ?? 0),
           paymentType: action.payload.paymentType || "online",
         }
         updatedItems = [...state.items, enhancedItem]

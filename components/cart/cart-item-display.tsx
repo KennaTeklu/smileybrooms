@@ -13,6 +13,8 @@ interface CartItemDisplayProps {
 }
 
 export function CartItemDisplay({ item, onRemoveItem, onUpdateQuantity }: CartItemDisplayProps) {
+  const displayPrice = typeof item.unitPrice === "number" ? item.unitPrice : ((item as any).price ?? 0)
+
   return (
     <motion.div
       layout
@@ -32,8 +34,7 @@ export function CartItemDisplay({ item, onRemoveItem, onUpdateQuantity }: CartIt
       <div className="flex-1 grid gap-1">
         <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{item.name}</h3>
         <p className="text-sm text-muted-foreground">{item.description}</p>
-        <p className="font-bold text-blue-600 dark:text-blue-400">${item.unitPrice.toFixed(2)}</p>{" "}
-        {/* Changed to item.unitPrice */}
+        <p className="font-bold text-blue-600 dark:text-blue-400">${displayPrice.toFixed(2)}</p>
       </div>
       <div className="flex items-center gap-2">
         <Button
