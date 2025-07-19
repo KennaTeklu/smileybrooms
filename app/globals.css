@@ -513,18 +513,3 @@ body.terms-locked {
     right: 0.5rem;
   }
 }
-
-/* Custom animation for pulsating border glow */
-@keyframes pulse-border-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0px rgba(37, 99, 235, 0.7), 0 0 0 0px rgba(6, 182, 212, 0.7); /* Start/End with no glow */
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.7), 0 0 0 20px rgba(6, 182, 212, 0.5); /* Max glow */
-  }
-}
-
-.animate-pulse-border-glow {
-  animation: pulse-border-glow 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}

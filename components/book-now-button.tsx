@@ -40,7 +40,7 @@ export default function BookNowButton() {
       <Link href="/pricing">
         <Button
           size="lg"
-          className="rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-6 py-6 animate-pulse-border-glow"
+          className="rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-6 py-6"
         >
           <CalendarCheck className="mr-2 h-5 w-5" />
           Book Now

@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
@@ -31,7 +32,7 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
 }
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeItem, clearCart, applyCoupon } = useCart() // Changed updateItemQuantity to updateQuantity
+  const { cart, updateQuantity, removeItem, clearCart, applyCoupon } = useCart()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -39,6 +40,7 @@ export default function CartPage() {
   const [itemToRemoveId, setItemToRemoveId] = useState<string | null>(null)
   const [itemToRemoveName, setItemToRemoveName] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [couponInput, setCouponInput] = useState(cart.couponCode || "")
 
   useEffect(() => {
@@ -232,14 +234,14 @@ export default function CartPage() {
                 <p className="text-sm text-muted-foreground mb-4 text-center">
                   Ready to complete your order? Proceed to checkout to finalize your booking.
                 </p>
-                <Button
-                  asChild
-                  className="w-full h-12 rounded-lg text-base bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                <CheckoutButton
+                  useCheckoutPage={false} // Changed to false for direct Stripe checkout
+                  className="w-full h-12 rounded-lg text-base"
                   size="lg"
-                  disabled={(cart.items?.length ?? 0) === 0}
-                >
-                  <Link href="/checkout">Proceed to Checkout</Link>
-                </Button>
+                  disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
+                  productName="Smiley Brooms Cleaning Service" // Generic product name for Stripe
+                  productPrice={cart.totalPrice} // Pass the total price from the cart
+                />
                 <Button
                   asChild
                   variant="outline"

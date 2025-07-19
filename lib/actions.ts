@@ -77,7 +77,7 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             name: item.name,
             description: item.description,
             images: item.images,
-            metadata: item.metadata, // Metadata is already stringified in the client component
+            metadata: item.metadata,
           },
           unit_amount: Math.round(item.amount * 100), // Convert to cents
           recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,

@@ -1,123 +1,140 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, CreditCard, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
-interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  customerEmail: string
-  customerName: string
-  customerAddress: {
-    line1?: string
-    city?: string
-    state?: string
-    postal_code?: string
-    country?: string
+interface CheckoutButtonProps {
+  priceId?: string
+  productName?: string
+  productPrice?: number
+  quantity?: number
+  metadata?: Record<string, any>
+  className?: string
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  size?: "default" | "sm" | "lg" | "icon"
+  useCheckoutPage?: boolean // New prop to control behavior
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
+  paymentMethod?: "card" | "bank" | "wallet"
+  customerData?: {
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+    }
   }
-  allowVideoRecording: boolean
-  videoConsentDetails?: string
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
 export function CheckoutButton({
-  customerEmail,
-  customerName,
-  customerAddress,
-  allowVideoRecording,
-  videoConsentDetails,
+  priceId,
+  productName,
+  productPrice,
+  quantity = 1,
+  metadata = {},
   className,
-  ...props
+  variant = "default",
+  size = "default",
+  useCheckoutPage = true, // Default to using checkout page
+  isRecurring = false,
+  recurringInterval = "month",
+  paymentMethod = "card",
+  customerData,
+  shippingAddressCollection,
+  automaticTax,
+  trialPeriodDays,
+  cancelAtPeriodEnd,
+  allowPromotions,
 }: CheckoutButtonProps) {
-  const { cart, clearCart } = useCart()
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
   const { toast } = useToast()
+  const { cart } = useCart()
+  const router = useRouter()
 
   const handleCheckout = async () => {
     setIsLoading(true)
+
     try {
-      const customLineItems = cart.items.map((item) => ({
-        name: item.name,
-        amount: item.price,
-        quantity: item.quantity,
-        description: item.description,
-        images: item.image ? [item.image] : undefined,
-        metadata: {
-          itemId: item.id,
-          category: item.category,
-          // Stringify complex objects for Stripe metadata
-          roomConfig: item.metadata?.roomConfig ? JSON.stringify(item.metadata.roomConfig) : undefined,
-          tier: item.metadata?.tier,
-          frequency: item.metadata?.frequency,
-          duration: item.metadata?.duration,
-          // Add any other specific details from item.metadata
-          ...(item.metadata &&
-            Object.fromEntries(
-              Object.entries(item.metadata).map(([key, value]) => [
-                key,
-                typeof value === "object" && value !== null ? JSON.stringify(value) : String(value),
-              ]),
-            )),
-        },
-      }))
+      if (useCheckoutPage) {
+        // Navigate to checkout page instead of direct Stripe
+        if (cart.items.length === 0) {
+          toast({
+            title: "Cart is empty",
+            description: "Please add items to your cart before checking out.",
+            variant: "destructive",
+          })
+          return
+        }
 
-      // Apply coupon discount as a negative line item if applicable
-      if (cart.couponDiscount > 0) {
-        customLineItems.push({
-          name: `Discount: ${cart.couponCode || "Applied Coupon"}`,
-          amount: -cart.couponDiscount, // Negative amount for discount
-          quantity: 1,
-          description: `Coupon code: ${cart.couponCode}`,
-        })
+        router.push("/checkout")
+        return
       }
 
-      // Apply full house discount as a negative line item if applicable
-      if (cart.fullHouseDiscount > 0) {
-        customLineItems.push({
-          name: "Full House Discount",
-          amount: -cart.fullHouseDiscount, // Negative amount for discount
-          quantity: 1,
-          description: "Discount for booking all rooms",
-        })
-      }
+      // Original Stripe direct checkout logic (kept for backward compatibility)
+      const { createCheckoutSession } = await import("@/lib/actions")
 
-      const sessionUrl = await createCheckoutSession({
-        customLineItems: customLineItems,
+      const commonParams = {
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: customerEmail,
-        customerData: {
-          name: customerName,
-          email: customerEmail,
-          address: customerAddress,
-          allowVideoRecording: allowVideoRecording,
-          videoConsentDetails: videoConsentDetails,
-        },
-        automaticTax: { enabled: true },
-        shippingAddressCollection: { allowed_countries: ["US"] }, // Example: restrict to US
-      })
+        isRecurring,
+        recurringInterval,
+        customerEmail: customerData?.email,
+        customerData,
+        shippingAddressCollection,
+        automaticTax,
+        trialPeriodDays,
+        cancelAtPeriodEnd,
+        allowPromotions,
+        paymentMethodTypes: [paymentMethod],
+      }
 
-      if (sessionUrl) {
-        router.push(sessionUrl)
-        clearCart() // Clear cart after successful redirection to Stripe
-      } else {
-        toast({
-          title: "Checkout Failed",
-          description: "Could not create checkout session. Please try again.",
-          variant: "destructive",
+      let checkoutUrl: string | undefined
+
+      if (priceId) {
+        checkoutUrl = await createCheckoutSession({
+          lineItems: [{ price: priceId, quantity }],
+          ...commonParams,
         })
+      } else if (productName && productPrice) {
+        checkoutUrl = await createCheckoutSession({
+          customLineItems: [
+            {
+              name: productName,
+              amount: productPrice,
+              quantity,
+              metadata: {
+                ...metadata,
+                paymentMethod,
+              },
+            },
+          ],
+          ...commonParams,
+        })
+      } else {
+        throw new Error("Either priceId or productName and productPrice must be provided")
+      }
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
       }
     } catch (error) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout Error",
-        description: "An unexpected error occurred during checkout. Please try again.",
+        title: "Checkout failed",
+        description: "There was an error processing your payment. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -126,19 +143,26 @@ export function CheckoutButton({
   }
 
   return (
-    <Button
-      onClick={handleCheckout}
-      disabled={isLoading || cart.items.length === 0}
-      className={cn("rounded-lg", className)}
-      {...props}
-    >
+    <Button className={className} variant={variant} size={size} onClick={handleCheckout} disabled={isLoading}>
       {isLoading ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
+          {useCheckoutPage ? "Loading..." : "Processing..."}
         </>
       ) : (
-        "Pay with Card"
+        <>
+          {useCheckoutPage ? (
+            <>
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Proceed to Checkout
+            </>
+          ) : (
+            <>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Checkout Now
+            </>
+          )}
+        </>
       )}
     </Button>
   )

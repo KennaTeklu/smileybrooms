@@ -7,7 +7,7 @@ import { cartDB } from "@/lib/cart/persistence" // Import cartDB
 export type CartItem = {
   id: string
   name: string
-  unitPrice: number // Changed from 'price' to 'unitPrice'
+  price: number
   priceId: string
   quantity: number
   image?: string
@@ -70,16 +70,12 @@ const calculateCartTotals = (
   fullHouseDiscount: number
   inPersonPaymentTotal: number
 } => {
-  // Helper to safely get a numeric price
-  const getPrice = (item: CartItem) =>
-    typeof item.unitPrice === "number" ? item.unitPrice : ((item as any).price ?? 0)
-
   const onlineItems = items.filter((item) => item.paymentType !== "in_person")
   const inPersonItems = items.filter((item) => item.paymentType === "in_person")
 
-  const subtotalPrice = items.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
-  const onlineSubtotal = onlineItems.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
-  const inPersonPaymentTotal = inPersonItems.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0)
+  const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  const onlineSubtotal = onlineItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  const inPersonPaymentTotal = inPersonItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
 
   let couponDiscount = 0
   let fullHouseDiscount = 0
@@ -108,11 +104,11 @@ const calculateCartTotals = (
 
   return {
     totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
-    subtotalPrice: Math.round(subtotalPrice * 100) / 100,
-    totalPrice: Math.round(finalOnlinePrice * 100) / 100, // This is the total for online payment
-    couponDiscount: Math.round(couponDiscount * 100) / 100,
-    fullHouseDiscount: Math.round(fullHouseDiscount * 100) / 100,
-    inPersonPaymentTotal: Math.round(inPersonPaymentTotal * 100) / 100, // Return the total for in-person payment
+    subtotalPrice, // This includes all items
+    totalPrice: finalOnlinePrice, // This is the total for online payment
+    couponDiscount,
+    fullHouseDiscount,
+    inPersonPaymentTotal, // Return the total for in-person payment
   }
 }
 
@@ -128,13 +124,8 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
           index === existingItemIndex ? { ...item, quantity: item.quantity + action.payload.quantity } : item,
         )
       } else {
-        const enhancedItem: CartItem = {
+        const enhancedItem = {
           ...action.payload,
-          // Guarantee a numeric unitPrice even if callers still send “price”
-          unitPrice:
-            typeof action.payload.unitPrice === "number"
-              ? action.payload.unitPrice
-              : ((action.payload as any).price ?? 0),
           paymentType: action.payload.paymentType || "online",
         }
         updatedItems = [...state.items, enhancedItem]
