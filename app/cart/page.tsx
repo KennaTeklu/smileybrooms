@@ -235,12 +235,11 @@ export default function CartPage() {
                   Ready to complete your order? Proceed to checkout to finalize your booking.
                 </p>
                 <CheckoutButton
-                  useCheckoutPage={false} // Changed to false for direct Stripe checkout
+                  useCheckoutPage={true} // Changed to true to navigate to /checkout
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                  productName="Smiley Brooms Cleaning Service" // Generic product name for Stripe
-                  productPrice={cart.totalPrice} // Pass the total price from the cart
+                  // Removed productName and productPrice as they are not needed here anymore
                 />
                 <Button
                   asChild

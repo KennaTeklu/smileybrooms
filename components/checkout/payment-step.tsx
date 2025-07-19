@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, ArrowRight, CreditCard } from "lucide-react"
+import { ArrowLeft, ArrowRight, CreditCard, Loader2 } from "lucide-react" // Added Loader2
 import Link from "next/link"
 import { motion } from "framer-motion"
 import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
@@ -15,6 +15,8 @@ import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
 import StripePaymentRequestButton from "@/components/stripe-payment-request-button"
 import { useCart } from "@/lib/cart-context"
+import { createCheckoutSession } from "@/lib/actions" // Import the server action
+import { useRouter } from "next/navigation" // Import useRouter
 
 interface PaymentStepProps {
   data: CheckoutData["payment"]
@@ -26,7 +28,8 @@ interface PaymentStepProps {
 
 export default function PaymentStep({ data, onSave, onNext, onPrevious, checkoutData }: PaymentStepProps) {
   const { toast } = useToast()
-  const { cart } = useCart()
+  const { cart, clearCart } = useCart() // Added clearCart
+  const router = useRouter() // Initialize useRouter
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(data.paymentMethod)
   const [agreeToTerms, setAgreeToTerms] = useState(data.agreeToTerms)
@@ -55,7 +58,7 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!agreeToTerms) {
@@ -68,14 +71,103 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
     }
 
     setIsSubmitting(true)
-    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms }) // Pass new field
-    onNext()
-    setIsSubmitting(false)
+    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms }) // Save current step data
+
+    try {
+      const customLineItems = cart.items.map((item) => ({
+        name: item.name,
+        amount: item.price,
+        quantity: item.quantity,
+        description: item.description,
+        images: item.image ? [item.image] : undefined,
+        metadata: {
+          itemId: item.id,
+          category: item.category,
+          // Stringify complex objects for Stripe metadata
+          roomConfig: item.metadata?.roomConfig ? JSON.stringify(item.metadata.roomConfig) : undefined,
+          tier: item.metadata?.tier,
+          frequency: item.metadata?.frequency,
+          duration: item.metadata?.duration,
+          // Add any other specific details from item.metadata
+          ...(item.metadata &&
+            Object.fromEntries(
+              Object.entries(item.metadata).map(([key, value]) => [
+                key,
+                typeof value === "object" && value !== null ? JSON.stringify(value) : String(value),
+              ]),
+            )),
+        },
+      }))
+
+      // Apply coupon discount as a negative line item if applicable
+      if (cart.couponDiscount > 0) {
+        customLineItems.push({
+          name: `Discount: ${cart.couponCode || "Applied Coupon"}`,
+          amount: -cart.couponDiscount, // Negative amount for discount
+          quantity: 1,
+          description: `Coupon code: ${cart.couponCode}`,
+        })
+      }
+
+      // Apply full house discount as a negative line item if applicable
+      if (cart.fullHouseDiscount > 0) {
+        customLineItems.push({
+          name: "Full House Discount",
+          amount: -cart.fullHouseDiscount, // Negative amount for discount
+          quantity: 1,
+          description: "Discount for booking all rooms",
+        })
+      }
+
+      const sessionUrl = await createCheckoutSession({
+        customLineItems: customLineItems,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
+        customerEmail: checkoutData.contact.email,
+        customerData: {
+          name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
+          email: checkoutData.contact.email,
+          phone: checkoutData.contact.phone,
+          address: {
+            line1: checkoutData.address.address,
+            city: checkoutData.address.city,
+            state: checkoutData.address.state,
+            postal_code: checkoutData.address.zipCode,
+            country: "US", // Assuming US for now, can be dynamic
+          },
+          allowVideoRecording: allowVideoRecording,
+          videoConsentDetails: videoConsentDetails,
+        },
+        automaticTax: { enabled: true },
+        shippingAddressCollection: { allowed_countries: ["US"] }, // Example: restrict to US
+      })
+
+      if (sessionUrl) {
+        router.push(sessionUrl)
+        clearCart() // Clear cart after successful redirection to Stripe
+      } else {
+        toast({
+          title: "Checkout Failed",
+          description: "Could not create checkout session. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error)
+      toast({
+        title: "Checkout Error",
+        description: "An unexpected error occurred during checkout. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleStripePaymentSuccess = () => {
     onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms: true }) // Assume terms agreed if using Apple/Google Pay
-    onNext()
+    clearCart() // Clear cart after successful payment request
+    router.push("/success") // Redirect to success page
   }
 
   const handleStripePaymentFailure = (error: string) => {
@@ -183,21 +275,20 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Address
             </Button>
-            {paymentMethod === "card" || paymentMethod === "paypal" ? ( // Only show continue button for card/paypal
-              <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Review Order
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            ) : null}
+            {/* This button now triggers the Stripe checkout session */}
+            <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Review Order
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
           </div>
         </form>
       </CardContent>
