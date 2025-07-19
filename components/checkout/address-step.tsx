@@ -27,11 +27,16 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
   const { toast } = useToast()
   const [addressData, setAddressData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false) // For local form validation/saving
+  const [isFormValid, setIsFormValid] = useState(false) // New state for form validity
 
   useEffect(() => {
     setAddressData(data)
   }, [data])
+
+  // Validate form whenever addressData changes
+  useEffect(() => {
+    setIsFormValid(validateForm(addressData))
+  }, [addressData])
 
   const handleChange = (field: string, value: string) => {
     setAddressData((prev) => ({
@@ -65,19 +70,19 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
     }
   }
 
-  const validateForm = () => {
+  // Moved validation logic to a pure function
+  const validateForm = (currentData: CheckoutData["address"]) => {
     const newErrors: Record<string, string> = {}
-    if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
-    if (!addressData.email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
-    if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
-    if (!addressData.address.trim()) newErrors.address = "Address is required"
-    if (!addressData.city.trim()) newErrors.city = "City is required"
-    if (!addressData.state) newErrors.state = "State is required"
-    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
-    if (!addressData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms and conditions."
-
-    setErrors(newErrors)
+    if (!currentData.fullName.trim()) newErrors.fullName = "Name is required"
+    if (!currentData.email.trim()) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(currentData.email)) newErrors.email = "Email is invalid"
+    if (!currentData.phone.trim()) newErrors.phone = "Phone is required"
+    if (!currentData.address.trim()) newErrors.address = "Address is required"
+    if (!currentData.city.trim()) newErrors.city = "City is required"
+    if (!currentData.state) newErrors.state = "State is required"
+    if (!currentData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    if (!currentData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms and conditions."
+    setErrors(newErrors) // Update errors state
     return Object.keys(newErrors).length === 0
   }
 
@@ -92,20 +97,18 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
     }
   }
 
-  // This function will be called by the CheckoutButton's onClick,
-  // but we still need a way to trigger validation before it.
-  const handleProceedToPayment = () => {
-    setIsSubmitting(true)
-    if (validateForm()) {
-      onSave(addressData) // Save the data before proceeding
-      // The CheckoutButton's internal onClick will handle Stripe redirection
+  // This function will be called when the CheckoutButton is clicked.
+  // It ensures data is saved and validation is performed before Stripe redirect.
+  const handleStripeCheckoutInitiation = () => {
+    if (isFormValid) {
+      onSave(addressData) // Save the current address data to parent state
+      // The CheckoutButton's internal handleCheckout will then proceed to Stripe
     } else {
       toast({
         title: "Please check your information",
         description: "Some required fields are missing or invalid.",
         variant: "destructive",
       })
-      setIsSubmitting(false)
     }
   }
 
@@ -120,6 +123,8 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
       </CardHeader>
       <CardContent>
         <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
+          {" "}
+          {/* Prevent default form submission */}
           {/* Contact Information (pre-filled from previous step) */}
           <div className="space-y-6">
             <h3 className="text-lg font-medium">Contact Information (Pre-filled)</h3>
@@ -173,7 +178,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               />
             </motion.div>
           </div>
-
           {/* Address Type */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Address Type</h3>
@@ -197,7 +201,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
                 </CardContent>
               </Card>
               <Card
-                className={`cursor-pointer flex-1 min-w-[120px] sm:min-w-[150px] transition-all hover:shadow-md ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500" : ""}`}
+                className={`cursor-pointer flex-1 min-w-[120px] sm:min-w-[150px] transition-all hover:shadow-md ${addressData.addressType === "other" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-500" : ""}`}
                 onClick={() => handleChange("addressType", "other")}
               >
                 <CardContent className="p-4 text-center">
@@ -207,7 +211,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               </Card>
             </div>
           </div>
-
           {/* Address Information */}
           <div className="space-y-6">
             <h3 className="text-lg font-medium flex items-center gap-2">
@@ -306,7 +309,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               </motion.div>
             </div>
           </div>
-
           {/* Special Instructions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -324,7 +326,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               />
             </div>
           </motion.div>
-
           {/* Additional Options (Video Recording) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -353,7 +354,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               </div>
             </div>
           </motion.div>
-
           {/* Terms and Conditions */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -380,7 +380,6 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
             </div>
             {errors.agreeToTerms && <p className="text-red-500 text-xs mt-1.5">{errors.agreeToTerms}</p>}
           </motion.div>
-
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-6">
             <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
@@ -401,8 +400,8 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               videoConsentDetails={addressData.videoConsentDetails}
               className="px-6 rounded-lg"
               size="default"
-              onClick={handleProceedToPayment} // Trigger validation before Stripe
-              disabled={isSubmitting || !addressData.agreeToTerms} // Disable if submitting or terms not agreed
+              onClick={handleStripeCheckoutInitiation} // This will trigger validation and then allow CheckoutButton's internal logic
+              disabled={!isFormValid} // Disable if form is not valid
             >
               Continue to Payment
               <ArrowRight className="ml-2 h-4 w-4" />
