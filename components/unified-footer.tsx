@@ -1,150 +1,130 @@
 "use client"
 
 import Link from "next/link"
-import { SmileyBroomsLogo } from "./smiley-brooms-logo"
+import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, Phone, MapPin } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Facebook, Instagram, Twitter, Linkedin } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
-export function UnifiedFooter() {
+export default function UnifiedFooter() {
   const { toast } = useToast()
 
   const handleFeatureComingSoon = () => {
     toast({
       title: "Feature Coming Soon!",
-      description: "This feature is under development and will be available soon.",
+      description: "This feature is under development and will be available shortly.",
       variant: "default",
     })
   }
 
   return (
-    <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-gray-900 text-gray-200 p-8 md:py-16 w-full shadow-lg">
+      <div className="container max-w-7xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 text-sm">
         {/* Company Info */}
         <div className="space-y-4">
-          <Link href="/" className="flex items-center gap-2">
-            <SmileyBroomsLogo className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-white">Smiley Brooms</span>
-          </Link>
-          <p className="text-sm">
-            Your trusted partner for a sparkling clean home. We provide professional and reliable cleaning services
-            tailored to your needs.
+          <h3 className="font-bold text-xl text-white">Smiley Brooms</h3>
+          <p className="text-gray-400 leading-relaxed">
+            Dedicated to providing exceptional cleaning services with a focus on customer satisfaction and eco-friendly
+            practices.
           </p>
-          <div className="flex space-x-4">
-            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Facebook className="h-6 w-6" />
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Twitter className="h-6 w-6" />
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Instagram className="h-6 w-6" />
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Linkedin className="h-6 w-6" />
-            </Link>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Mail className="h-4 w-4 text-blue-400" />
+              <a href="mailto:info@smileybrooms.com" className="hover:underline text-blue-300">
+                info@smileybrooms.com
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Phone className="h-4 w-4 text-blue-400" />
+              <a href="tel:+15551234567" className="hover:underline text-blue-300">
+                +1 (555) 123-4567
+              </a>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <MapPin className="h-4 w-4 text-blue-400" />
+              <span>We'll come to you!</span>
+            </div>
           </div>
         </div>
 
-        {/* Services */}
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
-          <ul className="space-y-2">
-            <li>
-              <Link href="/pricing" className="hover:text-white transition-colors">
-                Residential Cleaning
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white transition-colors">
-                Commercial Cleaning
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white transition-colors">
-                Deep Cleaning
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white transition-colors">
-                Move-in/Move-out Cleaning
-              </Link>
-            </li>
-            <li>
-              <button onClick={handleFeatureComingSoon} className="hover:text-white transition-colors text-left">
-                Specialty Services
-              </button>
-            </li>
-          </ul>
-        </div>
-
         {/* Quick Links */}
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
-          <ul className="space-y-2">
-            <li>
-              <Link href="/about" className="hover:text-white transition-colors">
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link href="/careers" className="hover:text-white transition-colors">
-                Careers
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white transition-colors">
-                Pricing
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link href="/accessibility" className="hover:text-white transition-colors">
-                Accessibility
-              </Link>
-            </li>
-            <li>
-              <button onClick={handleFeatureComingSoon} className="hover:text-white transition-colors text-left">
-                Privacy Policy
-              </button>
-            </li>
-          </ul>
+        <div className="grid gap-3">
+          <h3 className="font-semibold text-lg text-white">Services & Info</h3>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Residential Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Commercial Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Deep Cleaning
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Pricing Calculator
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            How It Works
+          </Link>
         </div>
 
-        {/* Contact Info */}
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Contact Us</h3>
-          <ul className="space-y-2">
-            <li>
-              <Link href="/contact" className="hover:text-white transition-colors">
-                Contact Form
-              </Link>
-            </li>
-            <li>
-              <a href="tel:+1-800-555-0199" className="hover:text-white transition-colors">
-                Phone: (800) 555-0199
-              </a>
-            </li>
-            <li>
-              <a href="mailto:info@smileybrooms.com" className="hover:text-white transition-colors">
-                Email: info@smileybrooms.com
-              </a>
-            </li>
-            <li>
-              <address className="not-italic">
-                123 Clean Street, Suite 456
-                <br />
-                Sparkle City, SC 12345
-              </address>
-            </li>
-          </ul>
+        {/* Legal & Resources */}
+        <div className="grid gap-3">
+          <h3 className="font-semibold text-lg text-white">Legal & Resources</h3>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Privacy Policy
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Terms of Service
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Cookie Policy
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            FAQ
+          </Link>
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+            Careers
+          </Link>
+        </div>
+
+        {/* Social Media & Newsletter */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg text-white">Connect With Us</h3>
+          <div className="flex space-x-4">
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Facebook">
+              <Facebook className="h-6 w-6 text-gray-400 hover:text-blue-400 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Twitter">
+              <Twitter className="h-6 w-6 text-gray-400 hover:text-blue-300 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="Instagram">
+              <Instagram className="h-6 w-6 text-gray-400 hover:text-pink-400 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="LinkedIn">
+              <Linkedin className="h-6 w-6 text-gray-400 hover:text-blue-500 transition-colors" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleFeatureComingSoon} aria-label="YouTube">
+              <Youtube className="h-6 w-6 text-gray-400 hover:text-red-500 transition-colors" />
+            </Button>
+          </div>
+          <p className="text-gray-400">Stay updated with our latest news and offers.</p>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="Your email"
+              className="flex-1 p-2 border border-gray-700 rounded-md bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              onClick={handleFeatureComingSoon}
+            >
+              Subscribe
+            </Button>
+          </div>
         </div>
       </div>
-      <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-500">
-        &copy; {new Date().getFullYear()} Smiley Brooms. All rights reserved.
+      <div className="container max-w-7xl mt-12 text-center text-gray-500 border-t border-gray-700 pt-8">
+        © {new Date().getFullYear()} Smiley Brooms. All rights reserved.
       </div>
     </footer>
   )

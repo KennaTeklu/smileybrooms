@@ -104,7 +104,7 @@ export default function CartPage() {
   }
 
   return (
-    <main className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col" role="main">
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
       <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
         Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
       </h1>
@@ -302,6 +302,6 @@ export default function CartPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   )
 }

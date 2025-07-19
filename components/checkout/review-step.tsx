@@ -92,17 +92,34 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
 
     try {
       // Prepare line items for Stripe (only online payment items)
-      const customLineItems = onlinePaymentItems.map((item) => ({
-        name: item.name,
-        amount: item.price,
-        quantity: item.quantity,
-        description: item.metadata?.description || `Service: ${item.name}`,
-        images: item.image ? [item.image] : [],
-        metadata: {
+      const customLineItems = onlinePaymentItems.map((item) => {
+        const processedMetadata: Record<string, string> = {
           itemId: item.id,
-          ...item.metadata,
-        },
-      }))
+        }
+
+        // Iterate over all properties in item.metadata and stringify complex objects
+        for (const key in item.metadata) {
+          if (Object.prototype.hasOwnProperty.call(item.metadata, key)) {
+            const value = item.metadata[key]
+            if (typeof value === "object" && value !== null) {
+              // Stringify objects/arrays to ensure Stripe compatibility
+              processedMetadata[key] = JSON.stringify(value)
+            } else {
+              // Convert other primitives to string
+              processedMetadata[key] = String(value)
+            }
+          }
+        }
+
+        return {
+          name: item.name,
+          amount: item.price,
+          quantity: item.quantity,
+          description: item.metadata?.description || `Service: ${item.name}`,
+          images: item.image ? [item.image] : [],
+          metadata: processedMetadata, // Pass the processed metadata
+        }
+      })
 
       // Add video discount if applicable
       if (videoDiscount > 0) {
