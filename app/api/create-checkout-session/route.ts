@@ -19,6 +19,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Customer information is incomplete" }, { status: 400 })
     }
 
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL
+    if (!appBaseUrl) {
+      return NextResponse.json(
+        { message: "NEXT_PUBLIC_APP_BASE_URL environment variable is not set." },
+        { status: 500 },
+      )
+    }
+
+    // Ensure the base URL has an explicit scheme (http:// or https://)
+    const baseUrlWithScheme =
+      appBaseUrl.startsWith("http://") || appBaseUrl.startsWith("https://") ? appBaseUrl : `https://${appBaseUrl}` // Default to https if no scheme is provided
+
     // Create a Stripe Customer (optional, but good for recurring customers)
     // You might want to check if a customer already exists by email
     let customerId: string | undefined
@@ -58,8 +70,8 @@ export async function POST(req: Request) {
       payment_method_types: ["card"], // You can add 'paypal', 'us_bank_account', etc.
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/canceled`,
+      success_url: `${baseUrlWithScheme}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrlWithScheme}/canceled`,
       customer: customerId, // Link the session to the customer
       customer_email: customerId ? undefined : customerInfo.email, // Only if customer is not set
       metadata: {

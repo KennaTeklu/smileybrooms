@@ -1,126 +1,299 @@
 import type React from "react"
-// This is a minimal pricing engine for demonstration purposes.
-// You will need to replace this with your actual business logic for calculating prices,
-// applying discounts, and handling different service tiers and add-ons.
+import type { RoomTier } from "@/lib/room-tiers"
+import {
+  Home,
+  Bath,
+  Bed,
+  CookingPotIcon as Kitchen,
+  WashingMachineIcon as Laundry,
+  ComputerIcon as Office,
+  MapPin,
+  Plus,
+  Minus,
+  Sparkles,
+} from "lucide-react"
 
-export interface RoomItem {
+// Define types for the pricing engine inputs and outputs
+export type RoomInput = {
   room: string
   quantity: number
-  selectedTier?: string
+  selectedTier?: RoomTier
   selectedAddOns?: string[]
   selectedReductions?: string[]
-  unitPrice: number
+  unitPrice: number // Base price for the room type
 }
 
-export interface AddOnItem {
+export type AddOnInput = {
   name: string
   quantity: number
   price: number
 }
 
-export interface PricingInput {
-  rooms: RoomItem[]
-  addOns: AddOnItem[]
+export type PricingInput = {
+  rooms: RoomInput[]
+  addOns: AddOnInput[]
   frequency: "one-time" | "weekly" | "bi-weekly" | "monthly"
-  cleanlinessMultiplier: number
+  cleanlinessMultiplier: number // e.g., 1 for standard, 1.2 for deep clean
   discountCodes?: string[]
-  paymentMethod: string
+  paymentMethod?: string
 }
 
-export interface PricingResult {
+export type RoomDisplay = {
+  room: string
+  quantity: number
+  baseRate: number
+  adjustedRate: number
+  description?: string
+  image?: string
+  icon?: React.ReactNode
+}
+
+export type AddOnDisplay = {
+  name: string
+  quantity: number
+  price: number
+  badge?: string
+  icon?: React.ReactNode
+}
+
+export type DiscountDisplay = {
+  name: string
+  amount: number
+  code?: string
+}
+
+export type PricingOutput = {
   subtotal: number
   total: number
-  tax: number
-  discounts: { name: string; amount: number }[]
-  roomDisplay?: {
-    room: string
-    baseRate: number
-    adjustedRate: number
-    description?: string
-    image?: string
-    icon?: React.ReactNode // For LucideReact icons
-  }[]
-  addOnDisplay?: {
-    name: string
-    price: number
-    badge?: string
-    icon?: React.ReactNode // For LucideReact icons
-  }[]
+  roomDisplay?: RoomDisplay[]
+  addOnDisplay?: AddOnDisplay[]
+  discounts?: DiscountDisplay[]
+  frequencyDiscount?: number
+  couponDiscount?: number
+  cleanlinessAdjustment?: number
+  tax?: number
+  finalPricePerService?: number
+}
+
+// Mock data for demonstration purposes
+const MOCK_ROOM_PRICES: Record<
+  string,
+  { basePrice: number; description: string; image: string; icon: React.ReactNode }
+> = {
+  "Living Room": {
+    basePrice: 50,
+    description: "Spacious area for relaxation",
+    image: "/images/living-room-professional.png",
+    icon: <Home className="h-6 w-6 text-blue-600" />,
+  },
+  Bedroom: {
+    basePrice: 40,
+    description: "Cozy space for rest",
+    image: "/images/bedroom-professional.png",
+    icon: <Bed className="h-6 w-6 text-blue-600" />,
+  },
+  Bathroom: {
+    basePrice: 60,
+    description: "Sanitized and sparkling clean",
+    image: "/images/bathroom-professional.png",
+    icon: <Bath className="h-6 w-6 text-blue-600" />,
+  },
+  Kitchen: {
+    basePrice: 70,
+    description: "Grease-free and hygienic",
+    image: "/images/kitchen-professional.png",
+    icon: <Kitchen className="h-6 w-6 text-blue-600" />,
+  },
+  "Dining Room": {
+    basePrice: 45,
+    description: "Perfect for family meals",
+    image: "/images/dining-room-professional.png",
+    icon: <Home className="h-6 w-6 text-blue-600" />,
+  },
+  "Home Office": {
+    basePrice: 35,
+    description: "Productive and organized",
+    image: "/images/home-office-professional.png",
+    icon: <Office className="h-6 w-6 text-blue-600" />,
+  },
+  "Laundry Room": {
+    basePrice: 30,
+    description: "Fresh and tidy",
+    image: "/images/laundry-room-professional.png",
+    icon: <Laundry className="h-6 w-6 text-blue-600" />,
+  },
+  Hallway: {
+    basePrice: 20,
+    description: "Clean passage areas",
+    image: "/images/hallway-professional.png",
+    icon: <MapPin className="h-6 w-6 text-blue-600" />,
+  },
+  Stairs: {
+    basePrice: 25,
+    description: "Step-by-step clean",
+    image: "/images/stairs-professional.png",
+    icon: <Home className="h-6 w-6 text-blue-600" />,
+  },
+  Entryway: {
+    basePrice: 20,
+    description: "Welcoming first impression",
+    image: "/images/entryway-professional.png",
+    icon: <Home className="h-6 w-6 text-blue-600" />,
+  },
+}
+
+const MOCK_ADDON_PRICES: Record<string, { price: number; description: string; icon: React.ReactNode }> = {
+  "Window Cleaning": {
+    price: 25,
+    description: "Sparkling windows",
+    icon: <Sparkles className="h-5 w-5 text-purple-600" />,
+  },
+  "Carpet Shampoo": { price: 40, description: "Deep carpet clean", icon: <Plus className="h-5 w-5 text-purple-600" /> },
+  "Oven Cleaning": {
+    price: 30,
+    description: "Thorough oven degreasing",
+    icon: <Kitchen className="h-5 w-5 text-purple-600" />,
+  },
+  "Fridge Cleaning": {
+    price: 20,
+    description: "Inside fridge sanitation",
+    icon: <Minus className="h-5 w-5 text-purple-600" />,
+  },
+}
+
+const FREQUENCY_DISCOUNTS: Record<string, number> = {
+  "one-time": 0,
+  weekly: 0.2, // 20% discount
+  "bi-weekly": 0.15, // 15% discount
+  monthly: 0.1, // 10% discount
+}
+
+const COUPON_CODES: Record<string, number> = {
+  SAVE10: 0.1, // 10% off
+  FIRSTCLEAN: 0.15, // 15% off
 }
 
 export class PricingEngine {
-  static calculate(input: PricingInput): PricingResult {
+  static calculate(input: PricingInput): PricingOutput {
     let subtotal = 0
-    const discounts: { name: string; amount: number }[] = []
+    const roomDisplay: RoomDisplay[] = []
+    const addOnDisplay: AddOnDisplay[] = []
+    const discounts: DiscountDisplay[] = []
 
     // Calculate room charges
-    input.rooms.forEach((room) => {
-      let roomPrice = room.unitPrice * room.quantity
-      // Apply cleanliness multiplier (example)
-      roomPrice *= input.cleanlinessMultiplier
-      subtotal += roomPrice
+    input.rooms.forEach((roomInput) => {
+      const mockRoom = MOCK_ROOM_PRICES[roomInput.room]
+      if (mockRoom) {
+        let roomRate = mockRoom.basePrice
+        // Apply tier adjustments if any (mocked for now)
+        if (roomInput.selectedTier === "premium") {
+          roomRate *= 1.2 // 20% more for premium
+        } else if (roomInput.selectedTier === "basic") {
+          roomRate *= 0.8 // 20% less for basic
+        }
+
+        // Apply add-ons/reductions specific to rooms (mocked)
+        if (roomInput.selectedAddOns?.includes("extra-shine")) {
+          roomRate += 10
+        }
+        if (roomInput.selectedReductions?.includes("no-windows")) {
+          roomRate -= 5
+        }
+
+        const adjustedRate = roomRate * roomInput.quantity
+        subtotal += adjustedRate
+
+        roomDisplay.push({
+          room: `${roomInput.quantity}x ${roomInput.room}`,
+          quantity: roomInput.quantity,
+          baseRate: mockRoom.basePrice * roomInput.quantity,
+          adjustedRate: adjustedRate,
+          description: mockRoom.description,
+          image: mockRoom.image,
+          icon: mockRoom.icon,
+        })
+      }
     })
 
     // Calculate add-on charges
-    input.addOns.forEach((addOn) => {
-      subtotal += addOn.price * addOn.quantity
+    input.addOns.forEach((addOnInput) => {
+      const mockAddOn = MOCK_ADDON_PRICES[addOnInput.name]
+      if (mockAddOn) {
+        const addOnTotal = mockAddOn.price * addOnInput.quantity
+        subtotal += addOnTotal
+        addOnDisplay.push({
+          name: `${addOnInput.quantity}x ${addOnInput.name}`,
+          quantity: addOnInput.quantity,
+          price: addOnTotal,
+          description: mockAddOn.description,
+          icon: mockAddOn.icon,
+        })
+      }
     })
 
-    // Apply discounts (example: 10% off for video recording)
-    if (input.discountCodes?.includes("VIDEO_RECORDING_DISCOUNT")) {
-      const videoDiscountAmount = subtotal * 0.1
-      subtotal -= videoDiscountAmount
-      discounts.push({ name: "Video Recording Discount (10%)", amount: videoDiscountAmount })
+    let total = subtotal
+
+    // Apply cleanliness multiplier
+    if (input.cleanlinessMultiplier && input.cleanlinessMultiplier !== 1) {
+      total *= input.cleanlinessMultiplier
+      // This could be added to discounts or a separate adjustment display
     }
 
-    // Apply coupon discount from cart (if any)
-    // This assumes cart.couponDiscount is already calculated and passed in implicitly
-    // For a real system, you'd fetch/validate coupons here.
-    // For this example, we'll assume it's handled by the calling component (address-step.tsx)
-    // and the `totalDiscount` is already factored into the `finalSubtotal` passed to Stripe.
-    // The `address-step.tsx` already calculates `totalDiscount` and `finalSubtotal`
-    // based on `cart.couponDiscount` and `cart.fullHouseDiscount`.
-    // So, this `PricingEngine` will just calculate the base subtotal and apply its own internal discounts.
+    // Apply frequency discount
+    let frequencyDiscountAmount = 0
+    if (input.frequency && FREQUENCY_DISCOUNTS[input.frequency]) {
+      frequencyDiscountAmount = total * FREQUENCY_DISCOUNTS[input.frequency]
+      total -= frequencyDiscountAmount
+      discounts.push({
+        name: `${input.frequency.charAt(0).toUpperCase() + input.frequency.slice(1)} Discount`,
+        amount: frequencyDiscountAmount,
+      })
+    }
 
-    const taxRate = 0.08 // Example 8% tax
-    const tax = subtotal * taxRate
-    const total = subtotal + tax
+    // Apply coupon codes
+    let couponDiscountAmount = 0
+    if (input.discountCodes && input.discountCodes.length > 0) {
+      input.discountCodes.forEach((code) => {
+        if (COUPON_CODES[code]) {
+          const discount = total * COUPON_CODES[code]
+          couponDiscountAmount += discount
+          total -= discount
+          discounts.push({
+            name: `Coupon: ${code}`,
+            amount: discount,
+            code: code,
+          })
+        }
+      })
+    }
+
+    // Add a mock tax (e.g., 5%)
+    const taxRate = 0.05
+    const taxAmount = total * taxRate
+    total += taxAmount
 
     return {
-      subtotal,
-      total,
-      tax,
-      discounts,
-      // These display properties are typically generated based on the calculated values
-      // and might involve more complex mapping from your actual service data.
-      // For this minimal engine, we'll just return empty arrays or basic structures.
-      roomDisplay: input.rooms.map((room) => ({
-        room: room.room,
-        baseRate: room.unitPrice * room.quantity,
-        adjustedRate: room.unitPrice * room.quantity * input.cleanlinessMultiplier,
-        description: room.selectedTier ? `Tier: ${room.selectedTier}` : undefined,
-        image: `/images/${room.room.toLowerCase().replace(/\s/g, "-")}-professional.png`, // Example image path
-        icon: undefined, // You'd map this to a LucideReact icon
-      })),
-      addOnDisplay: input.addOns.map((addon) => ({
-        name: addon.name,
-        price: addon.price * addon.quantity,
-        badge: undefined,
-        icon: undefined, // You'd map this to a LucideReact icon
-      })),
+      subtotal: Number.parseFloat(subtotal.toFixed(2)),
+      total: Number.parseFloat(total.toFixed(2)),
+      roomDisplay: roomDisplay,
+      addOnDisplay: addOnDisplay,
+      discounts: discounts,
+      frequencyDiscount: Number.parseFloat(frequencyDiscountAmount.toFixed(2)),
+      couponDiscount: Number.parseFloat(couponDiscountAmount.toFixed(2)),
+      cleanlinessAdjustment: Number.parseFloat(((input.cleanlinessMultiplier || 1) * subtotal - subtotal).toFixed(2)),
+      tax: Number.parseFloat(taxAmount.toFixed(2)),
+      finalPricePerService: Number.parseFloat(total.toFixed(2)),
     }
   }
 
-  // This method is for formatting the output for display in the UI.
-  // It takes the raw pricing result and adds display-specific information like icons or descriptions.
   static formatForDisplay(
-    pricingResult: PricingResult,
-    options: { showDetailed: boolean; includeImages: boolean },
-  ): PricingResult {
-    // In a real application, this would enrich the pricingResult with display-specific data
-    // like icons, detailed descriptions, etc., based on your product catalog.
-    // For this minimal example, we'll just return the result as is,
-    // assuming the `calculate` method already provides basic display info.
-    return pricingResult
+    output: PricingOutput,
+    options?: { showDetailed?: boolean; includeImages?: boolean },
+  ): PricingOutput {
+    // This method can be used to further format the output for UI display,
+    // e.g., adding currency symbols, descriptions, etc.
+    // For now, it just returns the output as is, assuming the calculation already
+    // provides display-ready numbers.
+    return output
   }
 }
