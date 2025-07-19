@@ -312,7 +312,15 @@ export function CollapsibleSharePanel() {
     }
 
     if (platform.id === "print") {
-      window.print()
+      setIsExpanded(false) // Minimize the panel
+      toast({
+        title: "Preparing to print...",
+        description: "The share panel will close, and printing will start in 2 seconds.",
+        duration: 2000,
+      })
+      setTimeout(() => {
+        window.print()
+      }, 2000) // Delay for 2 seconds
       return
     }
 
