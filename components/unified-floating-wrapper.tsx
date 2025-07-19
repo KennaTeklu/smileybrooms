@@ -1,8 +1,7 @@
 "use client"
 
-import { Suspense, useState, useCallback } from "react"
+import { Suspense } from "react"
 import dynamic from "next/dynamic"
-import { cn } from "@/lib/utils" // Assuming cn utility is available
 
 // Dynamically import the floating components
 const FloatingCartButton = dynamic(() => import("./floating-cart-button"), {
@@ -30,16 +29,14 @@ const CollapsibleSharePanel = dynamic(() => import("./collapsible-share-panel"),
   loading: () => null,
 })
 
+const CollapsibleSettingsPanel = dynamic(() => import("./collapsible-settings-panel"), {
+  ssr: false,
+  loading: () => null,
+})
+
 export default function UnifiedFloatingWrapper() {
-  const [activePanel, setActivePanel] = useState<"none" | "chatbot" | "share">("none")
-
-  const handlePanelClick = useCallback((panelName: "chatbot" | "share") => {
-    setActivePanel(panelName)
-  }, [])
-
-  // Define base z-index values
-  const baseZIndex = 997
-  const activeZIndex = 999
+  // No activePanel state needed here, as each panel manages its own expanded state
+  // and their expanded positions are fixed at the top. Z-index will handle overlaps.
 
   return (
     <Suspense fallback={null}>
@@ -47,23 +44,14 @@ export default function UnifiedFloatingWrapper() {
       <PersistentBookNowButton />
       <AccessibilityToolbar />
 
-      {/* Chatbot Panel */}
-      <div
-        className={cn("fixed", {
-          [`z-[${activePanel === "chatbot" ? activeZIndex : baseZIndex}]`]: true,
-        })}
-      >
-        <CollapsibleChatbotPanel onPanelClick={handlePanelClick} />
-      </div>
+      {/* Chatbot Panel (bottom-right when collapsed, top-right when expanded) */}
+      <CollapsibleChatbotPanel />
 
-      {/* Share Panel */}
-      <div
-        className={cn("fixed", {
-          [`z-[${activePanel === "share" ? activeZIndex : baseZIndex}]`]: true,
-        })}
-      >
-        <CollapsibleSharePanel onPanelClick={handlePanelClick} />
-      </div>
+      {/* Share Panel (bottom-left when collapsed, top-left when expanded) */}
+      <CollapsibleSharePanel />
+
+      {/* Settings Panel (bottom-center when collapsed, top-center when expanded) */}
+      <CollapsibleSettingsPanel />
     </Suspense>
   )
 }

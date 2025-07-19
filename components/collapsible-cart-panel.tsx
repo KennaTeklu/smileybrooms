@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import {
   ShoppingCart,
@@ -35,12 +35,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import Link from "next/link"
 import { CartItemDisplay } from "@/components/cart/cart-item-display" // Import the new component
 
-// Define fixed offsets
-const CART_COLLAPSED_BOTTOM_OFFSET = 150 // Distance from bottom when collapsed
-const CART_EXPANDED_TOP_OFFSET = 0 // Distance from top when expanded
-const CART_EXPANDED_HEIGHT = "100vh" // Full viewport height when expanded
-const CART_COLLAPSED_WIDTH = 150 // Approximate width of the collapsed button
-
 export function CollapsibleCartPanel() {
   const { cart, removeItem, updateQuantity } = useCart()
   const cartItems = cart.items
@@ -69,6 +63,8 @@ export function CollapsibleCartPanel() {
 
   const lastItemRef = useRef<HTMLDivElement>(null)
 
+  const [panelTopPosition, setPanelTopPosition] = useState<string>("150px")
+
   const cartHasItems = cartItems.length > 0
 
   useEffect(() => {
@@ -82,6 +78,14 @@ export function CollapsibleCartPanel() {
   useEffect(() => {
     if (cartHasItems) {
       setIsVisible(true)
+
+      const calculateInitialPosition = () => {
+        const scrollY = window.scrollY
+        const initialTop = scrollY + 150
+        setPanelTopPosition(`${initialTop}px`)
+      }
+
+      calculateInitialPosition()
 
       controls.start({
         scale: [1, 1.08, 1],
@@ -101,6 +105,45 @@ export function CollapsibleCartPanel() {
       controls.stop()
     }
   }, [cartHasItems, controls, vibrate])
+
+  const calculatePanelPosition = useCallback(() => {
+    if (!panelRef.current || isFullscreen || !isVisible || isScrollPaused) return
+
+    const panelHeight = panelRef.current.offsetHeight || 200
+    const viewportHeight = window.innerHeight
+    const scrollY = window.scrollY
+    const documentHeight = document.documentElement.scrollHeight
+
+    const initialViewportTopOffset = 150
+    const bottomPadding = 20
+
+    const desiredTopFromScroll = scrollY + initialViewportTopOffset
+    const maxTopAtDocumentBottom = Math.max(documentHeight - panelHeight - bottomPadding, scrollY + 50)
+
+    const finalTop = Math.min(desiredTopFromScroll, maxTopAtDocumentBottom)
+
+    setPanelTopPosition(`${finalTop}px`)
+  }, [isFullscreen, isVisible, isScrollPaused])
+
+  useEffect(() => {
+    if (!isVisible || isScrollPaused) return
+
+    const handleScrollAndResize = () => {
+      if (!isFullscreen) {
+        calculatePanelPosition()
+      }
+    }
+
+    window.addEventListener("scroll", handleScrollAndResize, { passive: true })
+    window.addEventListener("resize", handleScrollAndResize, { passive: true })
+
+    calculatePanelPosition()
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollAndResize)
+      window.removeEventListener("resize", handleScrollAndResize)
+    }
+  }, [calculatePanelPosition, isVisible, isScrollPaused])
 
   useClickOutside(panelRef, (event) => {
     if (buttonRef.current && buttonRef.current.contains(event.target as Node)) {
@@ -229,49 +272,52 @@ export function CollapsibleCartPanel() {
   }, [])
 
   // Group cart items by sourceSection or roomType for better navigability
-  const groupedCartItems = cartItems.reduce(
-    (groups, item) => {
+  const groupedCartItems = useMemo(() => {
+    const groups: { [key: string]: typeof cartItems } = {}
+    cartItems.forEach((item) => {
       const groupKey = item.sourceSection || item.metadata?.roomType || "Other Services"
       if (!groups[groupKey]) {
         groups[groupKey] = []
       }
       groups[groupKey].push(item)
-      return groups
-    },
-    {} as { [key: string]: typeof cartItems },
-  )
+    })
+    return Object.entries(groups).sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+  }, [cartItems])
 
-  const cartList =
-    cartItems.length === 0 ? (
-      <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-        <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
-        <p className="font-medium">Your cart is empty.</p>
-        <p className="text-sm">Add some cleaning services to get started!</p>
-      </div>
-    ) : (
-      <Accordion type="multiple" defaultValue={Object.keys(groupedCartItems)} className="w-full">
-        {Object.entries(groupedCartItems)
-          .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-          .map(([groupName, items]) => (
-            <AccordionItem key={groupName} value={groupName} className="border-b border-gray-200 dark:border-gray-700">
-              <AccordionTrigger className="text-base font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
-                {groupName} ({items.length})
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 space-y-3">
-                {items.map((item, index) => (
-                  <CartItemDisplay
-                    key={item.id}
-                    item={item}
-                    isFullscreen={isFullscreen}
-                    onRemoveItem={handleRemoveItem}
-                    onUpdateQuantity={handleUpdateQuantity}
-                  />
-                ))}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+  const cartList = useMemo(() => {
+    if (cartItems.length === 0) {
+      return (
+        <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+          <p className="font-medium">Your cart is empty.</p>
+          <p className="text-sm">Add some cleaning services to get started!</p>
+        </div>
+      )
+    }
+
+    return (
+      <Accordion type="multiple" defaultValue={groupedCartItems.map(([key]) => key)} className="w-full">
+        {groupedCartItems.map(([groupName, items]) => (
+          <AccordionItem key={groupName} value={groupName} className="border-b border-gray-200 dark:border-gray-700">
+            <AccordionTrigger className="text-base font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
+              {groupName} ({items.length})
+            </AccordionTrigger>
+            <AccordionContent className="pt-2 space-y-3">
+              {items.map((item, index) => (
+                <CartItemDisplay
+                  key={item.id}
+                  item={item}
+                  isFullscreen={isFullscreen}
+                  onRemoveItem={handleRemoveItem}
+                  onUpdateQuantity={handleUpdateQuantity}
+                />
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
       </Accordion>
     )
+  }, [cartItems, groupedCartItems, handleRemoveItem, handleUpdateQuantity, isFullscreen])
 
   if (!isMounted) {
     return null
@@ -299,30 +345,6 @@ export function CollapsibleCartPanel() {
       )}
     </AnimatePresence>
   )
-
-  const panelStyle = isFullscreen
-    ? {
-        top: `${CART_EXPANDED_TOP_OFFSET}px`,
-        bottom: "auto",
-        right: "0",
-        width: "100%",
-        height: CART_EXPANDED_HEIGHT,
-      }
-    : isExpanded
-      ? {
-          top: `${CART_EXPANDED_TOP_OFFSET}px`,
-          bottom: "auto",
-          right: "0",
-          width: "auto", // Let motion.div control width
-          maxHeight: "70vh",
-        }
-      : {
-          top: "auto",
-          bottom: `${CART_COLLAPSED_BOTTOM_OFFSET}px`,
-          right: "0",
-          width: `${CART_COLLAPSED_WIDTH}px`, // Let motion.button control width
-          height: "auto",
-        }
 
   if (!isVisible || !cartHasItems) {
     return <SuccessNotification />
@@ -478,7 +500,7 @@ export function CollapsibleCartPanel() {
             </div>
 
             {/* Fullscreen Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-4 shadow-lg">
+            <div className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-4 shadow-lg">
               <div className="container mx-auto flex items-center justify-between">
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {reviewStep === 0 ? "Step 1 of 2: Review Items" : "Step 2 of 2: Confirm"}
@@ -529,7 +551,11 @@ export function CollapsibleCartPanel() {
       <motion.div
         ref={panelRef}
         className="fixed z-[997]"
-        style={panelStyle}
+        style={{
+          top: panelTopPosition,
+          right: "clamp(1rem, 3vw, 2rem)",
+          width: "fit-content",
+        }}
         initial={{ x: "150%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
