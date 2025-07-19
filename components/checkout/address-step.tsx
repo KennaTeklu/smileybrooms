@@ -404,7 +404,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, checkout
               onClick={handleProceedToPayment} // Trigger validation before Stripe
               disabled={isSubmitting || !addressData.agreeToTerms} // Disable if submitting or terms not agreed
             >
-              Continue to Payment
+              Pay with Card {/* Changed text here */}
               <ArrowRight className="ml-2 h-4 w-4" />
             </CheckoutButton>
           </div>
