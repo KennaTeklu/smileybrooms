@@ -18,7 +18,7 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
 
       {!iconOnly && (
         <div className="ml-2 font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-          SmileyBrooms
+          smiley<span className="bg-yellow-300 text-gray-900 px-1 rounded">brooms</span>
         </div>
       )}
     </div>
