@@ -1,7 +1,6 @@
 "use client"
 
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Share2, Settings } from "lucide-react" // Importing Lucide icons
 
@@ -23,57 +22,48 @@ export default function AccessibilityPage() {
             </CardHeader>
             <CardContent className="flex-grow pt-4">
               <CardDescription className="mb-4">
-                Our Enhanced Accessibility Panel provides a comprehensive suite of tools to customize your browsing
-                experience. This panel is designed to adapt the website's interface to your specific needs, ensuring a
-                comfortable and efficient interaction.
+                Our comprehensive accessibility panel offers a suite of tools to tailor your visual and interactive
+                experience on our website.
               </CardDescription>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>
-                  **Accessing the Panel:** You can easily open the panel by clicking the accessibility icon (a person
-                  icon) usually found at the bottom-right of your screen, or by pressing{" "}
+                  **Accessing the Panel:** Click the accessibility icon (a person icon) usually found at the
+                  bottom-right of your screen, or press{" "}
                   <code className="font-mono bg-muted px-1 py-0.5 rounded text-sm">Alt + A</code> on your keyboard.
                 </li>
                 <li>
                   **Features within the Panel:**
                   <ul className="list-circle pl-4 mt-1 space-y-1">
                     <li>
-                      **High Contrast Mode:** Toggles a high contrast theme for improved text and background visibility,
-                      reducing eye strain.
+                      **High Contrast Mode:** This feature significantly increases the contrast between text and
+                      background elements, making content easier to read for users with low vision or color blindness.
                     </li>
                     <li>
-                      **Adjustable Text Size:** Allows you to increase or decrease the font size across the entire
-                      website for better readability.
+                      **Adjustable Text Size:** Users can scale the text size up or down to their preferred reading
+                      comfort, ensuring readability across different devices and visual needs.
                     </li>
                     <li>
-                      **Reduced Motion Settings:** Minimizes animations and transitions for users sensitive to motion,
-                      providing a calmer browsing experience.
+                      **Reduced Motion Settings:** For individuals sensitive to animations, this option minimizes or
+                      removes decorative motion and transitions, providing a calmer browsing experience.
                     </li>
                     <li>
-                      **Keyboard Navigation Enhancements:** Optimizes the site for keyboard-only navigation, making it
-                      easier to tab through elements and interact without a mouse.
+                      **Keyboard Navigation Enhancements:** This mode optimizes the website for users who prefer or
+                      require keyboard-only navigation, improving focus visibility and tab order.
                     </li>
                     <li>
-                      **Focus Indicators:** Highlights interactive elements when they are in focus, aiding keyboard
-                      users in understanding their current position.
-                    </li>
-                    <li>
-                      **Dyslexia-Friendly Font:** Applies a specialized font designed to improve readability for
-                      individuals with dyslexia.
-                    </li>
-                    <li>**Cursor Size Adjustment:** Increases the size of the mouse cursor for better visibility.</li>
-                    <li>
-                      **Sound Effects Toggle:** Enables or disables interface sounds for actions like clicks or
-                      notifications.
+                      **Screen Reader Optimizations:** Our site is designed to work seamlessly with assistive
+                      technologies, providing proper semantic structure and ARIA attributes for screen reader users.
                     </li>
                   </ul>
                 </li>
-                <li>
-                  **Persistent Settings:** Your chosen accessibility settings are saved and will persist across your
-                  browsing sessions, so you don't need to reconfigure them each time you visit.
-                </li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">{/* Removed Button: Explore Settings */}</CardFooter>
+            <CardFooter className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                These settings are typically accessed via a floating icon or a dedicated menu item available throughout
+                the site.
+              </p>
+            </CardFooter>
           </Card>
 
           <Card className="flex flex-col h-full">
@@ -83,48 +73,43 @@ export default function AccessibilityPage() {
             </CardHeader>
             <CardContent className="flex-grow pt-4">
               <CardDescription className="mb-4">
-                Our intelligent chatbot is available to provide instant support and guidance, making your site
-                navigation seamless and efficient. It leverages artificial intelligence to understand your queries and
-                respond in a natural, conversational manner.
+                Our intelligent AI-powered chatbot is designed to provide instant assistance and guide you through the
+                website using natural language interactions.
               </CardDescription>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>
-                  **Accessing the Chatbot:** The chatbot can be activated by clicking the chat icon (a speech bubble)
-                  typically located at the bottom-right of your screen. It's designed to be readily available whenever
-                  you need assistance.
+                  **Accessing the Chatbot:** Look for the chat icon (a speech bubble) typically located at the
+                  bottom-right of your screen.
                 </li>
                 <li>
                   **How it Helps:**
                   <ul className="list-circle pl-4 mt-1 space-y-1">
                     <li>
-                      **Information Retrieval:** Ask questions about our services, pricing structures, company policies,
-                      or any other content on the website.
+                      **Information Retrieval:** Ask specific questions about our services, pricing models, company
+                      policies, or any other content on the site, and receive concise answers.
                     </li>
                     <li>
-                      **Navigation Assistance:** Request direct navigation to specific pages (e.g., "Take me to the
-                      pricing page," "Show me career opportunities").
+                      **Navigation Guidance:** The chatbot can understand requests like "Show me the careers page" or
+                      "Where can I find contact information?" and provide direct links or instructions.
                     </li>
                     <li>
-                      **Content Summarization:** Get complex information summarized or rephrased for clarity and easier
-                      understanding.
+                      **Content Clarification:** If you find any information unclear, the chatbot can rephrase or
+                      summarize complex topics to enhance understanding.
                     </li>
                     <li>
-                      **Troubleshooting:** Receive guided steps for common issues or questions you might encounter while
-                      using the site.
-                    </li>
-                    <li>
-                      **Personalized Recommendations:** Based on your interactions, the chatbot can offer relevant
-                      suggestions or direct you to helpful resources.
+                      **Troubleshooting Support:** Get immediate help with common issues or frequently asked questions
+                      without needing to search manually.
                     </li>
                   </ul>
                 </li>
-                <li>
-                  **24/7 Availability:** The chatbot is available around the clock, providing support even outside of
-                  business hours.
-                </li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">{/* Removed Button: Launch Chatbot */}</CardFooter>
+            <CardFooter className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                The chatbot can be engaged through a chat icon, usually located at the bottom-right of your screen,
+                offering interactive support.
+              </p>
+            </CardFooter>
           </Card>
 
           <Card className="flex flex-col h-full">
@@ -134,49 +119,42 @@ export default function AccessibilityPage() {
             </CardHeader>
             <CardContent className="flex-grow pt-4">
               <CardDescription className="mb-4">
-                Our sharing features allow you to easily disseminate content from our website, with considerations for
-                accessibility. This ensures that the information you share can be comfortably consumed by others,
-                regardless of their accessibility needs.
+                Our sharing functionality allows you to easily distribute web pages, with considerations for how the
+                content might be best viewed by others.
               </CardDescription>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>
-                  **Accessing the Share Panel:** You can find the share icon (usually a paper plane or an arrow) on
-                  relevant pages or content sections. Clicking this icon will open the share options.
+                  **Accessing the Share Panel:** Click the share icon (usually a paper plane or arrow) found on relevant
+                  pages.
                 </li>
                 <li>
                   **How it Helps:**
                   <ul className="list-circle pl-4 mt-1 space-y-1">
                     <li>
-                      **Direct Sharing:** Share links to pages directly via various integrated platforms like email,
-                      social media, or messaging apps.
+                      **Direct Link Sharing:** Quickly copy the URL of any page to share it via email, messaging apps,
+                      or social media platforms.
                     </li>
                     <li>
-                      **Clipboard Copy:** Easily copy the page URL to your clipboard for manual pasting into any
-                      application or document.
+                      **Platform Integration:** Utilize native sharing capabilities of your device to send content to
+                      various applications installed on your system.
                     </li>
                     <li>
-                      **Accessibility-Aware Sharing:** In some cases, the shared content may retain or offer options for
-                      specific display settings (e.g., a version with larger text or higher contrast) if supported by
-                      the receiving platform or the content itself, ensuring the recipient can view it optimally.
-                    </li>
-                    <li>
-                      **Enhanced Reach:** By providing accessible sharing options, we aim to make our content available
-                      to a wider audience, promoting inclusivity.
+                      **Accessibility-Aware Sharing:** While the core content is shared, the recipient's own
+                      accessibility settings on their device or browser will apply, ensuring they can view the content
+                      in their preferred mode.
                     </li>
                   </ul>
                 </li>
-                <li>
-                  **Browser Integration:** Our share functionality often integrates with your browser's native sharing
-                  capabilities, providing a familiar and efficient experience.
-                </li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">{/* Removed Button: Open Share Panel */}</CardFooter>
+            <CardFooter className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                The share panel is accessible via a share icon on relevant pages, allowing you to distribute content
+                with various options.
+              </p>
+            </CardFooter>
           </Card>
         </div>
-
-        {/* The accessibility panel is available throughout the site */}
-        <EnhancedAccessibilityPanel />
       </div>
     </AccessibilityProvider>
   )
