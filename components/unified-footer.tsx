@@ -22,7 +22,9 @@ export default function UnifiedFooter() {
       <div className="container max-w-7xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 text-sm">
         {/* Company Info */}
         <div className="space-y-4">
-          <h3 className="font-bold text-xl text-white">Smiley Brooms</h3>
+          <h3 className="font-bold text-xl text-white">
+            smiley<span className="bg-yellow-300 text-gray-900 px-1 rounded">brooms</span>
+          </h3>
           <p className="text-gray-400 leading-relaxed">
             Dedicated to providing exceptional cleaning services with a focus on customer satisfaction and eco-friendly
             practices.
