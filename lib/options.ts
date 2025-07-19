@@ -1,17 +1,8 @@
-export interface DisplayOptions {
+export const options = {
   /**
-   * Toggle whether room/add-on images are rendered in the
-   * checkout order summary.
-   * Set to `false` if you’d prefer a cleaner, text-only list.
+   * When true, price-breakdown rows may render item/room images
+   * if the PricingEngine supplies them.
+   * You can extend this object with more UI tuning flags later.
    */
-  includeImages: boolean
-}
-
-/**
- * Centralised UI/feature flags used across the front-end.
- * Extend this object whenever you need global, client-side
- * feature toggles (e.g. enableAnimations, showBetaBanner, etc.).
- */
-export const options: DisplayOptions = {
   includeImages: true,
 }

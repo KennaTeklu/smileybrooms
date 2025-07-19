@@ -46,7 +46,7 @@ type StripeSessionData = {
 // Helper for email validation
 const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email)
 // Helper for phone validation (basic)
-const isValidPhone = (phone: string) => /^$$?([0-9]{3})$$?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/.test(phone)
+const isValidPhone = (phone: string) => /^$$?\d{3}$$?[-.\s]?\d{3}[-.\s]?\d{4}$/.test(phone)
 // Helper for zip code validation (basic US 5-digit)
 const isValidZipCode = (zip: string) => /^\d{5}$/.test(zip)
 
