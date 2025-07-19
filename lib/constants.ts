@@ -47,8 +47,6 @@ export const APP_CONSTANTS = {
   CONTACT_EMAIL: "support@smileybrooms.com",
   PHONE_NUMBER: "+1 (800) 555-0123",
   ADDRESS: "123 Clean Street, Sparkle City, CA 90210",
-
-
 }
 
 /**
@@ -56,3 +54,56 @@ export const APP_CONSTANTS = {
  *  • No reference to NEXT_PUBLIC_FEATURE_KEY here.
  *  • Sensitive FEATURE_KEY is read only on the server via `lib/server/feature-key.ts`.
  */
+
+/**
+ * List of all feature-flag keys that the app may look for.
+ * Keep the list in sync with any new NEXT_PUBLIC_FEATURE_* env vars you add.
+ */
+export const FEATURE_KEYS = [
+  // General feature flags
+  "NEW_PRICING_MODEL",
+  "ADVANCED_CART",
+  "ROOM_VISUALIZATION",
+  "AI_POWERED_CHATBOT",
+  "DYNAMIC_PAYMENT_OPTIONS",
+  "ENHANCED_ACCESSIBILITY",
+  "CAREER_APPLICATION",
+  "EMAIL_SUMMARY",
+  "TERMS_AGREEMENT_POPUP",
+  "DEVICE_OPTIMIZED_THEMES",
+  "ADVANCED_SCROLL_PHYSICS",
+  "GEOLOCATION_SERVICES",
+  "BIOMETRIC_AUTHENTICATION",
+  "WEB_SHARE_API",
+  "VOICE_COMMANDS",
+  "PERFORMANCE_MONITORING",
+  "NETWORK_STATUS_INDICATOR",
+  "BATTERY_STATUS_OPTIMIZATION",
+  "VIBRATION_FEEDBACK",
+  "KEYBOARD_SHORTCUTS",
+  "CLIPBOARD_INTEGRATION",
+  "DRAG_AND_DROP_SUPPORT",
+  // E-commerce & marketing
+  "FLOATING_CART_BUTTON",
+  "ABANDONMENT_RESCUE",
+  "CART_HEALTH_DASHBOARD",
+  "PRODUCT_CATALOG",
+  "SERVICE_MAP",
+  // Content & UI
+  "CLEANING_CHECKLIST",
+  "CLEANING_TEAM_SELECTOR",
+  "CLEANING_TIME_ESTIMATOR",
+  "ROOM_CONFIGURATOR",
+  "MULTI_STEP_CUSTOMIZATION_WIZARD",
+  "DYNAMIC_FORM_GENERATION",
+  "CONDITIONAL_FIELDS",
+  "FORM_VALIDATION",
+  "MASKED_INPUTS",
+  // Compliance & security
+  "COOKIE_CONSENT_MANAGER",
+  "GDPR_COMPLIANCE",
+  "TOS_GENERATOR",
+  "CSRF_PROTECTION",
+  "RATE_LIMITING",
+  "HONEYPOT_TRAPS",
+] as const
