@@ -50,19 +50,35 @@ export default function UnifiedFooter() {
         {/* Quick Links */}
         <div className="grid gap-3">
           <h3 className="font-semibold text-lg text-white">Services & Info</h3>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             Residential Cleaning
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             Commercial Cleaning
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             Deep Cleaning
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="/pricing">
             Pricing Calculator
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             How It Works
           </Link>
         </div>
@@ -70,19 +86,31 @@ export default function UnifiedFooter() {
         {/* Legal & Resources */}
         <div className="grid gap-3">
           <h3 className="font-semibold text-lg text-white">Legal & Resources</h3>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             Privacy Policy
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="/terms">
             Terms of Service
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             Cookie Policy
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link
+            className="text-gray-400 hover:underline hover:text-white transition-colors"
+            href="#"
+            onClick={handleFeatureComingSoon}
+          >
             FAQ
           </Link>
-          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="#">
+          <Link className="text-gray-400 hover:underline hover:text-white transition-colors" href="/careers">
             Careers
           </Link>
         </div>
