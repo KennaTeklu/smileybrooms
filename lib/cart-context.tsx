@@ -7,7 +7,7 @@ import { cartDB } from "@/lib/cart/persistence" // Import cartDB
 export type CartItem = {
   id: string
   name: string
-  price: number
+  unitPrice: number // Changed from 'price' to 'unitPrice'
   priceId: string
   quantity: number
   image?: string
@@ -73,9 +73,9 @@ const calculateCartTotals = (
   const onlineItems = items.filter((item) => item.paymentType !== "in_person")
   const inPersonItems = items.filter((item) => item.paymentType === "in_person")
 
-  const subtotalPrice = items.reduce((totals, item) => totals + item.price * item.quantity, 0)
-  const onlineSubtotal = onlineItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
-  const inPersonPaymentTotal = inPersonItems.reduce((totals, item) => totals + item.price * item.quantity, 0)
+  const subtotalPrice = items.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
+  const onlineSubtotal = onlineItems.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
+  const inPersonPaymentTotal = inPersonItems.reduce((totals, item) => totals + item.unitPrice * item.quantity, 0) // Changed to item.unitPrice
 
   let couponDiscount = 0
   let fullHouseDiscount = 0
@@ -104,11 +104,11 @@ const calculateCartTotals = (
 
   return {
     totalItems: items.reduce((totals, item) => totals + item.quantity, 0),
-    subtotalPrice, // This includes all items
-    totalPrice: finalOnlinePrice, // This is the total for online payment
-    couponDiscount,
-    fullHouseDiscount,
-    inPersonPaymentTotal, // Return the total for in-person payment
+    subtotalPrice: Math.round(subtotalPrice * 100) / 100,
+    totalPrice: Math.round(finalOnlinePrice * 100) / 100, // This is the total for online payment
+    couponDiscount: Math.round(couponDiscount * 100) / 100,
+    fullHouseDiscount: Math.round(fullHouseDiscount * 100) / 100,
+    inPersonPaymentTotal: Math.round(inPersonPaymentTotal * 100) / 100, // Return the total for in-person payment
   }
 }
 
