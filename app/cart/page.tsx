@@ -31,7 +31,7 @@ function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id
 }
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeItem, clearCart, applyCoupon } = useCart() // Changed updateItemQuantity to updateQuantity
+  const { cart, updateQuantity, removeItem, clearCart, applyCoupon } = useCart()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -237,6 +237,7 @@ export default function CartPage() {
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={(cart.items?.length ?? 0) === 0}
+                  aria-label="Proceed to checkout and finalize your booking"
                 >
                   <Link href="/checkout">Proceed to Checkout</Link>
                 </Button>
@@ -244,6 +245,7 @@ export default function CartPage() {
                   asChild
                   variant="outline"
                   className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                  aria-label="Continue shopping and explore more services"
                 >
                   <Link href="/pricing">Continue Shopping</Link>
                 </Button>
