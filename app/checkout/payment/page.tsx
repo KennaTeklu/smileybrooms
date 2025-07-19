@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, ArrowRight, Shield, Loader2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, Shield } from 'lucide-react'
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -16,8 +16,6 @@ import { motion } from "framer-motion"
 import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
 import type { PaymentMethod } from "@/lib/payment-config"
 import { useDeviceDetection } from "@/lib/device-detection"
-import StripePaymentRequestButton from "@/components/stripe-payment-request-button"
-import { createCheckoutSession } from "@/lib/actions"
 
 export default function PaymentPage() {
   const router = useRouter()
@@ -48,7 +46,7 @@ export default function PaymentPage() {
     try {
       setAddressData(JSON.parse(savedAddress))
     } catch (e) {
-      console.error("Failed to parse saved address data", e)
+      console.error("Failed to parse saved address data")
       router.push("/checkout/address")
     }
   }, [cart.items.length, router])
@@ -59,26 +57,7 @@ export default function PaymentPage() {
     }
   }, [addressData, router])
 
-  const handlePaymentSuccess = () => {
-    // In a real app, this would be triggered by a Stripe webhook
-    // For this example, we'll clear it here.
-    localStorage.removeItem("checkout-address")
-    localStorage.removeItem("checkout-payment")
-    // Assuming a clearCart method exists in useCart, uncomment below:
-    // cart.clearCart()
-    router.push("/success")
-  }
-
-  const handlePaymentFailure = (error: string) => {
-    toast({
-      title: "Payment Failed",
-      description: error,
-      variant: "destructive",
-    })
-    setIsSubmitting(false)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!agreeToTerms) {
@@ -92,75 +71,24 @@ export default function PaymentPage() {
 
     setIsSubmitting(true)
 
-    // Prepare line items for Stripe
-    const lineItems = cart.items.map((item) => ({
-      name: item.name,
-      amount: item.price,
-      quantity: item.quantity,
-      description: item.description,
-      images: item.image ? [item.image] : undefined,
-      metadata: item.metadata ? JSON.stringify(item.metadata) : undefined, // Ensure metadata is stringified
-    }))
-
-    // Add video recording discount if applicable
-    if (allowVideoRecording) {
-      const discountAmount = cart.total * 0.1 // 10% discount
-      lineItems.push({
-        name: "Video Recording Discount",
-        amount: -discountAmount, // Negative amount for discount
-        quantity: 1,
-        description: "10% discount for allowing video recording",
-      })
-    }
-
-    const customerInfo = {
-      name: addressData.fullName,
-      email: addressData.email,
-      phone: addressData.phone,
-      address: {
-        line1: addressData.addressLine1,
-        line2: addressData.addressLine2,
-        city: addressData.city,
-        state: addressData.state,
-        postal_code: addressData.zipCode,
-        country: "US", // Assuming US for now
-      },
-    }
-
-    const metadata = {
-      allowVideoRecording: allowVideoRecording,
-      videoConsentDetails: allowVideoRecording ? "User consented to video recording for QA and social media." : "N/A",
-      agreeToTerms: agreeToTerms,
-      // Add any other relevant checkout data to metadata
-    }
-
     try {
-      const stripeCheckoutUrl = await createCheckoutSession({
-        customLineItems: lineItems,
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: customerInfo.email,
-        customerData: {
-          name: customerInfo.name,
-          email: customerInfo.email,
-          phone: customerInfo.phone,
-          address: customerInfo.address,
-          allowVideoRecording: allowVideoRecording,
-          videoConsentDetails: metadata.videoConsentDetails,
-        },
-        // paymentMethodTypes: [paymentMethod], // This would be for direct Stripe Elements, not Payment Request Button
-        automaticTax: { enabled: true }, // Example: enable automatic tax calculation
-        allowPromotions: true,
-      })
+      // Save payment preferences to localStorage
+      localStorage.setItem(
+        "checkout-payment",
+        JSON.stringify({
+          paymentMethod,
+          allowVideoRecording,
+        }),
+      )
 
-      if (stripeCheckoutUrl) {
-        router.push(stripeCheckoutUrl)
-      } else {
-        handlePaymentFailure("Failed to get Stripe checkout URL.")
-      }
-    } catch (error: any) {
-      console.error("Error initiating checkout:", error)
-      handlePaymentFailure(error.message || "Failed to initiate checkout. Please try again.")
+      // Proceed to review page
+      router.push("/checkout/review")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "There was a problem saving your payment information.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -169,8 +97,6 @@ export default function PaymentPage() {
   if (!addressData) {
     return null // Will redirect via useEffect
   }
-
-  const isAppleOrGooglePay = paymentMethod === "apple_pay" || paymentMethod === "google_pay"
 
   return (
     <div
@@ -258,34 +184,24 @@ export default function PaymentPage() {
                 {/* Navigation Buttons */}
                 <div className="flex justify-between pt-6">
                   <Link href="/checkout/address">
-                    <Button variant="outline" size="lg" className="px-8 bg-transparent" disabled={isSubmitting}>
+                    <Button variant="outline" size="lg" className="px-8">
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back to Address
                     </Button>
                   </Link>
-                  {isAppleOrGooglePay && cart.total > 0 ? (
-                    <StripePaymentRequestButton
-                      total={cart.total}
-                      onPaymentSuccess={handlePaymentSuccess}
-                      onPaymentFailure={handlePaymentFailure}
-                      customerEmail={addressData?.email || ""}
-                      customerName={addressData?.fullName || ""}
-                    />
-                  ) : (
-                    <Button type="submit" size="lg" className="px-8" disabled={isSubmitting || cart.total <= 0}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Secure Checkout...
-                        </>
-                      ) : (
-                        <>
-                          Pay Securely with Stripe
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Review Order
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
               </form>
             </CardContent>

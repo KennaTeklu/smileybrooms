@@ -9,6 +9,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
 
 export async function POST(req: Request) {
   try {
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL
+    if (!appBaseUrl) {
+      return NextResponse.json(
+        { message: "NEXT_PUBLIC_APP_BASE_URL environment variable is not set." },
+        { status: 500 },
+      )
+    }
+
+    // Ensure the base URL has a scheme
+    const baseUrlWithScheme =
+      appBaseUrl.startsWith("http://") || appBaseUrl.startsWith("https://") ? appBaseUrl : `https://${appBaseUrl}`
+
     const { lineItems, customerInfo, metadata } = await req.json()
 
     // Validate incoming data (basic validation, enhance as needed)
@@ -18,18 +30,6 @@ export async function POST(req: Request) {
     if (!customerInfo || !customerInfo.email || !customerInfo.name) {
       return NextResponse.json({ message: "Customer information is incomplete" }, { status: 400 })
     }
-
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_BASE_URL
-    if (!appBaseUrl) {
-      return NextResponse.json(
-        { message: "NEXT_PUBLIC_APP_BASE_URL environment variable is not set." },
-        { status: 500 },
-      )
-    }
-
-    // Ensure the base URL has an explicit scheme (http:// or https://)
-    const baseUrlWithScheme =
-      appBaseUrl.startsWith("http://") || appBaseUrl.startsWith("https://") ? appBaseUrl : `https://${appBaseUrl}` // Default to https if no scheme is provided
 
     // Create a Stripe Customer (optional, but good for recurring customers)
     // You might want to check if a customer already exists by email
