@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss"
 
-const config = {
+const config: Config = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -19,6 +19,10 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -26,31 +30,31 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          default: "hsl(var(--primary))",
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          default: "hsl(var(--secondary))",
+          DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          default: "hsl(var(--destructive))",
+          DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          default: "hsl(var(--muted))",
+          DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          default: "hsl(var(--accent))",
+          DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          default: "hsl(var(--popover))",
+          DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          default: "hsl(var(--card))",
+          DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
       },
@@ -68,36 +72,10 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        glow: {
-          "0%, 100%": {
-            opacity: "1",
-            filter: "brightness(1)",
-          },
-          "50%": {
-            opacity: "0.8",
-            filter: "brightness(1.2)",
-          },
-        },
-        "pulse-gradient-border": {
-          "0%, 100%": {
-            "box-shadow": "0 0 0 0px rgba(59, 130, 246, 0.7)", // blue-600
-          },
-          "25%": {
-            "box-shadow": "0 0 0 4px rgba(6, 182, 212, 0.7)", // cyan-500
-          },
-          "50%": {
-            "box-shadow": "0 0 0 8px rgba(59, 130, 246, 0.7)", // blue-600
-          },
-          "75%": {
-            "box-shadow": "0 0 0 4px rgba(6, 182, 212, 0.7)", // cyan-500
-          },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        glow: "glow 1.5s infinite alternate",
-        "pulse-gradient-border": "pulse-gradient-border 2s infinite ease-in-out",
       },
     },
   },
