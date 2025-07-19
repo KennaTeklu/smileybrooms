@@ -68,7 +68,7 @@ export default function MinimalHero() {
             className="mb-6"
           >
             <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 animate-glow">
-              smileybrooms
+              smiley<span className="text-cyan-400">brooms</span>
             </h1>
           </motion.div>
 
