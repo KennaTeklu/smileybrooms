@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 import { AnimatePresence } from "framer-motion"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
+import { ArrowRight } from "lucide-react" // Import ArrowRight for the button icon
 
 // Simple price formatter – prepend `$` & keep two decimals
 const formatPrice = (price: number) => `$${price.toFixed(2)}`
@@ -237,15 +238,17 @@ export default function CartPage() {
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={(cart.items?.length ?? 0) === 0}
-                  aria-label="Proceed to checkout and finalize your booking"
+                  aria-label="Proceed to checkout and finalize your booking" // Added aria-label for accessibility
                 >
-                  <Link href="/checkout">Proceed to Checkout</Link>
+                  <Link href="/checkout">
+                    Proceed to Checkout
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
                   className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
-                  aria-label="Continue shopping and explore more services"
                 >
                   <Link href="/pricing">Continue Shopping</Link>
                 </Button>
