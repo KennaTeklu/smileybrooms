@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
+import { openGmailWithFormData } from "@/lib/email-utils" // Import the utility function
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -31,8 +32,38 @@ export default function ContactPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Simulate API call or actual submission logic
+    // For demonstration, we'll use the openGmailWithFormData
+    // In a real application, you'd send this data to a backend API
+    // await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Open Gmail with the form data
+    openGmailWithFormData(
+      {
+        customer: {
+          name: formData.name,
+          email: formData.email,
+          phone: "Not provided", // You might want to add a phone field to your form
+          address: "Not provided", // You might want to add address fields to your form
+          specialInstructions: formData.message,
+          allowVideoRecording: false, // Example, adjust as needed
+        },
+        service: {
+          roomName: formData.subject, // Using subject as a placeholder for service type
+          roomCount: 1, // Example, adjust as needed
+          selectedTier: "Standard", // Example, adjust as needed
+          frequency: "one-time", // Example, adjust as needed
+          selectedAddOns: [],
+          selectedReductions: [],
+        },
+        pricing: {
+          basePrice: 0, // Example, adjust as needed
+          videoRecordingDiscount: 0, // Example, adjust as needed
+          finalPrice: 0, // Example, adjust as needed
+        },
+      },
+      "info@smileybrooms.com",
+    ) // Replace with your actual recipient email
 
     setIsSubmitting(false)
     setFormData({ name: "", email: "", subject: "", message: "" })
