@@ -1,3 +1,5 @@
+"use client"
+
 import type { CartItem, NormalizedCartState, CartAction } from "./types"
 import { generateCompositeKey, normalizeCartItem, calculateCartSummary, validateQuantity } from "./utils"
 import { cartDB, CartCRDT } from "./persistence"
