@@ -154,6 +154,56 @@ export class CartOperations {
     }
   }
 
+  // ────────────────────────────────────────────────────────────────────────────────
+  // Coupon handling
+  // ────────────────────────────────────────────────────────────────────────────────
+  /**
+   * Apply a coupon code to the current cart state.
+   * For now this is a demo implementation that recognises a single
+   * code (`SAVE10`) and applies a 10 % discount to the subtotal.
+   * Extend this logic to fetch real coupon data from your backend.
+   *
+   * @param state The current cart state
+   * @param code  The coupon code entered by the user (case-insensitive)
+   */
+  async applyCouponCode(state: NormalizedCartState, code: string): Promise<NormalizedCartState> {
+    const startTime = performance.now()
+
+    // Normalise code
+    const normalised = code.trim().toUpperCase()
+
+    // You can replace this with an async call to your coupons DB
+    const isValid = normalised === "SAVE10"
+    const discountRate = isValid ? 0.1 : 0
+
+    // Recalculate discounts
+    const newItems = [...state.items]
+    const summary = calculateCartSummary(newItems)
+    const couponDiscount = summary.subTotal * discountRate
+
+    const newState: NormalizedCartState = {
+      ...state,
+      items: newItems,
+      summary: {
+        ...summary,
+        discounts: summary.discounts + couponDiscount,
+        grandTotal: summary.subTotal - (summary.discounts + couponDiscount) + summary.shipping + summary.taxes,
+      },
+      lastModified: Date.now(),
+      couponCode: isValid ? normalised : undefined,
+      couponDiscount: isValid ? couponDiscount : 0,
+    }
+
+    // Persist & performance log
+    await this.persistState(newState)
+    const duration = performance.now() - startTime
+    if (duration > 100) {
+      console.warn(`Apply coupon operation took ${duration}ms (target: <100ms)`)
+    }
+
+    return newState
+  }
+
   // Batch operations for performance
   private async persistState(state: NormalizedCartState): Promise<void> {
     this.crdt.incrementClock()
