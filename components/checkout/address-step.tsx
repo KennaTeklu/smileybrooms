@@ -3,13 +3,13 @@
 import type React from "react"
 
 import type { ReactElement } from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react" // Added useCallback
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation, CreditCard, Lock } from "lucide-react"
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation, CreditCard, Lock, Loader2 } from "lucide-react" // Added Loader2
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
@@ -17,8 +17,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { US_STATES } from "@/lib/location-data"
 import { motion } from "framer-motion"
-import { PricingEngine } from "@/utils/pricing-engine" // Assuming PricingEngine is in lib
+import { PricingEngine } from "@/utils/pricing-engine"
 import { Checkbox } from "@/components/ui/checkbox"
+import { options } from "@/lib/options" // Declared the variable before using it
 
 // Re-defining types based on the attached file's structure
 type AddressData = {
@@ -32,7 +33,6 @@ type AddressData = {
   zipCode: string
   specialInstructions: string
   addressType: "residential" | "commercial" | "other"
-  // Adding video consent and terms agreement here as per previous conversation
   allowVideoRecording: boolean
   videoConsentDetails?: string
   agreeToTerms: boolean
@@ -43,7 +43,13 @@ type StripeSessionData = {
   paymentStatus?: "pending" | "processing" | "succeeded" | "failed"
 }
 
-// This component will now act as the main page for address collection and payment initiation
+// Helper for email validation
+const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email)
+// Helper for phone validation (basic)
+const isValidPhone = (phone: string) => /^$$?([0-9]{3})$$?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/.test(phone)
+// Helper for zip code validation (basic US 5-digit)
+const isValidZipCode = (zip: string) => /^\d{5}$/.test(zip)
+
 export default function AddressCollectionPage(): ReactElement {
   const router = useRouter()
   const { cart } = useCart()
@@ -67,7 +73,7 @@ export default function AddressCollectionPage(): ReactElement {
 
   const [stripeSession, setStripeSession] = useState<StripeSessionData>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false) // For address form submission
+  const [isSubmittingAddress, setIsSubmittingAddress] = useState(false) // Renamed for clarity
   const [isCreatingStripeSession, setIsCreatingStripeSession] = useState(false)
   const [showPaymentSection, setShowPaymentSection] = useState(false)
 
@@ -75,7 +81,6 @@ export default function AddressCollectionPage(): ReactElement {
   const pricing = useState(() => {
     if (cart.items.length === 0) return null
 
-    // Map cart items to the format expected by PricingEngine
     const rooms = cart.items
       .filter((item) => item.roomType)
       .map((item) => ({
@@ -84,7 +89,7 @@ export default function AddressCollectionPage(): ReactElement {
         selectedTier: item.selectedTier,
         selectedAddOns: item.selectedAddOns,
         selectedReductions: item.selectedReductions,
-        unitPrice: item.unitPrice, // Ensure unitPrice is passed
+        unitPrice: item.unitPrice,
       }))
 
     const addOns = cart.items
@@ -92,16 +97,22 @@ export default function AddressCollectionPage(): ReactElement {
       .map((item) => ({
         name: item.name,
         quantity: item.quantity,
-        price: item.unitPrice, // Ensure unitPrice is passed
+        price: item.unitPrice,
       }))
+
+    // Include video recording discount if applicable
+    const discountCodes = addressData.allowVideoRecording ? ["VIDEO_RECORDING_DISCOUNT"] : []
+    if (cart.couponCode) {
+      discountCodes.push(cart.couponCode)
+    }
 
     return PricingEngine.formatForDisplay(
       PricingEngine.calculate({
         rooms: rooms,
         addOns: addOns,
-        frequency: cart.paymentFrequency || "one-time", // Assuming a default or from cart context
-        cleanlinessMultiplier: 1, // Assuming default or from cart context
-        discountCodes: cart.couponCode ? [cart.couponCode] : [], // Pass coupon code
+        frequency: cart.paymentFrequency || "one-time",
+        cleanlinessMultiplier: 1,
+        discountCodes: discountCodes,
         paymentMethod: "card",
       }),
       { showDetailed: true, includeImages: true },
@@ -111,7 +122,12 @@ export default function AddressCollectionPage(): ReactElement {
   // Redirect if cart is empty
   useEffect(() => {
     if (cart.items.length === 0) {
-      router.push("/pricing")
+      toast({
+        title: "Your cart is empty",
+        description: "Please add items to your cart before checking out.",
+        variant: "destructive",
+      })
+      router.push("/pricing") // Redirect to a page where they can add items
       return
     }
 
@@ -121,127 +137,165 @@ export default function AddressCollectionPage(): ReactElement {
       try {
         const parsed = JSON.parse(savedAddress)
         setAddressData(parsed)
-
         // If we have complete address data, show payment section
-        if (parsed.fullName && parsed.email && parsed.address && parsed.city && parsed.state && parsed.zipCode) {
+        if (
+          parsed.fullName &&
+          parsed.email &&
+          parsed.address &&
+          parsed.city &&
+          parsed.state &&
+          parsed.zipCode &&
+          parsed.agreeToTerms
+        ) {
           setShowPaymentSection(true)
         }
       } catch (e) {
-        console.error("Failed to parse saved address data")
+        console.error("Failed to parse saved address data from localStorage:", e)
       }
     }
 
-    // Check for existing Stripe session
+    // Check for existing Stripe session (less critical for redirect, more for status)
     const savedStripeSession = localStorage.getItem("stripe-session")
     if (savedStripeSession) {
       try {
         setStripeSession(JSON.parse(savedStripeSession))
       } catch (e) {
-        console.error("Failed to parse Stripe session data")
+        console.error("Failed to parse Stripe session data from localStorage:", e)
       }
     }
-  }, [cart.items.length, router])
+  }, [cart.items.length, router, toast])
 
-  const handleChange = (field: string, value: string | boolean) => {
-    setAddressData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-
-    // Clear error when field is edited
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
-      })
-    }
-  }
-
-  const handleCheckboxChange = (field: keyof AddressData, checked: boolean) => {
-    setAddressData((prev) => ({
-      ...prev,
-      [field]: checked,
-    }))
-    if (field === "allowVideoRecording" && checked) {
+  const handleChange = useCallback(
+    (field: string, value: string | boolean) => {
       setAddressData((prev) => ({
         ...prev,
-        videoConsentDetails: new Date().toISOString(),
+        [field]: value,
       }))
-    } else if (field === "allowVideoRecording" && !checked) {
+
+      // Clear error when field is edited
+      if (errors[field]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev }
+          delete newErrors[field]
+          return newErrors
+        })
+      }
+    },
+    [errors],
+  )
+
+  const handleCheckboxChange = useCallback(
+    (field: keyof AddressData, checked: boolean) => {
       setAddressData((prev) => ({
         ...prev,
-        videoConsentDetails: undefined,
+        [field]: checked,
       }))
-    }
-  }
+      if (field === "allowVideoRecording" && checked) {
+        setAddressData((prev) => ({
+          ...prev,
+          videoConsentDetails: new Date().toISOString(),
+        }))
+      } else if (field === "allowVideoRecording" && !checked) {
+        setAddressData((prev) => ({
+          ...prev,
+          videoConsentDetails: undefined,
+        }))
+      }
+      // Clear terms error if checked
+      if (field === "agreeToTerms" && checked && errors.agreeToTerms) {
+        setErrors((prev) => {
+          const newErrors = { ...prev }
+          delete newErrors.agreeToTerms
+          return newErrors
+        })
+      }
+    },
+    [errors],
+  )
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {}
 
-    if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
-    if (!addressData.email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
+    if (!addressData.fullName.trim()) newErrors.fullName = "Full Name is required."
+    if (!addressData.email.trim()) newErrors.email = "Email is required."
+    else if (!isValidEmail(addressData.email)) newErrors.email = "Please enter a valid email address."
 
-    if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
-    if (!addressData.address.trim()) newErrors.address = "Address is required"
-    if (!addressData.city.trim()) newErrors.city = "City is required"
-    if (!addressData.state) newErrors.state = "State is required"
-    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
-    if (!addressData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms and conditions."
+    if (!addressData.phone.trim()) newErrors.phone = "Phone number is required."
+    else if (!isValidPhone(addressData.phone)) newErrors.phone = "Please enter a valid 10-digit phone number."
+
+    if (!addressData.address.trim()) newErrors.address = "Street Address is required."
+    if (!addressData.city.trim()) newErrors.city = "City is required."
+    if (!addressData.state) newErrors.state = "State is required."
+    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP Code is required."
+    else if (!isValidZipCode(addressData.zipCode)) newErrors.zipCode = "Please enter a valid 5-digit ZIP code."
+    if (!addressData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the Terms of Service and Privacy Policy."
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
+  }, [addressData])
 
-  const handleAddressSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAddressSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
 
-    if (validateForm()) {
-      setIsSubmitting(true)
+      if (validateForm()) {
+        setIsSubmittingAddress(true)
 
-      try {
-        // Save address data to localStorage
-        localStorage.setItem("checkout-address", JSON.stringify(addressData))
+        try {
+          // Save address data to localStorage
+          localStorage.setItem("checkout-address", JSON.stringify(addressData))
 
-        setShowPaymentSection(true)
+          setShowPaymentSection(true)
 
-        toast({
-          title: "Address saved",
-          description: "You can now proceed with payment.",
-        })
-
-        // Smooth scroll to payment section
-        setTimeout(() => {
-          document.getElementById("payment-section")?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
+          toast({
+            title: "Address Saved!",
+            description: "Your service address has been saved. Proceed to payment.",
+            variant: "success",
           })
-        }, 100)
-      } catch (error) {
+
+          // Smooth scroll to payment section
+          setTimeout(() => {
+            document.getElementById("payment-section")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            })
+          }, 100)
+        } catch (error) {
+          console.error("Error saving address:", error)
+          toast({
+            title: "Error Saving Address",
+            description: "There was a problem saving your address information. Please try again.",
+            variant: "destructive",
+          })
+        } finally {
+          setIsSubmittingAddress(false)
+        }
+      } else {
         toast({
-          title: "Error",
-          description: "There was a problem saving your address information.",
+          title: "Please Correct Errors",
+          description: "Some required fields are missing or invalid. Please review your information.",
           variant: "destructive",
         })
-      } finally {
-        setIsSubmitting(false)
       }
-    } else {
+    },
+    [addressData, validateForm, toast],
+  )
+
+  const createStripeSession = useCallback(async () => {
+    if (!pricing) {
       toast({
-        title: "Please check your information",
-        description: "Some required fields are missing or invalid.",
+        title: "Cart Empty",
+        description: "Your cart is empty. Please add items before proceeding to payment.",
         variant: "destructive",
       })
+      router.push("/pricing")
+      return
     }
-  }
 
-  const createStripeSession = async () => {
-    if (!pricing || !validateForm()) {
-      // Re-validate before creating session
+    if (!validateForm()) {
       toast({
-        title: "Please complete address and agree to terms",
-        description: "Ensure all required fields are filled and terms are accepted.",
+        title: "Address Incomplete",
+        description: "Please complete all required address fields and agree to the terms.",
         variant: "destructive",
       })
       return
@@ -295,7 +349,7 @@ export default function AddressCollectionPage(): ReactElement {
                 name: `Discount: ${discount.name}`,
                 metadata: {
                   type: "discount",
-                  code: discount.name,
+                  code: discount.code || discount.name,
                 },
               },
               unit_amount: -Math.round(discount.amount * 100), // Negative amount for discount
@@ -364,7 +418,7 @@ export default function AddressCollectionPage(): ReactElement {
     } finally {
       setIsCreatingStripeSession(false)
     }
-  }
+  }, [addressData, cart, pricing, toast, validateForm, router])
 
   const getAddressTypeIcon = () => {
     switch (addressData.addressType) {
@@ -454,7 +508,7 @@ export default function AddressCollectionPage(): ReactElement {
                       onChange={(e) => handleChange("fullName", e.target.value)}
                       className={`mt-2 h-12 ${errors.fullName ? "border-red-500" : ""}`}
                       placeholder="John Doe"
-                      disabled={showPaymentSection}
+                      disabled={isSubmittingAddress || showPaymentSection}
                     />
                     {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
                   </div>
@@ -471,7 +525,7 @@ export default function AddressCollectionPage(): ReactElement {
                         onChange={(e) => handleChange("email", e.target.value)}
                         className={`mt-2 h-12 ${errors.email ? "border-red-500" : ""}`}
                         placeholder="john.doe@example.com"
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       />
                       {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
@@ -487,7 +541,7 @@ export default function AddressCollectionPage(): ReactElement {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         className={`mt-2 h-12 ${errors.phone ? "border-red-500" : ""}`}
                         placeholder="(555) 123-4567"
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       />
                       {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                     </div>
@@ -504,8 +558,10 @@ export default function AddressCollectionPage(): ReactElement {
                         key={type}
                         className={`cursor-pointer flex-1 min-w-[150px] ${
                           addressData.addressType === type ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : ""
-                        } ${showPaymentSection ? "opacity-60 cursor-not-allowed" : ""}`}
-                        onClick={() => !showPaymentSection && handleChange("addressType", type)}
+                        } ${isSubmittingAddress || showPaymentSection ? "opacity-60 cursor-not-allowed" : ""}`}
+                        onClick={() =>
+                          !(isSubmittingAddress || showPaymentSection) && handleChange("addressType", type)
+                        }
                       >
                         <CardContent className="p-4 text-center">
                           {type === "residential" && <Home className="h-8 w-8 mx-auto mb-2 text-blue-600" />}
@@ -535,7 +591,7 @@ export default function AddressCollectionPage(): ReactElement {
                       onChange={(e) => handleChange("address", e.target.value)}
                       className={`mt-2 h-12 ${errors.address ? "border-red-500" : ""}`}
                       placeholder="123 Main Street"
-                      disabled={showPaymentSection}
+                      disabled={isSubmittingAddress || showPaymentSection}
                     />
                     {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
                   </div>
@@ -550,7 +606,7 @@ export default function AddressCollectionPage(): ReactElement {
                       onChange={(e) => handleChange("address2", e.target.value)}
                       className="mt-2 h-12"
                       placeholder="Apt 4B"
-                      disabled={showPaymentSection}
+                      disabled={isSubmittingAddress || showPaymentSection}
                     />
                   </div>
 
@@ -565,7 +621,7 @@ export default function AddressCollectionPage(): ReactElement {
                         onChange={(e) => handleChange("city", e.target.value)}
                         className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
                         placeholder="New York"
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       />
                       {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                     </div>
@@ -577,7 +633,7 @@ export default function AddressCollectionPage(): ReactElement {
                       <Select
                         value={addressData.state}
                         onValueChange={(value) => handleChange("state", value)}
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       >
                         <SelectTrigger id="state" className={`mt-2 h-12 ${errors.state ? "border-red-500" : ""}`}>
                           <SelectValue placeholder="Select state" />
@@ -603,7 +659,7 @@ export default function AddressCollectionPage(): ReactElement {
                         onChange={(e) => handleChange("zipCode", e.target.value)}
                         className={`mt-2 h-12 ${errors.zipCode ? "border-red-500" : ""}`}
                         placeholder="10001"
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       />
                       {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>}
                     </div>
@@ -619,7 +675,7 @@ export default function AddressCollectionPage(): ReactElement {
                     onChange={(e) => handleChange("specialInstructions", e.target.value)}
                     placeholder="Entry instructions, pets, areas to avoid, etc."
                     className="h-32"
-                    disabled={showPaymentSection}
+                    disabled={isSubmittingAddress || showPaymentSection}
                   />
                 </div>
 
@@ -627,7 +683,7 @@ export default function AddressCollectionPage(): ReactElement {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 1.1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }} // Adjusted delay
                 >
                   <div className="space-y-4 pt-4">
                     <h3 className="text-lg font-medium">Additional Options</h3>
@@ -636,7 +692,7 @@ export default function AddressCollectionPage(): ReactElement {
                         id="videoRecording"
                         checked={addressData.allowVideoRecording}
                         onCheckedChange={(checked) => handleCheckboxChange("allowVideoRecording", checked as boolean)}
-                        disabled={showPaymentSection}
+                        disabled={isSubmittingAddress || showPaymentSection}
                       />
                       <div className="grid gap-1.5 leading-none">
                         <Label htmlFor="videoRecording" className="text-base">
@@ -657,7 +713,7 @@ export default function AddressCollectionPage(): ReactElement {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 1.2 }}
+                  transition={{ duration: 0.3, delay: 0.2 }} // Adjusted delay
                 >
                   <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                     <Checkbox
@@ -665,7 +721,7 @@ export default function AddressCollectionPage(): ReactElement {
                       checked={addressData.agreeToTerms}
                       onCheckedChange={(checked) => handleCheckboxChange("agreeToTerms", checked as boolean)}
                       required
-                      disabled={showPaymentSection}
+                      disabled={isSubmittingAddress || showPaymentSection}
                     />
                     <Label htmlFor="terms" className="text-base">
                       I agree to the{" "}
@@ -690,10 +746,10 @@ export default function AddressCollectionPage(): ReactElement {
                         Back to Cart
                       </Button>
                     </Link>
-                    <Button type="submit" size="lg" className="px-8" disabled={isSubmitting}>
-                      {isSubmitting ? (
+                    <Button type="submit" size="lg" className="px-8" disabled={isSubmittingAddress}>
+                      {isSubmittingAddress ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
                           Saving Address...
                         </>
                       ) : (
@@ -714,6 +770,7 @@ export default function AddressCollectionPage(): ReactElement {
                       variant="outline"
                       onClick={() => setShowPaymentSection(false)}
                       className="w-full"
+                      disabled={isCreatingStripeSession} // Disable if payment session is being created
                     >
                       Edit Address Information
                     </Button>
@@ -746,35 +803,39 @@ export default function AddressCollectionPage(): ReactElement {
                   <h3 className="text-lg font-medium">Order Summary</h3>
 
                   {/* Room Charges */}
-                  <div className="space-y-3">
-                    {pricing.roomDisplay?.map((room, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          {room.image && (
-                            <img
-                              src={room.image || "/placeholder.svg"}
-                              alt={room.room}
-                              className="w-10 h-10 rounded-md object-cover"
-                            />
-                          )}
-                          {room.icon}
-                          <div>
-                            <p className="font-medium">{room.room}</p>
-                            {room.description && <p className="text-sm text-muted-foreground">{room.description}</p>}
+                  {pricing.roomDisplay && pricing.roomDisplay.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Rooms</h4>
+                      {pricing.roomDisplay.map((room, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            {room.image &&
+                              options.includeImages && ( // Conditionally render image
+                                <img
+                                  src={room.image || "/placeholder.svg"}
+                                  alt={room.room}
+                                  className="w-10 h-10 rounded-md object-cover"
+                                />
+                              )}
+                            {room.icon}
+                            <div>
+                              <p className="font-medium">{room.room}</p>
+                              {room.description && <p className="text-sm text-muted-foreground">{room.description}</p>}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">${room.adjustedRate.toFixed(2)}</p>
+                            {room.baseRate !== room.adjustedRate && (
+                              <p className="text-sm text-muted-foreground line-through">${room.baseRate.toFixed(2)}</p>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">${room.adjustedRate}</p>
-                          {room.baseRate !== room.adjustedRate && (
-                            <p className="text-sm text-muted-foreground line-through">${room.baseRate}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Add-On Charges */}
                   {pricing.addOnDisplay && pricing.addOnDisplay.length > 0 && (
@@ -796,7 +857,7 @@ export default function AddressCollectionPage(): ReactElement {
                               )}
                             </div>
                           </div>
-                          <p className="font-medium">${addon.price}</p>
+                          <p className="font-medium">${addon.price.toFixed(2)}</p>
                         </div>
                       ))}
                     </div>
@@ -812,15 +873,27 @@ export default function AddressCollectionPage(): ReactElement {
                           className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
                         >
                           <p className="font-medium text-green-700 dark:text-green-300">{discount.name}</p>
-                          <p className="font-medium text-green-700 dark:text-green-300">-${discount.amount}</p>
+                          <p className="font-medium text-green-700 dark:text-green-300">
+                            -${discount.amount.toFixed(2)}
+                          </p>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Total */}
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between">
+                  {/* Subtotal, Tax, Total */}
+                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex items-center justify-between text-base">
+                      <p className="text-gray-700 dark:text-gray-300">Subtotal</p>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">${pricing.subtotal.toFixed(2)}</p>
+                    </div>
+                    {pricing.tax !== undefined && (
+                      <div className="flex items-center justify-between text-base">
+                        <p className="text-gray-700 dark:text-gray-300">Estimated Tax</p>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">${pricing.tax.toFixed(2)}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-4">
                       <div>
                         <p className="text-lg font-semibold">Total Amount</p>
                         <p className="text-sm text-muted-foreground">
@@ -828,7 +901,7 @@ export default function AddressCollectionPage(): ReactElement {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">${pricing.total}</p>
+                        <p className="text-2xl font-bold">${pricing.total.toFixed(2)}</p>
                         <p className="text-sm text-muted-foreground">per service</p>
                       </div>
                     </div>
@@ -839,19 +912,19 @@ export default function AddressCollectionPage(): ReactElement {
                 <div className="space-y-4">
                   <Button
                     onClick={createStripeSession}
-                    disabled={isCreatingStripeSession || !addressData.agreeToTerms} // Disable if submitting or terms not agreed
+                    disabled={isCreatingStripeSession || !addressData.agreeToTerms || pricing.total <= 0} // Disable if submitting, terms not agreed, or total is zero/negative
                     size="lg"
                     className="w-full h-14 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     {isCreatingStripeSession ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
+                        <Loader2 className="animate-spin h-5 w-5 mr-3" />
                         Creating Secure Checkout...
                       </>
                     ) : (
                       <>
                         <Lock className="mr-3 h-5 w-5" />
-                        Pay Securely with Stripe - ${pricing.total}
+                        Pay Securely with Stripe - ${pricing.total.toFixed(2)}
                       </>
                     )}
                   </Button>

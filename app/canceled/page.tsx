@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { XCircle, ShoppingCart, ArrowLeft } from "lucide-react"
+import { XCircle, ShoppingCart, RefreshCw } from "lucide-react" // Added RefreshCw
 import Link from "next/link"
 import AccessibilityToolbar from "@/components/accessibility-toolbar"
 
@@ -17,21 +17,25 @@ export default function CanceledPage() {
         </CardHeader>
         <CardContent className="text-center">
           <p>The payment process was canceled. No charges were made.</p>
+          <p className="mt-2">
+            This could be due to various reasons, such as closing the payment window, an issue with your payment method,
+            or a security block.
+          </p>
           <p className="mt-2">If you experienced any issues, please try again or contact our support team.</p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <Button asChild className="w-full">
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Return to Home
+            <Link href="/pricing">
+              <RefreshCw className="mr-2 h-4 w-4" /> Try Booking Again
             </Link>
           </Button>
-          <Button asChild variant="outline" className="w-full">
+          <Button asChild variant="outline" className="w-full bg-transparent">
             <Link href="/services">
-              <ShoppingCart className="mr-2 h-4 w-4" /> Continue Shopping
+              <ShoppingCart className="mr-2 h-4 w-4" /> Explore Services
             </Link>
           </Button>
-          <Button asChild className="mt-4">
-            <Link href="/pricing">Book a new service</Link>
+          <Button asChild className="mt-4" variant="ghost">
+            <Link href="/contact">Contact Support</Link>
           </Button>
         </CardFooter>
       </Card>
