@@ -1,359 +1,266 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check } from 'lucide-react'
-import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
+import type { CheckoutData } from "@/lib/types"
 import { createCheckoutSession } from "@/lib/actions"
+import { saveBookingToSupabase } from "@/lib/supabase-actions" // Import the new action
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
 
 export default function ReviewPage() {
   const router = useRouter()
   const { cart, clearCart } = useCart()
   const { toast } = useToast()
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [bookingId, setBookingId] = useState<string | null>(null)
 
-  const [addressData, setAddressData] = useState<any>(null)
-  const [paymentData, setPaymentData] = useState<any>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const videoDiscount = paymentData?.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const tax = (subtotal - videoDiscount) * 0.08 // 8% tax
-  const total = subtotal - videoDiscount + tax
-
-  // Redirect if cart is empty or missing data
   useEffect(() => {
-    if (cart.items.length === 0) {
-      router.push("/pricing")
-      return
-    }
+    const storedContact = localStorage.getItem("checkout-contact")
+    const storedAddress = localStorage.getItem("checkout-address")
+    const storedPayment = localStorage.getItem("checkout-payment")
 
-    // Load address data from localStorage
-    const savedAddress = localStorage.getItem("checkout-address")
-    if (!savedAddress) {
-      router.push("/checkout/address")
-      return
-    }
-
-    // Load payment data from localStorage
-    const savedPayment = localStorage.getItem("checkout-payment")
-    if (!savedPayment) {
-      router.push("/checkout/payment")
-      return
-    }
-
-    try {
-      setAddressData(JSON.parse(savedAddress))
-      setPaymentData(JSON.parse(savedPayment))
-    } catch (e) {
-      console.error("Failed to parse saved checkout data")
-      router.push("/checkout/address")
-    }
-  }, [cart.items.length, router])
-
-  const handleCheckout = async () => {
-    if (!addressData || !paymentData) {
+    if (storedContact && storedAddress && storedPayment) {
+      setCheckoutData({
+        contact: JSON.parse(storedContact),
+        address: JSON.parse(storedAddress),
+        payment: JSON.parse(storedPayment),
+      })
+    } else {
+      // Redirect if data is missing
       toast({
-        title: "Missing Information",
-        description: "Please complete all previous steps before checkout.",
+        title: "Missing Checkout Data",
+        description: "Please complete the previous checkout steps.",
+        variant: "destructive",
+      })
+      router.push("/checkout")
+    }
+  }, [router, toast])
+
+  const handlePlaceOrder = async () => {
+    if (!checkoutData || cart.items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Missing checkout data or empty cart.",
         variant: "destructive",
       })
       return
     }
 
-    setIsProcessing(true)
-
+    setIsLoading(true)
     try {
-      // Prepare line items for Stripe
+      // 1. Save booking data to Supabase
+      const savedBookingId = await saveBookingToSupabase({
+        checkoutData,
+        cartItems: cart.items,
+        totalAmount: cart.totalPrice, // Use the calculated total price from cart context
+      })
+      setBookingId(savedBookingId)
+      toast({
+        title: "Booking Saved",
+        description: `Your booking (ID: ${savedBookingId}) has been saved. Redirecting to payment...`,
+        variant: "success",
+      })
+
+      // 2. Create Stripe Checkout Session
       const customLineItems = cart.items.map((item) => ({
         name: item.name,
         amount: item.price,
         quantity: item.quantity,
-        description: item.metadata?.description || `Service: ${item.name}`,
+        description: item.description || "",
         images: item.image ? [item.image] : [],
-        metadata: {
-          itemId: item.id,
-          ...item.metadata,
-        },
+        metadata: item.metadata ? JSON.stringify(item.metadata) : "{}", // Ensure metadata is stringified
       }))
 
-      // Add video discount if applicable
-      if (videoDiscount > 0) {
-        customLineItems.push({
-          name: "Video Recording Discount",
-          amount: -videoDiscount, // Negative amount for discount
-          quantity: 1,
-          description: "Discount for allowing video recording during service",
-        })
+      const customerData = {
+        name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
+        email: checkoutData.contact.email,
+        phone: checkoutData.contact.phone,
+        address: {
+          line1: checkoutData.address.address,
+          city: checkoutData.address.city,
+          state: checkoutData.address.state,
+          postal_code: checkoutData.address.zipCode,
+          country: "US", // Assuming US for now, adjust as needed
+        },
+        allowVideoRecording: checkoutData.payment.allowVideoRecording,
+        videoConsentDetails: checkoutData.payment.videoConsentDetails,
       }
 
-      // Create checkout session with Stripe
-      const checkoutUrl = await createCheckoutSession({
+      const stripeSessionUrl = await createCheckoutSession({
         customLineItems,
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerData: {
-          name: addressData.fullName,
-          email: addressData.email,
-          phone: addressData.phone,
-          address: {
-            line1: addressData.address,
-            city: addressData.city,
-            state: addressData.state,
-            postal_code: addressData.zipCode,
-            country: "US",
-          },
-        },
+        successUrl: `${window.location.origin}/success?bookingId=${savedBookingId}`, // Pass booking ID to success page
+        cancelUrl: `${window.location.origin}/canceled?bookingId=${savedBookingId}`, // Pass booking ID to canceled page
+        customerEmail: checkoutData.contact.email,
+        customerData: customerData,
+        automaticTax: { enabled: true },
         allowPromotions: true,
       })
 
-      if (checkoutUrl) {
-        // Clear checkout data
-        localStorage.removeItem("checkout-address")
-        localStorage.removeItem("checkout-payment")
-
-        // Redirect to Stripe
-        window.location.href = checkoutUrl
+      if (stripeSessionUrl) {
+        window.location.href = stripeSessionUrl
       } else {
-        throw new Error("Failed to create checkout session")
+        throw new Error("Failed to get Stripe session URL.")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout Failed",
-        description: error instanceof Error ? error.message : "An error occurred during checkout. Please try again.",
+        title: "Checkout Error",
+        description: error.message || "An unexpected error occurred during checkout.",
         variant: "destructive",
       })
-    } finally {
-      setIsProcessing(false)
+      setIsLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (!addressData || !paymentData) {
-      router.replace("/checkout")
-    }
-  }, [addressData, paymentData, router])
-
-  if (!addressData || !paymentData) {
-    return null // Will redirect via useEffect
+  if (!checkoutData) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading checkout data...</span>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
-        <div className="mb-12">
-          <Link
-            href="/checkout/payment"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Payment
-          </Link>
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      <h1 className="text-3xl font-bold mb-6">Review Your Order</h1>
 
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-6">
-              <Package className="h-10 w-10 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h1 className="text-4xl font-bold mb-4">Review Your Order</h1>
-            <p className="text-xl text-muted-foreground">
-              Please review your order details before completing your purchase
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Contact Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Information</CardTitle>
+            <CardDescription>How we'll reach you.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              <strong>Name:</strong> {checkoutData.contact.firstName} {checkoutData.contact.lastName}
             </p>
-          </div>
-        </div>
+            <p>
+              <strong>Email:</strong> {checkoutData.contact.email}
+            </p>
+            <p>
+              <strong>Phone:</strong> {checkoutData.contact.phone}
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* Review Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-8"
-        >
-          {/* Order Summary */}
-          <Card className="shadow-lg border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Order Summary
-              </CardTitle>
-              <CardDescription>
-                {cart.items.length} item{cart.items.length !== 1 ? "s" : ""} in your cart
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {cart.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 border-b last:border-b-0">
-                    <div>
-                      <h4 className="font-medium">{item.name}</h4>
-                      <div className="text-sm text-gray-500 space-y-1">
-                        {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
-                        {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
-                        <p>Quantity: {item.quantity}</p>
-                      </div>
-                    </div>
-                    <span className="font-medium text-lg">{formatCurrency(item.price * item.quantity)}</span>
-                  </div>
-                ))}
+        {/* Service Address */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Address</CardTitle>
+            <CardDescription>Where we'll provide the service.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              <strong>Address:</strong> {checkoutData.address.address}
+            </p>
+            {checkoutData.address.address2 && <p>{checkoutData.address.address2}</p>}
+            <p>
+              <strong>City, State Zip:</strong> {checkoutData.address.city}, {checkoutData.address.state}{" "}
+              {checkoutData.address.zipCode}
+            </p>
+            <p>
+              <strong>Type:</strong> {checkoutData.address.addressType}
+            </p>
+            {checkoutData.address.specialInstructions && (
+              <p>
+                <strong>Instructions:</strong> {checkoutData.address.specialInstructions}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Payment Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Preferences</CardTitle>
+            <CardDescription>Your selected payment method and options.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p>
+              <strong>Payment Method:</strong> {checkoutData.payment.paymentMethod}
+            </p>
+            <p>
+              <strong>Allow Live Video Recording:</strong> {checkoutData.payment.allowVideoRecording ? "Yes" : "No"}
+            </p>
+            {checkoutData.payment.allowVideoRecording && checkoutData.payment.videoConsentDetails && (
+              <p className="text-sm text-gray-500">
+                Consent recorded at: {new Date(checkoutData.payment.videoConsentDetails).toLocaleString()}
+              </p>
+            )}
+            <p>
+              <strong>Agree to Terms:</strong> {checkoutData.payment.agreeToTerms ? "Yes" : "No"}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Cart Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Order Summary</CardTitle>
+            <CardDescription>Details of your selected services.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {cart.items.map((item) => (
+              <div key={item.id} className="flex justify-between items-center py-2">
+                <div>
+                  <p className="font-medium">{item.name}</p>
+                  <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                </div>
+                <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
               </div>
-
-              <Separator className="my-6" />
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-lg">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                {videoDiscount > 0 && (
-                  <div className="flex justify-between text-lg text-green-600">
-                    <span>Video Recording Discount</span>
-                    <span>-{formatCurrency(videoDiscount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-lg">
-                  <span>Tax</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-2xl font-bold">
-                  <span>Total</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
+            ))}
+            <Separator className="my-4" />
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>${cart.subtotalPrice.toFixed(2)}</span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Customer & Service Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Address Information */}
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Service Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="font-medium">{addressData.fullName}</p>
-                  <p>{addressData.email}</p>
-                  <p>{addressData.phone}</p>
-                  <Separator className="my-3" />
-                  <p>{addressData.address}</p>
-                  {addressData.address2 && <p>{addressData.address2}</p>}
-                  <p>
-                    {addressData.city}, {addressData.state} {addressData.zipCode}
-                  </p>
-                  {addressData.specialInstructions && (
-                    <>
-                      <Separator className="my-3" />
-                      <p className="font-medium">Special Instructions:</p>
-                      <p className="text-gray-600">{addressData.specialInstructions}</p>
-                    </>
-                  )}
+              {cart.couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Coupon Discount ({cart.couponCode}):</span>
+                  <span>-${cart.couponDiscount.toFixed(2)}</span>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Payment Information */}
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Payment Method
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {paymentData.paymentMethod === "card"
-                          ? "Credit/Debit Card"
-                          : paymentData.paymentMethod === "paypal"
-                            ? "PayPal"
-                            : "Apple Pay"}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {paymentData.paymentMethod === "card"
-                          ? "Visa, Mastercard, American Express"
-                          : paymentData.paymentMethod === "paypal"
-                            ? "Pay with your PayPal account"
-                            : "Touch ID or Face ID"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Separator className="my-3" />
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span>Billing address same as service address</span>
-                    </div>
-                    {paymentData.allowVideoRecording && (
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span>Video recording discount applied</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Complete Order Button */}
-          <div className="pt-6">
-            <Button
-              onClick={handleCheckout}
-              size="lg"
-              className="w-full h-16 text-lg bg-green-600 hover:bg-green-700"
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-                  Processing Your Order...
-                </>
-              ) : (
-                <>
-                  <Shield className="mr-3 h-5 w-5" />
-                  Complete Order - {formatCurrency(total)}
-                </>
               )}
-            </Button>
-
-            <p className="text-center text-sm text-gray-500 mt-4">
-              By clicking "Complete Order", you agree to our Terms of Service and Privacy Policy.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Security Badges */}
-        <div className="mt-12 text-center">
-          <div className="flex justify-center items-center space-x-8 text-sm text-muted-foreground">
-            <div className="flex items-center">
-              <Shield className="mr-2 h-4 w-4" />
-              SSL Secured
+              {cart.fullHouseDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Full House Discount:</span>
+                  <span>-${cart.fullHouseDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total (Online Payment):</span>
+                <span>${cart.totalPrice.toFixed(2)}</span>
+              </div>
+              {cart.inPersonPaymentTotal > 0 && (
+                <div className="flex justify-between text-gray-600 text-sm">
+                  <span>In-Person Payment Total:</span>
+                  <span>${cart.inPersonPaymentTotal.toFixed(2)}</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Encrypted Payment
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8 text-center">
+        <Button onClick={handlePlaceOrder} disabled={isLoading} className="w-full md:w-auto">
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Place Order & Pay Securely"
+          )}
+        </Button>
       </div>
     </div>
   )
