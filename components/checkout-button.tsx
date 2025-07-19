@@ -9,12 +9,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { createCheckoutSession } from "@/lib/stripe" // Declare the variable before using it
+import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
 interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  useCheckoutPage?: boolean // New prop to control behavior
-  productName?: string // Optional, only used if not navigating to checkout page
-  productPrice?: number // Optional, only used if not navigating to checkout page
   customerEmail?: string
   customerName?: string
   customerAddress?: {
@@ -29,9 +26,6 @@ interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
 }
 
 export function CheckoutButton({
-  useCheckoutPage = false,
-  productName,
-  productPrice,
   customerEmail,
   customerName,
   customerAddress,
@@ -46,11 +40,6 @@ export function CheckoutButton({
   const { toast } = useToast()
 
   const handleCheckout = async () => {
-    if (useCheckoutPage) {
-      router.push("/checkout")
-      return
-    }
-
     setIsLoading(true)
     try {
       const customLineItems = cart.items.map((item) => ({
@@ -134,26 +123,6 @@ export function CheckoutButton({
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (useCheckoutPage) {
-    return (
-      <Button
-        onClick={handleCheckout}
-        disabled={isLoading || cart.items.length === 0}
-        className={cn("rounded-lg", className)}
-        {...props}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading...
-          </>
-        ) : (
-          "Proceed to Checkout"
-        )}
-      </Button>
-    )
   }
 
   return (

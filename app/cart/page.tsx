@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
@@ -40,7 +39,6 @@ export default function CartPage() {
   const [itemToRemoveId, setItemToRemoveId] = useState<string | null>(null)
   const [itemToRemoveName, setItemToRemoveName] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [couponInput, setCouponInput] = useState(cart.couponCode || "")
 
   useEffect(() => {
@@ -234,13 +232,14 @@ export default function CartPage() {
                 <p className="text-sm text-muted-foreground mb-4 text-center">
                   Ready to complete your order? Proceed to checkout to finalize your booking.
                 </p>
-                <CheckoutButton
-                  useCheckoutPage={true} // Changed to true to navigate to /checkout
+                <Button
+                  asChild
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
-                  disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                  // Removed productName and productPrice as they are not needed here anymore
-                />
+                  disabled={(cart.items?.length ?? 0) === 0}
+                >
+                  <Link href="/checkout">Proceed to Checkout</Link>
+                </Button>
                 <Button
                   asChild
                   variant="outline"
