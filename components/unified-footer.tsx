@@ -1,26 +1,24 @@
 "use client"
 
 import Link from "next/link"
+import { SmileyBroomsLogo } from "./smiley-brooms-logo"
 import { useToast } from "@/components/ui/use-toast"
-import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin } from "lucide-react"
-import { SmileyBroomsLogo } from "@/components/smiley-brooms-logo"
+import { Facebook, Instagram, Twitter, Linkedin } from "lucide-react"
 
-export default function UnifiedFooter() {
+export function UnifiedFooter() {
   const { toast } = useToast()
 
   const handleFeatureComingSoon = () => {
     toast({
       title: "Feature Coming Soon!",
-      description: "We're working on this exciting new feature. Stay tuned!",
+      description: "This feature is under development and will be available soon.",
+      variant: "default",
     })
   }
 
   return (
-    <footer className="bg-gray-900 text-gray-300 py-12 md:py-16">
-      <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Company Info */}
         <div className="space-y-4">
           <Link href="/" className="flex items-center gap-2">
@@ -32,24 +30,56 @@ export default function UnifiedFooter() {
             tailored to your needs.
           </p>
           <div className="flex space-x-4">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Facebook className="h-5 w-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Twitter className="h-5 w-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Instagram className="h-5 w-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <Linkedin className="h-5 w-5" />
-            </a>
+            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Facebook className="h-6 w-6" />
+            </Link>
+            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Twitter className="h-6 w-6" />
+            </Link>
+            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Instagram className="h-6 w-6" />
+            </Link>
+            <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Linkedin className="h-6 w-6" />
+            </Link>
           </div>
         </div>
 
+        {/* Services */}
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
+          <ul className="space-y-2">
+            <li>
+              <Link href="/pricing" className="hover:text-white transition-colors">
+                Residential Cleaning
+              </Link>
+            </li>
+            <li>
+              <Link href="/pricing" className="hover:text-white transition-colors">
+                Commercial Cleaning
+              </Link>
+            </li>
+            <li>
+              <Link href="/pricing" className="hover:text-white transition-colors">
+                Deep Cleaning
+              </Link>
+            </li>
+            <li>
+              <Link href="/pricing" className="hover:text-white transition-colors">
+                Move-in/Move-out Cleaning
+              </Link>
+            </li>
+            <li>
+              <button onClick={handleFeatureComingSoon} className="hover:text-white transition-colors text-left">
+                Specialty Services
+              </button>
+            </li>
+          </ul>
+        </div>
+
         {/* Quick Links */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">Quick Links</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
           <ul className="space-y-2">
             <li>
               <Link href="/about" className="hover:text-white transition-colors">
@@ -67,31 +97,9 @@ export default function UnifiedFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/contact" className="hover:text-white transition-colors">
-                Contact Us
-              </Link>
-            </li>
-            <li>
-              <Link href="/faq" className="hover:text-white transition-colors">
-                FAQ
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Legal & Support */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">Legal & Support</h3>
-          <ul className="space-y-2">
-            <li>
               <Link href="/terms" className="hover:text-white transition-colors">
                 Terms of Service
               </Link>
-            </li>
-            <li>
-              <a onClick={handleFeatureComingSoon} className="hover:text-white transition-colors cursor-pointer">
-                Privacy Policy
-              </a>
             </li>
             <li>
               <Link href="/accessibility" className="hover:text-white transition-colors">
@@ -99,53 +107,43 @@ export default function UnifiedFooter() {
               </Link>
             </li>
             <li>
-              <a onClick={handleFeatureComingSoon} className="hover:text-white transition-colors cursor-pointer">
-                Refund Policy
-              </a>
-            </li>
-            <li>
-              <a onClick={handleFeatureComingSoon} className="hover:text-white transition-colors cursor-pointer">
-                Sitemap
-              </a>
+              <button onClick={handleFeatureComingSoon} className="hover:text-white transition-colors text-left">
+                Privacy Policy
+              </button>
             </li>
           </ul>
         </div>
 
-        {/* Contact & Newsletter */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">Get in Touch</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-gray-400" />
+        {/* Contact Info */}
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-4">Contact Us</h3>
+          <ul className="space-y-2">
+            <li>
+              <Link href="/contact" className="hover:text-white transition-colors">
+                Contact Form
+              </Link>
+            </li>
+            <li>
+              <a href="tel:+1-800-555-0199" className="hover:text-white transition-colors">
+                Phone: (800) 555-0199
+              </a>
+            </li>
+            <li>
               <a href="mailto:info@smileybrooms.com" className="hover:text-white transition-colors">
-                info@smileybrooms.com
+                Email: info@smileybrooms.com
               </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-gray-400" />
-              <a href="tel:+15551234567" className="hover:text-white transition-colors">
-                (555) 123-4567
-              </a>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="h-5 w-5 text-gray-400 mt-1" />
-              <span>123 Clean Street, Sparkle City, SC 12345</span>
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold text-white mt-6">Newsletter</h3>
-          <p className="text-sm">Stay updated with our latest offers and cleaning tips.</p>
-          <form className="flex gap-2">
-            <Input type="email" placeholder="Your email" className="flex-1 bg-gray-800 border-gray-700 text-white" />
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-white">
-              Subscribe
-            </Button>
-          </form>
+            </li>
+            <li>
+              <address className="not-italic">
+                123 Clean Street, Suite 456
+                <br />
+                Sparkle City, SC 12345
+              </address>
+            </li>
+          </ul>
         </div>
       </div>
-
-      <Separator className="my-8 bg-gray-700" />
-
-      <div className="container mx-auto px-4 text-center text-sm text-gray-500">
+      <div className="border-t border-gray-700 mt-8 pt-8 text-center text-sm text-gray-500">
         &copy; {new Date().getFullYear()} Smiley Brooms. All rights reserved.
       </div>
     </footer>
