@@ -8,15 +8,11 @@ interface RescueFunnelOptions {
   exitIntentEnabled?: boolean
   inactivityTimeoutMs?: number
   abandonedCartReminderMs?: number
-  discountPercentage?: number
-  maxDiscountPercentage?: number
-  discountSteps?: number[]
   enableSmsReminders?: boolean
   enableChatIntervention?: boolean
 }
 
 interface RescueFunnelState {
-  discountOffered: number
   remindersSent: number
   lastInteractionTime: number
   hasExitIntent: boolean
@@ -28,22 +24,18 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
     exitIntentEnabled = true,
     inactivityTimeoutMs = 60000, // 1 minute
     abandonedCartReminderMs = 300000, // 5 minutes
-    discountPercentage = 10,
-    maxDiscountPercentage = 20,
-    discountSteps = [10, 15, 20],
     enableSmsReminders = false,
     enableChatIntervention = true,
   } = options
 
   const [state, setState] = useState<RescueFunnelState>({
-    discountOffered: 0,
     remindersSent: 0,
     lastInteractionTime: Date.now(),
     hasExitIntent: false,
     hasAbandonedCart: false,
   })
 
-  const [showDiscountModal, setShowDiscountModal] = useState(false)
+  const [showHelpModal, setShowHelpModal] = useState(false)
   const [showChatPrompt, setShowChatPrompt] = useState(false)
 
   const router = useRouter()
@@ -108,7 +100,7 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
         if (document.visibilityState === "hidden") {
           sendAbandonmentNotification()
         } else {
-          offerDiscount()
+          offerHelp()
         }
       }, abandonedCartReminderMs)
     }
@@ -120,25 +112,20 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
       localStorage.getItem("cart") && JSON.parse(localStorage.getItem("cart") || '{"items":[]}').items.length > 0
 
     if (hasItemsInCart && state.remindersSent === 0) {
-      offerDiscount()
+      offerHelp()
     }
   }
 
-  // Offer discount
-  const offerDiscount = () => {
-    if (state.remindersSent < discountSteps.length) {
-      const currentDiscount = discountSteps[state.remindersSent]
-
+  // Offer help
+  const offerHelp = () => {
+    // We can decide how many times to offer help or if it's a one-time prompt
+    if (state.remindersSent === 0) {
+      // Only show the modal once for help
       setState((prev) => ({
         ...prev,
-        discountOffered: currentDiscount,
         remindersSent: prev.remindersSent + 1,
       }))
-
-      setShowDiscountModal(true)
-
-      // Store discount in localStorage
-      localStorage.setItem("rescueDiscount", currentDiscount.toString())
+      setShowHelpModal(true)
     } else if (enableChatIntervention && !showChatPrompt) {
       setShowChatPrompt(true)
     }
@@ -149,13 +136,13 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
     if (isSupported) {
       sendNotification({
         title: "Your cleaning service is waiting!",
-        body: `Complete your booking now and save ${discountSteps[state.remindersSent] || discountPercentage}%!`,
+        body: `Need help completing your booking? We're here to assist!`,
         priority: "normal",
         actions: [
           {
-            title: "Complete Booking",
+            title: "Get Help",
             action: () => {
-              router.push("/cart")
+              router.push("/contact") // Redirect to contact page for help
             },
           },
         ],
@@ -171,17 +158,16 @@ export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
   // Send SMS reminder (would connect to actual SMS service)
   const sendSmsReminder = (phoneNumber: string) => {
     if (enableSmsReminders) {
-      console.log(`Would send SMS to ${phoneNumber} with discount offer`)
+      console.log(`Would send SMS to ${phoneNumber} with offer for help`)
       // In real implementation, this would call an API to send SMS
     }
   }
 
   return {
-    showDiscountModal,
-    setShowDiscountModal,
+    showHelpModal,
+    setShowHelpModal,
     showChatPrompt,
     setShowChatPrompt,
-    currentDiscount: state.discountOffered,
     sendSmsReminder,
     rescueState: state,
   }

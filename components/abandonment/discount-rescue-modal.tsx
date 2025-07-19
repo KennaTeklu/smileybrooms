@@ -16,11 +16,10 @@ import { useRouter } from "next/navigation"
 interface DiscountRescueModalProps {
   isOpen: boolean
   onClose: () => void
-  discountPercentage: number
   onEmailCapture?: (email: string) => void
 }
 
-export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEmailCapture }: DiscountRescueModalProps) {
+export function DiscountRescueModal({ isOpen, onClose, onEmailCapture }: DiscountRescueModalProps) {
   const [email, setEmail] = useState("")
   const [isValid, setIsValid] = useState(false)
   const [countdown, setCountdown] = useState(300) // 5 minutes in seconds
@@ -57,11 +56,8 @@ export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEma
       onEmailCapture(email)
     }
 
-    // Apply discount to localStorage
-    localStorage.setItem("appliedDiscount", discountPercentage.toString())
-
-    // Redirect to cart
-    router.push("/cart")
+    // Redirect to cart or a support page
+    router.push("/contact") // Redirect to contact page for help
     onClose()
   }
 
@@ -75,16 +71,18 @@ export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEma
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">Wait! Special Offer Just For You</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-center">Wait! Need Assistance?</DialogTitle>
           <DialogDescription className="text-center pt-2">
-            <span className="block text-3xl font-bold text-green-600">{discountPercentage}% OFF</span>
-            <span className="block mt-2">Complete your booking now and save!</span>
-            <div className="mt-4 text-amber-600 font-semibold">Offer expires in: {formatTime(countdown)}</div>
+            <span className="block text-xl font-bold text-gray-800">We're here to help you complete your booking!</span>
+            <span className="block mt-2">Let us know how we can assist you.</span>
+            <div className="mt-4 text-amber-600 font-semibold">
+              Offer for immediate help expires in: {formatTime(countdown)}
+            </div>
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col space-y-4 py-4">
-          <p className="text-sm text-gray-500">Enter your email to claim this exclusive discount:</p>
+          <p className="text-sm text-gray-500">Enter your email so we can reach out and help:</p>
           <Input
             type="email"
             placeholder="your@email.com"
@@ -95,16 +93,21 @@ export function DiscountRescueModal({ isOpen, onClose, discountPercentage, onEma
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-4">
-          <Button type="button" variant="outline" onClick={onClose} className="sm:w-auto w-full order-2 sm:order-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="sm:w-auto w-full order-2 sm:order-1 bg-transparent"
+          >
             No thanks
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={!isValid}
-            className="sm:w-auto w-full order-1 sm:order-2 bg-green-600 hover:bg-green-700"
+            className="sm:w-auto w-full order-1 sm:order-2 bg-blue-600 hover:bg-blue-700"
           >
-            Claim {discountPercentage}% Discount
+            Get Help Now
           </Button>
         </DialogFooter>
       </DialogContent>
