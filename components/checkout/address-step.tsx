@@ -1,6 +1,4 @@
 "use client"
-
-import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -13,19 +11,23 @@ import { US_STATES } from "@/lib/location-data"
 import { motion } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
+import { Checkbox } from "@/components/ui/checkbox"
+import Link from "next/link"
+import { CheckoutButton } from "@/components/checkout-button" // Import the dedicated CheckoutButton
 
 interface AddressStepProps {
   data: CheckoutData["address"]
   onSave: (data: CheckoutData["address"]) => void
-  onNext: () => void
+  onNext: () => void // Still needed for non-Stripe paths, or if this step is part of a larger wizard
   onPrevious: () => void
+  checkoutData: CheckoutData // To get contact info
 }
 
-export default function AddressStep({ data, onSave, onNext, onPrevious }: AddressStepProps) {
+export default function AddressStep({ data, onSave, onNext, onPrevious, checkoutData }: AddressStepProps) {
   const { toast } = useToast()
   const [addressData, setAddressData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false) // For local form validation/saving
 
   useEffect(() => {
     setAddressData(data)
@@ -45,6 +47,24 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
     }
   }
 
+  const handleCheckboxChange = (field: keyof CheckoutData["address"], checked: boolean) => {
+    setAddressData((prev) => ({
+      ...prev,
+      [field]: checked,
+    }))
+    if (field === "allowVideoRecording" && checked) {
+      setAddressData((prev) => ({
+        ...prev,
+        videoConsentDetails: new Date().toISOString(),
+      }))
+    } else if (field === "allowVideoRecording" && !checked) {
+      setAddressData((prev) => ({
+        ...prev,
+        videoConsentDetails: undefined,
+      }))
+    }
+  }
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
@@ -55,24 +75,10 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
     if (!addressData.city.trim()) newErrors.city = "City is required"
     if (!addressData.state) newErrors.state = "State is required"
     if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    if (!addressData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms and conditions."
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validateForm()) {
-      setIsSubmitting(true)
-      onSave(addressData)
-      onNext()
-      setIsSubmitting(false)
-    } else {
-      toast({
-        title: "Please check your information",
-        description: "Some required fields are missing or invalid.",
-        variant: "destructive",
-      })
-    }
   }
 
   const getAddressTypeIcon = () => {
@@ -86,6 +92,23 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
     }
   }
 
+  // This function will be called by the CheckoutButton's onClick,
+  // but we still need a way to trigger validation before it.
+  const handleProceedToPayment = () => {
+    setIsSubmitting(true)
+    if (validateForm()) {
+      onSave(addressData) // Save the data before proceeding
+      // The CheckoutButton's internal onClick will handle Stripe redirection
+    } else {
+      toast({
+        title: "Please check your information",
+        description: "Some required fields are missing or invalid.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <CardHeader>
@@ -96,7 +119,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
         <CardDescription>Where would you like us to provide your cleaning service?</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
           {/* Contact Information (pre-filled from previous step) */}
           <div className="space-y-6">
             <h3 className="text-lg font-medium">Contact Information (Pre-filled)</h3>
@@ -302,25 +325,88 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
             </div>
           </motion.div>
 
+          {/* Additional Options (Video Recording) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 1.1 }}
+          >
+            <div className="space-y-4 pt-4">
+              <h3 className="text-lg font-medium">Additional Options</h3>
+              <div className="flex items-start space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <Checkbox
+                  id="videoRecording"
+                  checked={addressData.allowVideoRecording}
+                  onCheckedChange={(checked) => handleCheckboxChange("allowVideoRecording", checked as boolean)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <Label htmlFor="videoRecording" className="text-base">
+                    Allow video recording for quality assurance and social media use
+                    <span className="text-green-600 font-medium ml-2">(Save 10% on your order)</span>
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    By selecting this, you acknowledge that a live video stream of your cleaning may be recorded and
+                    used for internal quality assurance and promotional purposes. Your privacy is important to us;
+                    recordings will be handled in accordance with our Privacy Policy.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Terms and Conditions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 1.2 }}
+          >
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <Checkbox
+                id="terms"
+                checked={addressData.agreeToTerms}
+                onCheckedChange={(checked) => handleCheckboxChange("agreeToTerms", checked as boolean)}
+                required
+              />
+              <Label htmlFor="terms" className="text-base">
+                I agree to the{" "}
+                <Link href="/terms" className="text-primary hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+              </Label>
+            </div>
+            {errors.agreeToTerms && <p className="text-red-500 text-xs mt-1.5">{errors.agreeToTerms}</p>}
+          </motion.div>
+
           {/* Navigation Buttons */}
           <div className="flex justify-between pt-6">
             <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Contact
             </Button>
-            <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  Continue to Payment
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
+            <CheckoutButton
+              customerEmail={checkoutData.contact.email}
+              customerName={`${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`}
+              customerAddress={{
+                line1: addressData.address,
+                city: addressData.city,
+                state: addressData.state,
+                postal_code: addressData.zipCode,
+                country: "US", // Assuming US for now
+              }}
+              allowVideoRecording={addressData.allowVideoRecording}
+              videoConsentDetails={addressData.videoConsentDetails}
+              className="px-6 rounded-lg"
+              size="default"
+              onClick={handleProceedToPayment} // Trigger validation before Stripe
+              disabled={isSubmitting || !addressData.agreeToTerms} // Disable if submitting or terms not agreed
+            >
+              Continue to Payment
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </CheckoutButton>
           </div>
         </form>
       </CardContent>

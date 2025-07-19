@@ -12,16 +12,16 @@ import { cn } from "@/lib/utils"
 import { createCheckoutSession } from "@/lib/actions" // Import the server action
 
 interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  customerEmail?: string
-  customerName?: string
-  customerAddress?: {
+  customerEmail: string
+  customerName: string
+  customerAddress: {
     line1?: string
     city?: string
     state?: string
     postal_code?: string
     country?: string
   }
-  allowVideoRecording?: boolean
+  allowVideoRecording: boolean
   videoConsentDetails?: string
 }
 
