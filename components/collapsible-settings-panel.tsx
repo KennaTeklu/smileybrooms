@@ -74,7 +74,7 @@ export function CollapsibleSettingsPanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed top-0 bottom-0 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-b-2xl shadow-2xl overflow-hidden border-b-2 border-l-2 border-r-2 border-purple-200/50 dark:border-purple-800/50 z-20"
+          className="fixed top-4 bottom-4 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 z-20"
           style={{
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
           }}
@@ -100,7 +100,7 @@ export function CollapsibleSettingsPanel() {
             </Button>
           </div>
 
-          <Tabs defaultValue="accessibility" className="w-full p-4 flex-1 flex flex-col">
+          <Tabs defaultValue="accessibility" className="w-full p-4 flex flex-col flex-1">
             <TabsList className="grid w-full grid-cols-2 bg-purple-100 dark:bg-purple-900/70">
               <TabsTrigger
                 value="accessibility"
@@ -116,7 +116,7 @@ export function CollapsibleSettingsPanel() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="accessibility" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
+            <TabsContent value="accessibility" className="mt-4 space-y-4 overflow-y-auto pr-2 flex-1">
               <div className="flex items-center justify-between">
                 <Label htmlFor="high-contrast" className="text-gray-700 dark:text-gray-300">
                   High Contrast
@@ -182,7 +182,7 @@ export function CollapsibleSettingsPanel() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="display" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
+            <TabsContent value="display" className="mt-4 space-y-4 overflow-y-auto pr-2 flex-1">
               <div>
                 <Label htmlFor="text-alignment" className="mb-2 block text-gray-700 dark:text-gray-300">
                   <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment

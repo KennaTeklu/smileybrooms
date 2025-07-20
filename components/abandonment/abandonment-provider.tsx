@@ -1,66 +1,68 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, useCallback } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import { rescueFunnel } from "@/lib/abandonment/rescue-funnel"
-import { DiscountRescueModal } from "./discount-rescue-modal" // Assuming this component exists
+import { ChatIntervention } from "@/components/abandonment/chat-intervention"
+import { DiscountRescueModal } from "@/components/abandonment/discount-rescue-modal" // Import the modal
+import { useRouter } from "next/navigation"
 
-interface AbandonmentProviderProps {
-  children: React.ReactNode
+interface AbandonmentContextType {
+  continueBooking: () => void
+  applyDiscount: (code: string) => void
 }
 
-export function AbandonmentProvider({ children }: AbandonmentProviderProps) {
-  const [showRescueModal, setShowRescueModal] = useState(false)
+const AbandonmentContext = createContext<AbandonmentContextType | undefined>(undefined)
 
-  const handleAbandonmentDetected = useCallback(() => {
-    console.log("Abandonment detected! Showing rescue modal.")
-    setShowRescueModal(true)
-  }, [])
-
-  // Use environment variable for threshold if available, otherwise default
-  const abandonmentThreshold = process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS
-    ? Number.parseInt(process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS, 10)
-    : 30
-
-  // Use environment variable to enable/disable the feature
-  const enableAbandonmentRescue = process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_ENABLED === "true"
-
-  const { resetTimer } = rescueFunnel({
-    thresholdSeconds: abandonmentThreshold,
-    onAbandonmentDetected: handleAbandonmentDetected,
-    enabled: enableAbandonmentRescue,
+export function AbandonmentProvider({ children }: { children: ReactNode }) {
+  const { showChatPrompt, setShowChatPrompt, showDiscountModal, setShowDiscountModal, currentDiscount } = rescueFunnel({
+    exitIntentEnabled: true,
+    inactivityTimeoutMs: 60000, // 1 minute for demo purposes
   })
 
-  const handleCloseModal = useCallback(() => {
-    setShowRescueModal(false)
-    resetTimer() // Reset timer after modal is closed
-  }, [resetTimer])
+  const router = useRouter()
 
-  useEffect(() => {
-    // Optionally, reset timer on route change if using Next.js router
-    // import { useRouter } from 'next/navigation';
-    // const router = useRouter();
-    // const handleRouteChange = () => resetTimer();
-    // router.events.on('routeChangeStart', handleRouteChange);
-    // return () => {
-    //   router.events.off('routeChangeStart', handleRouteChange);
-    // };
-  }, [resetTimer])
+  const continueBooking = () => {
+    setShowChatPrompt(false)
+    setShowDiscountModal(false)
+    router.push("/cart")
+  }
 
-  if (!enableAbandonmentRescue) {
-    return <>{children}</>
+  const applyDiscount = (code: string) => {
+    console.log(`Discount code applied: ${code}`)
+    // In a real application, you would apply the discount to the cart/session here
+    continueBooking() // Then continue to booking
   }
 
   return (
-    <>
+    <AbandonmentContext.Provider
+      value={{
+        continueBooking,
+        applyDiscount,
+      }}
+    >
       {children}
-      {showRescueModal && (
-        <DiscountRescueModal
-          isOpen={showRescueModal}
-          onClose={handleCloseModal}
-          // You might pass other props to the modal, e.g., discount code
-        />
-      )}
-    </>
+
+      <DiscountRescueModal
+        isOpen={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        discount={currentDiscount}
+        onApplyDiscount={applyDiscount}
+        onContinueBooking={continueBooking}
+      />
+
+      <ChatIntervention
+        isOpen={showChatPrompt}
+        onClose={() => setShowChatPrompt(false)}
+        onContinueBooking={continueBooking}
+      />
+    </AbandonmentContext.Provider>
   )
+}
+
+export function useAbandonment() {
+  const context = useContext(AbandonmentContext)
+  if (context === undefined) {
+    throw new Error("useAbandonment must be used within an AbandonmentProvider")
+  }
+  return context
 }

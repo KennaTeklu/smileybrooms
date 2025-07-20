@@ -98,7 +98,7 @@ export function CollapsibleChatbotPanel() {
           animate={{ width: "auto", opacity: 1, x: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed top-0 bottom-0 right-0 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 z-20"
+          className="fixed top-4 bottom-4 right-0 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50 z-20"
           style={{
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
           }}
@@ -126,7 +126,7 @@ export function CollapsibleChatbotPanel() {
 
           <div className="h-full w-full">
             {" "}
-            {/* Changed to h-full */}
+            {/* Changed height to h-full */}
             <iframe
               id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
               title="smileybrooms.com: Customer Support Representative"
@@ -143,7 +143,7 @@ export function CollapsibleChatbotPanel() {
               style={{
                 minWidth: "100%",
                 maxWidth: "100%",
-                height: "100%", // Changed to 100%
+                height: "100%", // Changed height to 100%
                 border: "none",
                 width: "100%",
               }}
