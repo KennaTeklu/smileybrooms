@@ -96,7 +96,7 @@ export function CollapsibleChatbotPanel() {
           ref={expandedPanelRef}
           initial={{ width: 0, opacity: 0, x: 20 }}
           animate={{ width: "auto", opacity: 1, x: 0 }}
-          exit={{ width: 0, opacity: 0, x: 20 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className="fixed top-0 right-0 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-l-2xl shadow-2xl overflow-hidden border-l-2 border-t-2 border-b-2 border-blue-200/50 dark:border-blue-800/50 z-20"
           style={{

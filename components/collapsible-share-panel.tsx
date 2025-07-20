@@ -1,38 +1,192 @@
 "use client"
 import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Share2,
+  Copy,
+  QrCode,
+  Search,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  Mail,
+  Phone,
+  Check,
+  ExternalLink,
+  Download,
+  Sparkles,
+  Globe,
+  Users,
+  Zap,
+  ChevronRight,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { useClickOutside } from "@/hooks/use-click-outside"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
-import { useToast } from "@/hooks/use-toast"
-import {
-  Share2,
-  ChevronRight,
-  Check,
-  Copy,
-  QrCode,
-  Download,
-  Sparkles,
-  Users,
-  MessageCircle,
-  Zap,
-  Globe,
-  Facebook,
-  Twitter,
-  Linkedin,
-  Instagram,
-  Mail,
-  Phone,
-} from "lucide-react"
-import QRCode from "react-qr-code"
+import { useToast } from "@/components/ui/use-toast"
+import QRCode from "react-qr-code" // Import the QR code library
 
-const CollapsibleSharePanel: React.FC = () => {
+interface SharePlatform {
+  id: string
+  name: string
+  icon: React.ReactNode
+  url: string
+  color: string
+  category: "social" | "chat" | "work" | "more"
+  description: string
+  popular?: boolean
+  template?: string // Make template optional, but use it if present
+}
+
+const sharePlatforms: SharePlatform[] = [
+  {
+    id: "facebook",
+    name: "Facebook",
+    icon: <Facebook className="h-4 w-4" />,
+    url: "https://www.facebook.com/sharer/sharer.php?u=",
+    color: "bg-blue-600",
+    category: "social",
+    description: "Share with friends and family",
+    template:
+      "Check out Smiley Brooms - professional cleaning that will make your home sparkle! ✨ Share on {platformName}: {url}",
+  },
+  {
+    id: "twitter",
+    name: "Twitter",
+    icon: <Twitter className="h-4 w-4" />,
+    url: "https://twitter.com/intent/tweet?url=",
+    color: "bg-sky-500",
+    category: "social",
+    description: "Tweet to your followers",
+    popular: true,
+    template:
+      "Just discovered Smiley Brooms - professional cleaning that will make you smile! 🧹✨ Tweet this on {platformName}: {url}",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    icon: <Linkedin className="h-4 w-4" />,
+    url: "https://www.linkedin.com/sharing/share-offsite/?url=",
+    color: "bg-blue-700",
+    category: "social",
+    description: "Share professionally",
+    popular: true,
+    template:
+      "I recommend this professional cleaning service for homes and offices. Find out more on {platformName}: {url} #ProfessionalCleaning #SmileyBrooms",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    icon: <Instagram className="h-4 w-4" />,
+    url: "https://www.instagram.com/", // Instagram doesn't have a direct share URL for web
+    color: "bg-pink-600",
+    category: "social",
+    description: "Share to your story",
+    template:
+      "Check out @SmileyBrooms for your cleaning needs! Link in bio: {url} #CleanHome #ProfessionalCleaning (Shared via {platformName})",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: <MessageCircle className="h-4 w-4" />,
+    url: "https://wa.me/?text=",
+    color: "bg-green-600",
+    category: "chat",
+    description: "Send to contacts",
+    popular: true,
+    template: "Hey! Check out this cleaning service I found. They're amazing! 🧹✨ (Sent via {platformName}): {url}",
+  },
+  {
+    id: "email",
+    name: "Email",
+    icon: <Mail className="h-4 w-4" />,
+    url: "mailto:?subject=Check this out&body=",
+    color: "bg-gray-600",
+    category: "chat",
+    description: "Send via email",
+    template:
+      "Subject: Check out this amazing cleaning service!\n\nHi,\n\nI found this great cleaning service called Smiley Brooms. They offer professional cleaning with a smile!\n\n{url}\n\nTheir services include regular cleaning, deep cleaning, move-in/out cleaning, and office cleaning. Prices are competitive and the quality is excellent.\n\nThought you might be interested.\n\nBest regards, (Shared via {platformName})",
+  },
+  {
+    id: "sms",
+    name: "SMS",
+    icon: <Phone className="h-4 w-4" />,
+    url: "sms:?body=",
+    color: "bg-green-500",
+    category: "chat",
+    description: "Send text message",
+    template:
+      "Check out Smiley Brooms for your cleaning needs! Professional, reliable, and affordable (Sent via {platformName}): {url}",
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    icon: (
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.61 7.59c-.12.54-.44.67-.89.42l-2.46-1.81-1.19 1.14c-.13.13-.24.24-.49.24l.17-2.43 4.47-4.03c.19-.17-.04-.27-.3-.1L9.28 13.47l-2.38-.75c-.52-.16-.53-.52.11-.77l9.28-3.57c.43-.16.81.1.67.77z" />
+      </svg>
+    ),
+    url: "https://t.me/share/url?url=",
+    color: "bg-blue-400",
+    category: "chat",
+    description: "Share on Telegram",
+    template:
+      "Found a great cleaning service - Smiley Brooms! Professional cleaning for your home or office (Shared via {platformName}): {url}",
+  },
+  {
+    id: "github",
+    name: "GitHub",
+    icon: <Zap className="h-4 w-4" />, // Using Zap for work-related platforms
+    url: "https://github.com/",
+    color: "bg-gray-800",
+    category: "work",
+    description: "Share on GitHub",
+    template: "Check out this cleaning service website: {url} - Great UI/UX design! (Shared via {platformName})",
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    icon: <Zap className="h-4 w-4" />,
+    url: "https://slack.com/",
+    color: "bg-purple-700",
+    category: "work",
+    description: "Share on Slack",
+    template:
+      "Found a great cleaning service for our office: {url} - They offer professional cleaning with flexible scheduling! (Shared via {platformName})",
+  },
+  {
+    id: "copy-link",
+    name: "Copy Link",
+    icon: <Copy className="h-4 w-4" />,
+    url: "", // No external URL for copy
+    color: "bg-gray-500",
+    category: "more",
+    description: "Copy link to clipboard",
+    template: "{url}", // Just the URL for copying
+  },
+  {
+    id: "print",
+    name: "Print",
+    icon: <Download className="h-4 w-4" />, // Using Download for print
+    url: "print", // Special keyword for print
+    color: "bg-gray-700",
+    category: "more",
+    description: "Print this page",
+    template: "Printing page: {url}", // Placeholder template
+  },
+]
+
+export function CollapsibleSharePanel() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState("social")
   const [searchTerm, setSearchTerm] = useState("")
@@ -332,7 +486,7 @@ const CollapsibleSharePanel: React.FC = () => {
               {/* Enhanced Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
+                <Input
                   placeholder="Search platforms..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -415,155 +569,5 @@ const CollapsibleSharePanel: React.FC = () => {
     </AnimatePresence>
   )
 }
-
-interface SharePlatform {
-  id: string
-  name: string
-  icon: React.ReactNode
-  url: string
-  color: string
-  category: "social" | "chat" | "work" | "more"
-  description: string
-  popular?: boolean
-  template?: string // Make template optional, but use it if present
-}
-
-const sharePlatforms: SharePlatform[] = [
-  {
-    id: "facebook",
-    name: "Facebook",
-    icon: <Facebook className="h-4 w-4" />,
-    url: "https://www.facebook.com/sharer/sharer.php?u=",
-    color: "bg-blue-600",
-    category: "social",
-    description: "Share with friends and family",
-    template:
-      "Check out Smiley Brooms - professional cleaning that will make your home sparkle! ✨ Share on {platformName}: {url}",
-  },
-  {
-    id: "twitter",
-    name: "Twitter",
-    icon: <Twitter className="h-4 w-4" />,
-    url: "https://twitter.com/intent/tweet?url=",
-    color: "bg-sky-500",
-    category: "social",
-    description: "Tweet to your followers",
-    popular: true,
-    template:
-      "Just discovered Smiley Brooms - professional cleaning that will make you smile! 🧹✨ Tweet this on {platformName}: {url}",
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    icon: <Linkedin className="h-4 w-4" />,
-    url: "https://www.linkedin.com/sharing/share-offsite/?url=",
-    color: "bg-blue-700",
-    category: "social",
-    description: "Share professionally",
-    popular: true,
-    template:
-      "I recommend this professional cleaning service for homes and offices. Find out more on {platformName}: {url} #ProfessionalCleaning #SmileyBrooms",
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    icon: <Instagram className="h-4 w-4" />,
-    url: "https://www.instagram.com/", // Instagram doesn't have a direct share URL for web
-    color: "bg-pink-600",
-    category: "social",
-    description: "Share to your story",
-    template:
-      "Check out @SmileyBrooms for your cleaning needs! Link in bio: {url} #CleanHome #ProfessionalCleaning (Shared via {platformName})",
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: <MessageCircle className="h-4 w-4" />,
-    url: "https://wa.me/?text=",
-    color: "bg-green-600",
-    category: "chat",
-    description: "Send to contacts",
-    popular: true,
-    template: "Hey! Check out this cleaning service I found. They're amazing! 🧹✨ (Sent via {platformName}): {url}",
-  },
-  {
-    id: "email",
-    name: "Email",
-    icon: <Mail className="h-4 w-4" />,
-    url: "mailto:?subject=Check this out&body=",
-    color: "bg-gray-600",
-    category: "chat",
-    description: "Send via email",
-    template:
-      "Subject: Check out this amazing cleaning service!\n\nHi,\n\nI found this great cleaning service called Smiley Brooms. They offer professional cleaning with a smile!\n\n{url}\n\nTheir services include regular cleaning, deep cleaning, move-in/out cleaning, and office cleaning. Prices are competitive and the quality is excellent.\n\nThought you might be interested.\n\nBest regards, (Shared via {platformName})",
-  },
-  {
-    id: "sms",
-    name: "SMS",
-    icon: <Phone className="h-4 w-4" />,
-    url: "sms:?body=",
-    color: "bg-green-500",
-    category: "chat",
-    description: "Send text message",
-    template:
-      "Check out Smiley Brooms for your cleaning needs! Professional, reliable, and affordable (Sent via {platformName}): {url}",
-  },
-  {
-    id: "telegram",
-    name: "Telegram",
-    icon: (
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.61 7.59c-.12.54-.44.67-.89.42l-2.46-1.81-1.19 1.14c-.13.13-.24.24-.49.24l.17-2.43 4.47-4.03c.19-.17-.04-.27-.3-.1L9.28 13.47l-2.38-.75c-.52-.16-.53-.52.11-.77l9.28-3.57c.43-.16.81.1.67.77z" />
-      </svg>
-    ),
-    url: "https://t.me/share/url?url=",
-    color: "bg-blue-400",
-    category: "chat",
-    description: "Share on Telegram",
-    template:
-      "Found a great cleaning service - Smiley Brooms! Professional cleaning for your home or office (Shared via {platformName}): {url}",
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    icon: <Zap className="h-4 w-4" />, // Using Zap for work-related platforms
-    url: "https://github.com/",
-    color: "bg-gray-800",
-    category: "work",
-    description: "Share on GitHub",
-    template: "Check out this cleaning service website: {url} - Great UI/UX design! (Shared via {platformName})",
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    icon: <Zap className="h-4 w-4" />,
-    url: "https://slack.com/",
-    color: "bg-purple-700",
-    category: "work",
-    description: "Share on Slack",
-    template:
-      "Found a great cleaning service for our office: {url} - They offer professional cleaning with flexible scheduling! (Shared via {platformName})",
-  },
-  {
-    id: "copy-link",
-    name: "Copy Link",
-    icon: <Copy className="h-4 w-4" />,
-    url: "", // No external URL for copy
-    color: "bg-gray-500",
-    category: "more",
-    description: "Copy link to clipboard",
-    template: "{url}", // Just the URL for copying
-  },
-  {
-    id: "print",
-    name: "Print",
-    icon: <Download className="h-4 w-4" />, // Using Download for print
-    url: "print", // Special keyword for print
-    color: "bg-gray-700",
-    category: "more",
-    description: "Print this page",
-    template: "Printing page: {url}", // Placeholder template
-  },
-]
 
 export default CollapsibleSharePanel
