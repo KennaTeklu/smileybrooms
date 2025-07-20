@@ -1,98 +1,58 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useCallback } from "react"
-import { rescueFunnel } from "@/lib/abandonment/rescue-funnel" // Updated import
-import { useToast } from "@/components/ui/use-toast"
-import { DiscountRescueModal } from "./discount-rescue-modal"
-import { ChatIntervention } from "./chat-intervention"
-import { NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS, NEXT_PUBLIC_FEATURE_ABANDONMENT_RESCUE } from "@/config" // Declared variables
+import { createContext, useContext, type ReactNode } from "react"
+import { rescueFunnel } from "@/lib/abandonment/rescue-funnel"
+import { ChatIntervention } from "@/components/abandonment/chat-intervention"
+import { DiscountRescueModal } from "@/components/abandonment/discount-rescue-modal" // Import the modal
+import { useRouter } from "next/navigation"
 
 interface AbandonmentContextType {
-  isAbandonmentTriggered: boolean
-  isRescueModalOpen: boolean
-  isChatInterventionOpen: boolean
-  closeRescueModal: () => void
-  closeChatIntervention: () => void
-  triggerAbandonment: () => void
-  triggerRescue: () => void
+  continueBooking: () => void
 }
 
 const AbandonmentContext = createContext<AbandonmentContextType | undefined>(undefined)
 
-export function AbandonmentProvider({ children }: { children: React.ReactNode }) {
-  const [isAbandonmentTriggered, setIsAbandonmentTriggered] = useState(false)
-  const [isRescueModalOpen, setIsRescueModalOpen] = useState(false)
-  const [isChatInterventionOpen, setIsChatInterventionOpen] = useState(false)
-  const { toast } = useToast()
-
-  const handleAbandonment = useCallback(() => {
-    setIsAbandonmentTriggered(true)
-    setIsRescueModalOpen(true)
-    toast({
-      title: "Don't leave yet!",
-      description: "Here's a special offer just for you.",
-      duration: 5000,
-    })
-  }, [toast])
-
-  const handleRescue = useCallback(() => {
-    if (isAbandonmentTriggered) {
-      setIsRescueModalOpen(false)
-      setIsChatInterventionOpen(true)
-      toast({
-        title: "Welcome back!",
-        description: "How can we help you today?",
-        duration: 3000,
-      })
-    }
-  }, [isAbandonmentTriggered, toast])
-
-  const { resetFunnel } = rescueFunnel({
-    // Updated usage
-    thresholdSeconds: NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS
-      ? Number.parseInt(NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS)
-      : 30,
-    onAbandonment: handleAbandonment,
-    onRescue: handleRescue,
-    enabled: NEXT_PUBLIC_FEATURE_ABANDONMENT_RESCUE === "true",
+export function AbandonmentProvider({ children }: { children: ReactNode }) {
+  const { showDiscountModal, setShowDiscountModal, showChatPrompt, setShowChatPrompt, currentDiscount } = rescueFunnel({
+    exitIntentEnabled: true,
+    inactivityTimeoutMs: 60000, // 1 minute for demo purposes
   })
 
-  const closeRescueModal = useCallback(() => {
-    setIsRescueModalOpen(false)
-    setIsAbandonmentTriggered(false)
-    resetFunnel() // Reset timer after closing modal
-  }, [resetFunnel])
+  const router = useRouter()
 
-  const closeChatIntervention = useCallback(() => {
-    setIsChatInterventionOpen(false)
-    setIsAbandonmentTriggered(false)
-    resetFunnel() // Reset timer after closing intervention
-  }, [resetFunnel])
+  const continueBooking = () => {
+    setShowChatPrompt(false)
+    setShowDiscountModal(false) // Close discount modal if open
+    router.push("/cart")
+  }
 
-  const triggerAbandonment = useCallback(() => {
-    handleAbandonment()
-  }, [handleAbandonment])
-
-  const triggerRescue = useCallback(() => {
-    handleRescue()
-  }, [handleRescue])
+  const handleApplyDiscount = (code: string) => {
+    console.log("Applying discount code:", code)
+    // Here you would typically integrate with your cart/discount logic
+    setShowDiscountModal(false)
+    router.push("/cart") // Redirect to cart after applying discount
+  }
 
   return (
     <AbandonmentContext.Provider
       value={{
-        isAbandonmentTriggered,
-        isRescueModalOpen,
-        isChatInterventionOpen,
-        closeRescueModal,
-        closeChatIntervention,
-        triggerAbandonment,
-        triggerRescue,
+        continueBooking,
       }}
     >
       {children}
-      {isRescueModalOpen && <DiscountRescueModal onClose={closeRescueModal} />}
-      {isChatInterventionOpen && <ChatIntervention onClose={closeChatIntervention} />}
+
+      <DiscountRescueModal
+        isOpen={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        onApplyDiscount={handleApplyDiscount}
+        discountPercentage={currentDiscount?.percentage || 10} // Default to 10% if not set
+      />
+
+      <ChatIntervention
+        isOpen={showChatPrompt}
+        onClose={() => setShowChatPrompt(false)}
+        onContinueBooking={continueBooking}
+      />
     </AbandonmentContext.Provider>
   )
 }

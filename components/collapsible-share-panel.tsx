@@ -468,7 +468,7 @@ export function CollapsibleSharePanel() {
                 <Users className="h-3 w-3 mr-1" />
                 Social
               </TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
+              <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-700 dark:text-gray-300">
                 <MessageCircle className="h-3 w-3 mr-1" />
                 Chat
               </TabsTrigger>
@@ -482,7 +482,7 @@ export function CollapsibleSharePanel() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="p-5 flex-1 overflow-auto">
+            <div className="p-5 flex-1 overflow-auto max-h-[70vh]">
               {/* Enhanced Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

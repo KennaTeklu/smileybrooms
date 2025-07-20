@@ -1,68 +1,85 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
+import { useRef } from "react"
+
+import { useState, useEffect, useCallback } from "react"
 
 interface RescueFunnelOptions {
-  thresholdSeconds?: number
-  onAbandonment?: () => void
-  onRescue?: () => void
-  enabled?: boolean
+  exitIntentEnabled?: boolean
+  inactivityTimeoutMs?: number
+  discountPercentage?: number
 }
 
-export function rescueFunnel({
-  thresholdSeconds = 30,
-  onAbandonment,
-  onRescue,
-  enabled = true,
-}: RescueFunnelOptions = {}) {
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const lastActivityTimeRef = useRef(Date.now())
+interface DiscountOffer {
+  percentage: number
+  code: string
+}
 
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    lastActivityTimeRef.current = Date.now()
-    if (enabled) {
-      timerRef.current = setTimeout(() => {
-        if (onAbandonment) {
-          onAbandonment()
-        }
-      }, thresholdSeconds * 1000)
-    }
-  }, [thresholdSeconds, onAbandonment, enabled])
+export function rescueFunnel(options?: RescueFunnelOptions) {
+  const {
+    exitIntentEnabled = true,
+    inactivityTimeoutMs = 30000, // Default to 30 seconds
+    discountPercentage = 10, // Default discount
+  } = options || {}
 
-  const handleActivity = useCallback(() => {
-    const currentTime = Date.now()
-    const idleTime = (currentTime - lastActivityTimeRef.current) / 1000
+  const [showDiscountModal, setShowDiscountModal] = useState(false)
+  const [showChatPrompt, setShowChatPrompt] = useState(false)
+  const [currentDiscount, setCurrentDiscount] = useState<DiscountOffer | null>(null)
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-    if (idleTime >= thresholdSeconds && onRescue) {
-      onRescue()
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
     }
-    resetTimer()
-  }, [thresholdSeconds, onRescue, resetTimer])
+    inactivityTimerRef.current = setTimeout(() => {
+      if (!showDiscountModal && !showChatPrompt) {
+        setCurrentDiscount({ percentage: discountPercentage, code: `SAVE${discountPercentage}` })
+        setShowDiscountModal(true)
+      }
+    }, inactivityTimeoutMs)
+  }, [inactivityTimeoutMs, showDiscountModal, showChatPrompt, discountPercentage])
+
+  const handleMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (exitIntentEnabled && event.clientY < 10 && !showDiscountModal && !showChatPrompt) {
+        setCurrentDiscount({ percentage: discountPercentage, code: `SAVE${discountPercentage}` })
+        setShowDiscountModal(true)
+      }
+      resetInactivityTimer()
+    },
+    [exitIntentEnabled, showDiscountModal, showChatPrompt, discountPercentage, resetInactivityTimer],
+  )
+
+  const handleKeyDown = useCallback(() => {
+    resetInactivityTimer()
+  }, [resetInactivityTimer])
 
   useEffect(() => {
-    if (!enabled) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-      return
-    }
-
-    resetTimer()
-
-    const events = ["mousemove", "keydown", "scroll", "click", "touchstart"]
-    events.forEach((event) => window.addEventListener(event, handleActivity))
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("keydown", handleKeyDown)
+    resetInactivityTimer() // Initialize timer on mount
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("keydown", handleKeyDown)
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
       }
-      events.forEach((event) => window.removeEventListener(event, handleActivity))
     }
-  }, [handleActivity, resetTimer, enabled])
+  }, [handleMouseMove, handleKeyDown, resetInactivityTimer])
 
-  // Expose a way to manually trigger a reset if needed from outside the hook
-  return { resetFunnel: resetTimer }
+  const sendSmsReminder = (phoneNumber: string) => {
+    console.log(`Sending SMS reminder to ${phoneNumber} with discount: ${currentDiscount?.code}`)
+    // In a real application, you would integrate with an SMS API here.
+    // For example: fetch('/api/send-sms', { method: 'POST', body: JSON.stringify({ phoneNumber, discount: currentDiscount }) });
+  }
+
+  return {
+    showDiscountModal,
+    setShowDiscountModal,
+    showChatPrompt,
+    setShowChatPrompt,
+    currentDiscount,
+    sendSmsReminder,
+  }
 }

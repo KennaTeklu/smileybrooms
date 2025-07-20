@@ -116,7 +116,7 @@ export function CollapsibleSettingsPanel() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="accessibility" className="mt-4 space-y-4 overflow-y-auto pr-2">
+            <TabsContent value="accessibility" className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="high-contrast" className="text-gray-700 dark:text-gray-300">
                   High Contrast
@@ -182,7 +182,7 @@ export function CollapsibleSettingsPanel() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="display" className="mt-4 space-y-4 overflow-y-auto pr-2">
+            <TabsContent value="display" className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               <div>
                 <Label htmlFor="text-alignment" className="mb-2 block text-gray-700 dark:text-gray-300">
                   <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment
