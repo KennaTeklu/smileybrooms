@@ -1,85 +1,101 @@
 "use client"
 
-import { useRef } from "react"
-
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useDeviceNotifications } from "@/lib/notifications/device-notifications"
 
 interface RescueFunnelOptions {
-  exitIntentEnabled?: boolean
-  inactivityTimeoutMs?: number
-  discountPercentage?: number
+  inactivityTimeoutMs?: number // Default to 1 month
+  enableChatIntervention?: boolean
 }
 
-interface DiscountOffer {
-  percentage: number
-  code: string
+interface RescueFunnelState {
+  lastInteractionTime: number
+  hasTriggeredHelp: boolean
 }
 
-export function rescueFunnel(options?: RescueFunnelOptions) {
+export function rescueFunnel(options: RescueFunnelOptions = {}) {
   const {
-    exitIntentEnabled = true,
-    inactivityTimeoutMs = 30000, // Default to 30 seconds
-    discountPercentage = 10, // Default discount
-  } = options || {}
+    inactivityTimeoutMs = 2592000000, // 1 month in milliseconds
+    enableChatIntervention = true,
+  } = options
 
-  const [showDiscountModal, setShowDiscountModal] = useState(false)
-  const [showChatPrompt, setShowChatPrompt] = useState(false)
-  const [currentDiscount, setCurrentDiscount] = useState<DiscountOffer | null>(null)
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [state, setState] = useState<RescueFunnelState>({
+    lastInteractionTime: Date.now(),
+    hasTriggeredHelp: false,
+  })
 
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current)
-    }
-    inactivityTimerRef.current = setTimeout(() => {
-      if (!showDiscountModal && !showChatPrompt) {
-        setCurrentDiscount({ percentage: discountPercentage, code: `SAVE${discountPercentage}` })
-        setShowDiscountModal(true)
-      }
-    }, inactivityTimeoutMs)
-  }, [inactivityTimeoutMs, showDiscountModal, showChatPrompt, discountPercentage])
+  const [showHelpPrompt, setShowHelpPrompt] = useState(false)
 
-  const handleMouseMove = useCallback(
-    (event: MouseEvent) => {
-      if (exitIntentEnabled && event.clientY < 10 && !showDiscountModal && !showChatPrompt) {
-        setCurrentDiscount({ percentage: discountPercentage, code: `SAVE${discountPercentage}` })
-        setShowDiscountModal(true)
-      }
-      resetInactivityTimer()
-    },
-    [exitIntentEnabled, showDiscountModal, showChatPrompt, discountPercentage, resetInactivityTimer],
-  )
+  const router = useRouter()
+  const { sendNotification, isSupported } = useDeviceNotifications()
 
-  const handleKeyDown = useCallback(() => {
-    resetInactivityTimer()
-  }, [resetInactivityTimer])
-
+  // Track user activity
   useEffect(() => {
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("keydown", handleKeyDown)
-    resetInactivityTimer() // Initialize timer on mount
+    const updateLastInteraction = () => {
+      setState((prev) => ({
+        ...prev,
+        lastInteractionTime: Date.now(),
+      }))
+    }
+
+    // Set up event listeners
+    window.addEventListener("mousemove", updateLastInteraction)
+    window.addEventListener("click", updateLastInteraction)
+    window.addEventListener("keydown", updateLastInteraction)
+    window.addEventListener("scroll", updateLastInteraction)
+
+    // Check for inactivity
+    const inactivityInterval = setInterval(() => {
+      const now = Date.now()
+      const timeSinceLastInteraction = now - state.lastInteractionTime
+
+      // Trigger help if inactive for a month and help hasn't been triggered yet
+      if (timeSinceLastInteraction > inactivityTimeoutMs && !state.hasTriggeredHelp) {
+        checkCartAndTriggerHelp()
+      }
+    }, inactivityTimeoutMs / 2) // Check periodically, e.g., every half month
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("keydown", handleKeyDown)
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current)
+      window.removeEventListener("mousemove", updateLastInteraction)
+      window.removeEventListener("click", updateLastInteraction)
+      window.removeEventListener("keydown", updateLastInteraction)
+      window.removeEventListener("scroll", updateLastInteraction)
+      clearInterval(inactivityInterval)
+    }
+  }, [inactivityTimeoutMs, state.hasTriggeredHelp, state.lastInteractionTime])
+
+  // Check for cart items and trigger help
+  const checkCartAndTriggerHelp = () => {
+    // Check if there are items in cart (simplified - replace with actual cart check)
+    const hasItemsInCart =
+      localStorage.getItem("cart") && JSON.parse(localStorage.getItem("cart") || '{"items":[]}').items.length > 0
+
+    if (hasItemsInCart && enableChatIntervention) {
+      setState((prev) => ({ ...prev, hasTriggeredHelp: true }))
+      setShowHelpPrompt(true)
+
+      // Optionally send a device notification if supported and user is not on the page
+      if (document.visibilityState === "hidden" && isSupported) {
+        sendNotification({
+          title: "Need a hand with your booking?",
+          body: "We noticed you haven't completed your cleaning service booking. Click to chat with us!",
+          priority: "normal",
+          actions: [
+            {
+              title: "Chat with Support",
+              action: () => {
+                router.push("/contact") // Or a specific chat page
+              },
+            },
+          ],
+        })
       }
     }
-  }, [handleMouseMove, handleKeyDown, resetInactivityTimer])
-
-  const sendSmsReminder = (phoneNumber: string) => {
-    console.log(`Sending SMS reminder to ${phoneNumber} with discount: ${currentDiscount?.code}`)
-    // In a real application, you would integrate with an SMS API here.
-    // For example: fetch('/api/send-sms', { method: 'POST', body: JSON.stringify({ phoneNumber, discount: currentDiscount }) });
   }
 
   return {
-    showDiscountModal,
-    setShowDiscountModal,
-    showChatPrompt,
-    setShowChatPrompt,
-    currentDiscount,
-    sendSmsReminder,
+    showHelpPrompt,
+    setShowHelpPrompt,
   }
 }

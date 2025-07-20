@@ -357,7 +357,7 @@ export function CollapsibleSharePanel() {
           animate={{ width: "auto", opacity: 1, x: 0 }}
           exit={{ width: 0, opacity: 0, x: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-0 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-r-2xl shadow-2xl overflow-hidden border-r-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50 z-20"
+          className="fixed bottom-0 left-0 w-[calc(100vw-2rem)] max-w-sm bg-transparent backdrop-blur-xl rounded-r-2xl shadow-2xl overflow-hidden border-r-2 border-t-2 border-b-2 border-purple-200/50 dark:border-purple-800/50 z-20 max-h-[90vh]"
           style={{
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
           }}
@@ -468,7 +468,7 @@ export function CollapsibleSharePanel() {
                 <Users className="h-3 w-3 mr-1" />
                 Social
               </TabsTrigger>
-              <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-700 dark:text-gray-300">
+              <TabsTrigger value="chat" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                 <MessageCircle className="h-3 w-3 mr-1" />
                 Chat
               </TabsTrigger>
@@ -482,7 +482,7 @@ export function CollapsibleSharePanel() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="p-5 flex-1 overflow-auto max-h-[70vh]">
+            <div className="p-5 flex-1 overflow-y-auto">
               {/* Enhanced Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
