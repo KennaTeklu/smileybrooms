@@ -1,35 +1,39 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowDownRight, X } from "lucide-react"
+import { ArrowRight, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface HelpPromptProps {
-  onDismiss: () => void
+  onChatbotOpen: () => void
 }
 
-export function HelpPrompt({ onDismiss }: HelpPromptProps) {
+export function HelpPrompt({ onChatbotOpen }: HelpPromptProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 50 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, y: 50 }}
-      transition={{ type: "spring", damping: 20, stiffness: 300 }}
-      className="fixed bottom-20 right-20 bg-gradient-to-br from-blue-500 to-purple-600 text-white p-4 rounded-lg shadow-lg flex items-center gap-3 z-50 max-w-xs text-sm"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 50 }}
+      transition={{ type: "spring", damping: 20, stiffness: 200 }}
+      className="fixed bottom-20 right-4 z-30 p-4 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-lg shadow-xl flex items-center gap-3 max-w-xs"
     >
+      <Bot className="h-6 w-6 flex-shrink-0" />
       <div className="flex-1">
-        <p className="font-semibold">Need help?</p>
-        <p>Click the chat icon below to talk to our support!</p>
+        <p className="text-sm font-semibold">Need a hand?</p>
+        <p className="text-xs opacity-90">Our chatbot is here to help you with any questions.</p>
       </div>
-      <ArrowDownRight className="h-8 w-8 text-white flex-shrink-0" />
       <Button
         variant="ghost"
         size="icon"
-        onClick={onDismiss}
-        className="absolute top-1 right-1 text-white/80 hover:bg-white/20 hover:text-white"
-        aria-label="Dismiss help prompt"
+        onClick={onChatbotOpen}
+        className={cn(
+          "text-white hover:bg-white/20 rounded-full transition-all duration-200",
+          "w-8 h-8 p-0 flex items-center justify-center",
+        )}
+        aria-label="Open chatbot for help"
       >
-        <X className="h-4 w-4" />
+        <ArrowRight className="h-4 w-4" />
       </Button>
     </motion.div>
   )

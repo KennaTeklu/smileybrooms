@@ -70,185 +70,189 @@ export function CollapsibleSettingsPanel() {
         <motion.div
           key="expanded-settings"
           ref={expandedPanelRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed inset-0 m-auto w-[calc(100vw-2rem)] max-w-2xl bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 z-20 max-h-[90vh] flex flex-col"
-          style={{
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
-          }}
+          className="fixed inset-0 flex items-center justify-center p-4 z-20"
         >
-          <div className="bg-gradient-to-b from-purple-600 via-purple-700 to-purple-800 text-white p-5 border-b border-purple-500/20 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Settings className="h-5 w-5" />
+          <div
+            className="w-full max-w-lg bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 max-h-[90vh] flex flex-col"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
+            }}
+          >
+            <div className="bg-gradient-to-b from-purple-600 via-purple-700 to-purple-800 text-white p-5 border-b border-purple-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Settings</h2>
+                  <p className="text-purple-100 text-sm">Customize your experience</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold">Settings</h2>
-                <p className="text-purple-100 text-sm">Customize your experience</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-              aria-label="Collapse settings panel"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <Tabs defaultValue="accessibility" className="w-full p-4 flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 bg-purple-100 dark:bg-purple-900/70">
-              <TabsTrigger
-                value="accessibility"
-                className="flex items-center gap-2 text-purple-800 dark:text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
-              >
-                <Accessibility className="h-4 w-4" /> Accessibility
-              </TabsTrigger>
-              <TabsTrigger
-                value="display"
-                className="flex items-center gap-2 text-purple-800 dark:text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
-              >
-                <Palette className="h-4 w-4" /> Display
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="accessibility" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="high-contrast" className="text-gray-700 dark:text-gray-300">
-                  High Contrast
-                </Label>
-                <Switch
-                  id="high-contrast"
-                  checked={preferences.highContrast}
-                  onCheckedChange={(checked) => updatePreference("highContrast", checked)}
-                  aria-label="Toggle high contrast mode"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="large-text" className="text-gray-700 dark:text-gray-300">
-                  Large Text
-                </Label>
-                <Switch
-                  id="large-text"
-                  checked={preferences.largeText}
-                  onCheckedChange={(checked) => updatePreference("largeText", checked)}
-                  aria-label="Toggle large text mode"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="reduced-motion" className="text-gray-700 dark:text-gray-300">
-                  Reduced Motion
-                </Label>
-                <Switch
-                  id="reduced-motion"
-                  checked={preferences.reducedMotion}
-                  onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
-                  aria-label="Toggle reduced motion"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="screen-reader-mode" className="text-gray-700 dark:text-gray-300">
-                  Screen Reader Mode
-                </Label>
-                <Switch
-                  id="screen-reader-mode"
-                  checked={preferences.screenReaderMode}
-                  onCheckedChange={(checked) => updatePreference("screenReaderMode", checked)}
-                  aria-label="Toggle screen reader mode"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="keyboard-navigation" className="text-gray-700 dark:text-gray-300">
-                  Keyboard Navigation
-                </Label>
-                <Switch
-                  id="keyboard-navigation"
-                  checked={preferences.keyboardNavigation}
-                  onCheckedChange={(checked) => updatePreference("keyboardNavigation", checked)}
-                  aria-label="Toggle keyboard navigation indicators"
-                />
-              </div>
-              <Separator className="bg-gray-200 dark:bg-gray-700" />
               <Button
-                onClick={handleReset}
-                className="w-full bg-purple-600 text-white hover:bg-purple-700"
-                aria-label="Reset all accessibility settings"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                aria-label="Collapse settings panel"
               >
-                Reset All Settings
+                <ChevronDown className="h-4 w-4" />
               </Button>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="display" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
-              <div>
-                <Label htmlFor="text-alignment" className="mb-2 block text-gray-700 dark:text-gray-300">
-                  <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment
-                </Label>
-                <Select
-                  value={preferences.textAlignment}
-                  onValueChange={(value: "left" | "center" | "right" | "justify") =>
-                    updatePreference("textAlignment", value)
-                  }
+            <Tabs defaultValue="accessibility" className="w-full p-4 flex-1 flex flex-col">
+              <TabsList className="grid w-full grid-cols-2 bg-purple-100 dark:bg-purple-900/70">
+                <TabsTrigger
+                  value="accessibility"
+                  className="flex items-center gap-2 text-purple-800 dark:text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
                 >
-                  <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    <SelectValue placeholder="Select alignment" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-                    {textAlignmentOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Accessibility className="h-4 w-4" /> Accessibility
+                </TabsTrigger>
+                <TabsTrigger
+                  value="display"
+                  className="flex items-center gap-2 text-purple-800 dark:text-purple-100 data-[state=active]:bg-purple-700 data-[state=active]:text-white"
+                >
+                  <Palette className="h-4 w-4" /> Display
+                </TabsTrigger>
+              </TabsList>
 
-              <div>
-                <Label htmlFor="font-family" className="mb-2 block text-gray-700 dark:text-gray-300">
-                  <Text className="mr-2 inline-block h-4 w-4" /> Font Family
-                </Label>
-                <Select
-                  value={preferences.fontFamily}
-                  onValueChange={(value: string) => updatePreference("fontFamily", value)}
+              <TabsContent value="accessibility" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="high-contrast" className="text-gray-700 dark:text-gray-300">
+                    High Contrast
+                  </Label>
+                  <Switch
+                    id="high-contrast"
+                    checked={preferences.highContrast}
+                    onCheckedChange={(checked) => updatePreference("highContrast", checked)}
+                    aria-label="Toggle high contrast mode"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="large-text" className="text-gray-700 dark:text-gray-300">
+                    Large Text
+                  </Label>
+                  <Switch
+                    id="large-text"
+                    checked={preferences.largeText}
+                    onCheckedChange={(checked) => updatePreference("largeText", checked)}
+                    aria-label="Toggle large text mode"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="reduced-motion" className="text-gray-700 dark:text-gray-300">
+                    Reduced Motion
+                  </Label>
+                  <Switch
+                    id="reduced-motion"
+                    checked={preferences.reducedMotion}
+                    onCheckedChange={(checked) => updatePreference("reducedMotion", checked)}
+                    aria-label="Toggle reduced motion"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="screen-reader-mode" className="text-gray-700 dark:text-gray-300">
+                    Screen Reader Mode
+                  </Label>
+                  <Switch
+                    id="screen-reader-mode"
+                    checked={preferences.screenReaderMode}
+                    onCheckedChange={(checked) => updatePreference("screenReaderMode", checked)}
+                    aria-label="Toggle screen reader mode"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="keyboard-navigation" className="text-gray-700 dark:text-gray-300">
+                    Keyboard Navigation
+                  </Label>
+                  <Switch
+                    id="keyboard-navigation"
+                    checked={preferences.keyboardNavigation}
+                    onCheckedChange={(checked) => updatePreference("keyboardNavigation", checked)}
+                    aria-label="Toggle keyboard navigation indicators"
+                  />
+                </div>
+                <Separator className="bg-gray-200 dark:bg-gray-700" />
+                <Button
+                  onClick={handleReset}
+                  className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                  aria-label="Reset all accessibility settings"
                 >
-                  <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    <SelectValue placeholder="Select font" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-                    {fontFamilyOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  Reset All Settings
+                </Button>
+              </TabsContent>
 
-              <div>
-                <Label htmlFor="language" className="mb-2 block text-gray-700 dark:text-gray-300">
-                  <Languages className="mr-2 inline-block h-4 w-4" /> Language
-                </Label>
-                <Select
-                  value={preferences.language}
-                  onValueChange={(value: string) => updatePreference("language", value)}
-                >
-                  <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-                    {languageOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="display" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
+                <div>
+                  <Label htmlFor="text-alignment" className="mb-2 block text-gray-700 dark:text-gray-300">
+                    <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment
+                  </Label>
+                  <Select
+                    value={preferences.textAlignment}
+                    onValueChange={(value: "left" | "center" | "right" | "justify") =>
+                      updatePreference("textAlignment", value)
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                      <SelectValue placeholder="Select alignment" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                      {textAlignmentOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="font-family" className="mb-2 block text-gray-700 dark:text-gray-300">
+                    <Text className="mr-2 inline-block h-4 w-4" /> Font Family
+                  </Label>
+                  <Select
+                    value={preferences.fontFamily}
+                    onValueChange={(value: string) => updatePreference("fontFamily", value)}
+                  >
+                    <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                      <SelectValue placeholder="Select font" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                      {fontFamilyOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="language" className="mb-2 block text-gray-700 dark:text-gray-300">
+                    <Languages className="mr-2 inline-block h-4 w-4" /> Language
+                  </Label>
+                  <Select
+                    value={preferences.language}
+                    onValueChange={(value: string) => updatePreference("language", value)}
+                  >
+                    <SelectTrigger className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                      {languageOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </motion.div>
       ) : (
         <motion.div

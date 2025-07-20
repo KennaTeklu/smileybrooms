@@ -1,137 +1,155 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { ChevronLeft, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Send, MessageSquare, ChevronDown } from "lucide-react"
-import { useClickOutside } from "@/hooks/use-click-outside"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { cn } from "@/lib/utils"
 
+// Extend Window interface for JotForm
+declare global {
+  interface Window {
+    jotformEmbedHandler?: (selector: string, url: string) => void
+  }
+}
+
 export function CollapsibleChatbotPanel() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [message, setMessage] = useState("")
-  const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot"; text: string }[]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const expandedPanelRef = useRef<HTMLDivElement>(null)
   const collapsedButtonRef = useRef<HTMLButtonElement>(null)
-  const chatEndRef = useRef<HTMLDivElement>(null)
-  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  useClickOutside(expandedPanelRef, (event) => {
-    if (collapsedButtonRef.current && collapsedButtonRef.current.contains(event.target as Node)) {
-      return // Don't close if the click was on the button itself
-    }
-    setIsOpen(false)
-  })
-
-  useKeyboardShortcuts({
-    "alt+c": () => setIsOpen((prev) => !prev),
-    Escape: () => setIsOpen(false),
-  })
-
+  // Handle clicks outside the expanded panel to collapse it
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" })
+    if (!isMounted) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isExpanded) {
+        if (expandedPanelRef.current && !expandedPanelRef.current.contains(event.target as Node)) {
+          setIsExpanded(false)
+        }
+      }
     }
-  }, [chatHistory])
 
-  const handleSendMessage = async () => {
-    if (message.trim() === "") return
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [isExpanded, isMounted])
 
-    const userMessage = { role: "user", text: message.trim() }
-    setChatHistory((prev) => [...prev, userMessage])
-    setMessage("")
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false)
+      }
+    }
 
-    // Simulate bot response
-    setTimeout(() => {
-      setChatHistory((prev) => [
-        ...prev,
-        { role: "bot", text: `Hello! You said: "${userMessage.text}". How can I assist you further?` },
-      ])
-    }, 1000)
-  }
+    if (isExpanded) {
+      document.addEventListener("keydown", handleEscape)
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [isExpanded])
+
+  // Load JotForm embed handler script when panel expands
+  useEffect(() => {
+    if (isExpanded && isMounted) {
+      const script = document.createElement("script")
+      script.src = "https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"
+      script.onload = () => {
+        try {
+          if (window.jotformEmbedHandler) {
+            window.jotformEmbedHandler(
+              "iframe[id='JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4']",
+              "https://www.jotform.com",
+            )
+          }
+        } catch (error) {
+          // Ignore cross-origin errors
+        }
+      }
+      document.head.appendChild(script)
+
+      return () => {
+        const existingScript = document.querySelector(
+          'script[src="https://cdn.jotfor.ms/s/umd/latest/for-form-embed-handler.js"]',
+        )
+        if (existingScript) {
+          document.head.removeChild(existingScript)
+        }
+      }
+    }
+  }, [isExpanded, isMounted])
 
   if (!isMounted) return null
 
   return (
     <AnimatePresence initial={false}>
-      {isOpen ? (
+      {isExpanded ? (
         <motion.div
           key="expanded-chatbot"
           ref={expandedPanelRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed inset-0 m-auto w-[calc(100vw-2rem)] max-w-2xl bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-green-200/50 dark:border-green-800/50 z-20 max-h-[90vh] flex flex-col"
-          style={{
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(34, 197, 94, 0.1)",
-          }}
+          className="fixed inset-0 flex items-center justify-center p-4 z-20"
         >
-          <div className="bg-gradient-to-b from-green-600 via-green-700 to-green-800 text-white p-5 border-b border-green-500/20 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                <MessageSquare className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Chat Support</h2>
-                <p className="text-green-100 text-sm">We're here to help!</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
-              aria-label="Collapse chatbot panel"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex-1 flex flex-col p-4 overflow-hidden">
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              {chatHistory.length === 0 && (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-10">Start a conversation!</div>
-              )}
-              {chatHistory.map((msg, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-3 rounded-lg max-w-[80%]",
-                    msg.role === "user"
-                      ? "bg-blue-500 text-white ml-auto rounded-br-none"
-                      : "bg-gray-200 text-gray-800 mr-auto rounded-bl-none dark:bg-gray-700 dark:text-gray-200",
-                  )}
-                >
-                  {msg.text}
+          <div
+            className="w-full max-w-sm bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-blue-200/50 dark:border-blue-800/50 max-h-[90vh] flex flex-col"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)",
+            }}
+          >
+            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white p-5 border-b border-blue-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Bot className="h-5 w-5" />
                 </div>
-              ))}
-              <div ref={chatEndRef} />
+                <div>
+                  <h2 className="text-lg font-bold">Customer Support</h2>
+                  <p className="text-blue-100 text-sm">We're here to help</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsExpanded(false)}
+                className="text-white hover:bg-white/20 rounded-xl h-9 w-9"
+                aria-label="Collapse chatbot panel"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <Textarea
-                placeholder="Type your message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSendMessage()
+            <div className="flex-1 w-full">
+              <iframe
+                id="JotFormIFrame-019727f88b017b95a6ff71f7fdcc58538ab4"
+                title="smileybrooms.com: Customer Support Representative"
+                onLoad={() => {
+                  try {
+                    window.parent.scrollTo(0, 0)
+                  } catch (error) {
+                    // Ignore cross-origin errors
                   }
                 }}
-                className="flex-1 resize-none bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                allowTransparency={true}
+                allow="geolocation; microphone; camera; fullscreen"
+                src="https://agent.jotform.com/019727f88b017b95a6ff71f7fdcc58538ab4?embedMode=iframe&background=1&shadow=1"
+                style={{
+                  minWidth: "100%",
+                  maxWidth: "100%",
+                  height: "100%", // Use 100% height within its parent div
+                  border: "none",
+                  width: "100%",
+                }}
+                scrolling="no"
               />
-              <Button onClick={handleSendMessage} className="bg-green-600 text-white hover:bg-green-700">
-                <Send className="h-5 w-5" />
-                <span className="sr-only">Send message</span>
-              </Button>
             </div>
           </div>
         </motion.div>
@@ -149,14 +167,14 @@ export function CollapsibleChatbotPanel() {
             variant="outline"
             size="icon"
             className={cn(
-              `rounded-full bg-transparent text-white shadow-lg hover:bg-green-700 hover:text-white focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent`,
+              `rounded-full bg-transparent text-white shadow-lg hover:bg-blue-700 hover:text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent`,
               "w-10 h-10 p-0",
             )}
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label={isOpen ? "Close chatbot panel" : "Open chatbot panel"}
-            aria-expanded={isOpen}
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-label={isExpanded ? "Close chatbot panel" : "Open chatbot panel"}
+            aria-expanded={isExpanded}
           >
-            <MessageSquare className="h-5 w-5" />
+            <Bot className="h-5 w-5" />
           </Button>
         </motion.div>
       )}
