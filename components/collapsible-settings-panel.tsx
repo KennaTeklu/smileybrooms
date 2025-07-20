@@ -74,7 +74,7 @@ export function CollapsibleSettingsPanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-[calc(100vw-2rem)] max-w-lg bg-transparent backdrop-blur-xl rounded-t-2xl shadow-2xl overflow-hidden border-t-2 border-l-2 border-r-2 border-purple-200/50 dark:border-purple-800/50 z-20 max-h-[90vh]"
+          className="fixed inset-0 m-auto w-[calc(100vw-2rem)] max-w-2xl bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 z-20 max-h-[90vh] flex flex-col"
           style={{
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
           }}
