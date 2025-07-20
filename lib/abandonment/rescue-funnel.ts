@@ -1,5 +1,7 @@
 "use client"
 
+"use server"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useDeviceNotifications } from "@/lib/notifications/device-notifications"
@@ -23,7 +25,16 @@ interface RescueFunnelState {
   hasAbandonedCart: boolean
 }
 
-export function rescueFunnel(options: RescueFunnelOptions = {}) {
+export async function rescueFunnel(userId: string, cartId: string, options: RescueFunnelOptions = {}) {
+  console.log(`Initiating abandonment rescue for user ${userId} with cart ${cartId}`)
+  // In a real application, this would involve:
+  // 1. Sending an email
+  // 2. Triggering a notification
+  // 3. Logging the event
+  // 4. Potentially offering a discount
+  await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulate API call
+  console.log("Abandonment rescue initiated successfully.")
+
   const {
     exitIntentEnabled = true,
     inactivityTimeoutMs = 60000, // 1 minute

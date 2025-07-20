@@ -70,11 +70,11 @@ export function CollapsibleSettingsPanel() {
         <motion.div
           key="expanded-settings"
           ref={expandedPanelRef}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0 }} // Removed y: 20
+          animate={{ opacity: 1 }} // Removed y: 0
+          exit={{ opacity: 0 }} // Removed y: 20
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-b-2xl shadow-2xl overflow-hidden border-b-2 border-l-2 border-r-2 border-purple-200/50 dark:border-purple-800/50 z-20"
+          className="fixed top-0 bottom-0 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-b-2xl shadow-2xl overflow-hidden border-b-2 border-l-2 border-r-2 border-purple-200/50 dark:border-purple-800/50 z-20"
           style={{
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
           }}
