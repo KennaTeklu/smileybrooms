@@ -1,84 +1,66 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { rescueFunnel } from "@/lib/abandonment/rescue-funnel"
-import { useToast } from "@/components/ui/use-toast"
+import { DiscountRescueModal } from "./discount-rescue-modal" // Assuming this component exists
 
 interface AbandonmentProviderProps {
   children: React.ReactNode
-  userId: string
-  cartId: string
-  thresholdSeconds?: number
-  enabled?: boolean
 }
 
-export function AbandonmentProvider({
-  children,
-  userId,
-  cartId,
-  thresholdSeconds = 60,
-  enabled = true,
-}: AbandonmentProviderProps) {
-  const { toast } = useToast()
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const lastActivityTimeRef = useRef(Date.now())
+export function AbandonmentProvider({ children }: AbandonmentProviderProps) {
+  const [showRescueModal, setShowRescueModal] = useState(false)
 
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    lastActivityTimeRef.current = Date.now()
-    if (enabled) {
-      timerRef.current = setTimeout(async () => {
-        const response = await rescueFunnel(userId, cartId)
-        if (response.success) {
-          toast({
-            title: "We miss you!",
-            description: "We noticed you left something in your cart. Can we help?",
-            duration: 5000,
-          })
-        } else {
-          toast({
-            title: "Rescue Failed",
-            description: "Could not initiate abandonment rescue.",
-            variant: "destructive",
-          })
-        }
-      }, thresholdSeconds * 1000)
-    }
-  }, [userId, cartId, thresholdSeconds, enabled, toast])
+  const handleAbandonmentDetected = useCallback(() => {
+    console.log("Abandonment detected! Showing rescue modal.")
+    setShowRescueModal(true)
+  }, [])
+
+  // Use environment variable for threshold if available, otherwise default
+  const abandonmentThreshold = process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS
+    ? Number.parseInt(process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_THRESHOLD_SECONDS, 10)
+    : 30
+
+  // Use environment variable to enable/disable the feature
+  const enableAbandonmentRescue = process.env.NEXT_PUBLIC_ABANDONMENT_RESCUE_ENABLED === "true"
+
+  const { resetTimer } = rescueFunnel({
+    thresholdSeconds: abandonmentThreshold,
+    onAbandonmentDetected: handleAbandonmentDetected,
+    enabled: enableAbandonmentRescue,
+  })
+
+  const handleCloseModal = useCallback(() => {
+    setShowRescueModal(false)
+    resetTimer() // Reset timer after modal is closed
+  }, [resetTimer])
 
   useEffect(() => {
-    if (!enabled) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-      return
-    }
+    // Optionally, reset timer on route change if using Next.js router
+    // import { useRouter } from 'next/navigation';
+    // const router = useRouter();
+    // const handleRouteChange = () => resetTimer();
+    // router.events.on('routeChangeStart', handleRouteChange);
+    // return () => {
+    //   router.events.off('routeChangeStart', handleRouteChange);
+    // };
+  }, [resetTimer])
 
-    const handleActivity = () => {
-      resetTimer()
-    }
+  if (!enableAbandonmentRescue) {
+    return <>{children}</>
+  }
 
-    window.addEventListener("mousemove", handleActivity)
-    window.addEventListener("keydown", handleActivity)
-    window.addEventListener("scroll", handleActivity)
-    window.addEventListener("click", handleActivity)
-
-    resetTimer()
-
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-      window.removeEventListener("mousemove", handleActivity)
-      window.removeEventListener("keydown", handleActivity)
-      window.removeEventListener("scroll", handleActivity)
-      window.removeEventListener("click", handleActivity)
-    }
-  }, [resetTimer, enabled])
-
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {showRescueModal && (
+        <DiscountRescueModal
+          isOpen={showRescueModal}
+          onClose={handleCloseModal}
+          // You might pass other props to the modal, e.g., discount code
+        />
+      )}
+    </>
+  )
 }

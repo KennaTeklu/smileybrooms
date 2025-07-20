@@ -70,9 +70,9 @@ export function CollapsibleSettingsPanel() {
         <motion.div
           key="expanded-settings"
           ref={expandedPanelRef}
-          initial={{ opacity: 0 }} // Removed y: 20
-          animate={{ opacity: 1 }} // Removed y: 0
-          exit={{ opacity: 0 }} // Removed y: 20
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className="fixed top-0 bottom-0 left-1/2 transform -translate-x-1/2 w-full sm:max-w-sm md:max-w-md lg:max-w-lg bg-transparent backdrop-blur-xl rounded-b-2xl shadow-2xl overflow-hidden border-b-2 border-l-2 border-r-2 border-purple-200/50 dark:border-purple-800/50 z-20"
           style={{
@@ -100,7 +100,7 @@ export function CollapsibleSettingsPanel() {
             </Button>
           </div>
 
-          <Tabs defaultValue="accessibility" className="w-full p-4">
+          <Tabs defaultValue="accessibility" className="w-full p-4 flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-2 bg-purple-100 dark:bg-purple-900/70">
               <TabsTrigger
                 value="accessibility"
@@ -116,7 +116,7 @@ export function CollapsibleSettingsPanel() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="accessibility" className="mt-4 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+            <TabsContent value="accessibility" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="high-contrast" className="text-gray-700 dark:text-gray-300">
                   High Contrast
@@ -182,7 +182,7 @@ export function CollapsibleSettingsPanel() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="display" className="mt-4 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+            <TabsContent value="display" className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
               <div>
                 <Label htmlFor="text-alignment" className="mb-2 block text-gray-700 dark:text-gray-300">
                   <Text className="mr-2 inline-block h-4 w-4" /> Text Alignment
