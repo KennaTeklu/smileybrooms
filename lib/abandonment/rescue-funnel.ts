@@ -23,7 +23,7 @@ interface RescueFunnelState {
   hasAbandonedCart: boolean
 }
 
-export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
+export function rescueFunnel(options: RescueFunnelOptions = {}) {
   const {
     exitIntentEnabled = true,
     inactivityTimeoutMs = 60000, // 1 minute
