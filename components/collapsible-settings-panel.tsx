@@ -264,7 +264,7 @@ export function CollapsibleSettingsPanel() {
             variant="outline"
             size="icon"
             className={cn(
-              `rounded-full bg-transparent text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-purple-500`,
+              `rounded-full bg-transparent text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent`,
               "w-10 h-10 p-0",
             )}
             onClick={() => setIsOpen(!isOpen)}

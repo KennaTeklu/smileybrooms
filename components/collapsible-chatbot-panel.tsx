@@ -163,7 +163,7 @@ export function CollapsibleChatbotPanel() {
             variant="outline"
             size="icon"
             className={cn(
-              `rounded-full bg-transparent text-white shadow-lg hover:bg-blue-700 hover:text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-2 border-blue-500`,
+              `rounded-full bg-transparent text-white shadow-lg hover:bg-blue-700 hover:text-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent`,
               "w-10 h-10 p-0",
             )}
             onClick={() => setIsExpanded(!isExpanded)}
