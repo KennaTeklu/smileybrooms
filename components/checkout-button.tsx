@@ -1,25 +1,18 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Loader2, CreditCard, ArrowRight } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
+import type React from "react"
 
-interface CheckoutButtonProps {
-  priceId?: string
-  productName?: string
-  productPrice?: number
-  quantity?: number
-  metadata?: Record<string, any>
-  className?: string
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
-  useCheckoutPage?: boolean // New prop to control behavior
-  isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year"
-  paymentMethod?: "card" | "bank" | "wallet"
+import { Button } from "@/components/ui/button"
+import { createCheckoutSession } from "@/lib/actions"
+import { useState } from "react"
+import { useToast } from "@/components/ui/use-toast"
+import type { CartItem } from "@/lib/cart/types" // Import CartItem type
+import type Stripe from "stripe" // Declare Stripe variable
+
+interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
+  useCheckoutPage?: boolean
+  cartItems: CartItem[] // Changed to accept an array of CartItem
+  customerEmail?: string
   customerData?: {
     name?: string
     email?: string
@@ -31,110 +24,86 @@ interface CheckoutButtonProps {
       postal_code?: string
       country?: string
     }
+    allowVideoRecording?: boolean
+    videoConsentDetails?: string
+  }
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
+  discount?: {
+    amount: number
+    reason: string
   }
   shippingAddressCollection?: { allowed_countries: string[] }
   automaticTax?: { enabled: boolean }
+  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
   trialPeriodDays?: number
   cancelAtPeriodEnd?: boolean
   allowPromotions?: boolean
 }
 
 export function CheckoutButton({
-  priceId,
-  productName,
-  productPrice,
-  quantity = 1,
-  metadata = {},
-  className,
-  variant = "default",
-  size = "default",
-  useCheckoutPage = true, // Default to using checkout page
-  isRecurring = false,
-  recurringInterval = "month",
-  paymentMethod = "card",
+  useCheckoutPage = false,
+  cartItems, // Destructure cartItems
+  customerEmail,
   customerData,
+  isRecurring,
+  recurringInterval,
+  discount,
   shippingAddressCollection,
   automaticTax,
+  paymentMethodTypes,
   trialPeriodDays,
   cancelAtPeriodEnd,
   allowPromotions,
+  ...props
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
-  const { cart } = useCart()
-  const router = useRouter()
 
   const handleCheckout = async () => {
     setIsLoading(true)
-
     try {
-      if (useCheckoutPage) {
-        // Navigate to checkout page instead of direct Stripe
-        if (cart.items.length === 0) {
-          toast({
-            title: "Cart is empty",
-            description: "Please add items to your cart before checking out.",
-            variant: "destructive",
-          })
-          return
-        }
+      // Map cartItems to customLineItems for Stripe
+      const customLineItems = cartItems.map((item) => ({
+        name: item.name,
+        amount: item.unitPrice,
+        quantity: item.quantity,
+        description: item.description,
+        images: item.images,
+        metadata: item.meta, // Pass the entire meta object as metadata
+      }))
 
-        router.push("/checkout")
-        return
-      }
-
-      // Original Stripe direct checkout logic (kept for backward compatibility)
-      const { createCheckoutSession } = await import("@/lib/actions")
-
-      const commonParams = {
+      const checkoutUrl = await createCheckoutSession({
+        customLineItems, // Pass the mapped customLineItems
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/canceled`,
+        customerEmail,
+        customerData,
         isRecurring,
         recurringInterval,
-        customerEmail: customerData?.email,
-        customerData,
+        discount,
         shippingAddressCollection,
         automaticTax,
+        paymentMethodTypes,
         trialPeriodDays,
         cancelAtPeriodEnd,
         allowPromotions,
-        paymentMethodTypes: [paymentMethod],
-      }
-
-      let checkoutUrl: string | undefined
-
-      if (priceId) {
-        checkoutUrl = await createCheckoutSession({
-          lineItems: [{ price: priceId, quantity }],
-          ...commonParams,
-        })
-      } else if (productName && productPrice) {
-        checkoutUrl = await createCheckoutSession({
-          customLineItems: [
-            {
-              name: productName,
-              amount: productPrice,
-              quantity,
-              metadata: {
-                ...metadata,
-                paymentMethod,
-              },
-            },
-          ],
-          ...commonParams,
-        })
-      } else {
-        throw new Error("Either priceId or productName and productPrice must be provided")
-      }
+      })
 
       if (checkoutUrl) {
         window.location.href = checkoutUrl
+      } else {
+        toast({
+          title: "Checkout Failed",
+          description: "Could not initiate checkout. Please try again.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout failed",
-        description: "There was an error processing your payment. Please try again.",
+        title: "Checkout Error",
+        description: "An unexpected error occurred during checkout. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -143,30 +112,8 @@ export function CheckoutButton({
   }
 
   return (
-    <Button className={className} variant={variant} size={size} onClick={handleCheckout} disabled={isLoading}>
-      {isLoading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {useCheckoutPage ? "Loading..." : "Processing..."}
-        </>
-      ) : (
-        <>
-          {useCheckoutPage ? (
-            <>
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Proceed to Checkout
-            </>
-          ) : (
-            <>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Checkout Now
-            </>
-          )}
-        </>
-      )}
+    <Button onClick={handleCheckout} disabled={isLoading || cartItems.length === 0} {...props}>
+      {isLoading ? "Processing..." : "Proceed to Checkout"}
     </Button>
   )
 }
-
-// Also provide default export for backward compatibility
-export default CheckoutButton

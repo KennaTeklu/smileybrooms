@@ -239,8 +239,7 @@ export default function CartPage() {
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                  productName="Smiley Brooms Cleaning Service" // Generic product name for Stripe
-                  productPrice={cart.totalPrice} // Pass the total price from the cart
+                  cartItems={cart.items || []} // Pass the actual cart items
                 />
                 <Button
                   asChild

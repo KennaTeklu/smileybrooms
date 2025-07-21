@@ -2,8 +2,11 @@ export interface CartItem {
   id: string
   sku: string
   type: "service" | "product" | "subscription"
+  name: string // Added for direct mapping to Stripe product name
   unitPrice: number
   quantity: number
+  description?: string // Added for direct mapping to Stripe product description
+  images?: string[] // Added for direct mapping to Stripe product images
   meta: Record<string, any>
 }
 
