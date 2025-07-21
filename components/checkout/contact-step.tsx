@@ -43,11 +43,11 @@ export default function ContactStep({ data, onSave, onNext, isSubmitting }: Cont
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!contactData.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!contactData.lastName.trim()) newErrors.lastName = "Last name is required"
-    if (!contactData.email.trim()) newErrors.email = "Email is required"
+    if (!contactData.firstName?.trim()) newErrors.firstName = "First name is required"
+    if (!contactData.lastName?.trim()) newErrors.lastName = "Last name is required"
+    if (!contactData.email?.trim()) newErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(contactData.email)) newErrors.email = "Email is invalid"
-    if (!contactData.phone.trim()) newErrors.phone = "Phone is required"
+    if (!contactData.phone?.trim()) newErrors.phone = "Phone is required"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

@@ -48,10 +48,10 @@ export default function AddressStep({ data, onSave, onNext, onPrevious, isSubmit
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
     // FullName, Email, Phone are now pre-filled from ContactStep, so no need to validate here
-    if (!addressData.address.trim()) newErrors.address = "Address is required"
-    if (!addressData.city.trim()) newErrors.city = "City is required"
+    if (!addressData.address?.trim()) newErrors.address = "Address is required"
+    if (!addressData.city?.trim()) newErrors.city = "City is required"
     if (!addressData.state) newErrors.state = "State is required"
-    if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    if (!addressData.zipCode?.trim()) newErrors.zipCode = "ZIP code is required"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }

@@ -29,6 +29,14 @@ import ReviewStep from "@/components/checkout/review-step"
 import type { CheckoutData } from "@/lib/types"
 import { createCheckoutSession } from "@/lib/actions"
 
+// Build an absolute HTTPS/HTTP URL for Stripe (it rejects relative paths).
+const makeAbsoluteUrl = (path?: string) =>
+  path && /^https?:\/\//i.test(path)
+    ? path
+    : path
+      ? `${window.location.origin}${path.startsWith("/") ? path : `/${path}`}`
+      : undefined
+
 // Simple price formatter – prepend `$` & keep two decimals
 const formatPrice = (price: number) => `$${price.toFixed(2)}`
 
@@ -155,18 +163,13 @@ export default function CartPage() {
         // Prepare line items for Stripe (only online payment items)
         const onlinePaymentItems = cart.items.filter((item) => item.paymentType !== "in_person")
         const customLineItems = onlinePaymentItems.map((item) => {
-          const processedMetadata: Record<string, string> = {
-            itemId: item.id,
-          }
+          const processedMetadata: Record<string, string> = { itemId: item.id }
 
           for (const key in item.metadata) {
             if (Object.prototype.hasOwnProperty.call(item.metadata, key)) {
               const value = item.metadata[key]
-              if (typeof value === "object" && value !== null) {
-                processedMetadata[key] = JSON.stringify(value)
-              } else {
-                processedMetadata[key] = String(value)
-              }
+              processedMetadata[key] =
+                typeof value === "object" && value !== null ? JSON.stringify(value) : String(value)
             }
           }
 
@@ -175,7 +178,8 @@ export default function CartPage() {
             amount: item.price,
             quantity: item.quantity,
             description: item.description || `Service: ${item.name}`,
-            images: item.image ? [item.image] : [],
+            // NOTE: Stripe requires absolute URLs for product images
+            images: item.image ? [makeAbsoluteUrl(item.image)!] : [], // Use makeAbsoluteUrl here
             metadata: processedMetadata,
           }
         })
