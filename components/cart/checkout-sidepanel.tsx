@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { MapPin, User, Check, Shield } from "lucide-react" // Removed CreditCard and Package icons
 import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
+// Removed useRouter import as it's no longer used for internal navigation/redirection
 import { useToast } from "@/components/ui/use-toast"
 import { AnimatePresence } from "framer-motion"
 import ContactStep from "@/components/checkout/contact-step"
@@ -28,8 +28,7 @@ interface CheckoutSidePanelProps {
 }
 
 export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComplete }: CheckoutSidePanelProps) {
-  const { cart } = useCart()
-  const router = useRouter()
+  const { cart } = useCart() // Keeping useCart as other steps might implicitly rely on cart context
   const { toast } = useToast()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
@@ -53,7 +52,8 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       specialInstructions: "",
       addressType: "residential",
     },
-    // Payment data is no longer collected in this panel
+    // Payment data is no longer collected in this panel, but the type still expects it.
+    // It will be filled with default values or handled by the subsequent payment process.
     payment: {
       paymentMethod: "card", // Default, but not used for collection here
       allowVideoRecording: false,
@@ -175,7 +175,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
             onPrevious={handlePrevious}
           />
         )
-      // Removed cases for "payment" and "review"
       default:
         return null
     }
@@ -250,7 +249,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
               <Shield className="mr-2 h-4 w-4" />
               <span className="font-medium">SSL Secured</span>
             </div>
-            {/* Removed Encrypted Payment as payment is no longer handled here */}
             <div className="flex items-center">
               <Check className="mr-2 h-4 w-4" />
               <span className="font-medium">100% Satisfaction Guarantee</span>
