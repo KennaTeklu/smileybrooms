@@ -2,28 +2,30 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check, Tag } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
+import { createCheckoutSession } from "@/lib/actions"
 import type { CheckoutData } from "@/lib/types"
 import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 
 interface ReviewStepProps {
   checkoutData: CheckoutData
   onPrevious: () => void
-  onComplete: () => void // New prop to trigger final checkout
-  isProcessing: boolean // New prop for loading state
 }
 
-export default function ReviewStep({ checkoutData, onPrevious, onComplete, isProcessing }: ReviewStepProps) {
-  const { cart } = useCart()
+export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps) {
+  const router = useRouter()
+  const { cart, clearCart } = useCart()
   const { toast } = useToast()
 
+  const [isProcessing, setIsProcessing] = useState(false)
   const [couponCode, setCouponCode] = useState("")
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponError, setCouponError] = useState<string | null>(null)
@@ -73,6 +75,115 @@ export default function ReviewStep({ checkoutData, onPrevious, onComplete, isPro
         variant: "destructive",
       })
       setCouponCode("") // Clear invalid coupon code
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!contactData || !addressData || !paymentData) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all previous steps before checkout.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      // Prepare line items for Stripe (only online payment items)
+      const customLineItems = onlinePaymentItems.map((item) => {
+        const processedMetadata: Record<string, string> = {
+          itemId: item.id,
+        }
+
+        // Iterate over all properties in item.metadata and stringify complex objects
+        for (const key in item.metadata) {
+          if (Object.prototype.hasOwnProperty.call(item.metadata, key)) {
+            const value = item.metadata[key]
+            if (typeof value === "object" && value !== null) {
+              // Stringify objects/arrays to ensure Stripe compatibility
+              processedMetadata[key] = JSON.stringify(value)
+            } else {
+              // Convert other primitives to string
+              processedMetadata[key] = String(value)
+            }
+          }
+        }
+
+        return {
+          name: item.name,
+          amount: item.price,
+          quantity: item.quantity,
+          description: item.metadata?.description || `Service: ${item.name}`,
+          images: item.image ? [item.image] : [],
+          metadata: processedMetadata, // Pass the processed metadata
+        }
+      })
+
+      // Add video discount if applicable
+      if (videoDiscount > 0) {
+        customLineItems.push({
+          name: "Video Recording Discount",
+          amount: -videoDiscount, // Negative amount for discount
+          quantity: 1,
+          description: "Discount for allowing video recording during service",
+        })
+      }
+
+      // Add coupon discount if applicable
+      if (couponDiscount > 0) {
+        customLineItems.push({
+          name: `Coupon Discount: ${couponCode}`,
+          amount: -couponDiscount, // Negative amount for discount
+          quantity: 1,
+          description: `Discount applied with coupon code: ${couponCode}`,
+        })
+      }
+
+      // Create checkout session with Stripe
+      const checkoutUrl = await createCheckoutSession({
+        customLineItems,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
+        customerEmail: contactData.email,
+        customerData: {
+          name: `${contactData.firstName} ${contactData.lastName}`,
+          email: contactData.email,
+          phone: contactData.phone,
+          address: {
+            line1: addressData.address,
+            city: addressData.city,
+            state: addressData.state,
+            postal_code: addressData.zipCode,
+            country: "US",
+          },
+        },
+        allowPromotions: true,
+        paymentMethodTypes: paymentData.paymentMethod === "card" ? ["card"] : undefined, // Restrict if not card
+      })
+
+      if (checkoutUrl) {
+        // Clear checkout data from localStorage
+        localStorage.removeItem("checkout-contact")
+        localStorage.removeItem("checkout-address")
+        localStorage.removeItem("checkout-payment")
+        clearCart() // Clear cart after successful checkout initiation
+
+        // Redirect to Stripe
+        window.location.href = checkoutUrl
+      } else {
+        throw new Error("Failed to create checkout session")
+      }
+    } catch (error) {
+      console.error("Error during checkout:", error)
+      toast({
+        title: "Checkout Failed",
+        description: error instanceof Error ? error.message : "An error occurred during checkout. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -282,7 +393,7 @@ export default function ReviewStep({ checkoutData, onPrevious, onComplete, isPro
             Back to Payment
           </Button>
           <Button
-            onClick={onComplete} // Call the onComplete prop
+            onClick={handleCheckout}
             size="default"
             className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 rounded-xl px-6"
             disabled={isProcessing}

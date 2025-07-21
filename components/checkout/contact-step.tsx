@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { User, ArrowRight } from "lucide-react"
+import { ArrowRight, User } from "lucide-react"
 import { motion } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
@@ -15,13 +15,13 @@ interface ContactStepProps {
   data: CheckoutData["contact"]
   onSave: (data: CheckoutData["contact"]) => void
   onNext: () => void
-  isSubmitting: boolean
 }
 
-export default function ContactStep({ data, onSave, onNext, isSubmitting }: ContactStepProps) {
+export default function ContactStep({ data, onSave, onNext }: ContactStepProps) {
   const { toast } = useToast()
   const [contactData, setContactData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setContactData(data)
@@ -43,11 +43,11 @@ export default function ContactStep({ data, onSave, onNext, isSubmitting }: Cont
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!contactData.firstName?.trim()) newErrors.firstName = "First name is required"
-    if (!contactData.lastName?.trim()) newErrors.lastName = "Last name is required"
-    if (!contactData.email?.trim()) newErrors.email = "Email is required"
+    if (!contactData.firstName.trim()) newErrors.firstName = "First name is required"
+    if (!contactData.lastName.trim()) newErrors.lastName = "Last name is required"
+    if (!contactData.email.trim()) newErrors.email = "Email is required"
     else if (!/\S+@\S+\.\S+/.test(contactData.email)) newErrors.email = "Email is invalid"
-    if (!contactData.phone?.trim()) newErrors.phone = "Phone is required"
+    if (!contactData.phone.trim()) newErrors.phone = "Phone is required"
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -55,8 +55,10 @@ export default function ContactStep({ data, onSave, onNext, isSubmitting }: Cont
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
+      setIsSubmitting(true)
       onSave(contactData)
       onNext()
+      setIsSubmitting(false)
     } else {
       toast({
         title: "Please check your information",
@@ -73,7 +75,7 @@ export default function ContactStep({ data, onSave, onNext, isSubmitting }: Cont
           <User className="h-5 w-5" />
           Contact Information
         </CardTitle>
-        <CardDescription>How we can reach you about your service.</CardDescription>
+        <CardDescription>Please provide your contact details for the service</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">

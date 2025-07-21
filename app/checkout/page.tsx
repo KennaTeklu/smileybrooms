@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
+import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from 'lucide-react'
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
@@ -14,6 +14,7 @@ import AddressStep from "@/components/checkout/address-step"
 import PaymentStep from "@/components/checkout/payment-step"
 import ReviewStep from "@/components/checkout/review-step"
 import type { CheckoutData } from "@/lib/types"
+import { redirect } from 'next/navigation'
 
 type CheckoutStepId = "contact" | "address" | "payment" | "review"
 
@@ -60,9 +61,9 @@ export default function CheckoutPage() {
   // Redirect if cart is empty
   useEffect(() => {
     if (cart.items.length === 0) {
-      router.push("/pricing")
+      redirect("/pricing")
     }
-  }, [cart.items.length, router])
+  }, [cart.items.length])
 
   // Load initial data from localStorage if available (for returning users or partial completion)
   useEffect(() => {
