@@ -3,25 +3,22 @@
 import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
+import { MapPin, User, Check, Shield } from "lucide-react" // Removed CreditCard and Package icons
 import { useCart } from "@/lib/cart-context"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { AnimatePresence } from "framer-motion"
 import ContactStep from "@/components/checkout/contact-step"
 import AddressStep from "@/components/checkout/address-step"
-import PaymentStep from "@/components/checkout/payment-step"
-import ReviewStep from "@/components/checkout/review-step"
+// Removed PaymentStep and ReviewStep imports as they are no longer in the panel
 import type { CheckoutData } from "@/lib/types"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
-type CheckoutStepId = "contact" | "address" | "payment" | "review"
+type CheckoutStepId = "contact" | "address" // Only contact and address steps in the panel
 
 const steps = [
   { id: "contact", title: "Contact Info", icon: User },
   { id: "address", title: "Service Address", icon: MapPin },
-  { id: "payment", title: "Payment", icon: CreditCard },
-  { id: "review", title: "Review Order", icon: Package },
 ]
 
 interface CheckoutSidePanelProps {
@@ -56,8 +53,9 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       specialInstructions: "",
       addressType: "residential",
     },
+    // Payment data is no longer collected in this panel
     payment: {
-      paymentMethod: "card",
+      paymentMethod: "card", // Default, but not used for collection here
       allowVideoRecording: false,
       agreeToTerms: false,
     },
@@ -70,23 +68,19 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     try {
       const savedContact = localStorage.getItem("checkout-contact")
       const savedAddress = localStorage.getItem("checkout-address")
-      const savedPayment = localStorage.getItem("checkout-payment")
 
       setCheckoutData((prev) => ({
+        ...prev, // Keep existing payment defaults
         contact: savedContact ? JSON.parse(savedContact) : prev.contact,
         address: savedAddress ? JSON.parse(savedAddress) : prev.address,
-        payment: savedPayment ? JSON.parse(savedPayment) : prev.payment,
       }))
 
       // Determine the last completed step to resume
-      if (savedPayment) {
-        setCurrentStep("review")
-        setCompletedSteps(["contact", "address", "payment"])
-      } else if (savedAddress) {
-        setCurrentStep("payment")
+      if (savedAddress) {
+        setCurrentStep("address") // If address is saved, stay on address or move to next (which is completion)
         setCompletedSteps(["contact", "address"])
       } else if (savedContact) {
-        setCurrentStep("address")
+        setCurrentStep("address") // If only contact is saved, move to address
         setCompletedSteps(["contact"])
       } else {
         setCurrentStep("contact") // Start from contact if no data
@@ -97,7 +91,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       // Optionally clear corrupted data
       localStorage.removeItem("checkout-contact")
       localStorage.removeItem("checkout-address")
-      localStorage.removeItem("checkout-payment")
     }
   }, [isOpen]) // Re-run when sheet opens
 
@@ -124,12 +117,13 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     const nextStepIndex = currentStepIndex + 1
     if (nextStepIndex < steps.length) {
       setCurrentStep(steps[nextStepIndex].id)
-    } else if (currentStep === "review") {
-      // If on the review step and trying to go "next", it means checkout is complete
+    } else if (currentStep === "address") {
+      // If on the last step ("address") and trying to go "next", it means panel flow is complete
       onCheckoutComplete(checkoutData)
       onOpenChange(false) // Close the side panel
+      // No redirect here, the parent (cart page) will handle showing the summary and final checkout
     }
-  }, [currentStepIndex, currentStep, checkoutData, onCheckoutComplete, onOpenChange])
+  }, [currentStepIndex, currentStep, checkoutData, onCheckoutComplete, onOpenChange, steps.length])
 
   const handlePrevious = useCallback(() => {
     const prevStepIndex = currentStepIndex - 1
@@ -181,19 +175,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
             onPrevious={handlePrevious}
           />
         )
-      case "payment":
-        return (
-          <PaymentStep
-            key="payment-step"
-            data={checkoutData.payment}
-            onSave={(data) => handleSaveStepData("payment", data)}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            checkoutData={checkoutData}
-          />
-        )
-      case "review":
-        return <ReviewStep key="review-step" checkoutData={checkoutData} onPrevious={handlePrevious} />
+      // Removed cases for "payment" and "review"
       default:
         return null
     }
@@ -207,7 +189,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       >
         <SheetHeader className="mb-8 text-center">
           <SheetTitle className="text-4xl font-bold mb-2">Secure Checkout</SheetTitle>
-          <p className="text-xl text-muted-foreground">Complete your order in just a few simple steps</p>
+          <p className="text-xl text-muted-foreground">Complete your contact and address details</p>
         </SheetHeader>
 
         {/* Progress Bar */}
@@ -268,10 +250,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
               <Shield className="mr-2 h-4 w-4" />
               <span className="font-medium">SSL Secured</span>
             </div>
-            <div className="flex items-center">
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span className="font-medium">Encrypted Payment</span>
-            </div>
+            {/* Removed Encrypted Payment as payment is no longer handled here */}
             <div className="flex items-center">
               <Check className="mr-2 h-4 w-4" />
               <span className="font-medium">100% Satisfaction Guarantee</span>
