@@ -207,10 +207,13 @@ export default function CartPage() {
           })
         }
 
+        // Pass window.location.origin to the server action
+        const origin = window.location.origin
+
         const stripeSessionUrl = await createCheckoutSession({
           customLineItems,
-          successUrl: `${window.location.origin}/success`,
-          cancelUrl: `${window.location.origin}/canceled`,
+          successUrl: `${origin}/success`,
+          cancelUrl: `${origin}/canceled`,
           customerEmail: finalData.contact.email,
           customerData: {
             name: `${finalData.contact.firstName} ${finalData.contact.lastName}`,

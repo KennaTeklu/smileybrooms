@@ -18,8 +18,8 @@ interface CheckoutSessionParams {
     images?: string[]
     metadata?: Record<string, any>
   }>
-  successUrl: string
-  cancelUrl: string
+  successUrl: string // Now explicitly passed
+  cancelUrl: string // Now explicitly passed
   customerEmail?: string
   customerData?: {
     name?: string
@@ -53,8 +53,8 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
   try {
     const {
       lineItems,
-      successUrl,
-      cancelUrl,
+      successUrl, // Use the passed successUrl
+      cancelUrl, // Use the passed cancelUrl
       customerEmail,
       customerData,
       isRecurring,
@@ -103,8 +103,8 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: paymentMethodTypes || ["card"],
       mode: isRecurring ? "subscription" : "payment",
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: successUrl, // Use the passed successUrl
+      cancel_url: cancelUrl, // Use the passed cancelUrl
       customer_email: customerEmail,
       customer_creation: customerEmail ? "always" : undefined,
       shipping_address_collection: shippingAddressCollection,
