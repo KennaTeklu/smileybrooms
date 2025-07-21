@@ -22,9 +22,17 @@ interface PaymentStepProps {
   onNext: () => void
   onPrevious: () => void
   checkoutData: CheckoutData // To get contact and address info for payment request
+  isSubmitting: boolean
 }
 
-export default function PaymentStep({ data, onSave, onNext, onPrevious, checkoutData }: PaymentStepProps) {
+export default function PaymentStep({
+  data,
+  onSave,
+  onNext,
+  onPrevious,
+  checkoutData,
+  isSubmitting,
+}: PaymentStepProps) {
   const { toast } = useToast()
   const { cart } = useCart()
 
@@ -32,7 +40,6 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
   const [agreeToTerms, setAgreeToTerms] = useState(data.agreeToTerms)
   const [allowVideoRecording, setAllowVideoRecording] = useState(data.allowVideoRecording)
   const [videoConsentDetails, setVideoConsentDetails] = useState<string | undefined>(data.videoConsentDetails) // New state for consent timestamp
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setPaymentMethod(data.paymentMethod)
@@ -67,10 +74,8 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
       return
     }
 
-    setIsSubmitting(true)
     onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms }) // Pass new field
     onNext()
-    setIsSubmitting(false)
   }
 
   const handleStripePaymentSuccess = () => {

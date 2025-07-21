@@ -19,13 +19,13 @@ interface AddressStepProps {
   onSave: (data: CheckoutData["address"]) => void
   onNext: () => void
   onPrevious: () => void
+  isSubmitting: boolean
 }
 
-export default function AddressStep({ data, onSave, onNext, onPrevious }: AddressStepProps) {
+export default function AddressStep({ data, onSave, onNext, onPrevious, isSubmitting }: AddressStepProps) {
   const { toast } = useToast()
   const [addressData, setAddressData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setAddressData(data)
@@ -47,10 +47,7 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!addressData.fullName.trim()) newErrors.fullName = "Name is required"
-    if (!addressData.email.trim()) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(addressData.email)) newErrors.email = "Email is invalid"
-    if (!addressData.phone.trim()) newErrors.phone = "Phone is required"
+    // FullName, Email, Phone are now pre-filled from ContactStep, so no need to validate here
     if (!addressData.address.trim()) newErrors.address = "Address is required"
     if (!addressData.city.trim()) newErrors.city = "City is required"
     if (!addressData.state) newErrors.state = "State is required"
@@ -62,10 +59,8 @@ export default function AddressStep({ data, onSave, onNext, onPrevious }: Addres
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      setIsSubmitting(true)
       onSave(addressData)
       onNext()
-      setIsSubmitting(false)
     } else {
       toast({
         title: "Please check your information",

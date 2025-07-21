@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { ShoppingBag, Trash2, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -16,12 +16,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { CheckoutButton } from "@/components/checkout-button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
 import { AnimatePresence } from "framer-motion"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
+import { useMultiStepForm, type Step } from "@/hooks/use-multi-step-form"
+import ContactStep from "@/components/checkout/contact-step"
+import AddressStep from "@/components/checkout/address-step"
+import PaymentStep from "@/components/checkout/payment-step"
+import ReviewStep from "@/components/checkout/review-step"
+import type { CheckoutData } from "@/lib/types"
+import { createCheckoutSession } from "@/lib/actions"
 
 // Simple price formatter – prepend `$` & keep two decimals
 const formatPrice = (price: number) => `$${price.toFixed(2)}`
@@ -42,6 +48,209 @@ export default function CartPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
   const [couponInput, setCouponInput] = useState(cart.couponCode || "")
+
+  // State to control whether the multi-step checkout flow is active
+  const [isCheckoutFlowActive, setIsCheckoutFlowActive] = useState(false)
+
+  // Define the steps for the multi-step form
+  const checkoutSteps: Step[] = [
+    {
+      id: "contact",
+      title: "Contact Information",
+      description: "How we can reach you about your service.",
+      validate: (data: Record<string, any>) => {
+        const errors: Record<string, string> = {}
+        if (!data.contact.firstName?.trim()) errors.firstName = "First name is required"
+        if (!data.contact.lastName?.trim()) errors.lastName = "Last name is required"
+        if (!data.contact.email?.trim()) errors.email = "Email is required"
+        else if (!/\S+@\S+\.\S+/.test(data.contact.email)) errors.email = "Email is invalid"
+        if (!data.contact.phone?.trim()) errors.phone = "Phone is required"
+        return Object.keys(errors).length > 0 ? { contact: errors } : null
+      },
+    },
+    {
+      id: "address",
+      title: "Service Address",
+      description: "Where would you like us to provide your cleaning service?",
+      validate: (data: Record<string, any>) => {
+        const errors: Record<string, string> = {}
+        if (!data.address.address?.trim()) errors.address = "Address is required"
+        if (!data.address.city?.trim()) errors.city = "City is required"
+        if (!data.address.state) errors.state = "State is required"
+        if (!data.address.zipCode?.trim()) errors.zipCode = "ZIP code is required"
+        return Object.keys(errors).length > 0 ? { address: errors } : null
+      },
+      dependencies: ["contact"], // Address step depends on Contact step being completed
+    },
+    {
+      id: "payment",
+      title: "Payment Method",
+      description: "Choose how you'd like to pay for your cleaning service",
+      validate: (data: Record<string, any>) => {
+        const errors: Record<string, string> = {}
+        if (!data.payment.agreeToTerms) errors.agreeToTerms = "You must agree to the terms and conditions."
+        return Object.keys(errors).length > 0 ? { payment: errors } : null
+      },
+      dependencies: ["address"], // Payment step depends on Address step being completed
+    },
+    {
+      id: "review",
+      title: "Review Your Order",
+      description: "Please review your order details before completing your purchase",
+      dependencies: ["payment"], // Review step depends on Payment step being completed
+    },
+  ]
+
+  // Initialize useMultiStepForm
+  const {
+    currentStep,
+    currentStepIndex,
+    isFirstStep,
+    isLastStep,
+    nextStep,
+    prevStep,
+    goToStep,
+    formData,
+    updateFormData,
+    errors: formErrors,
+    isSubmitting: isFormSubmitting,
+    completeForm,
+  } = useMultiStepForm({
+    steps: checkoutSteps,
+    initialData: {
+      contact: { firstName: "", lastName: "", email: "", phone: "" },
+      address: {
+        fullName: "",
+        email: "",
+        phone: "",
+        address: "",
+        address2: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        specialInstructions: "",
+        addressType: "residential",
+      },
+      payment: {
+        paymentMethod: "card",
+        allowVideoRecording: false,
+        videoConsentDetails: undefined,
+        agreeToTerms: false,
+      },
+    } as CheckoutData,
+    persistKey: "multi-step-checkout", // Persist form data in localStorage
+    autosave: true,
+    onComplete: async (finalData) => {
+      if (cart.items.length === 0) {
+        toast({
+          title: "Error",
+          description: "Your cart is empty. Please add items before checking out.",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      setIsCheckoutLoading(true)
+      try {
+        // Prepare line items for Stripe (only online payment items)
+        const onlinePaymentItems = cart.items.filter((item) => item.paymentType !== "in_person")
+        const customLineItems = onlinePaymentItems.map((item) => {
+          const processedMetadata: Record<string, string> = {
+            itemId: item.id,
+          }
+
+          for (const key in item.metadata) {
+            if (Object.prototype.hasOwnProperty.call(item.metadata, key)) {
+              const value = item.metadata[key]
+              if (typeof value === "object" && value !== null) {
+                processedMetadata[key] = JSON.stringify(value)
+              } else {
+                processedMetadata[key] = String(value)
+              }
+            }
+          }
+
+          return {
+            name: item.name,
+            amount: item.price,
+            quantity: item.quantity,
+            description: item.description || `Service: ${item.name}`,
+            images: item.image ? [item.image] : [],
+            metadata: processedMetadata,
+          }
+        })
+
+        // Add video discount if applicable
+        const subtotalOnline = onlinePaymentItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+        const videoDiscount = finalData.payment.allowVideoRecording
+          ? subtotalOnline >= 250
+            ? 25
+            : subtotalOnline * 0.1
+          : 0
+        if (videoDiscount > 0) {
+          customLineItems.push({
+            name: "Video Recording Discount",
+            amount: -videoDiscount,
+            quantity: 1,
+            description: "Discount for allowing video recording during service",
+          })
+        }
+
+        // Add coupon discount if applicable (assuming coupon logic is handled elsewhere or passed here)
+        // For simplicity, we'll use the cart's current coupon discount.
+        if (cart.couponDiscount > 0) {
+          customLineItems.push({
+            name: `Coupon Discount: ${cart.couponCode}`,
+            amount: -cart.couponDiscount,
+            quantity: 1,
+            description: `Discount applied with coupon code: ${cart.couponCode}`,
+          })
+        }
+
+        const stripeSessionUrl = await createCheckoutSession({
+          customLineItems,
+          successUrl: `${window.location.origin}/success`,
+          cancelUrl: `${window.location.origin}/canceled`,
+          customerEmail: finalData.contact.email,
+          customerData: {
+            name: `${finalData.contact.firstName} ${finalData.contact.lastName}`,
+            email: finalData.contact.email,
+            phone: finalData.contact.phone,
+            address: {
+              line1: finalData.address.address,
+              city: finalData.address.city,
+              state: finalData.address.state,
+              postal_code: finalData.address.zipCode,
+              country: "US", // Assuming US for now, adjust as needed
+            },
+            allowVideoRecording: finalData.payment.allowVideoRecording,
+            videoConsentDetails: finalData.payment.videoConsentDetails,
+          },
+          automaticTax: { enabled: true },
+          allowPromotions: true,
+          paymentMethodTypes: finalData.payment.paymentMethod === "card" ? ["card"] : undefined,
+        })
+
+        if (stripeSessionUrl) {
+          clearCart() // Clear cart after successful checkout initiation
+          window.location.href = stripeSessionUrl
+          return true
+        } else {
+          throw new Error("Failed to get Stripe session URL.")
+        }
+      } catch (error: any) {
+        console.error("Error during checkout:", error)
+        toast({
+          title: "Checkout Error",
+          description: error.message || "An unexpected error occurred during checkout.",
+          variant: "destructive",
+        })
+        return false
+      } finally {
+        setIsCheckoutLoading(false)
+      }
+    },
+  })
 
   useEffect(() => {
     setCouponInput(cart.couponCode || "")
@@ -103,13 +312,112 @@ export default function CartPage() {
     }
   }
 
+  const handleProceedToCheckout = () => {
+    if ((cart.items?.length ?? 0) === 0) {
+      toast({
+        title: "Cart is Empty",
+        description: "Please add items to your cart before proceeding to checkout.",
+        variant: "warning",
+      })
+      return
+    }
+    setIsCheckoutFlowActive(true)
+    // Pre-fill contact and address data from local storage if available
+    const savedContact = localStorage.getItem("checkout-contact")
+    const savedAddress = localStorage.getItem("checkout-address")
+    const savedPayment = localStorage.getItem("checkout-payment")
+
+    let initialContact = formData.contact
+    let initialAddress = formData.address
+    let initialPayment = formData.payment
+
+    if (savedContact) {
+      try {
+        initialContact = JSON.parse(savedContact)
+      } catch (e) {
+        console.error("Failed to parse saved contact data")
+      }
+    }
+    if (savedAddress) {
+      try {
+        initialAddress = JSON.parse(savedAddress)
+      } catch (e) {
+        console.error("Failed to parse saved address data")
+      }
+    }
+    if (savedPayment) {
+      try {
+        initialPayment = JSON.parse(savedPayment)
+      } catch (e) {
+        console.error("Failed to parse saved payment data")
+      }
+    }
+
+    updateFormData({
+      contact: initialContact,
+      address: {
+        ...initialAddress,
+        fullName: `${initialContact.firstName} ${initialContact.lastName}`,
+        email: initialContact.email,
+        phone: initialContact.phone,
+      },
+      payment: initialPayment,
+    })
+  }
+
+  const renderCurrentStep = useCallback(() => {
+    switch (currentStep.id) {
+      case "contact":
+        return (
+          <ContactStep
+            data={formData.contact}
+            onSave={(data) => updateFormData({ contact: data })}
+            onNext={nextStep}
+            isSubmitting={isFormSubmitting}
+          />
+        )
+      case "address":
+        return (
+          <AddressStep
+            data={{ ...formData.address, ...formData.contact }} // Pass contact info to address step for pre-fill
+            onSave={(data) => updateFormData({ address: data })}
+            onNext={nextStep}
+            onPrevious={prevStep}
+            isSubmitting={isFormSubmitting}
+          />
+        )
+      case "payment":
+        return (
+          <PaymentStep
+            data={formData.payment}
+            onSave={(data) => updateFormData({ payment: data })}
+            onNext={nextStep}
+            onPrevious={prevStep}
+            checkoutData={formData as CheckoutData} // Pass full checkoutData for StripePaymentRequestButton
+            isSubmitting={isFormSubmitting}
+          />
+        )
+      case "review":
+        return (
+          <ReviewStep
+            checkoutData={formData as CheckoutData}
+            onPrevious={prevStep}
+            onComplete={completeForm}
+            isProcessing={isCheckoutLoading}
+          />
+        )
+      default:
+        return <p>Unknown step</p>
+    }
+  }, [currentStep, formData, updateFormData, nextStep, prevStep, isFormSubmitting, completeForm, isCheckoutLoading])
+
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
       <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
         Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
       </h1>
 
-      {(cart.items?.length ?? 0) === 0 ? (
+      {!isCheckoutFlowActive && (cart.items?.length ?? 0) === 0 ? (
         <Card
           className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
           id="empty-cart-message"
@@ -158,7 +466,7 @@ export default function CartPage() {
               </div>
             </CardContent>
           </Card>
-          {/* Cart Summary Only */}
+          {/* Cart Summary & Checkout Flow */}
           <div className="lg:col-span-1 flex flex-col gap-8">
             <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
               <CardHeader className="pb-4">
@@ -234,13 +542,14 @@ export default function CartPage() {
                 <p className="text-sm text-muted-foreground mb-4 text-center">
                   Ready to complete your order? Proceed to checkout to finalize your booking.
                 </p>
-                <CheckoutButton
-                  useCheckoutPage={false} // Changed to false for direct Stripe checkout
+                <Button
+                  onClick={handleProceedToCheckout}
                   className="w-full h-12 rounded-lg text-base"
                   size="lg"
                   disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                  cartItems={cart.items || []} // Pass the actual cart items
-                />
+                >
+                  Proceed to Checkout
+                </Button>
                 <Button
                   asChild
                   variant="outline"
@@ -253,6 +562,28 @@ export default function CartPage() {
           </div>
         </div>
       )}
+
+      {/* Multi-step Checkout Dialog */}
+      <Dialog open={isCheckoutFlowActive} onOpenChange={setIsCheckoutFlowActive}>
+        <DialogContent className="sm:max-w-[900px] w-full h-auto max-h-[90vh] overflow-y-auto rounded-xl p-0">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Checkout</h2>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                Step {currentStepIndex + 1} of {checkoutSteps.length}: {currentStep.title}
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mb-6">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${((currentStepIndex + 1) / checkoutSteps.length) * 100}%` }}
+              ></div>
+            </div>
+            <Card className="shadow-lg border-0">{renderCurrentStep()}</Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Remove Item Confirmation Dialog */}
       <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
         <DialogContent className="sm:max-w-[425px] rounded-xl">

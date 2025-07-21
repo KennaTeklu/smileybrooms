@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowRight, User } from "lucide-react"
+import { User, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
@@ -15,13 +15,13 @@ interface ContactStepProps {
   data: CheckoutData["contact"]
   onSave: (data: CheckoutData["contact"]) => void
   onNext: () => void
+  isSubmitting: boolean
 }
 
-export default function ContactStep({ data, onSave, onNext }: ContactStepProps) {
+export default function ContactStep({ data, onSave, onNext, isSubmitting }: ContactStepProps) {
   const { toast } = useToast()
   const [contactData, setContactData] = useState(data)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setContactData(data)
@@ -55,10 +55,8 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      setIsSubmitting(true)
       onSave(contactData)
       onNext()
-      setIsSubmitting(false)
     } else {
       toast({
         title: "Please check your information",
@@ -75,7 +73,7 @@ export default function ContactStep({ data, onSave, onNext }: ContactStepProps) 
           <User className="h-5 w-5" />
           Contact Information
         </CardTitle>
-        <CardDescription>Please provide your contact details for the service</CardDescription>
+        <CardDescription>How we can reach you about your service.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
