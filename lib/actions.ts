@@ -1,108 +1,160 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 import Stripe from "stripe"
-import { cookies } from "next/headers"
-
-import { createBooking, createTour, deleteTour, updateTour } from "@/lib/db/queries"
-import { BookingSchema, CreateTourSchema, TourSchema } from "@/lib/validation"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 })
 
-export async function createNewTour(formData: FormData) {
-  const values = Object.fromEntries(formData.entries())
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
-  const { name, description, city, country, imageUrl, price, category, spots, startDate, endDate } =
-    CreateTourSchema.parse(values)
-
-  const tour = await createTour({
-    name,
-    description,
-    city,
-    country,
-    imageUrl,
-    price,
-    category,
-    spots,
-    startDate: new Date(startDate),
-    endDate: new Date(endDate),
-    userId: "user_2cZunkYj9JE9a84j6W6aQ6jJ39V",
-  })
-
-  revalidatePath("/")
-  redirect(`/tours/${tour.id}`)
+interface CheckoutSessionParams {
+  lineItems?: Array<{
+    price: string
+    quantity: number
+  }>
+  customLineItems?: Array<{
+    name: string
+    amount: number
+    quantity: number
+    description?: string
+    images?: string[]
+    metadata?: Record<string, any>
+  }>
+  successUrl: string
+  cancelUrl: string
+  customerEmail?: string
+  customerData?: {
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+    }
+    allowVideoRecording?: boolean
+    videoConsentDetails?: string
+  }
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
+  discount?: {
+    amount: number
+    reason: string
+  }
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
-export async function updateExistingTour(formData: FormData, tourId: string) {
-  const values = Object.fromEntries(formData.entries())
+/* -------------------------------------------------------------------------- */
+/* Server Action                                                              */
+/* -------------------------------------------------------------------------- */
 
-  const { name, description, city, country, imageUrl, price, category, spots, startDate, endDate } =
-    TourSchema.parse(values)
+export async function createCheckoutSession(params: CheckoutSessionParams) {
+  try {
+    const {
+      lineItems,
+      successUrl,
+      cancelUrl,
+      customerEmail,
+      customerData,
+      isRecurring,
+      recurringInterval,
+      customLineItems: initialCustomLineItems,
+      discount,
+      shippingAddressCollection,
+      automaticTax,
+      paymentMethodTypes,
+      trialPeriodDays,
+      cancelAtPeriodEnd,
+      allowPromotions,
+    } = params
 
-  const tour = await updateTour({
-    id: tourId,
-    name,
-    description,
-    city,
-    country,
-    imageUrl,
-    price,
-    category,
-    spots,
-    startDate: new Date(startDate),
-    endDate: new Date(endDate),
-  })
+    /* -------- Generate dynamic Line-Items ---------------------------------- */
+    const customLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (initialCustomLineItems || []).map(
+      (item) => {
+        const unitAmount = Math.round((Number(item.amount) || 0) * 100)
+        if (Number.isNaN(unitAmount)) throw new Error(`Invalid amount for item "${item.name}": ${item.amount}`)
 
-  revalidatePath("/")
-  redirect(`/tours/${tour.id}`)
-}
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: item.name,
+              description: item.description,
+              images: item.images,
+              metadata: item.metadata,
+            },
+            unit_amount: unitAmount,
+            recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
+          },
+          quantity: item.quantity,
+        }
+      },
+    )
 
-export async function deleteExistingTour(tourId: string) {
-  await deleteTour(tourId)
-  revalidatePath("/")
-  redirect("/")
-}
+    /* -------- Optional Discount ------------------------------------------- */
+    if (discount && discount.amount > 0) {
+      const discountAmount = Math.round((Number(discount.amount) || 0) * 100)
+      if (Number.isNaN(discountAmount)) throw new Error(`Invalid discount amount: ${discount.amount}`)
 
-export async function createNewBooking(formData: FormData) {
-  const values = Object.fromEntries(formData.entries())
-
-  const { tourId, userId, spots } = BookingSchema.parse(values)
-
-  await createBooking({
-    tourId,
-    userId,
-    spots,
-  })
-
-  revalidatePath("/")
-}
-
-export async function generateCheckoutSession(tourId: string, spots: number) {
-  const session = await stripe.checkout.sessions.create({
-    line_items: [
-      {
+      customLineItems.push({
         price_data: {
           currency: "usd",
-          product_data: {
-            name: "Tour Booking",
-          },
-          unit_amount: 100,
+          product_data: { name: `Discount – ${discount.reason}` },
+          unit_amount: -discountAmount,
         },
-        quantity: spots,
-      },
-    ],
-    mode: "payment",
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/tours/${tourId}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/tours/${tourId}`,
-  })
+        quantity: 1,
+      })
+    }
 
-  cookies().set("stripe_session_id", session.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  })
+    /* -------- Assemble Checkout-Session params ---------------------------- */
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      payment_method_types: paymentMethodTypes || ["card"],
+      mode: isRecurring ? "subscription" : "payment",
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: customerEmail,
+      customer_creation: customerEmail ? "always" : undefined,
+      shipping_address_collection: shippingAddressCollection,
+      automatic_tax: automaticTax,
+      allow_promotion_codes: allowPromotions,
+      line_items: lineItems && lineItems.length ? lineItems : customLineItems,
+      subscription_data: isRecurring
+        ? {
+            trial_period_days: trialPeriodDays,
+            cancel_at_period_end: cancelAtPeriodEnd,
+          }
+        : undefined,
+      // ⚠️ DO NOT include `customer_update` unless you pass an explicit `customer`
+      metadata: customerData
+        ? {
+            customer_name: customerData.name,
+            customer_email: customerData.email,
+            customer_phone: customerData.phone,
+            customer_address_line1: customerData.address?.line1,
+            customer_address_city: customerData.address?.city,
+            customer_address_state: customerData.address?.state,
+            customer_address_postal_code: customerData.address?.postal_code,
+            customer_address_country: customerData.address?.country,
+            wants_live_video: customerData.allowVideoRecording ? "true" : "false",
+            video_consent_details: customerData.videoConsentDetails || "N/A",
+          }
+        : undefined,
+    }
 
-  return redirect(session.url!)
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return session.url
+  } catch (err: any) {
+    console.error("Error creating checkout session:", err)
+    throw new Error(`Failed to create checkout session: ${err?.message ?? "unknown error"}`)
+  }
 }
