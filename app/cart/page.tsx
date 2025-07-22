@@ -213,7 +213,7 @@ export default function CartPage() {
                   size="lg"
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
-                  Proceed to Checkout
+                  Pay now
                 </Button>
               </Card>
             ) : (
