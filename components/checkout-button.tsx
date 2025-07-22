@@ -2,109 +2,78 @@
 
 import type React from "react"
 
-import { Button } from "@/components/ui/button"
-import { createCheckoutSession } from "@/lib/actions"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
-import type { CartItem } from "@/lib/cart/types" // Import CartItem type
-import type Stripe from "stripe" // Declare Stripe variable
+import { CreditCard, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import type { CheckoutData } from "@/lib/types"
 
-interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  useCheckoutPage?: boolean
-  cartItems: CartItem[] // Changed to accept an array of CartItem
-  customerEmail?: string
-  customerData?: {
-    name?: string
-    email?: string
-    phone?: string
-    address?: {
-      line1?: string
-      city?: string
-      state?: string
-      postal_code?: string
-      country?: string
-    }
-    allowVideoRecording?: boolean
-    videoConsentDetails?: string
-  }
-  isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year"
-  discount?: {
-    amount: number
-    reason: string
-  }
-  shippingAddressCollection?: { allowed_countries: string[] }
-  automaticTax?: { enabled: boolean }
-  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
-  trialPeriodDays?: number
-  cancelAtPeriodEnd?: boolean
-  allowPromotions?: boolean
+interface CheckoutButtonProps {
+  checkoutData?: CheckoutData
+  className?: string
+  children?: React.ReactNode
 }
 
-export function CheckoutButton({
-  useCheckoutPage = false,
-  cartItems, // Destructure cartItems
-  customerEmail,
-  customerData,
-  isRecurring,
-  recurringInterval,
-  discount,
-  shippingAddressCollection,
-  automaticTax,
-  paymentMethodTypes,
-  trialPeriodDays,
-  cancelAtPeriodEnd,
-  allowPromotions,
-  ...props
-}: CheckoutButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
+export default function CheckoutButton({ checkoutData, className, children }: CheckoutButtonProps) {
+  const { items, getTotalPrice } = useCart()
   const { toast } = useToast()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleCheckout = async () => {
-    setIsLoading(true)
-    try {
-      // Map cartItems to customLineItems for Stripe
-      const customLineItems = cartItems.map((item) => ({
-        name: item.name,
-        // Ensure unitPrice is a valid number, default to 0 if not
-        amount: Number(item.unitPrice) || 0,
-        quantity: item.quantity,
-        description: item.description,
-        images: item.images,
-        metadata: item.meta, // Pass the entire meta object as metadata
-      }))
+    if (items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add some services to your cart before checking out.",
+        variant: "destructive",
+      })
+      return
+    }
 
-      const checkoutUrl = await createCheckoutSession({
-        customLineItems, // Pass the mapped customLineItems
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail,
-        customerData,
-        isRecurring,
-        recurringInterval,
-        discount,
-        shippingAddressCollection,
-        automaticTax,
-        paymentMethodTypes,
-        trialPeriodDays,
-        cancelAtPeriodEnd,
-        allowPromotions,
+    if (!checkoutData?.contact?.email || !checkoutData?.address?.address) {
+      toast({
+        title: "Missing information",
+        description: "Please complete your contact and address information first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Save checkout data to localStorage for order summary page
+      localStorage.setItem("checkout-contact", JSON.stringify(checkoutData.contact))
+      localStorage.setItem("checkout-address", JSON.stringify(checkoutData.address))
+      localStorage.setItem("checkout-payment", JSON.stringify(checkoutData.payment))
+      localStorage.setItem("cartItems", JSON.stringify(items))
+
+      // For demo purposes, redirect directly to order summary
+      // In production, this would go through Stripe checkout first
+      router.push("/order-summary")
+
+      toast({
+        title: "Redirecting to order summary...",
+        description: "Processing your order information.",
       })
 
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
+      // Uncomment below for actual Stripe integration:
+      /*
+      const { url } = await createCheckoutSession(items, checkoutData)
+      
+      if (url) {
+        window.location.href = url
       } else {
-        toast({
-          title: "Checkout Failed",
-          description: "Could not initiate checkout. Please try again.",
-          variant: "destructive",
-        })
+        throw new Error("No checkout URL returned")
       }
-    } catch (error: any) {
+      */
+    } catch (error) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout Error",
-        description: `An unexpected error occurred during checkout: ${error.message || "Unknown error"}. Please try again.`,
+        title: "Checkout failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -112,9 +81,21 @@ export function CheckoutButton({
     }
   }
 
+  const total = getTotalPrice()
+
   return (
-    <Button onClick={handleCheckout} disabled={isLoading || cartItems.length === 0} {...props}>
-      {isLoading ? "Processing..." : "Proceed to Checkout"}
+    <Button onClick={handleCheckout} disabled={isLoading || items.length === 0} className={className} size="lg">
+      {isLoading ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Processing...
+        </>
+      ) : (
+        <>
+          <CreditCard className="mr-2 h-4 w-4" />
+          {children || `Complete Order • $${total.toFixed(2)}`}
+        </>
+      )}
     </Button>
   )
 }
