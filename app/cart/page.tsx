@@ -315,7 +315,9 @@ export default function CartPage() {
                         country: "US",
                       },
                     }}
-                  />
+                  >
+                    Pay Now
+                  </CheckoutButton>
 
                   <Button
                     asChild
