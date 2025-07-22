@@ -1,489 +1,230 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Tag, ArrowRight, ChevronDown, User, Mail, Phone, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { useCart } from "@/lib/cart-context"
-import Link from "next/link"
+import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { CheckoutButton } from "@/components/checkout-button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/use-toast"
-import { CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
-import { AnimatePresence } from "framer-motion"
-import { CartItemDisplay } from "@/components/cart/cart-item-display"
-import CheckoutSidePanel from "@/components/cart/checkout-sidepanel"
-import type { CheckoutData } from "@/lib/types"
+import { CheckCircle, ChevronDown, ShoppingCart } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
-// Simple price formatter – prepend `$` & keep two decimals
-const formatPrice = (price: number) => `$${price.toFixed(2)}`
+// -- Types ------------------------------------------------------------------
 
-// Empty placeholder for suggested products component
-function CartSuggestions({ currentCartItems, id }: { currentCartItems: any[]; id?: string }) {
-  return null
+interface CartItem {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  image?: string
 }
 
+interface CompletedCheckoutData {
+  customerName: string
+  addressLine1: string
+  addressLine2?: string
+  city: string
+  state: string
+  zip: string
+  email: string
+  phone: string
+  items: CartItem[]
+  subtotal: number
+  tax: number
+  total: number
+}
+
+// -- Helpers ----------------------------------------------------------------
+
+function getFormattedPrice(value: number) {
+  return Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value)
+}
+
+// -- Page Component ---------------------------------------------------------
+
 export default function CartPage() {
-  const { cart, updateQuantity, removeItem, clearCart, applyCoupon } = useCart()
   const router = useRouter()
-  const { toast } = useToast()
 
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
-  const [itemToRemoveId, setItemToRemoveId] = useState<string | null>(null)
-  const [itemToRemoveName, setItemToRemoveName] = useState<string | null>(null)
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false)
-  const [couponInput, setCouponInput] = useState(cart.couponCode || "")
+  // ❶ Fetch cart + possible checkout completion data from localStorage.
+  const [cart, setCart] = React.useState<CartItem[]>([])
+  const [completedCheckoutData, setCompletedCheckoutData] = React.useState<CompletedCheckoutData | null>(null)
 
-  // NEW: side-panel & completion state
-  const [showCheckoutSidePanel, setShowCheckoutSidePanel] = useState(false)
-  const [completedCheckoutData, setCompletedCheckoutData] = useState<CheckoutData | null>(null)
+  React.useEffect(() => {
+    // Cart items
+    const rawCart = localStorage.getItem("cart")
+    if (rawCart) setCart(JSON.parse(rawCart))
 
-  useEffect(() => {
-    setCouponInput(cart.couponCode || "")
-  }, [cart.couponCode])
+    // Completed checkout (set in previous step of flow)
+    const rawCompleted = localStorage.getItem("completedCheckout")
+    if (rawCompleted) setCompletedCheckoutData(JSON.parse(rawCompleted))
+  }, [])
 
-  const handleQuantityChange = (itemId: string, change: number) => {
-    const currentItem = cart.items?.find((item) => item.id === itemId)
-    if (currentItem) {
-      const newQuantity = currentItem.quantity + change
-      if (newQuantity > 0) {
-        updateQuantity(itemId, newQuantity)
-      } else {
-        setItemToRemoveId(itemId)
-        setItemToRemoveName(currentItem.name)
-        setShowRemoveConfirm(true)
-      }
-    }
-  }
+  // ❷ Dynamic button label
+  const primaryCtaLabel = completedCheckoutData ? "Pay Now" : "Proceed to Checkout"
 
-  const confirmRemoveItem = () => {
-    if (itemToRemoveId) {
-      removeItem(itemToRemoveId)
-      setShowRemoveConfirm(false)
-      setItemToRemoveId(null)
-      setItemToRemoveName(null)
-
-      // reset completion if cart emptied
-      if (cart.items.length === 1 && itemToRemoveId === cart.items[0].id) {
-        setCompletedCheckoutData(null)
-      }
-    }
-  }
-
-  const cancelRemoveItem = () => {
-    setShowRemoveConfirm(false)
-    setItemToRemoveId(null)
-    setItemToRemoveName(null)
-  }
-
-  const handleRemoveItemClick = (itemId: string, itemName: string) => {
-    setItemToRemoveId(itemId)
-    setItemToRemoveName(itemName)
-    setShowRemoveConfirm(true)
-  }
-
-  const confirmClearCart = () => {
-    clearCart()
-    setShowClearConfirm(false)
-    setCompletedCheckoutData(null)
-  }
-
-  const handleClearCartClick = () => {
-    setShowClearConfirm(true)
-  }
-
-  const handleApplyCoupon = () => {
-    if (couponInput.trim()) {
-      applyCoupon(couponInput.trim())
+  // ❸ Event handlers
+  function handlePrimaryCta() {
+    if (completedCheckoutData) {
+      // Go straight to Stripe / payment
+      router.push("/order-summary") // or your payment route
     } else {
-      toast({
-        title: "Coupon field is empty",
-        description: "Please enter a coupon code.",
-        variant: "warning",
-      })
+      router.push("/checkout")
     }
   }
 
-  const handleCheckoutComplete = (data: CheckoutData) => {
-    setCompletedCheckoutData(data)
-    setShowCheckoutSidePanel(false)
-    toast({
-      title: "Checkout information saved",
-      description: "You can now review your order and proceed to payment.",
-      variant: "success",
-    })
+  // ❹ UI pieces -------------------------------------------------------------
+
+  function CartHeader() {
+    return (
+      <header className="mb-8 flex items-center gap-2 text-2xl font-semibold">
+        <ShoppingCart className="size-6" />
+        <span>Your Shopping Cart</span>
+      </header>
+    )
   }
+
+  function ReviewHeader() {
+    return (
+      <header className="mb-8 flex items-center gap-2 text-2xl font-semibold">
+        <CheckCircle className="size-6 text-green-600" />
+        <span>Review Your Order</span>
+      </header>
+    )
+  }
+
+  function CartItemRow({ item }: { item: CartItem }) {
+    return (
+      <div className="flex items-center justify-between py-2">
+        <span>
+          {item.name} <span className="text-muted-foreground">× {item.quantity}</span>
+        </span>
+        <span>{getFormattedPrice(item.price * item.quantity)}</span>
+      </div>
+    )
+  }
+
+  // -- Render ---------------------------------------------------------------
+
+  const showCartSide = !completedCheckoutData
 
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
-      <h1
-        className={`text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight ${completedCheckoutData ? "hidden" : ""}`}
-      >
-        Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
-      </h1>
+    <main className="container mx-auto max-w-7xl px-4 py-10">
+      {/* Toggle / sidebar trigger on mobile */}
+      <SidebarTrigger className="mb-6 md:hidden" />
 
-      {(cart.items?.length ?? 0) === 0 ? (
-        <Card
-          className="flex flex-col items-center justify-center flex-1 p-8 text-center bg-card rounded-xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-700"
-          id="empty-cart-message"
-        >
-          <ShoppingBag className="h-28 w-28 text-muted-foreground mb-6 opacity-70" />
-          <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-gray-800 dark:text-gray-200">
-            Your cart is empty
-          </h3>
-          <p className="text-muted-foreground mb-8 max-w-md text-base">
-            Looks like you haven't added any cleaning services or products yet. Start by exploring our offerings!
-          </p>
-          <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-8 py-3 text-base">
-            <Link href="/pricing">Start Shopping</Link>
-          </Button>
-        </Card>
-      ) : (
-        <div className={`${completedCheckoutData ? "flex justify-center" : "grid lg:grid-cols-3 gap-8"} flex-1`}>
-          {/* Cart Items List */}
+      {/* Grid wrapper */}
+      <div className={cn("grid gap-8", showCartSide ? "lg:grid-cols-3" : "place-content-center")}>
+        {/* ---------------- Left Column — Cart items ---------------- */}
+        {showCartSide && (
+          <section className="lg:col-span-2">
+            <CartHeader />
+            <Card className="divide-y">
+              {cart.map((item) => (
+                <CartItemRow key={item.id} item={item} />
+              ))}
+              {cart.length === 0 && <p className="p-6 text-center text-muted-foreground">Your cart is empty.</p>}
+            </Card>
+          </section>
+        )}
+
+        {/* ---------------- Right Column — CTA or Order Summary ------------ */}
+        <section className={cn("flex flex-col gap-6", completedCheckoutData && "w-full max-w-4xl lg:col-span-full")}>
+          {/* Swap header depending on state */}
+          {completedCheckoutData ? <ReviewHeader /> : <CartHeader />}
+
+          {/* ===================== STATE A: CART CTA ===================== */}
           {!completedCheckoutData && (
-            <Card className="lg:col-span-2 shadow-lg border-gray-200 dark:border-gray-700" id="cart-items-list">
-              <CardHeader className="flex flex-row items-center justify-between pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  Items in Cart ({cart.totalItems})
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  onClick={handleClearCartClick}
-                  disabled={(cart.items?.length ?? 0) === 0}
-                  className="rounded-lg bg-transparent"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-              </CardHeader>
-
-              <CardContent className="p-0">
-                <div className="space-y-4 p-6">
-                  <AnimatePresence mode="popLayout">
-                    {cart.items?.map((item) => (
-                      <CartItemDisplay
-                        key={item.id}
-                        item={item}
-                        onRemoveItem={handleRemoveItemClick}
-                        onUpdateQuantity={handleQuantityChange}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </CardContent>
+            <Card className="p-6 text-center">
+              <h3 className="mb-4 text-xl font-semibold">Ready to complete your booking?</h3>
+              <Button size="lg" onClick={handlePrimaryCta}>
+                {primaryCtaLabel}
+              </Button>
             </Card>
           )}
 
-          {/* Right Column: CTA or Order Summary */}
-          <div className={`${completedCheckoutData ? "w-full max-w-4xl" : "lg:col-span-1"} flex flex-col gap-8`}>
-            {completedCheckoutData && (
-              <div className="text-center mb-8">
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900 dark:text-gray-100 leading-tight">
-                  Review Your <span className="text-blue-600 dark:text-blue-400">Order</span>
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Please review your order details and proceed to checkout when ready.
-                </p>
-              </div>
-            )}
-            {!completedCheckoutData ? (
-              <Card className="shadow-lg border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
-                <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                  Ready to finalize your order?
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Please provide your contact, address, and payment details to proceed.
-                </p>
-                <Button
-                  onClick={() => setShowCheckoutSidePanel(true)}
-                  className="w-full h-12 rounded-lg text-base bg-blue-600 hover:bg-blue-700 text-white"
-                  size="lg"
-                >
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Proceed to Checkout
+          {/* ===================== STATE B: ORDER SUMMARY ================== */}
+          {completedCheckoutData && (
+            <React.Fragment>
+              {/* Summary Card ------------------------------------------------ */}
+              <Card className="p-6">
+                {/* Collapsed Purchased Items */}
+                <Collapsible defaultOpen={false} className="mb-4">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between text-left text-lg font-medium">
+                      Purchased Items
+                      <ChevronDown className="size-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4">
+                    {completedCheckoutData.items.map((item) => (
+                      <CartItemRow key={item.id} item={item} />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Separator />
+
+                {/* Collapsed Customer Info */}
+                <Collapsible defaultOpen={false} className="my-4">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between text-left text-lg font-medium">
+                      Customer Information
+                      <ChevronDown className="size-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4 space-y-1 text-sm">
+                    <p>{completedCheckoutData.customerName}</p>
+                    <p>{completedCheckoutData.email}</p>
+                    <p>{completedCheckoutData.phone}</p>
+                    <p>
+                      {completedCheckoutData.addressLine1}
+                      {completedCheckoutData.addressLine2 ? `, ${completedCheckoutData.addressLine2}` : ""}
+                    </p>
+                    <p>
+                      {completedCheckoutData.city}, {completedCheckoutData.state} {completedCheckoutData.zip}
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Separator />
+
+                {/* Price Breakdown */}
+                <div className="mt-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{getFormattedPrice(completedCheckoutData.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>{getFormattedPrice(completedCheckoutData.tax)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total</span>
+                    <span>{getFormattedPrice(completedCheckoutData.total)}</span>
+                  </div>
+                </div>
+
+                <Button size="lg" className="mt-6 w-full" onClick={handlePrimaryCta}>
+                  {primaryCtaLabel}
                 </Button>
               </Card>
-            ) : (
-              <>
-                {/* Collapsible Purchased Items Section */}
-                <Card className="shadow-lg border-gray-200 dark:border-gray-700 mb-8">
-                  <Collapsible defaultOpen={false}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-4">
-                      <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        Purchased Items ({cart.totalItems})
-                      </CardTitle>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-9 p-0">
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
-                          <span className="sr-only">Toggle items</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="p-0">
-                        <div className="space-y-4 p-6">
-                          <AnimatePresence mode="popLayout">
-                            {cart.items?.map((item) => (
-                              <CartItemDisplay
-                                key={item.id}
-                                item={item}
-                                onRemoveItem={handleRemoveItemClick}
-                                onUpdateQuantity={handleQuantityChange}
-                              />
-                            ))}
-                          </AnimatePresence>
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
 
-                {/* Collapsible Customer Information Section */}
-                <Card className="shadow-lg border-gray-200 dark:border-gray-700 mb-8">
-                  <Collapsible defaultOpen={false}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-4">
-                      <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        Customer Information
-                      </CardTitle>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="w-9 p-0">
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
-                          <span className="sr-only">Toggle customer info</span>
-                        </Button>
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Contact Info */}
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                            <User className="h-5 w-5 text-blue-600" /> Contact Details
-                          </h4>
-                          <p className="text-sm">
-                            <span className="font-medium">
-                              {completedCheckoutData?.contact.firstName} {completedCheckoutData?.contact.lastName}
-                            </span>
-                          </p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-4 w-4" /> {completedCheckoutData?.contact.email}
-                          </p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-4 w-4" /> {completedCheckoutData?.contact.phone}
-                          </p>
-                        </div>
-                        {/* Address Info */}
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                            <MapPin className="h-5 w-5 text-green-600" /> Service Address
-                          </h4>
-                          <p className="text-sm font-medium">{completedCheckoutData?.address.address}</p>
-                          {completedCheckoutData?.address.address2 && (
-                            <p className="text-sm text-muted-foreground">{completedCheckoutData?.address.address2}</p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {completedCheckoutData?.address.city}, {completedCheckoutData?.address.state}{" "}
-                            {completedCheckoutData?.address.zipCode}
-                          </p>
-                          {completedCheckoutData?.address.specialInstructions && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              <span className="font-medium">Instructions:</span>{" "}
-                              {completedCheckoutData?.address.specialInstructions}
-                            </p>
-                          )}
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-
-                {/* Existing Order Summary Card (Price Breakdown) */}
-                <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Order Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-base">
-                        <span className="text-gray-700 dark:text-gray-300">Subtotal ({cart.totalItems} items)</span>
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {formatPrice(cart.subtotalPrice)}
-                        </span>
-                      </div>
-
-                      {cart.couponDiscount > 0 && (
-                        <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                          <span>Coupon ({cart.couponCode})</span>
-                          <span>-{formatPrice(cart.couponDiscount)}</span>
-                        </div>
-                      )}
-                      {cart.fullHouseDiscount > 0 && (
-                        <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                          <span>Full House Discount</span>
-                          <span>-{formatPrice(cart.fullHouseDiscount)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Shipping</span>
-                        <span>Calculated at checkout</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Taxes</span>
-                        <span>Calculated at checkout</span>
-                      </div>
-                    </div>
-
-                    <Separator className="my-4" />
-
-                    {/* Coupon Input */}
-                    <div className="flex gap-2 mb-4">
-                      <Input
-                        type="text"
-                        placeholder="Enter coupon code"
-                        value={couponInput}
-                        onChange={(e) => setCouponInput(e.target.value)}
-                        className="flex-1 h-10 rounded-lg"
-                        aria-label="Coupon code input"
-                      />
-                      <Button
-                        onClick={handleApplyCoupon}
-                        disabled={!couponInput.trim() || cart.couponDiscount > 0}
-                        className="rounded-lg"
-                      >
-                        <Tag className="h-4 w-4 mr-2" />
-                        Apply
-                      </Button>
-                    </div>
-
-                    <Separator className="my-4" />
-                    <div className="flex justify-between text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-                      <span>Total</span>
-                      <span className="text-blue-600 dark:text-blue-400">{formatPrice(cart.totalPrice)}</span>
-                    </div>
-
-                    {cart.inPersonPaymentTotal > 0 && (
-                      <>
-                        <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                          <span>Custom Services</span>
-                          <span>Email for Pricing</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
-                          <p className="font-semibold text-orange-700 dark:text-orange-400 mb-1">Payment Notice:</p>
-                          <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
-                        </div>
-                      </>
-                    )}
-
-                    <p className="text-sm text-muted-foreground mb-4 text-center">
-                      Ready to complete your order? Proceed to checkout to finalize your booking.
-                    </p>
-
-                    <CheckoutButton
-                      useCheckoutPage={false}
-                      className="w-full h-12 rounded-lg text-base"
-                      size="lg"
-                      disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                      cartItems={cart.items || []}
-                      customerData={{
-                        name: `${completedCheckoutData?.contact.firstName} ${completedCheckoutData?.contact.lastName}`,
-                        email: completedCheckoutData?.contact.email,
-                        phone: completedCheckoutData?.contact.phone,
-                        address: {
-                          line1: completedCheckoutData?.address.address,
-                          line2: completedCheckoutData?.address.address2,
-                          city: completedCheckoutData?.address.city,
-                          state: completedCheckoutData?.address.state,
-                          postal_code: completedCheckoutData?.address.zipCode,
-                          country: "US",
-                        },
-                      }}
-                    >
-                      Pay Now
-                    </CheckoutButton>
-
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
-                    >
-                      <Link href="/pricing">Continue Shopping</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Remove-item dialog */}
-      <Dialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">Confirm Removal</DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground">
-              Are you sure you want to remove{" "}
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{itemToRemoveName}</span> from your cart?
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
-            <Button variant="destructive" onClick={confirmRemoveItem} className="w-full sm:w-auto rounded-lg">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove
-            </Button>
-            <Button variant="outline" onClick={cancelRemoveItem} className="w-full sm:w-auto rounded-lg bg-transparent">
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear-cart dialog */}
-      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Clear Cart Confirmation
-            </DialogTitle>
-            <DialogDescription className="text-base text-muted-foreground">
-              Are you sure you want to clear all items from your cart? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-2 pt-4">
-            <Button variant="destructive" onClick={confirmClearCart} className="w-full sm:w-auto rounded-lg">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear All
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowClearConfirm(false)}
-              className="w-full sm:w-auto rounded-lg"
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Checkout side panel */}
-      <CheckoutSidePanel
-        isOpen={showCheckoutSidePanel}
-        onOpenChange={setShowCheckoutSidePanel}
-        onCheckoutComplete={handleCheckoutComplete}
-      />
-    </div>
+              {/* Continue Shopping link */}
+              <div className="text-center">
+                <Button variant="link" onClick={() => router.push("/")} className="mt-4">
+                  Continue Shopping
+                </Button>
+              </div>
+            </React.Fragment>
+          )}
+        </section>
+      </div>
+    </main>
   )
 }
