@@ -1,25 +1,18 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { createCheckoutSession } from "@/lib/actions"
-import type { CartItem } from "@/lib/cart/types"
-import type Stripe from "stripe"
 
-/**
- * Props expected by the CheckoutButton.
- * Matches the shape used on /cart and other pages.
- */
+import { Button } from "@/components/ui/button"
+import { createCheckoutSession } from "@/lib/actions"
+import { useState } from "react"
+import { useToast } from "@/components/ui/use-toast"
+import type { CartItem } from "@/lib/cart/types" // Import CartItem type
+import type Stripe from "stripe" // Declare Stripe variable
+
 interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  /** If true we redirect to a dedicated /checkout page instead of Stripe */
   useCheckoutPage?: boolean
-  /** Items in the cart */
-  cartItems: CartItem[]
-  /** Prefill e-mail in Stripe Checkout */
+  cartItems: CartItem[] // Changed to accept an array of CartItem
   customerEmail?: string
-  /** Optional extra customer details */
   customerData?: {
     name?: string
     email?: string
@@ -34,15 +27,12 @@ interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
     allowVideoRecording?: boolean
     videoConsentDetails?: string
   }
-  /** Recurring plan options */
   isRecurring?: boolean
   recurringInterval?: "day" | "week" | "month" | "year"
-  /** One-off discount */
   discount?: {
     amount: number
     reason: string
   }
-  /** Stripe advanced options */
   shippingAddressCollection?: { allowed_countries: string[] }
   automaticTax?: { enabled: boolean }
   paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
@@ -51,13 +41,9 @@ interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
   allowPromotions?: boolean
 }
 
-/**
- * Named export so `import { CheckoutButton } from "@/components/checkout-button"` works.
- * Also exported as default for convenience.
- */
 export function CheckoutButton({
   useCheckoutPage = false,
-  cartItems,
+  cartItems, // Destructure cartItems
   customerEmail,
   customerData,
   isRecurring,
@@ -75,31 +61,21 @@ export function CheckoutButton({
   const { toast } = useToast()
 
   const handleCheckout = async () => {
-    if (cartItems.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add items before checking out.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsLoading(true)
     try {
-      // Convert cart items to Stripe-compatible line items
+      // Map cartItems to customLineItems for Stripe
       const customLineItems = cartItems.map((item) => ({
         name: item.name,
-        // Make sure amount is a valid integer (cents)
+        // Ensure unitPrice is a valid number, default to 0 if not
         amount: Number(item.unitPrice) || 0,
         quantity: item.quantity,
         description: item.description,
         images: item.images,
-        metadata: item.meta,
+        metadata: item.meta, // Pass the entire meta object as metadata
       }))
 
-      // Create the Stripe Checkout Session via our server action
       const checkoutUrl = await createCheckoutSession({
-        customLineItems,
+        customLineItems, // Pass the mapped customLineItems
         successUrl: `${window.location.origin}/success`,
         cancelUrl: `${window.location.origin}/canceled`,
         customerEmail,
@@ -116,20 +92,19 @@ export function CheckoutButton({
       })
 
       if (checkoutUrl) {
-        // Redirect the customer
         window.location.href = checkoutUrl
       } else {
         toast({
-          title: "Checkout failed",
-          description: "Unable to start checkout. Please try again.",
+          title: "Checkout Failed",
+          description: "Could not initiate checkout. Please try again.",
           variant: "destructive",
         })
       }
     } catch (error: any) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout error",
-        description: error?.message ?? "Unexpected error. Please try again.",
+        title: "Checkout Error",
+        description: `An unexpected error occurred during checkout: ${error.message || "Unknown error"}. Please try again.`,
         variant: "destructive",
       })
     } finally {
@@ -143,6 +118,3 @@ export function CheckoutButton({
     </Button>
   )
 }
-
-// Optional default export for other import styles
-export default CheckoutButton

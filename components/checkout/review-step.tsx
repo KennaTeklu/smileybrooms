@@ -1,19 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
-import { ArrowLeft, Package, Shield, MapPin, CreditCard, Check, Tag } from "lucide-react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
-import { createCheckoutSession } from "@/lib/actions"
+import {
+  User,
+  MapPin,
+  Mail,
+  Phone,
+  CreditCard,
+  ArrowLeft,
+  Eye,
+  CheckCircle,
+  Home,
+  Building,
+  Navigation,
+  MessageCircle,
+  Package,
+  ExternalLink,
+} from "lucide-react"
 import type { CheckoutData } from "@/lib/types"
-import { requiresEmailPricing, CUSTOM_SPACE_LEGAL_DISCLAIMER } from "@/lib/room-tiers"
+import { motion } from "framer-motion"
 
 interface ReviewStepProps {
   checkoutData: CheckoutData
@@ -22,404 +34,307 @@ interface ReviewStepProps {
 
 export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps) {
   const router = useRouter()
-  const { cart, clearCart } = useCart()
   const { toast } = useToast()
+  const { items } = useCart()
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [couponCode, setCouponCode] = useState("")
-  const [couponDiscount, setCouponDiscount] = useState(0)
-  const [couponError, setCouponError] = useState<string | null>(null)
+  const calculateSubtotal = () => {
+    return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+  }
 
-  const { contact: contactData, address: addressData, payment: paymentData } = checkoutData
+  const calculateVideoDiscount = () => {
+    if (!checkoutData.payment.allowVideoRecording) return 0
+    const subtotal = calculateSubtotal()
+    return subtotal >= 250 ? 25 : subtotal * 0.1
+  }
 
-  // Filter items for online payment
-  const onlinePaymentItems = cart.items.filter((item) => item.paymentType !== "in_person")
-  const inPersonPaymentItems = cart.items.filter((item) => item.paymentType === "in_person")
+  const calculateTax = () => {
+    const subtotal = calculateSubtotal()
+    const discount = calculateVideoDiscount()
+    return (subtotal - discount) * 0.08
+  }
 
-  // Calculate totals for online payment
-  const subtotalOnline = onlinePaymentItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const videoDiscount = paymentData?.allowVideoRecording ? (subtotalOnline >= 250 ? 25 : subtotalOnline * 0.1) : 0
-  const totalBeforeTaxOnline = subtotalOnline - videoDiscount - couponDiscount
-  const tax = totalBeforeTaxOnline * 0.08 // 8% tax
-  const totalOnline = totalBeforeTaxOnline + tax
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal()
+    const discount = calculateVideoDiscount()
+    const tax = calculateTax()
+    return subtotal - discount + tax
+  }
 
-  // Total for in-person payment
-  const totalInPerson = inPersonPaymentItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  useEffect(() => {
-    // Reset coupon discount if cart items or other discounts change
-    setCouponDiscount(0)
-    setCouponCode("")
-    setCouponError(null)
-  }, [cart.items, videoDiscount])
-
-  const handleApplyCoupon = () => {
-    setCouponError(null)
-    // Simulate coupon application
-    if (couponCode.toLowerCase() === "v0discount") {
-      const discountAmount = Math.min(totalBeforeTaxOnline * 0.15, 50) // 15% off, max $50
-      setCouponDiscount(discountAmount)
-      toast({
-        title: "Coupon Applied!",
-        description: `You saved ${formatCurrency(discountAmount)} with code "${couponCode}".`,
-        variant: "success",
-      })
-    } else if (couponCode.trim() === "") {
-      setCouponError("Please enter a coupon code.")
-    } else {
-      setCouponDiscount(0)
-      setCouponError("Invalid coupon code. Please try again.")
-      toast({
-        title: "Invalid Coupon",
-        description: "The coupon code you entered is not valid.",
-        variant: "destructive",
-      })
-      setCouponCode("") // Clear invalid coupon code
+  const getAddressTypeIcon = (type: string) => {
+    switch (type) {
+      case "residential":
+        return <Home className="h-4 w-4" />
+      case "commercial":
+        return <Building className="h-4 w-4" />
+      default:
+        return <Navigation className="h-4 w-4" />
     }
   }
 
-  const handleCheckout = async () => {
-    if (!contactData || !addressData || !paymentData) {
-      toast({
-        title: "Missing Information",
-        description: "Please complete all previous steps before checkout.",
-        variant: "destructive",
-      })
-      return
+  const getAddressTypeLabel = (type: string) => {
+    switch (type) {
+      case "residential":
+        return "Residential"
+      case "commercial":
+        return "Commercial"
+      default:
+        return "Other"
     }
+  }
 
-    setIsProcessing(true)
+  const handleViewFullSummary = async () => {
+    setIsNavigating(true)
 
     try {
-      // Prepare line items for Stripe (only online payment items)
-      const customLineItems = onlinePaymentItems.map((item) => {
-        const processedMetadata: Record<string, string> = {
-          itemId: item.id,
-        }
+      // Ensure all data is saved to localStorage
+      localStorage.setItem("checkout-contact", JSON.stringify(checkoutData.contact))
+      localStorage.setItem("checkout-address", JSON.stringify(checkoutData.address))
+      localStorage.setItem("checkout-payment", JSON.stringify(checkoutData.payment))
 
-        // Iterate over all properties in item.metadata and stringify complex objects
-        for (const key in item.metadata) {
-          if (Object.prototype.hasOwnProperty.call(item.metadata, key)) {
-            const value = item.metadata[key]
-            if (typeof value === "object" && value !== null) {
-              // Stringify objects/arrays to ensure Stripe compatibility
-              processedMetadata[key] = JSON.stringify(value)
-            } else {
-              // Convert other primitives to string
-              processedMetadata[key] = String(value)
-            }
-          }
-        }
+      // Navigate to the full-page order summary
+      router.push("/order-summary")
 
-        return {
-          name: item.name,
-          amount: item.price,
-          quantity: item.quantity,
-          description: item.metadata?.description || `Service: ${item.name}`,
-          images: item.image ? [item.image] : [],
-          metadata: processedMetadata, // Pass the processed metadata
-        }
-      })
-
-      // Add video discount if applicable
-      if (videoDiscount > 0) {
-        customLineItems.push({
-          name: "Video Recording Discount",
-          amount: -videoDiscount, // Negative amount for discount
-          quantity: 1,
-          description: "Discount for allowing video recording during service",
-        })
-      }
-
-      // Add coupon discount if applicable
-      if (couponDiscount > 0) {
-        customLineItems.push({
-          name: `Coupon Discount: ${couponCode}`,
-          amount: -couponDiscount, // Negative amount for discount
-          quantity: 1,
-          description: `Discount applied with coupon code: ${couponCode}`,
-        })
-      }
-
-      // Create checkout session with Stripe
-      const checkoutUrl = await createCheckoutSession({
-        customLineItems,
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail: contactData.email,
-        customerData: {
-          name: `${contactData.firstName} ${contactData.lastName}`,
-          email: contactData.email,
-          phone: contactData.phone,
-          address: {
-            line1: addressData.address,
-            city: addressData.city,
-            state: addressData.state,
-            postal_code: addressData.zipCode,
-            country: "US",
-          },
-        },
-        allowPromotions: true,
-        paymentMethodTypes: paymentData.paymentMethod === "card" ? ["card"] : undefined, // Restrict if not card
-      })
-
-      if (checkoutUrl) {
-        // Clear checkout data from localStorage
-        localStorage.removeItem("checkout-contact")
-        localStorage.removeItem("checkout-address")
-        localStorage.removeItem("checkout-payment")
-        clearCart() // Clear cart after successful checkout initiation
-
-        // Redirect to Stripe
-        window.location.href = checkoutUrl
-      } else {
-        throw new Error("Failed to create checkout session")
-      }
-    } catch (error) {
-      console.error("Error during checkout:", error)
       toast({
-        title: "Checkout Failed",
-        description: error instanceof Error ? error.message : "An error occurred during checkout. Please try again.",
+        title: "Opening order summary",
+        description: "Review your complete order details",
+      })
+    } catch (error) {
+      console.error("Failed to navigate to order summary:", error)
+      toast({
+        title: "Navigation failed",
+        description: "Please try again or contact support.",
         variant: "destructive",
       })
-    } finally {
-      setIsProcessing(false)
+      setIsNavigating(false)
     }
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-8"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="p-8"
     >
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5" />
-          Review Your Order
-        </CardTitle>
-        <CardDescription>Please review your order details before completing your purchase</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Order Summary */}
-        <Card className="shadow-xl border-0 mb-8 rounded-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Order Summary
-            </CardTitle>
-            <CardDescription>
-              {cart.items.length} item{cart.items.length !== 1 ? "s" : ""} in your cart
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {cart.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-                >
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold mb-2">Almost Ready! 🎉</h2>
+          <p className="text-lg text-muted-foreground">Review your information and proceed to complete your booking</p>
+        </div>
+
+        {/* Quick Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Contact Summary */}
+          <Card className="border-2 border-blue-100 dark:border-blue-900/30">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="font-semibold text-lg">Contact Info</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <p className="font-medium">
+                  {checkoutData.contact.firstName} {checkoutData.contact.lastName}
+                </p>
+                <p className="text-muted-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  {checkoutData.contact.email}
+                </p>
+                <p className="text-muted-foreground flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  {checkoutData.contact.phone}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Address Summary */}
+          <Card className="border-2 border-green-100 dark:border-green-900/30">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <MapPin className="h-5 w-5 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-lg">Service Address</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  {getAddressTypeIcon(checkoutData.address.addressType)}
+                  <Badge variant="secondary" className="text-xs">
+                    {getAddressTypeLabel(checkoutData.address.addressType)}
+                  </Badge>
+                </div>
+                <p className="font-medium">{checkoutData.address.address}</p>
+                {checkoutData.address.address2 && (
+                  <p className="text-muted-foreground">{checkoutData.address.address2}</p>
+                )}
+                <p className="text-muted-foreground">
+                  {checkoutData.address.city}, {checkoutData.address.state} {checkoutData.address.zipCode}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Services Summary */}
+        <Card className="mb-8 border-2 border-purple-100 dark:border-purple-900/30">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-lg">Selected Services ({items.length})</h3>
+            </div>
+            <div className="space-y-3">
+              {items.slice(0, 3).map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-2">
                   <div>
-                    <h4 className="font-medium">{item.name}</h4>
-                    <div className="text-sm text-gray-500 space-y-1">
-                      {item.metadata?.frequency && <p>Frequency: {item.metadata.frequency.replace(/_/g, " ")}</p>}
-                      {item.metadata?.rooms && <p>Rooms: {item.metadata.rooms}</p>}
-                      <p>Quantity: {item.quantity}</p>
-                      {item.paymentType === "in_person" && (
-                        <p className="text-orange-500 font-semibold">Payment in person</p>
-                      )}
-                    </div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                   </div>
-                  {item.paymentType === "in_person" || requiresEmailPricing(item.metadata?.roomType) ? (
-                    <span className="font-semibold text-lg text-orange-600">Email for Pricing</span>
-                  ) : (
-                    <span className="font-semibold text-lg">{formatCurrency(item.price * item.quantity)}</span>
-                  )}
+                  <p className="font-semibold">${(item.unitPrice * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Coupon Code Section */}
-            <div className="space-y-3 mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Coupon Code
-              </h3>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className={couponError ? "border-red-500" : ""}
-                />
-                <Button onClick={handleApplyCoupon} disabled={isProcessing}>
-                  Apply
-                </Button>
-              </div>
-              {couponError && <p className="text-red-500 text-sm mt-1">{couponError}</p>}
-              {couponDiscount > 0 && (
-                <p className="text-green-600 text-sm mt-1">Coupon applied: -{formatCurrency(couponDiscount)}</p>
-              )}
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <div className="flex justify-between text-lg">
-                <span>Subtotal (Online Payment)</span>
-                <span>{formatCurrency(subtotalOnline)}</span>
-              </div>
-              {videoDiscount > 0 && (
-                <div className="flex justify-between text-lg text-green-600">
-                  <span>Video Recording Discount</span>
-                  <span>-{formatCurrency(videoDiscount)}</span>
-                </div>
-              )}
-              {couponDiscount > 0 && (
-                <div className="flex justify-between text-lg text-green-600">
-                  <span>Coupon Discount</span>
-                  <span>-{formatCurrency(couponDiscount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg">
-                <span>Tax</span>
-                <span>{formatCurrency(tax)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-2xl font-bold">
-                <span>Total (Online Payment)</span>
-                <span>{formatCurrency(totalOnline)}</span>
-              </div>
-              {totalInPerson > 0 && (
-                <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                  <span>Custom Services</span>
-                  <span>Email for Pricing</span>
-                </div>
+              {items.length > 3 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  ... and {items.length - 3} more service{items.length - 3 !== 1 ? "s" : ""}
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Customer & Service Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Address Information */}
-          <Card className="shadow-xl border-0 rounded-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Service Address
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <p className="font-medium">{addressData.fullName}</p>
-                <p>{addressData.email}</p>
-                <p>{addressData.phone}</p>
-                <Separator className="my-3" />
-                <p>{addressData.address}</p>
-                {addressData.address2 && <p>{addressData.address2}</p>}
-                <p>
-                  {addressData.city}, {addressData.state} {addressData.zipCode}
-                </p>
-                {addressData.specialInstructions && (
-                  <>
-                    <Separator className="my-3" />
-                    <p className="font-medium">Special Instructions:</p>
-                    <p className="text-gray-600">{addressData.specialInstructions}</p>
-                  </>
-                )}
+        {/* Price Summary */}
+        <Card className="mb-8 border-2 border-yellow-100 dark:border-yellow-900/30">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                <CreditCard className="h-5 w-5 text-yellow-600" />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Information */}
-          <Card className="shadow-xl border-0 rounded-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Payment Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
-                    <CreditCard className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {paymentData.paymentMethod === "card"
-                        ? "Credit/Debit Card"
-                        : paymentData.paymentMethod === "paypal"
-                          ? "PayPal"
-                          : paymentData.paymentMethod === "apple"
-                            ? "Apple Pay"
-                            : "Google Pay"}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {paymentData.paymentMethod === "card"
-                        ? "Visa, Mastercard, American Express"
-                        : paymentData.paymentMethod === "paypal"
-                          ? "Pay with your PayPal account"
-                          : "Touch ID or Face ID"}
-                    </p>
-                  </div>
+              <h3 className="font-semibold text-lg">Order Total</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+              </div>
+              {checkoutData.payment.allowVideoRecording && (
+                <div className="flex justify-between text-green-600">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    Live Video Discount
+                  </span>
+                  <span className="font-medium">-${calculateVideoDiscount().toFixed(2)}</span>
                 </div>
+              )}
+              <div className="flex justify-between">
+                <span>Tax (8%)</span>
+                <span className="font-medium">${calculateTax().toFixed(2)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-xl font-bold">
+                <span>Total</span>
+                <span>${calculateTotal().toFixed(2)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                <Separator className="my-3" />
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span>Billing address same as service address</span>
-                  </div>
-                  {paymentData.allowVideoRecording && (
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span>Video recording discount applied</span>
-                    </div>
-                  )}
+        {/* Special Features */}
+        {checkoutData.payment.allowVideoRecording && (
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Eye className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    🎥 Live Video Service Included
+                  </h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-200 mb-3">
+                    You'll receive a private YouTube Live link to watch your cleaning service in real-time. This feature
+                    includes a discount and helps ensure quality service.
+                  </p>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    Discount Applied: ${calculateVideoDiscount().toFixed(2)}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between pt-6">
-          <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
+        {/* Special Instructions */}
+        {checkoutData.address.specialInstructions && (
+          <Card className="mb-8 border-2 border-orange-100 dark:border-orange-900/30">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Special Instructions</h4>
+                  <p className="text-sm text-muted-foreground bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
+                    {checkoutData.address.specialInstructions}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button variant="outline" onClick={onPrevious} className="flex items-center gap-2 px-8 py-3 bg-transparent">
+            <ArrowLeft className="h-4 w-4" />
             Back to Payment
           </Button>
+
           <Button
-            onClick={handleCheckout}
-            size="default"
-            className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 rounded-xl px-6"
-            disabled={isProcessing}
+            onClick={handleViewFullSummary}
+            disabled={isNavigating}
+            size="lg"
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 hover:from-blue-700 hover:via-purple-700 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            {isProcessing ? (
+            {isNavigating ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3" />
-                Processing Your Order...
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                Loading...
               </>
             ) : (
               <>
-                <Shield className="mr-3 h-5 w-5" />
-                {totalInPerson > 0
-                  ? `Complete Online Payment - ${formatCurrency(totalOnline)}`
-                  : `Complete Order - ${formatCurrency(totalOnline)}`}
+                <ExternalLink className="h-5 w-5 mr-2" />
+                Review My Order
               </>
             )}
           </Button>
         </div>
-        {totalInPerson > 0 && (
-          <p className="text-center text-sm text-orange-600 mt-4">Note: {CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
-        )}
-        <p className="text-center text-sm text-gray-500 mt-4">
-          By clicking "Complete Order", you agree to our Terms of Service and Privacy Policy.
-        </p>
-      </CardContent>
+
+        {/* Trust Indicators */}
+        <div className="text-center mt-8 pt-6 border-t">
+          <div className="flex justify-center items-center space-x-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>Secure Checkout</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>100% Satisfaction Guarantee</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span>Professional Service</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </motion.div>
   )
 }

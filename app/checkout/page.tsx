@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import { ArrowLeft, CreditCard, MapPin, User, Package, Check, Shield } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { AnimatePresence } from "framer-motion"
 import ContactStep from "@/components/checkout/contact-step"
@@ -27,6 +27,7 @@ const steps = [
 export default function CheckoutPage() {
   const { cart } = useCart()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
@@ -57,12 +58,25 @@ export default function CheckoutPage() {
     },
   })
 
+  // Handle URL parameters for direct step navigation
+  useEffect(() => {
+    const step = searchParams.get("step") as CheckoutStepId
+    if (step && steps.some((s) => s.id === step)) {
+      setCurrentStep(step)
+    }
+  }, [searchParams])
+
   // Redirect if cart is empty
   useEffect(() => {
     if (cart.items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add services to your cart first.",
+        variant: "destructive",
+      })
       router.push("/pricing")
     }
-  }, [cart.items.length, router])
+  }, [cart.items.length, router, toast])
 
   // Load initial data from localStorage if available (for returning users or partial completion)
   useEffect(() => {
@@ -79,13 +93,10 @@ export default function CheckoutPage() {
 
       // Determine the last completed step to resume
       if (savedPayment) {
-        setCurrentStep("review")
         setCompletedSteps(["contact", "address", "payment"])
       } else if (savedAddress) {
-        setCurrentStep("payment")
         setCompletedSteps(["contact", "address"])
       } else if (savedContact) {
-        setCurrentStep("address")
         setCompletedSteps(["contact"])
       }
     } catch (e) {
@@ -119,14 +130,24 @@ export default function CheckoutPage() {
   const handleNext = useCallback(() => {
     const nextStepIndex = currentStepIndex + 1
     if (nextStepIndex < steps.length) {
-      setCurrentStep(steps[nextStepIndex].id)
+      const nextStep = steps[nextStepIndex].id
+      setCurrentStep(nextStep)
+      // Update URL without page reload
+      const url = new URL(window.location.href)
+      url.searchParams.set("step", nextStep)
+      window.history.pushState({}, "", url.toString())
     }
   }, [currentStepIndex])
 
   const handlePrevious = useCallback(() => {
     const prevStepIndex = currentStepIndex - 1
     if (prevStepIndex >= 0) {
-      setCurrentStep(steps[prevStepIndex].id)
+      const prevStep = steps[prevStepIndex].id
+      setCurrentStep(prevStep)
+      // Update URL without page reload
+      const url = new URL(window.location.href)
+      url.searchParams.set("step", prevStep)
+      window.history.pushState({}, "", url.toString())
     }
   }, [currentStepIndex])
 
@@ -136,10 +157,17 @@ export default function CheckoutPage() {
       // Allow navigating to any previous completed step or the immediate next step
       if (stepIndex < currentStepIndex || (stepIndex === currentStepIndex && completedSteps.includes(stepId))) {
         setCurrentStep(stepId)
+        // Update URL without page reload
+        const url = new URL(window.location.href)
+        url.searchParams.set("step", stepId)
+        window.history.pushState({}, "", url.toString())
       } else if (stepIndex === currentStepIndex + 1) {
         // Allow moving to the next step if the current one is completed
         if (completedSteps.includes(currentStep)) {
           setCurrentStep(stepId)
+          const url = new URL(window.location.href)
+          url.searchParams.set("step", stepId)
+          window.history.pushState({}, "", url.toString())
         } else {
           toast({
             title: "Please complete current step",
