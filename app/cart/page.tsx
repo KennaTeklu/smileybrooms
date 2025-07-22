@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ShoppingBag, Trash2, Tag, ArrowRight } from "lucide-react"
+import { ShoppingBag, Trash2, Tag, ArrowRight, ChevronDown, User, Mail, Phone, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/lib/cart-context"
@@ -24,6 +24,7 @@ import { AnimatePresence } from "framer-motion"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
 import CheckoutSidePanel from "@/components/cart/checkout-sidepanel"
 import type { CheckoutData } from "@/lib/types"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 // Simple price formatter – prepend `$` & keep two decimals
 const formatPrice = (price: number) => `$${price.toFixed(2)}`
@@ -216,118 +217,212 @@ export default function CartPage() {
                 </Button>
               </Card>
             ) : (
-              <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-base">
-                      <span className="text-gray-700 dark:text-gray-300">Subtotal ({cart.totalItems} items)</span>
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {formatPrice(cart.subtotalPrice)}
-                      </span>
-                    </div>
+              <>
+                {/* Collapsible Purchased Items Section */}
+                <Card className="shadow-lg border-gray-200 dark:border-gray-700 mb-8">
+                  <Collapsible defaultOpen={false}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
+                      <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        Purchased Items ({cart.totalItems})
+                      </CardTitle>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-9 p-0">
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+                          <span className="sr-only">Toggle items</span>
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="p-0">
+                        <div className="space-y-4 p-6">
+                          <AnimatePresence mode="popLayout">
+                            {cart.items?.map((item) => (
+                              <CartItemDisplay
+                                key={item.id}
+                                item={item}
+                                onRemoveItem={handleRemoveItemClick}
+                                onUpdateQuantity={handleQuantityChange}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
 
-                    {cart.couponDiscount > 0 && (
-                      <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                        <span>Coupon ({cart.couponCode})</span>
-                        <span>-{formatPrice(cart.couponDiscount)}</span>
+                {/* Collapsible Customer Information Section */}
+                <Card className="shadow-lg border-gray-200 dark:border-gray-700 mb-8">
+                  <Collapsible defaultOpen={false}>
+                    <CardHeader className="flex flex-row items-center justify-between pb-4">
+                      <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                        Customer Information
+                      </CardTitle>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-9 p-0">
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 data-[state=open]:rotate-180" />
+                          <span className="sr-only">Toggle customer info</span>
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Contact Info */}
+                        <div>
+                          <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                            <User className="h-5 w-5 text-blue-600" /> Contact Details
+                          </h4>
+                          <p className="text-sm">
+                            <span className="font-medium">
+                              {completedCheckoutData?.contact.firstName} {completedCheckoutData?.contact.lastName}
+                            </span>
+                          </p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-4 w-4" /> {completedCheckoutData?.contact.email}
+                          </p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-4 w-4" /> {completedCheckoutData?.contact.phone}
+                          </p>
+                        </div>
+                        {/* Address Info */}
+                        <div>
+                          <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                            <MapPin className="h-5 w-5 text-green-600" /> Service Address
+                          </h4>
+                          <p className="text-sm font-medium">{completedCheckoutData?.address.address}</p>
+                          {completedCheckoutData?.address.address2 && (
+                            <p className="text-sm text-muted-foreground">{completedCheckoutData?.address.address2}</p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {completedCheckoutData?.address.city}, {completedCheckoutData?.address.state}{" "}
+                            {completedCheckoutData?.address.zipCode}
+                          </p>
+                          {completedCheckoutData?.address.specialInstructions && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              <span className="font-medium">Instructions:</span>{" "}
+                              {completedCheckoutData?.address.specialInstructions}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+
+                {/* Existing Order Summary Card (Price Breakdown) */}
+                <Card className="shadow-lg border-gray-200 dark:border-gray-700" id="order-summary">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">Order Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-base">
+                        <span className="text-gray-700 dark:text-gray-300">Subtotal ({cart.totalItems} items)</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {formatPrice(cart.subtotalPrice)}
+                        </span>
                       </div>
-                    )}
-                    {cart.fullHouseDiscount > 0 && (
-                      <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
-                        <span>Full House Discount</span>
-                        <span>-{formatPrice(cart.fullHouseDiscount)}</span>
+
+                      {cart.couponDiscount > 0 && (
+                        <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
+                          <span>Coupon ({cart.couponCode})</span>
+                          <span>-{formatPrice(cart.couponDiscount)}</span>
+                        </div>
+                      )}
+                      {cart.fullHouseDiscount > 0 && (
+                        <div className="flex justify-between text-base text-green-600 dark:text-green-400 font-medium">
+                          <span>Full House Discount</span>
+                          <span>-{formatPrice(cart.fullHouseDiscount)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Shipping</span>
+                        <span>Calculated at checkout</span>
                       </div>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Taxes</span>
+                        <span>Calculated at checkout</span>
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    {/* Coupon Input */}
+                    <div className="flex gap-2 mb-4">
+                      <Input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value)}
+                        className="flex-1 h-10 rounded-lg"
+                        aria-label="Coupon code input"
+                      />
+                      <Button
+                        onClick={handleApplyCoupon}
+                        disabled={!couponInput.trim() || cart.couponDiscount > 0}
+                        className="rounded-lg"
+                      >
+                        <Tag className="h-4 w-4 mr-2" />
+                        Apply
+                      </Button>
+                    </div>
+
+                    <Separator className="my-4" />
+                    <div className="flex justify-between text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+                      <span>Total</span>
+                      <span className="text-blue-600 dark:text-blue-400">{formatPrice(cart.totalPrice)}</span>
+                    </div>
+
+                    {cart.inPersonPaymentTotal > 0 && (
+                      <>
+                        <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
+                          <span>Custom Services</span>
+                          <span>Email for Pricing</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
+                          <p className="font-semibold text-orange-700 dark:text-orange-400 mb-1">Payment Notice:</p>
+                          <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
+                        </div>
+                      </>
                     )}
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Shipping</span>
-                      <span>Calculated at checkout</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Taxes</span>
-                      <span>Calculated at checkout</span>
-                    </div>
-                  </div>
 
-                  <Separator className="my-4" />
+                    <p className="text-sm text-muted-foreground mb-4 text-center">
+                      Ready to complete your order? Proceed to checkout to finalize your booking.
+                    </p>
 
-                  {/* Coupon Input */}
-                  <div className="flex gap-2 mb-4">
-                    <Input
-                      type="text"
-                      placeholder="Enter coupon code"
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value)}
-                      className="flex-1 h-10 rounded-lg"
-                      aria-label="Coupon code input"
-                    />
-                    <Button
-                      onClick={handleApplyCoupon}
-                      disabled={!couponInput.trim() || cart.couponDiscount > 0}
-                      className="rounded-lg"
+                    <CheckoutButton
+                      useCheckoutPage={false}
+                      className="w-full h-12 rounded-lg text-base"
+                      size="lg"
+                      disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
+                      cartItems={cart.items || []}
+                      customerData={{
+                        name: `${completedCheckoutData?.contact.firstName} ${completedCheckoutData?.contact.lastName}`,
+                        email: completedCheckoutData?.contact.email,
+                        phone: completedCheckoutData?.contact.phone,
+                        address: {
+                          line1: completedCheckoutData?.address.address,
+                          line2: completedCheckoutData?.address.address2,
+                          city: completedCheckoutData?.address.city,
+                          state: completedCheckoutData?.address.state,
+                          postal_code: completedCheckoutData?.address.zipCode,
+                          country: "US",
+                        },
+                      }}
                     >
-                      <Tag className="h-4 w-4 mr-2" />
-                      Apply
+                      Pay Now
+                    </CheckoutButton>
+
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
+                    >
+                      <Link href="/pricing">Continue Shopping</Link>
                     </Button>
-                  </div>
-
-                  <Separator className="my-4" />
-                  <div className="flex justify-between text-xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-                    <span>Total</span>
-                    <span className="text-blue-600 dark:text-blue-400">{formatPrice(cart.totalPrice)}</span>
-                  </div>
-
-                  {cart.inPersonPaymentTotal > 0 && (
-                    <>
-                      <div className="flex justify-between text-xl font-bold text-orange-600 mt-4">
-                        <span>Custom Services</span>
-                        <span>Email for Pricing</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
-                        <p className="font-semibold text-orange-700 dark:text-orange-400 mb-1">Payment Notice:</p>
-                        <p>{CUSTOM_SPACE_LEGAL_DISCLAIMER}</p>
-                      </div>
-                    </>
-                  )}
-
-                  <p className="text-sm text-muted-foreground mb-4 text-center">
-                    Ready to complete your order? Proceed to checkout to finalize your booking.
-                  </p>
-
-                  <CheckoutButton
-                    useCheckoutPage={false}
-                    className="w-full h-12 rounded-lg text-base"
-                    size="lg"
-                    disabled={(cart.items?.length ?? 0) === 0 || isCheckoutLoading}
-                    cartItems={cart.items || []}
-                    customerData={{
-                      name: `${completedCheckoutData?.contact.firstName} ${completedCheckoutData?.contact.lastName}`,
-                      email: completedCheckoutData?.contact.email,
-                      phone: completedCheckoutData?.contact.phone,
-                      address: {
-                        line1: completedCheckoutData?.address.address,
-                        line2: completedCheckoutData?.address.address2,
-                        city: completedCheckoutData?.address.city,
-                        state: completedCheckoutData?.address.state,
-                        postal_code: completedCheckoutData?.address.zipCode,
-                        country: "US",
-                      },
-                    }}
-                  >
-                    Pay Now
-                  </CheckoutButton>
-
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full mt-3 bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
-                  >
-                    <Link href="/pricing">Continue Shopping</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             )}
           </div>
         </div>
