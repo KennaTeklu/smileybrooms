@@ -1,79 +1,135 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
-import { CreditCard, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import type { CheckoutData } from "@/lib/types"
+import { createCheckoutSession } from "@/lib/actions"
+import type { CartItem } from "@/lib/cart/types"
+import type Stripe from "stripe"
 
-interface CheckoutButtonProps {
-  checkoutData?: CheckoutData
-  className?: string
-  children?: React.ReactNode
+/**
+ * Props expected by the CheckoutButton.
+ * Matches the shape used on /cart and other pages.
+ */
+interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
+  /** If true we redirect to a dedicated /checkout page instead of Stripe */
+  useCheckoutPage?: boolean
+  /** Items in the cart */
+  cartItems: CartItem[]
+  /** Prefill e-mail in Stripe Checkout */
+  customerEmail?: string
+  /** Optional extra customer details */
+  customerData?: {
+    name?: string
+    email?: string
+    phone?: string
+    address?: {
+      line1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+    }
+    allowVideoRecording?: boolean
+    videoConsentDetails?: string
+  }
+  /** Recurring plan options */
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
+  /** One-off discount */
+  discount?: {
+    amount: number
+    reason: string
+  }
+  /** Stripe advanced options */
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
-export default function CheckoutButton({ checkoutData, className, children }: CheckoutButtonProps) {
-  const { items, getTotalPrice } = useCart()
-  const { toast } = useToast()
-  const router = useRouter()
+/**
+ * Named export so `import { CheckoutButton } from "@/components/checkout-button"` works.
+ * Also exported as default for convenience.
+ */
+export function CheckoutButton({
+  useCheckoutPage = false,
+  cartItems,
+  customerEmail,
+  customerData,
+  isRecurring,
+  recurringInterval,
+  discount,
+  shippingAddressCollection,
+  automaticTax,
+  paymentMethodTypes,
+  trialPeriodDays,
+  cancelAtPeriodEnd,
+  allowPromotions,
+  ...props
+}: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
   const handleCheckout = async () => {
-    if (items.length === 0) {
+    if (cartItems.length === 0) {
       toast({
         title: "Cart is empty",
-        description: "Please add some services to your cart before checking out.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!checkoutData?.contact?.email || !checkoutData?.address?.address) {
-      toast({
-        title: "Missing information",
-        description: "Please complete your contact and address information first.",
+        description: "Please add items before checking out.",
         variant: "destructive",
       })
       return
     }
 
     setIsLoading(true)
-
     try {
-      // Save checkout data to localStorage for order summary page
-      localStorage.setItem("checkout-contact", JSON.stringify(checkoutData.contact))
-      localStorage.setItem("checkout-address", JSON.stringify(checkoutData.address))
-      localStorage.setItem("checkout-payment", JSON.stringify(checkoutData.payment))
-      localStorage.setItem("cartItems", JSON.stringify(items))
+      // Convert cart items to Stripe-compatible line items
+      const customLineItems = cartItems.map((item) => ({
+        name: item.name,
+        // Make sure amount is a valid integer (cents)
+        amount: Number(item.unitPrice) || 0,
+        quantity: item.quantity,
+        description: item.description,
+        images: item.images,
+        metadata: item.meta,
+      }))
 
-      // For demo purposes, redirect directly to order summary
-      // In production, this would go through Stripe checkout first
-      router.push("/order-summary")
-
-      toast({
-        title: "Redirecting to order summary...",
-        description: "Processing your order information.",
+      // Create the Stripe Checkout Session via our server action
+      const checkoutUrl = await createCheckoutSession({
+        customLineItems,
+        successUrl: `${window.location.origin}/success`,
+        cancelUrl: `${window.location.origin}/canceled`,
+        customerEmail,
+        customerData,
+        isRecurring,
+        recurringInterval,
+        discount,
+        shippingAddressCollection,
+        automaticTax,
+        paymentMethodTypes,
+        trialPeriodDays,
+        cancelAtPeriodEnd,
+        allowPromotions,
       })
 
-      // Uncomment below for actual Stripe integration:
-      /*
-      const { url } = await createCheckoutSession(items, checkoutData)
-      
-      if (url) {
-        window.location.href = url
+      if (checkoutUrl) {
+        // Redirect the customer
+        window.location.href = checkoutUrl
       } else {
-        throw new Error("No checkout URL returned")
+        toast({
+          title: "Checkout failed",
+          description: "Unable to start checkout. Please try again.",
+          variant: "destructive",
+        })
       }
-      */
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during checkout:", error)
       toast({
-        title: "Checkout failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        title: "Checkout error",
+        description: error?.message ?? "Unexpected error. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -81,21 +137,12 @@ export default function CheckoutButton({ checkoutData, className, children }: Ch
     }
   }
 
-  const total = getTotalPrice()
-
   return (
-    <Button onClick={handleCheckout} disabled={isLoading || items.length === 0} className={className} size="lg">
-      {isLoading ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
-        </>
-      ) : (
-        <>
-          <CreditCard className="mr-2 h-4 w-4" />
-          {children || `Complete Order • $${total.toFixed(2)}`}
-        </>
-      )}
+    <Button onClick={handleCheckout} disabled={isLoading || cartItems.length === 0} {...props}>
+      {isLoading ? "Processing..." : "Proceed to Checkout"}
     </Button>
   )
 }
+
+// Optional default export for other import styles
+export default CheckoutButton
