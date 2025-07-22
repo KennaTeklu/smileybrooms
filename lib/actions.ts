@@ -128,12 +128,6 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             cancel_at_period_end: cancelAtPeriodEnd, // Ensure the variable is declared
           }
         : undefined,
-      customer_update: customerData
-        ? {
-            address: "auto",
-            name: "auto",
-          }
-        : undefined,
       metadata: customerData
         ? {
             customer_name: customerData.name,
