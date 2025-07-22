@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
 const addressSchema = z.object({
@@ -43,12 +42,15 @@ interface AddressStepProps {
   open: boolean
   onClose: () => void
   onSubmit: (values: AddressSchemaType) => void
-  isSubmitting: boolean
 }
 
-const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit, isSubmitting }) => {
-  const form = useForm<AddressSchemaType>({
-    resolver: zodResolver(addressSchema),
+const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit }) => {
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<AddressSchemaType>({
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -59,7 +61,16 @@ const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit, isSu
     },
   })
 
-  const handleSubmit = (values: AddressSchemaType) => {
+  // LOCAL Zod validation (no external resolver needed)
+  const onValid = (values: AddressSchemaType) => {
+    const parsed = addressSchema.safeParse(values)
+    if (!parsed.success) {
+      parsed.error.issues.forEach((issue) => {
+        const field = issue.path[0] as keyof AddressSchemaType
+        setError(field, { message: issue.message })
+      })
+      return
+    }
     onSubmit(values)
   }
 
@@ -70,52 +81,40 @@ const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit, isSu
           <DialogTitle>Shipping Address</DialogTitle>
           <DialogDescription>Enter your shipping address to complete your order.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit(onValid)} className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" placeholder="John" {...form.register("firstName")} />
-              {form.formState.errors.firstName && (
-                <p className="text-sm text-red-500">{form.formState.errors.firstName.message}</p>
-              )}
+              <Input id="firstName" placeholder="John" {...register("firstName")} />
+              {errors.firstName && <p className="text-sm text-red-500">{errors.firstName.message}</p>}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" placeholder="Doe" {...form.register("lastName")} />
-              {form.formState.errors.lastName && (
-                <p className="text-sm text-red-500">{form.formState.errors.lastName.message}</p>
-              )}
+              <Input id="lastName" placeholder="Doe" {...register("lastName")} />
+              {errors.lastName && <p className="text-sm text-red-500">{errors.lastName.message}</p>}
             </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="address">Address</Label>
-            <Input id="address" placeholder="123 Main St" {...form.register("address")} />
-            {form.formState.errors.address && (
-              <p className="text-sm text-red-500">{form.formState.errors.address.message}</p>
-            )}
+            <Input id="address" placeholder="123 Main St" {...register("address")} />
+            {errors.address && <p className="text-sm text-red-500">{errors.address.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" placeholder="Anytown" {...form.register("city")} />
-              {form.formState.errors.city && (
-                <p className="text-sm text-red-500">{form.formState.errors.city.message}</p>
-              )}
+              <Input id="city" placeholder="Anytown" {...register("city")} />
+              {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="state">State</Label>
-              <Input id="state" placeholder="CA" {...form.register("state")} />
-              {form.formState.errors.state && (
-                <p className="text-sm text-red-500">{form.formState.errors.state.message}</p>
-              )}
+              <Input id="state" placeholder="CA" {...register("state")} />
+              {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
             </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="zipCode">Zip Code</Label>
-            <Input id="zipCode" placeholder="12345" {...form.register("zipCode")} />
-            {form.formState.errors.zipCode && (
-              <p className="text-sm text-red-500">{form.formState.errors.zipCode.message}</p>
-            )}
+            <Input id="zipCode" placeholder="12345" {...register("zipCode")} />
+            {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode.message}</p>}
           </div>
         </form>
         <DialogFooter>
