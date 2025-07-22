@@ -1,230 +1,130 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { CheckCircle, ChevronDown, ShoppingCart } from "lucide-react"
-
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Card } from "@/components/ui/card"
+import { CartItem } from "@/components/cart-item"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useCart } from "@/hooks/use-cart"
 import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
+import { ChevronDown } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { CartItemDisplay } from "@/components/cart-item-display"
 
-// -- Types ------------------------------------------------------------------
-
-interface CartItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  image?: string
+// Dummy type for checkout data - replace with your actual type
+type CheckoutData = {
+  customer: {
+    name: string
+    email: string
+    address: string
+  }
 }
 
-interface CompletedCheckoutData {
-  customerName: string
-  addressLine1: string
-  addressLine2?: string
-  city: string
-  state: string
-  zip: string
-  email: string
-  phone: string
-  items: CartItem[]
-  subtotal: number
-  tax: number
-  total: number
-}
+const CartPage = () => {
+  const { cartItems, totalPrice } = useCart()
+  const [completedCheckoutData, setCompletedCheckoutData] = useState<CheckoutData | null>(null)
 
-// -- Helpers ----------------------------------------------------------------
-
-function getFormattedPrice(value: number) {
-  return Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value)
-}
-
-// -- Page Component ---------------------------------------------------------
-
-export default function CartPage() {
-  const router = useRouter()
-
-  // ❶ Fetch cart + possible checkout completion data from localStorage.
-  const [cart, setCart] = React.useState<CartItem[]>([])
-  const [completedCheckoutData, setCompletedCheckoutData] = React.useState<CompletedCheckoutData | null>(null)
-
-  React.useEffect(() => {
-    // Cart items
-    const rawCart = localStorage.getItem("cart")
-    if (rawCart) setCart(JSON.parse(rawCart))
-
-    // Completed checkout (set in previous step of flow)
-    const rawCompleted = localStorage.getItem("completedCheckout")
-    if (rawCompleted) setCompletedCheckoutData(JSON.parse(rawCompleted))
-  }, [])
-
-  // ❷ Dynamic button label
-  const primaryCtaLabel = completedCheckoutData ? "Pay Now" : "Proceed to Checkout"
-
-  // ❸ Event handlers
-  function handlePrimaryCta() {
-    if (completedCheckoutData) {
-      // Go straight to Stripe / payment
-      router.push("/order-summary") // or your payment route
-    } else {
-      router.push("/checkout")
+  const handleCheckout = () => {
+    // In a real application, you would send the cart data to your backend
+    // and process the payment.  For this example, we'll just simulate
+    // a successful checkout and store some dummy data.
+    const dummyCheckoutData: CheckoutData = {
+      customer: {
+        name: "John Doe",
+        email: "john.doe@example.com",
+        address: "123 Main St",
+      },
     }
+    setCompletedCheckoutData(dummyCheckoutData)
   }
-
-  // ❹ UI pieces -------------------------------------------------------------
-
-  function CartHeader() {
-    return (
-      <header className="mb-8 flex items-center gap-2 text-2xl font-semibold">
-        <ShoppingCart className="size-6" />
-        <span>Your Shopping Cart</span>
-      </header>
-    )
-  }
-
-  function ReviewHeader() {
-    return (
-      <header className="mb-8 flex items-center gap-2 text-2xl font-semibold">
-        <CheckCircle className="size-6 text-green-600" />
-        <span>Review Your Order</span>
-      </header>
-    )
-  }
-
-  function CartItemRow({ item }: { item: CartItem }) {
-    return (
-      <div className="flex items-center justify-between py-2">
-        <span>
-          {item.name} <span className="text-muted-foreground">× {item.quantity}</span>
-        </span>
-        <span>{getFormattedPrice(item.price * item.quantity)}</span>
-      </div>
-    )
-  }
-
-  // -- Render ---------------------------------------------------------------
-
-  const showCartSide = !completedCheckoutData
 
   return (
-    <main className="container mx-auto max-w-7xl px-4 py-10">
-      {/* Toggle / sidebar trigger on mobile */}
-      <SidebarTrigger className="mb-6 md:hidden" />
+    <div className="container py-12">
+      {!completedCheckoutData && <h2 className="text-2xl font-bold mb-6">Your Shopping Cart</h2>}
 
-      {/* Grid wrapper */}
-      <div className={cn("grid gap-8", showCartSide ? "lg:grid-cols-3" : "place-content-center")}>
-        {/* ---------------- Left Column — Cart items ---------------- */}
-        {showCartSide && (
-          <section className="lg:col-span-2">
-            <CartHeader />
-            <Card className="divide-y">
-              {cart.map((item) => (
-                <CartItemRow key={item.id} item={item} />
+      <div className={cn("grid lg:grid-cols-3 gap-8", completedCheckoutData && "lg:grid-cols-1")}>
+        <div className="lg:col-span-2">
+          {cartItems.length === 0 ? (
+            <p>Your cart is empty.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {cartItems.map((item) => (
+                <CartItem key={item.id} item={item} />
               ))}
-              {cart.length === 0 && <p className="p-6 text-center text-muted-foreground">Your cart is empty.</p>}
-            </Card>
-          </section>
-        )}
-
-        {/* ---------------- Right Column — CTA or Order Summary ------------ */}
-        <section className={cn("flex flex-col gap-6", completedCheckoutData && "w-full max-w-4xl lg:col-span-full")}>
-          {/* Swap header depending on state */}
-          {completedCheckoutData ? <ReviewHeader /> : <CartHeader />}
-
-          {/* ===================== STATE A: CART CTA ===================== */}
-          {!completedCheckoutData && (
-            <Card className="p-6 text-center">
-              <h3 className="mb-4 text-xl font-semibold">Ready to complete your booking?</h3>
-              <Button size="lg" onClick={handlePrimaryCta}>
-                {primaryCtaLabel}
-              </Button>
-            </Card>
+            </div>
           )}
+        </div>
 
-          {/* ===================== STATE B: ORDER SUMMARY ================== */}
-          {completedCheckoutData && (
-            <React.Fragment>
-              {/* Summary Card ------------------------------------------------ */}
-              <Card className="p-6">
-                {/* Collapsed Purchased Items */}
-                <Collapsible defaultOpen={false} className="mb-4">
-                  <CollapsibleTrigger asChild>
-                    <button className="flex w-full items-center justify-between text-left text-lg font-medium">
-                      Purchased Items
-                      <ChevronDown className="size-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
-                    </button>
+        <div
+          className={cn("flex flex-col gap-8", completedCheckoutData ? "w-full max-w-4xl mx-auto" : "lg:col-span-1")}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between">
+                  <p className="text-gray-500">Subtotal</p>
+                  <p>${totalPrice.toFixed(2)}</p>
+                </div>
+                <div className="flex justify-between">
+                  <p className="text-gray-500">Shipping</p>
+                  <p>Free</p>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-medium">
+                  <p>Total</p>
+                  <p>${totalPrice.toFixed(2)}</p>
+                </div>
+
+                <Collapsible>
+                  <CollapsibleTrigger className="flex w-full justify-between font-medium">
+                    Purchased Items
+                    <ChevronDown />
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4">
-                    {completedCheckoutData.items.map((item) => (
-                      <CartItemRow key={item.id} item={item} />
+                  <CollapsibleContent className="space-y-4 mt-4">
+                    {cartItems.map((item) => (
+                      <CartItemDisplay key={item.id} item={item} />
                     ))}
                   </CollapsibleContent>
                 </Collapsible>
 
-                <Separator />
-
-                {/* Collapsed Customer Info */}
-                <Collapsible defaultOpen={false} className="my-4">
-                  <CollapsibleTrigger asChild>
-                    <button className="flex w-full items-center justify-between text-left text-lg font-medium">
-                      Customer Information
-                      <ChevronDown className="size-5 shrink-0 transition-transform data-[state=open]:rotate-180" />
-                    </button>
+                <Collapsible>
+                  <CollapsibleTrigger className="flex w-full justify-between font-medium mt-6">
+                    Customer Information
+                    <ChevronDown />
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-4 space-y-1 text-sm">
-                    <p>{completedCheckoutData.customerName}</p>
-                    <p>{completedCheckoutData.email}</p>
-                    <p>{completedCheckoutData.phone}</p>
+                  <CollapsibleContent className="space-y-2 mt-4 text-sm">
                     <p>
-                      {completedCheckoutData.addressLine1}
-                      {completedCheckoutData.addressLine2 ? `, ${completedCheckoutData.addressLine2}` : ""}
+                      <strong>Name:&nbsp;</strong>
+                      {completedCheckoutData?.customer.name}
                     </p>
                     <p>
-                      {completedCheckoutData.city}, {completedCheckoutData.state} {completedCheckoutData.zip}
+                      <strong>Email:&nbsp;</strong>
+                      {completedCheckoutData?.customer.email}
                     </p>
+                    <p>
+                      <strong>Address:&nbsp;</strong>
+                      {completedCheckoutData?.customer.address}
+                    </p>
+                    {/* Add any other fields you store */}
                   </CollapsibleContent>
                 </Collapsible>
 
-                <Separator />
-
-                {/* Price Breakdown */}
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{getFormattedPrice(completedCheckoutData.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax</span>
-                    <span>{getFormattedPrice(completedCheckoutData.tax)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold text-lg">
-                    <span>Total</span>
-                    <span>{getFormattedPrice(completedCheckoutData.total)}</span>
-                  </div>
-                </div>
-
-                <Button size="lg" className="mt-6 w-full" onClick={handlePrimaryCta}>
-                  {primaryCtaLabel}
-                </Button>
-              </Card>
-
-              {/* Continue Shopping link */}
-              <div className="text-center">
-                <Button variant="link" onClick={() => router.push("/")} className="mt-4">
-                  Continue Shopping
-                </Button>
+                <Button onClick={handleCheckout}>{completedCheckoutData ? "Pay now" : "Proceed to Checkout"}</Button>
+                {completedCheckoutData && (
+                  <Button variant="link" href="/" className="mx-auto">
+                    Continue shopping
+                  </Button>
+                )}
               </div>
-            </React.Fragment>
-          )}
-        </section>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </main>
+    </div>
   )
 }
+
+export default CartPage
