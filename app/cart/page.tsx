@@ -127,7 +127,9 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-64px)] flex flex-col">
-      <h1 className="text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight">
+      <h1
+        className={`text-4xl md:text-5xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100 leading-tight ${completedCheckoutData ? "hidden" : ""}`}
+      >
         Your <span className="text-blue-600 dark:text-blue-400">Shopping Cart</span>
       </h1>
 
@@ -148,42 +150,54 @@ export default function CartPage() {
           </Button>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-8 flex-1">
+        <div className={`${completedCheckoutData ? "flex justify-center" : "grid lg:grid-cols-3 gap-8"} flex-1`}>
           {/* Cart Items List */}
-          <Card className="lg:col-span-2 shadow-lg border-gray-200 dark:border-gray-700" id="cart-items-list">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                Items in Cart ({cart.totalItems})
-              </CardTitle>
-              <Button
-                variant="outline"
-                onClick={handleClearCartClick}
-                disabled={(cart.items?.length ?? 0) === 0}
-                className="rounded-lg bg-transparent"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Clear All
-              </Button>
-            </CardHeader>
+          {!completedCheckoutData && (
+            <Card className="lg:col-span-2 shadow-lg border-gray-200 dark:border-gray-700" id="cart-items-list">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  Items in Cart ({cart.totalItems})
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  onClick={handleClearCartClick}
+                  disabled={(cart.items?.length ?? 0) === 0}
+                  className="rounded-lg bg-transparent"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
+              </CardHeader>
 
-            <CardContent className="p-0">
-              <div className="space-y-4 p-6">
-                <AnimatePresence mode="popLayout">
-                  {cart.items?.map((item) => (
-                    <CartItemDisplay
-                      key={item.id}
-                      item={item}
-                      onRemoveItem={handleRemoveItemClick}
-                      onUpdateQuantity={handleQuantityChange}
-                    />
-                  ))}
-                </AnimatePresence>
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="p-0">
+                <div className="space-y-4 p-6">
+                  <AnimatePresence mode="popLayout">
+                    {cart.items?.map((item) => (
+                      <CartItemDisplay
+                        key={item.id}
+                        item={item}
+                        onRemoveItem={handleRemoveItemClick}
+                        onUpdateQuantity={handleQuantityChange}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Right Column: CTA or Order Summary */}
-          <div className="lg:col-span-1 flex flex-col gap-8">
+          <div className={`${completedCheckoutData ? "w-full max-w-4xl" : "lg:col-span-1"} flex flex-col gap-8`}>
+            {completedCheckoutData && (
+              <div className="text-center mb-8">
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900 dark:text-gray-100 leading-tight">
+                  Review Your <span className="text-blue-600 dark:text-blue-400">Order</span>
+                </h1>
+                <p className="text-lg text-muted-foreground">
+                  Please review your order details and proceed to checkout when ready.
+                </p>
+              </div>
+            )}
             {!completedCheckoutData ? (
               <Card className="shadow-lg border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
                 <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
