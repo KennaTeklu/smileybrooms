@@ -7,7 +7,7 @@ export interface CartItem {
   quantity: number
   description?: string // Added for direct mapping to Stripe product description
   images?: string[] // Added for direct mapping to Stripe product images
-  meta: Record<string, any>
+  meta?: Record<string, any> // Updated to be optional
 }
 
 export interface CartSummary {

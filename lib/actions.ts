@@ -70,31 +70,42 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
     } = params
 
     const customLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (initialCustomLineItems || []).map(
-      (item) => ({
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.name,
-            description: item.description,
-            images: item.images,
-            metadata: item.metadata,
+      (item) => {
+        // Ensure item.amount is a valid number before rounding and multiplying
+        const unitAmount = Math.round((Number(item.amount) || 0) * 100)
+        if (isNaN(unitAmount)) {
+          throw new Error(`Invalid amount for item '${item.name}': ${item.amount}`)
+        }
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: item.name,
+              description: item.description,
+              images: item.images,
+              metadata: item.metadata,
+            },
+            unit_amount: unitAmount, // Convert to cents
+            recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
           },
-          unit_amount: Math.round(item.amount * 100), // Convert to cents
-          recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
-        },
-        quantity: item.quantity,
-      }),
+          quantity: item.quantity,
+        }
+      },
     )
 
     // Apply discount if provided
     if (discount && discount.amount > 0) {
+      const discountAmount = Math.round((Number(discount.amount) || 0) * 100)
+      if (isNaN(discountAmount)) {
+        throw new Error(`Invalid discount amount: ${discount.amount}`)
+      }
       customLineItems.push({
         price_data: {
           currency: "usd",
           product_data: {
             name: `Discount: ${discount.reason}`,
           },
-          unit_amount: -Math.round(discount.amount * 100), // Negative amount for discount
+          unit_amount: -discountAmount, // Negative amount for discount
         },
         quantity: 1,
       })

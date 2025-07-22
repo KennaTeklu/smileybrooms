@@ -128,7 +128,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         validator: (value: string) => {
           if (!value?.trim()) return "Last name is required"
           if (value.trim().length < 2) return "Last name must be at least 2 characters"
-          if (!/^[a-zA-Z\s'-]+$/.test(value)) return "Last name contains invalid characters"
+          if (!/^[a-zA-Z\s'-]+$/.test(value)) return "Last name must be at least 2 characters"
           return null
         },
       },
@@ -152,7 +152,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         validator: (value: string) => {
           if (!value?.trim()) return "Phone number is required"
           const phoneRegex = /^[+]?[1-9][\d]{0,15}$/
-          const cleanPhone = value.replace(/[\s\-$$$$.]/g, "")
+          const cleanPhone = value.replace(/[\s\-().]/g, "")
           if (!phoneRegex.test(cleanPhone)) return "Please enter a valid phone number"
           if (cleanPhone.length < 10) return "Phone number must be at least 10 digits"
           return null
@@ -244,11 +244,20 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         // IndexedDB for offline support
         if ("indexedDB" in window) {
           const request = indexedDB.open("CheckoutDB", 1)
+          request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result
+            if (!db.objectStoreNames.contains("checkouts")) {
+              db.createObjectStore("checkouts", { keyPath: "id" })
+            }
+          }
           request.onsuccess = (event) => {
             const db = (event.target as IDBOpenDBRequest).result
             const transaction = db.transaction(["checkouts"], "readwrite")
             const store = transaction.objectStore("checkouts")
             store.put({ id: "current", data: saveData })
+          }
+          request.onerror = (event) => {
+            console.error("IndexedDB error:", (event.target as IDBOpenDBRequest).error)
           }
         }
 
@@ -304,25 +313,46 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
 
     const loadSavedData = async () => {
       try {
-        // Try multiple sources
-        const sources = [
-          () => JSON.parse(localStorage.getItem("checkout-data") || "null"),
-          () => ({
-            contact: JSON.parse(localStorage.getItem("checkout-contact") || "null"),
-            address: JSON.parse(localStorage.getItem("checkout-address") || "null"),
-          }),
-        ]
-
         let savedData = null
-        for (const source of sources) {
-          try {
-            const data = source()
-            if (data && (data.contact || data.address)) {
-              savedData = data
-              break
+
+        // Try IndexedDB first for most recent data
+        if ("indexedDB" in window) {
+          const request = indexedDB.open("CheckoutDB", 1)
+          request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result
+            if (!db.objectStoreNames.contains("checkouts")) {
+              db.createObjectStore("checkouts", { keyPath: "id" })
             }
+          }
+          const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+            request.onsuccess = (event) => resolve((event.target as IDBOpenDBRequest).result)
+            request.onerror = (event) => reject((event.target as IDBOpenDBRequest).error)
+          })
+
+          try {
+            const db = await dbPromise
+            const transaction = db.transaction(["checkouts"], "readonly")
+            const store = transaction.objectStore("checkouts")
+            const getRequest = store.get("current")
+            savedData = await new Promise((resolve) => {
+              getRequest.onsuccess = () => resolve(getRequest.result?.data)
+              getRequest.onerror = () => resolve(null)
+            })
           } catch (e) {
-            continue
+            console.warn("IndexedDB load failed:", e)
+          }
+        }
+
+        // Fallback to localStorage if IndexedDB fails or is empty
+        if (!savedData) {
+          savedData = JSON.parse(localStorage.getItem("checkout-data") || "null")
+          if (!savedData) {
+            // Legacy localStorage items
+            const savedContact = JSON.parse(localStorage.getItem("checkout-contact") || "null")
+            const savedAddress = JSON.parse(localStorage.getItem("checkout-address") || "null")
+            if (savedContact || savedAddress) {
+              savedData = { contact: savedContact, address: savedAddress }
+            }
           }
         }
 
@@ -356,6 +386,9 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         localStorage.removeItem("checkout-data")
         localStorage.removeItem("checkout-contact")
         localStorage.removeItem("checkout-address")
+        if ("indexedDB" in window) {
+          indexedDB.deleteDatabase("CheckoutDB")
+        }
       }
     }
 
@@ -421,14 +454,18 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     setIsLoadingAddressSuggestions(true)
 
     try {
-      // Mock API call - replace with actual service
+      // Actual API call to our new route
       const response = await fetch(`/api/address/autocomplete?q=${encodeURIComponent(query)}`)
       if (response.ok) {
         const suggestions = await response.json()
         setAddressSuggestions(suggestions.slice(0, 5))
+      } else {
+        console.error("Address autocomplete API error:", response.status, response.statusText)
+        setAddressSuggestions([])
       }
     } catch (error) {
       console.error("Address autocomplete failed:", error)
+      setAddressSuggestions([])
     } finally {
       setIsLoadingAddressSuggestions(false)
     }

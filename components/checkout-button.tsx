@@ -66,7 +66,8 @@ export function CheckoutButton({
       // Map cartItems to customLineItems for Stripe
       const customLineItems = cartItems.map((item) => ({
         name: item.name,
-        amount: item.unitPrice,
+        // Ensure unitPrice is a valid number, default to 0 if not
+        amount: Number(item.unitPrice) || 0,
         quantity: item.quantity,
         description: item.description,
         images: item.images,
@@ -99,11 +100,11 @@ export function CheckoutButton({
           variant: "destructive",
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during checkout:", error)
       toast({
         title: "Checkout Error",
-        description: "An unexpected error occurred during checkout. Please try again.",
+        description: `An unexpected error occurred during checkout: ${error.message || "Unknown error"}. Please try again.`,
         variant: "destructive",
       })
     } finally {
