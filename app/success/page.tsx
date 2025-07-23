@@ -1,276 +1,112 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, MapPin, ExternalLink, Calendar, CreditCard, ArrowRight, Home, Plus } from "lucide-react"
+import { CheckCircle, Home, Mail } from "lucide-react"
 import Link from "next/link"
 import { useCart } from "@/lib/cart-context"
-import { formatCurrency } from "@/lib/utils"
-import AccessibilityToolbar from "@/components/accessibility-toolbar"
-import confetti from "canvas-confetti"
-import { incrementServiceCount, addServiceRecord } from "@/lib/service-cookies"
-
-type CustomerData = {
-  name: string
-  email: string
-  phone: string
-  address: string
-  city?: string
-  state?: string
-  zipCode?: string
-  specialInstructions?: string
-  allowVideoRecording?: boolean
-}
-
-type OrderItem = {
-  name: string
-  price: number
-  quantity: number
-  metadata?: {
-    rooms?: string
-    frequency?: string
-    serviceType?: string
-    customer?: CustomerData
-  }
-}
+import { useToast } from "@/components/ui/use-toast"
+import { sendOrderConfirmationEmail } from "@/lib/email-actions" // Import the new server action
 
 export default function SuccessPage() {
-  const { clearCart, cart } = useCart()
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([])
-  const [isClient, setIsClient] = useState(false)
+  const { clearCart } = useCart()
+  const { toast } = useToast()
+  const [emailSent, setEmailSent] = useState(false)
+  const [wantsLiveVideo, setWantsLiveVideo] = useState(false)
 
-  // Store cart items before clearing and clear the cart when the success page loads
   useEffect(() => {
-    setIsClient(true)
-
-    // Save the cart items before clearing
-    setOrderItems([...cart.items])
+    // Clear cart and local storage data after successful checkout
     clearCart()
+    localStorage.removeItem("checkout-contact")
+    localStorage.removeItem("checkout-address")
+    localStorage.removeItem("checkout-payment")
 
-    // Increment service count and add service records
-    if (cart.items.length > 0) {
-      incrementServiceCount()
+    // Attempt to send order confirmation email
+    const sendEmail = async () => {
+      // Retrieve order details from a more persistent source if available,
+      // or reconstruct from local storage if it hasn't been cleared yet.
+      // For this example, we'll use placeholder data or assume it's passed via query params
+      // in a real scenario, you'd fetch this from your backend after Stripe webhook.
+      const contactData = JSON.parse(localStorage.getItem("checkout-contact") || "{}")
+      const addressData = JSON.parse(localStorage.getItem("checkout-address") || "{}")
+      const paymentData = JSON.parse(localStorage.getItem("checkout-payment") || "{}")
+      const cartItems = JSON.parse(localStorage.getItem("cartItems") || "[]") // Assuming cart items might still be in local storage before clearCart()
 
-      // Add each item as a service record
-      cart.items.forEach((item) => {
-        const scheduledDate = new Date()
-        scheduledDate.setDate(scheduledDate.getDate() + 7) // Default to 7 days from now
+      // Set wantsLiveVideo state based on paymentData
+      setWantsLiveVideo(!!paymentData.allowVideoRecording)
 
-        addServiceRecord({
-          id: `service-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: item.name,
-          date: new Date().toLocaleDateString(),
-          completed: false,
-          scheduledDate: scheduledDate.toLocaleDateString(),
+      const orderDetails = {
+        orderId: `ORD-${Date.now()}`, // Placeholder ID
+        customerEmail: contactData.email || "customer@example.com",
+        customerName: `${contactData.firstName || ""} ${contactData.lastName || ""}`.trim() || "Valued Customer",
+        totalAmount: 0, // This should come from Stripe webhook or a confirmed order object
+        items: cartItems.map((item: any) => ({ name: item.name, quantity: item.quantity, price: item.price })),
+        serviceAddress:
+          `${addressData.address || ""}, ${addressData.city || ""}, ${addressData.state || ""} ${addressData.zipCode || ""}`.trim(),
+        paymentMethod: paymentData.paymentMethod || "Card",
+      }
+
+      // Calculate total amount for email (this should ideally come from the backend after payment confirmation)
+      const subtotal = orderDetails.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      const videoDiscount = paymentData?.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+      const totalBeforeTax = subtotal - videoDiscount
+      const tax = totalBeforeTax * 0.08
+      orderDetails.totalAmount = totalBeforeTax + tax
+
+      try {
+        await sendOrderConfirmationEmail(orderDetails)
+        setEmailSent(true)
+        toast({
+          title: "Email Sent!",
+          description: "Your order confirmation has been sent to your email.",
+          variant: "success",
         })
-      })
-    }
-
-    // Trigger confetti effect
-    const duration = 3 * 1000
-    const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
-
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min
-    }
-
-    const interval: any = setInterval(() => {
-      const timeLeft = animationEnd - Date.now()
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval)
-      }
-
-      const particleCount = 50 * (timeLeft / duration)
-
-      // Since particles fall down, start a bit higher than random
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-      })
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-      })
-    }, 250)
-
-    return () => clearInterval(interval)
-  }, [clearCart, cart.items])
-
-  // Function to create Google Maps link
-  const createGoogleMapsLink = (address: string) => {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-  }
-
-  // Get the first customer data from the order items
-  const getCustomerData = () => {
-    for (const item of orderItems) {
-      if (item.metadata?.customer) {
-        return item.metadata.customer
+      } catch (error) {
+        console.error("Failed to send order confirmation email:", error)
+        toast({
+          title: "Email Failed",
+          description: "Could not send order confirmation email. Please check your spam folder.",
+          variant: "destructive",
+        })
       }
     }
-    return null
-  }
 
-  const customerData = getCustomerData()
-  const totalAmount = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const orderDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })
+    if (!emailSent) {
+      // Only attempt to send email once
+      sendEmail()
+    }
+  }, [clearCart, toast, emailSent])
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-background">
-      <div className="container max-w-5xl mx-auto px-4 py-12">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 dark:from-gray-900 dark:to-gray-800 py-12 flex items-center justify-center">
+      <div className="container mx-auto px-4 max-w-md text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full mb-8">
+            <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
           </div>
-          <h1 className="text-3xl font-bold">Payment Successful!</h1>
-          <p className="text-muted-foreground mt-2">Thank you for your order. Your transaction has been completed.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CreditCard className="mr-2 h-5 w-5" /> Order Summary
-                </CardTitle>
-                <CardDescription>Order placed on {orderDate}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {orderItems.length > 0 ? (
-                  orderItems.map((item, index) => (
-                    <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-medium">{item.name}</h3>
-                          {item.metadata?.frequency && (
-                            <p className="text-sm text-muted-foreground">
-                              Frequency:{" "}
-                              {item.metadata.frequency.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                            </p>
-                          )}
-                          {item.metadata?.rooms && (
-                            <p className="text-sm text-muted-foreground">Rooms: {item.metadata.rooms}</p>
-                          )}
-                          {item.quantity > 1 && (
-                            <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                          )}
-                        </div>
-                        <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-4">No items in this order</p>
-                )}
-
-                <div className="flex justify-between pt-4 font-bold">
-                  <span>Total</span>
-                  <span>{formatCurrency(totalAmount)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {customerData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <MapPin className="mr-2 h-5 w-5" /> Service Location
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="font-medium">{customerData.name}</p>
-                    <p>{customerData.address}</p>
-                    {customerData.city && customerData.state && customerData.zipCode && (
-                      <p>
-                        {customerData.city}, {customerData.state} {customerData.zipCode}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">{customerData.phone}</p>
-                    <p className="text-sm text-muted-foreground">{customerData.email}</p>
-
-                    {customerData.address && (
-                      <a
-                        href={createGoogleMapsLink(customerData.address)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-primary hover:underline mt-2"
-                      >
-                        <MapPin className="h-4 w-4 mr-1" />
-                        View on Google Maps
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
-                    )}
-
-                    {customerData.specialInstructions && (
-                      <div className="mt-4 pt-4 border-t">
-                        <h4 className="font-medium mb-1">Special Instructions</h4>
-                        <p className="text-sm">{customerData.specialInstructions}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Order Confirmed!</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+            Thank you for your purchase. Your order has been successfully placed.
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-center text-gray-700 dark:text-gray-200">
+              <Mail className="mr-2 h-5 w-5" />
+              <p>A confirmation email has been sent to your inbox.</p>
+            </div>
+            {wantsLiveVideo && (
+              <div className="flex items-center justify-center text-gray-700 dark:text-gray-200">
+                <p>You’ll receive a private YouTube Live link to watch your cleaning.</p>
+              </div>
             )}
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" /> What's Next?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-medium">Confirmation Email</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We've sent a confirmation email to {customerData?.email || "your email address"} with all the
-                    details of your order.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-medium">Service Scheduling</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Our team will contact you within 24 hours to confirm your cleaning appointment.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
-                <Button asChild className="w-full">
-                  <Link href="/">
-                    <Home className="mr-2 h-4 w-4" /> Return to Home
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/services">
-                    <ArrowRight className="mr-2 h-4 w-4" /> Browse More Services
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/pricing" className="flex items-center">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Book a New Service
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors"
+            >
+              <Home className="mr-2 h-5 w-5" />
+              Back to Home
+            </Link>
           </div>
         </div>
       </div>
-
-      {/* Accessibility Toolbar */}
-      <AccessibilityToolbar />
     </div>
   )
 }

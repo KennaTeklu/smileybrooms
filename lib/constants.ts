@@ -1,27 +1,58 @@
+/**
+ * Shared, **client-safe** constants.
+ * Never read sensitive env vars here.
+ */
+
 export const ROOM_CONFIG = {
   roomPrices: {
-    master_bedroom: 54.28,
-    bedroom: 35.42,
-    bathroom: 43.63,
-    kitchen: 54.8,
-    living_room: 31.37,
-    dining_room: 25.63,
-    office: 19.53,
-    playroom: 25.64,
-    mudroom: 21.73,
-    laundry_room: 13.46,
-    sunroom: 22.25,
-    guest_room: 35.42,
-    garage: 83.99,
+    master_bedroom: 100,
+    bedroom: 80,
+    bathroom: 90,
+    kitchen: 120,
+    living_room: 110,
+    dining_room: 70,
+    office: 95,
+    playroom: 85,
+    mudroom: 60,
+    laundry_room: 75,
+    sunroom: 90,
+    guest_room: 70,
+    garage: 50,
   },
   frequencyMultipliers: {
-    one_time: 2.17,
-    weekly: 1.0,
-    biweekly: 1.2,
-    monthly: 1.54,
-    semi_annual: 1.92,
-    annually: 2.56,
-    vip_daily: 7.5,
+    one_time: 1.0,
+    weekly: 0.8,
+    bi_weekly: 0.85,
+    monthly: 0.9,
+    quarterly: 0.95,
   },
-  serviceFee: 50,
+  cleanlinessMultipliers: {
+    1: 0.9,
+    2: 0.95,
+    3: 1.0,
+    4: 1.05,
+    5: 1.1,
+  },
+  addOnPrices: {
+    "oven-cleaning": 25,
+    "fridge-cleaning": 20,
+    "window-cleaning": 30,
+    "laundry-service": 40,
+  },
 }
+
+export const APP_CONSTANTS = {
+  // General
+  APP_NAME: "smileybrooms",
+  CONTACT_EMAIL: "support@smileybrooms.com",
+  PHONE_NUMBER: "+1 (800) 555-0123",
+  ADDRESS: "123 Clean Street, Sparkle City, CA 90210",
+
+
+}
+
+/**
+ * IMPORTANT:
+ *  • No reference to NEXT_PUBLIC_FEATURE_KEY here.
+ *  • Sensitive FEATURE_KEY is read only on the server via `lib/server/feature-key.ts`.
+ */

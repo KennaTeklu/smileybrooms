@@ -1,4 +1,4 @@
-"\"use client"
+"use client"
 
 import { useState } from "react"
 import {
@@ -44,5 +44,3 @@ export default function TermsAgreementPopup({ onAccept }: TermsAgreementPopupPro
     </Dialog>
   )
 }
-\
-"

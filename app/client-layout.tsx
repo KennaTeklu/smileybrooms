@@ -2,21 +2,44 @@
 
 import type React from "react"
 
+import { RoomProvider } from "@/lib/room-context"
 import { CartProvider } from "@/lib/cart-context"
-import { ThemeProvider } from "@/components/theme-provider"
+import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
 import { Toaster } from "@/components/ui/toaster"
-import FixedFooter from "@/components/fixed-footer"
+import { AccessibilityProvider } from "@/lib/accessibility-context"
+import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
+import { TourProvider } from "@/contexts/tour-context"
+import { CookieConsentManager } from "@/components/legal/cookie-consent-manager"
+import { usePathname } from "next/navigation"
+import { useEffect } from "react"
+import { EnhancedHeader } from "@/components/enhanced-header"
+import UnifiedFooter from "@/components/unified-footer"
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
+  useEffect(() => {
+    // Scroll to top on route change
+    window.scrollTo(0, 0)
+  }, [pathname])
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <CartProvider>
-        <div className="flex min-h-screen flex-col pb-16">
-          {children}
-          <Toaster />
-          <FixedFooter />
-        </div>
-      </CartProvider>
-    </ThemeProvider>
+    <QueryClientProviderWrapper>
+      <AccessibilityProvider>
+        <RoomProvider>
+          <CartProvider>
+            <AbandonmentProvider>
+              <TourProvider>
+                <EnhancedHeader />
+                <main className="flex-1">{children}</main>
+                <Toaster />
+                <CookieConsentManager />
+                <UnifiedFooter />
+              </TourProvider>
+            </AbandonmentProvider>
+          </CartProvider>
+        </RoomProvider>
+      </AccessibilityProvider>
+    </QueryClientProviderWrapper>
   )
 }

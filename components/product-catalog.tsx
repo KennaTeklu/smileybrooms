@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import { ShoppingCart } from "lucide-react"
+import { useState } from "react" // Import useState
 
 type Product = {
   id: string
@@ -44,16 +45,27 @@ const products: Product[] = [
 
 export default function ProductCatalog() {
   const { addItem } = useCart()
+  const [addingProductId, setAddingProductId] = useState<string | null>(null) // State to track which product is being added
 
-  const handleAddToCart = (product: Product) => {
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      priceId: product.priceId,
-      image: product.image,
-      sourceSection: "Product Catalog", // Add source section for analytics
-    })
+  const handleAddToCart = async (product: Product) => {
+    setAddingProductId(product.id) // Set loading state for this product
+    try {
+      // Simulate an async operation, e.g., API call to add to cart
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        priceId: product.priceId,
+        image: product.image,
+        sourceSection: "Product Catalog", // Add source section for analytics
+      })
+    } catch (error) {
+      console.error("Failed to add item to cart:", error)
+      // Optionally show an error toast here if addItem doesn't handle it
+    } finally {
+      setAddingProductId(null) // Reset loading state
+    }
   }
 
   return (
@@ -71,8 +83,18 @@ export default function ProductCatalog() {
             <div className="text-2xl font-bold">{formatCurrency(product.price)}</div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={() => handleAddToCart(product)}>
-              <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+            <Button
+              className="w-full"
+              onClick={() => handleAddToCart(product)}
+              disabled={addingProductId === product.id} // Disable if this product is being added
+            >
+              {addingProductId === product.id ? (
+                "Adding..."
+              ) : (
+                <>
+                  <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>

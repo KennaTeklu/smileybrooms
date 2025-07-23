@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useSpring } from "framer-motion"
-import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw } from "lucide-react"
+import { Settings, ChevronLeft, ZoomIn, ZoomOut, RefreshCw, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
@@ -162,16 +162,30 @@ export default function AccessibilityPanel() {
                   <Settings className="h-5 w-5" />
                   Accessibility
                 </h2>
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Close accessibility settings"
+                >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
               </div>
 
               <Tabs defaultValue="vision" className="w-full">
-                <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="vision">Vision</TabsTrigger>
-                  <TabsTrigger value="motion">Motion</TabsTrigger>
-                  <TabsTrigger value="input">Input</TabsTrigger>
+                <TabsList className="grid grid-cols-4 mb-4">
+                  <TabsTrigger value="vision" aria-label="Vision settings">
+                    Vision
+                  </TabsTrigger>
+                  <TabsTrigger value="motion" aria-label="Motion settings">
+                    Motion
+                  </TabsTrigger>
+                  <TabsTrigger value="input" aria-label="Input settings">
+                    Input
+                  </TabsTrigger>
+                  <TabsTrigger value="share" aria-label="Share settings">
+                    Share
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="vision" className="space-y-4">
@@ -183,6 +197,7 @@ export default function AccessibilityPanel() {
                           variant="outline"
                           size="icon"
                           onClick={() => setFontSize(Math.max(0.8, fontSize - 0.1))}
+                          aria-label="Decrease text size"
                         >
                           <ZoomOut className="h-4 w-4" />
                         </Button>
@@ -190,6 +205,7 @@ export default function AccessibilityPanel() {
                           variant="outline"
                           size="icon"
                           onClick={() => setFontSize(Math.min(1.5, fontSize + 0.1))}
+                          aria-label="Increase text size"
                         >
                           <ZoomIn className="h-4 w-4" />
                         </Button>
@@ -237,7 +253,12 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="high-contrast">High Contrast</Label>
                       <p className="text-xs text-muted-foreground">Increase text/background contrast</p>
                     </div>
-                    <Switch id="high-contrast" checked={highContrast} onCheckedChange={setHighContrast} />
+                    <Switch
+                      id="high-contrast"
+                      checked={highContrast}
+                      onCheckedChange={setHighContrast}
+                      aria-label="Toggle high contrast mode"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -245,7 +266,12 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="dyslexic-font">Dyslexia Friendly</Label>
                       <p className="text-xs text-muted-foreground">Use dyslexia-friendly font</p>
                     </div>
-                    <Switch id="dyslexic-font" checked={dyslexicFont} onCheckedChange={setDyslexicFont} />
+                    <Switch
+                      id="dyslexic-font"
+                      checked={dyslexicFont}
+                      onCheckedChange={setDyslexicFont}
+                      aria-label="Toggle dyslexia friendly font"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -257,6 +283,7 @@ export default function AccessibilityPanel() {
                       id="dark-mode"
                       checked={theme === "dark"}
                       onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                      aria-label="Toggle dark mode"
                     />
                   </div>
                 </TabsContent>
@@ -267,7 +294,12 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="reduce-motion">Reduce Motion</Label>
                       <p className="text-xs text-muted-foreground">Minimize animations</p>
                     </div>
-                    <Switch id="reduce-motion" checked={motionReduced} onCheckedChange={setMotionReduced} />
+                    <Switch
+                      id="reduce-motion"
+                      checked={motionReduced}
+                      onCheckedChange={setMotionReduced}
+                      aria-label="Toggle reduce motion"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -275,7 +307,12 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="sound-effects">Sound Effects</Label>
                       <p className="text-xs text-muted-foreground">Enable interface sounds</p>
                     </div>
-                    <Switch id="sound-effects" checked={soundEffects} onCheckedChange={setSoundEffects} />
+                    <Switch
+                      id="sound-effects"
+                      checked={soundEffects}
+                      onCheckedChange={setSoundEffects}
+                      aria-label="Toggle sound effects"
+                    />
                   </div>
                 </TabsContent>
 
@@ -298,7 +335,12 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="keyboard-mode">Keyboard Navigation</Label>
                       <p className="text-xs text-muted-foreground">Optimize for keyboard use</p>
                     </div>
-                    <Switch id="keyboard-mode" checked={keyboardMode} onCheckedChange={setKeyboardMode} />
+                    <Switch
+                      id="keyboard-mode"
+                      checked={keyboardMode}
+                      onCheckedChange={setKeyboardMode}
+                      aria-label="Toggle keyboard navigation"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -306,7 +348,58 @@ export default function AccessibilityPanel() {
                       <Label htmlFor="focus-indicators">Focus Indicators</Label>
                       <p className="text-xs text-muted-foreground">Highlight focused elements</p>
                     </div>
-                    <Switch id="focus-indicators" checked={focusIndicators} onCheckedChange={setFocusIndicators} />
+                    <Switch
+                      id="focus-indicators"
+                      checked={focusIndicators}
+                      onCheckedChange={setFocusIndicators}
+                      aria-label="Toggle focus indicators"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="share" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="quick-share">Quick Share</Label>
+                        <p className="text-xs text-muted-foreground">Share this page with others</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (navigator.share) {
+                            navigator.share({
+                              title: document.title,
+                              url: window.location.href,
+                            })
+                          } else {
+                            navigator.clipboard.writeText(window.location.href)
+                          }
+                        }}
+                        aria-label="Share page"
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="copy-link">Copy Link</Label>
+                        <p className="text-xs text-muted-foreground">Copy page URL to clipboard</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href)
+                        }}
+                        aria-label="Copy link"
+                      >
+                        Copy URL
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -328,6 +421,7 @@ export default function AccessibilityPanel() {
                     setKeyboardMode(false)
                     setFocusIndicators(false)
                   }}
+                  aria-label="Reset all accessibility settings"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Reset All Settings
@@ -337,9 +431,9 @@ export default function AccessibilityPanel() {
           </motion.div>
         ) : (
           <motion.button
-            initial={{ x: "-100%", opacity: 0 }}
+            initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "-100%", opacity: 0 }}
+            exit={{ x: "100%", opacity: 0 }}
             transition={{ delay: 0.2 }}
             onClick={() => setIsOpen(true)}
             className={cn(

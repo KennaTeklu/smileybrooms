@@ -1,180 +1,118 @@
 "use client"
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Facebook, Instagram, Twitter, ChevronUp, ChevronDown } from "lucide-react"
-import Logo from "@/components/logo"
-import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
-type FooterSection = {
-  title: string
-  links: {
-    label: string
-    href: string
-    external?: boolean
-  }[]
-}
+export function Footer() {
+  const { toast } = useToast()
 
-const footerSections: FooterSection[] = [
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "/about" },
-      { label: "Contact", href: "/contact" },
-    ],
-  },
-  {
-    title: "Services",
-    links: [
-      { label: "Home Cleaning", href: "/services/home" },
-      { label: "Office Cleaning", href: "/services/office" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms", href: "/terms" },
-      { label: "Privacy", href: "/privacy" },
-    ],
-  },
-]
-
-export default function Footer() {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [flashEffect, setFlashEffect] = useState(false)
-  const currentYear = new Date().getFullYear()
-
-  const handleToggle = () => {
-    if (isExpanded) {
-      // When closing, trigger the flash effect
-      setFlashEffect(true)
-      setTimeout(() => {
-        setFlashEffect(false)
-      }, 100) // Brief flash
-    }
-    setIsExpanded(!isExpanded)
+  const handleFeatureComingSoon = () => {
+    toast({
+      title: "Feature Coming Soon!",
+      description: "This feature is under development and will be available shortly.",
+      variant: "default",
+    })
   }
 
   return (
-    <footer
-      className={cn(
-        "relative bg-gray-50 dark:bg-gray-900 py-6 overflow-hidden",
-        flashEffect && "after:absolute after:inset-0 after:bg-white after:opacity-30 after:z-10 after:animate-flash",
-      )}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center justify-center gap-4">
-          {/* Logo and Toggle Button */}
-          <div className="flex items-center justify-center w-full">
-            <Logo className="h-8 w-auto" />
-            <button
-              onClick={handleToggle}
-              className="ml-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? "Collapse footer" : "Expand footer"}
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              )}
+    <footer className="bg-gray-100 p-6 md:py-12 w-full dark:bg-gray-800">
+      <div className="container max-w-7xl grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-8 text-sm">
+        <div className="grid gap-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Company</h3>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            About Us
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Our Team
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Careers
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            News
+          </Link>
+        </div>
+        <div className="grid gap-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Services</h3>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Residential Cleaning
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Commercial Cleaning
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Deep Cleaning
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Move-in/out Cleaning
+          </Link>
+        </div>
+        <div className="grid gap-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Legal</h3>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Privacy Policy
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Terms of Service
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Cookie Policy
+          </Link>
+        </div>
+        <div className="grid gap-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Connect</h3>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Contact
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            Support
+          </Link>
+          <Link className="text-gray-600 hover:underline dark:text-gray-400" href="#">
+            FAQ
+          </Link>
+        </div>
+        <div className="grid gap-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Follow Us</h3>
+          <div className="flex space-x-4">
+            <button onClick={handleFeatureComingSoon} aria-label="Facebook">
+              <Facebook className="h-5 w-5 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" />
+            </button>
+            <button onClick={handleFeatureComingSoon} aria-label="Twitter">
+              <Twitter className="h-5 w-5 text-gray-600 hover:text-blue-400 dark:text-gray-400 dark:hover:text-blue-300" />
+            </button>
+            <button onClick={handleFeatureComingSoon} aria-label="Instagram">
+              <Instagram className="h-5 w-5 text-gray-600 hover:text-pink-500 dark:text-gray-400 dark:hover:text-pink-400" />
+            </button>
+            <button onClick={handleFeatureComingSoon} aria-label="LinkedIn">
+              <Linkedin className="h-5 w-5 text-gray-600 hover:text-blue-700 dark:text-gray-400 dark:hover:text-blue-500" />
+            </button>
+            <button onClick={handleFeatureComingSoon} aria-label="YouTube">
+              <Youtube className="h-5 w-5 text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500" />
             </button>
           </div>
-
-          {/* Expandable Content */}
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.7, ease: [0.04, 0.62, 0.23, 0.98] }}
-                className="w-full overflow-hidden"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8">
-                  {footerSections.map((section) => (
-                    <motion.div
-                      key={section.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                    >
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{section.title}</h3>
-                      <ul className="space-y-2">
-                        {section.links.map((link) => (
-                          <motion.li key={link.label} whileHover={{ x: 5 }} transition={{ duration: 0.2 }}>
-                            <a
-                              href={link.href}
-                              className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors flex items-center"
-                              target={link.external ? "_blank" : undefined}
-                              rel={link.external ? "noopener noreferrer" : undefined}
-                            >
-                              {link.label}
-                            </a>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Social Links */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="flex justify-center space-x-4 py-4"
-                >
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="h-4 w-4" />
-                  </a>
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="h-4 w-4" />
-                  </a>
-                  <a
-                    href="#"
-                    className="rounded-full bg-gray-200 dark:bg-gray-800 p-2 hover:bg-primary hover:text-white transition-colors"
-                    aria-label="Twitter"
-                  >
-                    <Twitter className="h-4 w-4" />
-                  </a>
-                </motion.div>
-
-                {/* App Download Links - Simplified */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 }}
-                  className="flex flex-wrap justify-center gap-4 py-4"
-                >
-                  <a href="/pricing" className="text-xs text-gray-500 hover:text-primary transition-colors">
-                    iOS App
-                  </a>
-                  <a href="/pricing" className="text-xs text-gray-500 hover:text-primary transition-colors">
-                    Android App
-                  </a>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Copyright - Always visible */}
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            &copy; {currentYear} Smiley Brooms. All rights reserved.
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mt-4">Newsletter</h3>
+          <p className="text-gray-600 dark:text-gray-400">Subscribe to our newsletter for updates.</p>
+          <div className="flex gap-2 mt-2">
+            <input
+              type="email"
+              placeholder="Your email"
+              className="flex-1 p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              onClick={handleFeatureComingSoon}
+            >
+              Subscribe
+            </button>
           </div>
         </div>
+      </div>
+      <div className="container max-w-7xl mt-8 text-center text-gray-500 dark:text-gray-400">
+        © 2023 Smiley Brooms. All rights reserved.
       </div>
     </footer>
   )
 }
+
+export default Footer

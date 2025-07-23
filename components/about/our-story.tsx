@@ -38,3 +38,5 @@ export function OurStory() {
     </section>
   )
 }
+
+export default OurStory

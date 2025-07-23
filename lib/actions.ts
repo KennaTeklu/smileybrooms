@@ -2,30 +2,30 @@
 
 import Stripe from "stripe"
 
-// Initialize Stripe with the secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 })
 
-type LineItem = {
-  price: string
-  quantity: number
-}
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
-type CustomLineItem = {
-  name: string
-  amount: number
-  quantity: number
-  metadata?: Record<string, any>
-}
-
-type CheckoutSessionParams = {
-  lineItems?: LineItem[]
-  customLineItems?: CustomLineItem[]
+interface CheckoutSessionParams {
+  lineItems?: Array<{
+    price: string
+    quantity: number
+  }>
+  customLineItems?: Array<{
+    name: string
+    amount: number
+    quantity: number
+    description?: string
+    images?: string[]
+    metadata?: Record<string, any>
+  }>
   successUrl: string
   cancelUrl: string
-  isRecurring?: boolean
-  recurringInterval?: "week" | "month" | "year"
+  customerEmail?: string
   customerData?: {
     name?: string
     email?: string
@@ -37,142 +37,124 @@ type CheckoutSessionParams = {
       postal_code?: string
       country?: string
     }
+    allowVideoRecording?: boolean
+    videoConsentDetails?: string
   }
+  isRecurring?: boolean
+  recurringInterval?: "day" | "week" | "month" | "year"
+  discount?: {
+    amount: number
+    reason: string
+  }
+  shippingAddressCollection?: { allowed_countries: string[] }
+  automaticTax?: { enabled: boolean }
+  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+  trialPeriodDays?: number
+  cancelAtPeriodEnd?: boolean
+  allowPromotions?: boolean
 }
 
-export async function createCheckoutSession({
-  lineItems,
-  customLineItems,
-  successUrl,
-  cancelUrl,
-  isRecurring = false,
-  recurringInterval = "month",
-  customerData,
-}: CheckoutSessionParams): Promise<string> {
+/* -------------------------------------------------------------------------- */
+/* Server Action                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function createCheckoutSession(params: CheckoutSessionParams) {
   try {
-    // Prepare line items for the checkout session
-    let sessionLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+    const {
+      lineItems,
+      successUrl,
+      cancelUrl,
+      customerEmail,
+      customerData,
+      isRecurring,
+      recurringInterval,
+      customLineItems: initialCustomLineItems,
+      discount,
+      shippingAddressCollection,
+      automaticTax,
+      paymentMethodTypes,
+      trialPeriodDays,
+      cancelAtPeriodEnd,
+      allowPromotions,
+    } = params
 
-    // Add standard line items if provided
-    if (lineItems && lineItems.length > 0) {
-      sessionLineItems = lineItems.map((item) => ({
-        price: item.price,
-        quantity: item.quantity,
-      }))
-    }
+    /* -------- Generate dynamic Line-Items ---------------------------------- */
+    const customLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (initialCustomLineItems || []).map(
+      (item) => {
+        const unitAmount = Math.round((Number(item.amount) || 0) * 100)
+        if (Number.isNaN(unitAmount)) throw new Error(`Invalid amount for item "${item.name}": ${item.amount}`)
 
-    // Add custom line items if provided
-    if (customLineItems && customLineItems.length > 0) {
-      const customItems = customLineItems.map((item) => ({
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: item.name,
+              description: item.description,
+              images: item.images,
+              metadata: item.metadata,
+            },
+            unit_amount: unitAmount,
+            recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
+          },
+          quantity: item.quantity,
+        }
+      },
+    )
+
+    /* -------- Optional Discount ------------------------------------------- */
+    if (discount && discount.amount > 0) {
+      const discountAmount = Math.round((Number(discount.amount) || 0) * 100)
+      if (Number.isNaN(discountAmount)) throw new Error(`Invalid discount amount: ${discount.amount}`)
+
+      customLineItems.push({
         price_data: {
           currency: "usd",
-          product_data: {
-            name: item.name,
-            metadata: item.metadata || {},
-          },
-          unit_amount: Math.round(item.amount * 100), // Convert to cents
-          recurring: isRecurring
-            ? {
-                interval: recurringInterval as Stripe.PriceData.Recurring.Interval,
-              }
-            : undefined,
+          product_data: { name: `Discount – ${discount.reason}` },
+          unit_amount: -discountAmount,
         },
-        quantity: item.quantity,
-      }))
-
-      sessionLineItems = [...sessionLineItems, ...customItems]
+        quantity: 1,
+      })
     }
 
-    // Create the checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: sessionLineItems,
+    /* -------- Assemble Checkout-Session params ---------------------------- */
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      payment_method_types: paymentMethodTypes || ["card"],
       mode: isRecurring ? "subscription" : "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      customer_creation: "always",
-      billing_address_collection: "auto",
-      shipping_address_collection: customerData?.address
+      customer_email: customerEmail,
+      customer_creation: customerEmail ? "always" : undefined,
+      shipping_address_collection: shippingAddressCollection,
+      automatic_tax: automaticTax,
+      allow_promotion_codes: allowPromotions,
+      line_items: lineItems && lineItems.length ? lineItems : customLineItems,
+      subscription_data: isRecurring
         ? {
-            allowed_countries: ["US", "CA", "GB"],
+            trial_period_days: trialPeriodDays,
+            cancel_at_period_end: cancelAtPeriodEnd,
           }
         : undefined,
-      customer_email: customerData?.email,
-      phone_number_collection: customerData?.phone
+      // ⚠️ DO NOT include `customer_update` unless you pass an explicit `customer`
+      metadata: customerData
         ? {
-            enabled: true,
+            customer_name: customerData.name,
+            customer_email: customerData.email,
+            customer_phone: customerData.phone,
+            customer_address_line1: customerData.address?.line1,
+            customer_address_city: customerData.address?.city,
+            customer_address_state: customerData.address?.state,
+            customer_address_postal_code: customerData.address?.postal_code,
+            customer_address_country: customerData.address?.country,
+            wants_live_video: customerData.allowVideoRecording ? "true" : "false",
+            video_consent_details: customerData.videoConsentDetails || "N/A",
           }
         : undefined,
-    })
-
-    return session.url || ""
-  } catch (error) {
-    console.error("Error creating checkout session:", error)
-    throw new Error("Failed to create checkout session")
-  }
-}
-
-export async function handleStripeWebhook(request: Request) {
-  try {
-    const signature = request.headers.get("stripe-signature") || ""
-    const body = await request.text()
-
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      return { error: "Missing Stripe webhook secret" }
     }
 
-    const event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
-
-    // Handle different event types
-    switch (event.type) {
-      case "checkout.session.completed":
-        const session = event.data.object as Stripe.Checkout.Session
-        // Process the successful payment
-        await processSuccessfulPayment(session)
-        break
-
-      case "payment_intent.succeeded":
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        // Handle successful payment intent
-        console.log(`Payment intent ${paymentIntent.id} succeeded`)
-        break
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error("Error handling webhook:", error)
-    return { error: "Failed to handle webhook" }
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return session.url
+  } catch (err: any) {
+    console.error("Error creating checkout session:", err)
+    throw new Error(`Failed to create checkout session: ${err?.message ?? "unknown error"}`)
   }
-}
-
-async function processSuccessfulPayment(session: Stripe.Checkout.Session) {
-  // Here you would typically:
-  // 1. Update your database with the order details
-  // 2. Send confirmation emails
-  // 3. Trigger any other business logic
-
-  console.log(`Processing payment for session ${session.id}`)
-
-  // Store customer data from metadata if available
-  if (session.metadata?.customData) {
-    try {
-      const customData = JSON.parse(session.metadata.customData)
-      console.log("Custom data:", customData)
-
-      // Here you could save customer data to your database
-      // For example:
-      // await db.customer.upsert({
-      //   where: { email: customerData.email },
-      //   update: { ...customerData },
-      //   create: { ...customerData }
-      // })
-    } catch (error) {
-      console.error("Error parsing custom data:", error)
-    }
-  }
-
-  // You can add additional processing logic here
 }

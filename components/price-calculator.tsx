@@ -1,470 +1,308 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import { Home, Calendar, Sparkles } from "lucide-react"
-import CleanlinessSlider from "./cleanliness-slider"
-import { roomConfig } from "@/lib/room-config"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Button } from "@/components/ui/button"
+import { ROOM_CONFIG } from "@/lib/constants"
+import { usePriceWorker, type ServiceConfig, type PriceResult } from "@/lib/use-price-worker"
+import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { MinusIcon, PlusIcon } from "lucide-react"
 
-// Define the types for the calculator props
-interface PriceCalculatorProps {
-  onCalculationComplete?: (data: {
-    rooms: Record<string, number>
-    frequency: string
-    totalPrice: number
-    serviceType: "standard" | "detailing"
-    cleanlinessLevel: number
-    priceMultiplier: number
-    isServiceAvailable: boolean
-    addressId: string
-    paymentFrequency: "per_service" | "monthly" | "yearly"
-    isRecurring: boolean
-    recurringInterval: "week" | "month" | "year"
-  }) => void
-  onAddToCart?: () => void
-}
+type RoomType = keyof typeof ROOM_CONFIG.roomPrices
 
-// Define the room types and their base prices
-const roomTypes = roomConfig.roomTypes
-
-// Define the frequency options and their discounts
-const frequencyOptions = [
-  { id: "one_time", label: "One-Time", discount: 0, isRecurring: false, recurringInterval: null },
-  { id: "weekly", label: "Weekly", discount: 0.15, isRecurring: true, recurringInterval: "week" },
-  { id: "biweekly", label: "Biweekly", discount: 0.1, isRecurring: true, recurringInterval: "week" },
-  { id: "monthly", label: "Monthly", discount: 0.05, isRecurring: true, recurringInterval: "month" },
-  { id: "semi_annual", label: "Semi-Annual", discount: 0.02, isRecurring: true, recurringInterval: "month" },
-  { id: "annually", label: "Annual", discount: 0.01, isRecurring: true, recurringInterval: "year" },
-  { id: "vip_daily", label: "VIP Daily", discount: 0.25, isRecurring: true, recurringInterval: "week" },
-]
-
-// Define the payment frequency options
-const paymentFrequencyOptions = [
-  { id: "per_service", label: "Pay Per Service" },
-  { id: "monthly", label: "Monthly Subscription" },
-  { id: "yearly", label: "Annual Subscription (Save 10%)" },
-]
-
-// Define the cleanliness level multipliers
-const cleanlinessMultipliers = [
-  { level: 1, multiplier: 0.8, label: "Mostly Clean" },
-  { level: 2, multiplier: 1.0, label: "Average" },
-  { level: 3, multiplier: 1.2, label: "Somewhat Dirty" },
-  { level: 4, multiplier: 1.5, label: "Very Dirty" },
-  { level: 5, multiplier: 2.0, label: "Extremely Dirty" },
-]
-
-export default function PriceCalculator({ onCalculationComplete, onAddToCart }: PriceCalculatorProps) {
-  // State for selected rooms
-  const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>(() => {
-    const initialRooms: Record<string, number> = {}
-    roomTypes.forEach((room) => {
-      initialRooms[room.id] = 0
-    })
-    return initialRooms
+export default function PriceCalculator() {
+  const [rooms, setRooms] = useState<Record<RoomType, number>>({
+    master_bedroom: 0,
+    bedroom: 0,
+    bathroom: 0,
+    kitchen: 0,
+    living_room: 0,
+    dining_room: 0,
+    office: 0,
+    playroom: 0,
+    mudroom: 0,
+    laundry_room: 0,
+    sunroom: 0,
+    guest_room: 0,
+    garage: 0,
   })
-
-  // State for other selections
   const [serviceType, setServiceType] = useState<"standard" | "detailing">("standard")
-  const [frequency, setFrequency] = useState("one_time")
-  const [paymentFrequency, setPaymentFrequency] = useState("per_service")
-  const [cleanlinessLevel, setCleanlinessLevel] = useState(2) // Default to average
-  const [totalPrice, setTotalPrice] = useState(0)
-  const [isServiceAvailable, setIsServiceAvailable] = useState(true)
-  const [expandedSections, setExpandedSections] = useState<string[]>([])
+  const [frequency, setFrequency] = useState<keyof typeof ROOM_CONFIG.frequencyMultipliers>("monthly")
+  const [cleanlinessLevel, setCleanlinessLevel] = useState<number>(3)
+  const [specialRequests, setSpecialRequests] = useState<string[]>([])
+  const [addons, setAddons] = useState<Record<string, number>>({})
+  const [priceResult, setPriceResult] = useState<PriceResult | null>(null)
+  const { calculatePrice, isCalculating } = usePriceWorker()
 
-  // Media query for responsive design
-  const isMobile = useMediaQuery("(max-width: 768px)")
+  const serviceConfig: ServiceConfig = useMemo(
+    () => ({
+      rooms,
+      serviceType,
+      frequency,
+      cleanlinessLevel,
+      specialRequests,
+      addons,
+    }),
+    [rooms, serviceType, frequency, cleanlinessLevel, specialRequests, addons],
+  )
 
-  // Calculate the total price whenever selections change
   useEffect(() => {
-    calculatePrice()
-  }, [selectedRooms, serviceType, frequency, cleanlinessLevel, paymentFrequency])
+    const getPrice = async () => {
+      const result = await calculatePrice(serviceConfig)
+      setPriceResult(result)
+    }
+    getPrice()
+  }, [serviceConfig, calculatePrice])
 
-  // Function to increment room count
-  const incrementRoom = (roomId: string) => {
-    setSelectedRooms((prev) => ({
+  const handleRoomChange = (roomType: RoomType, change: number) => {
+    setRooms((prev) => ({
       ...prev,
-      [roomId]: (prev[roomId] || 0) + 1,
+      [roomType]: Math.max(0, prev[roomType] + change),
     }))
   }
 
-  // Function to decrement room count
-  const decrementRoom = (roomId: string) => {
-    if (selectedRooms[roomId] > 0) {
-      setSelectedRooms((prev) => ({
-        ...prev,
-        [roomId]: prev[roomId] - 1,
-      }))
-    }
-  }
-
-  // Function to calculate the total price
-  const calculatePrice = () => {
-    // Calculate base price from selected rooms
-    let basePrice = 0
-    Object.entries(selectedRooms).forEach(([roomId, count]) => {
-      const room = roomTypes.find((r) => r.id === roomId)
-      if (room) {
-        basePrice += room.basePrice * count
+  const handleAddonToggle = (addonName: string, price: number) => {
+    setAddons((prev) => {
+      const newAddons = { ...prev }
+      if (newAddons[addonName]) {
+        delete newAddons[addonName]
+      } else {
+        newAddons[addonName] = price
       }
+      return newAddons
     })
-
-    // Apply service type multiplier
-    const serviceMultiplier = serviceType === "standard" ? 1 : 1.5
-
-    // Apply frequency discount
-    const selectedFrequency = frequencyOptions.find((f) => f.id === frequency)
-    const frequencyDiscount = selectedFrequency ? selectedFrequency.discount : 0
-
-    // Apply cleanliness level multiplier
-    const cleanlinessMultiplier = cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier || 1
-
-    // Apply payment frequency discount
-    let paymentDiscount = 0
-    if (paymentFrequency === "yearly") {
-      paymentDiscount = 0.1 // 10% discount for annual subscription
-    }
-
-    // Calculate total price
-    let calculatedPrice =
-      basePrice * serviceMultiplier * (1 - frequencyDiscount) * cleanlinessMultiplier * (1 - paymentDiscount)
-
-    // Round to 2 decimal places
-    calculatedPrice = Math.round(calculatedPrice * 100) / 100
-
-    // Check if service is available (e.g., for extremely dirty conditions)
-    const isAvailable = !(cleanlinessLevel === 5 && serviceType === "standard")
-
-    setTotalPrice(calculatedPrice)
-    setIsServiceAvailable(isAvailable)
-
-    // Call the onCalculationComplete callback if provided
-    if (onCalculationComplete) {
-      const selectedFrequencyOption = frequencyOptions.find((f) => f.id === frequency)
-      onCalculationComplete({
-        rooms: selectedRooms,
-        frequency,
-        totalPrice: calculatedPrice,
-        serviceType,
-        cleanlinessLevel,
-        priceMultiplier: cleanlinessMultiplier,
-        isServiceAvailable: isAvailable,
-        addressId: "custom", // This would be replaced with actual address ID in a real implementation
-        paymentFrequency: paymentFrequency as "per_service" | "monthly" | "yearly",
-        isRecurring: selectedFrequencyOption?.isRecurring || false,
-        recurringInterval: selectedFrequencyOption?.recurringInterval as "week" | "month" | "year",
-      })
-    }
   }
 
-  // Function to check if any rooms are selected
-  const hasSelectedRooms = () => {
-    return Object.values(selectedRooms).some((count) => count > 0)
+  const handleSpecialRequestToggle = (request: string) => {
+    setSpecialRequests((prev) => (prev.includes(request) ? prev.filter((r) => r !== request) : [...prev, request]))
   }
 
-  // Function to toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
-  }
-
-  // Check if a section is expanded
-  const isSectionExpanded = (section: string) => {
-    return expandedSections.includes(section)
+  const roomCategories: { [key: string]: RoomType[] } = {
+    "Living Spaces": ["living_room", "dining_room", "office", "playroom", "sunroom"],
+    Bedrooms: ["master_bedroom", "bedroom", "guest_room"],
+    Bathrooms: ["bathroom"],
+    "Utility & Other": ["kitchen", "laundry_room", "mudroom", "garage"],
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <Tabs defaultValue="standard" onValueChange={(value) => setServiceType(value as "standard" | "detailing")}>
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="standard" className="text-sm md:text-base">
-            Standard Cleaning
-          </TabsTrigger>
-          <TabsTrigger value="detailing" className="text-sm md:text-base">
-            Premium Detailing
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="standard" className="space-y-6">
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Standard Cleaning Service</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our standard cleaning covers all the basics to keep your space clean and tidy.
-            </p>
-          </div>
-
-          {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-blue-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
-              </div>
-
-              <div className="space-y-4">
-                {roomTypes.map((room) => (
-                  <div key={room.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{room.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">${room.basePrice} per room</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => decrementRoom(room.id)}
-                        disabled={selectedRooms[room.id] === 0}
-                        className="h-8 w-8"
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center">{selectedRooms[room.id] || 0}</span>
-                      <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-8 w-8">
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Collapsible Sections */}
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
-            <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleaning Frequency</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <RadioGroup
-                  value={frequency}
-                  onValueChange={setFrequency}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                >
-                  {frequencyOptions.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                      <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
-                        {option.label}
-                        {option.discount > 0 && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            Save {option.discount * 100}%
-                          </span>
-                        )}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4 md:p-6">
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle>Configure Your Cleaning Service</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8 p-6">
+          {/* Room Selection */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Rooms</h3>
+            {Object.entries(roomCategories).map(([category, roomTypes]) => (
+              <div key={category} className="mb-6">
+                <h4 className="font-medium text-md mb-3">{category}</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {roomTypes.map((roomType) => (
+                    <div key={roomType} className="flex flex-col items-center space-y-2">
+                      <Label htmlFor={roomType} className="capitalize text-center">
+                        {roomType.replace(/_/g, " ")}
                       </Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRoomChange(roomType, -1)}
+                          disabled={rooms[roomType] === 0}
+                        >
+                          <MinusIcon className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          id={roomType}
+                          type="number"
+                          value={rooms[roomType]}
+                          onChange={(e) =>
+                            setRooms((prev) => ({
+                              ...prev,
+                              [roomType]: Math.max(0, Number.parseInt(e.target.value) || 0),
+                            }))
+                          }
+                          className="w-16 text-center"
+                          min="0"
+                        />
+                        <Button variant="outline" size="icon" onClick={() => handleRoomChange(roomType, 1)}>
+                          <PlusIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
-                </RadioGroup>
-
-                {frequency !== "one_time" && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
-                    <RadioGroup
-                      value={paymentFrequency}
-                      onValueChange={setPaymentFrequency}
-                      className="grid grid-cols-1 gap-2"
-                    >
-                      {paymentFrequencyOptions.map((option) => (
-                        <div key={option.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
-                          <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Cleanliness Level */}
-            <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleanliness Level</h3>
                 </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4">
-                  <CleanlinessSlider value={cleanlinessLevel} onChange={(value) => setCleanlinessLevel(value[0])} />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.label}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Price multiplier: {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier}x
-                    </p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-
-        <TabsContent value="detailing" className="space-y-6">
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-medium">Premium Detailing Service</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Our premium service includes deep cleaning and attention to detail for a thorough clean.
-            </p>
+              </div>
+            ))}
           </div>
 
-          {/* Room Selection - Always visible */}
-          <Card className="border-2 border-blue-100 dark:border-blue-900">
-            <CardContent className="pt-6">
-              <div className="flex items-center mb-4">
-                <Home className="h-5 w-5 mr-2 text-blue-600" />
-                <h3 className="text-lg font-medium">Select Rooms</h3>
-              </div>
+          <Separator />
 
-              <div className="space-y-4">
-                {roomTypes.map((room) => (
-                  <div key={room.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{room.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">${room.basePrice} per room</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => decrementRoom(room.id)}
-                        disabled={selectedRooms[room.id] === 0}
-                        className="h-8 w-8"
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center">{selectedRooms[room.id] || 0}</span>
-                      <Button variant="outline" size="icon" onClick={() => incrementRoom(room.id)} className="h-8 w-8">
-                        +
-                      </Button>
-                    </div>
-                  </div>
+          {/* Service Type */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Service Type</h3>
+            <Select value={serviceType} onValueChange={(value: "standard" | "detailing") => setServiceType(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select service type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard Cleaning</SelectItem>
+                <SelectItem value="detailing">Deep Detailing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          {/* Frequency */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Frequency</h3>
+            <Select
+              value={frequency}
+              onValueChange={(value: keyof typeof ROOM_CONFIG.frequencyMultipliers) => setFrequency(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {" "}
+                {/* Added explicit classes for scrolling */}
+                {Object.keys(ROOM_CONFIG.frequencyMultipliers).map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}
+                  </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          {/* Cleanliness Level */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Current Cleanliness Level</h3>
+            <div className="flex items-center gap-4">
+              <Slider
+                min={1}
+                max={5}
+                step={1}
+                value={[cleanlinessLevel]}
+                onValueChange={(val) => setCleanlinessLevel(val[0])}
+                className="w-full"
+              />
+              <span className="font-semibold w-10 text-right">{cleanlinessLevel}</span>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">1 = Lightly dirty, 5 = Very dirty (affects price)</p>
+          </div>
+
+          <Separator />
+
+          {/* Add-ons */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Add-ons</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="oven-cleaning"
+                  checked={!!addons["oven-cleaning"]}
+                  onCheckedChange={() => handleAddonToggle("oven-cleaning", 25)}
+                />
+                <Label htmlFor="oven-cleaning">Oven Cleaning ($25)</Label>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fridge-cleaning"
+                  checked={!!addons["fridge-cleaning"]}
+                  onCheckedChange={() => handleAddonToggle("fridge-cleaning", 20)}
+                />
+                <Label htmlFor="fridge-cleaning">Fridge Cleaning ($20)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="window-cleaning"
+                  checked={!!addons["window-cleaning"]}
+                  onCheckedChange={() => handleAddonToggle("window-cleaning", 30)}
+                />
+                <Label htmlFor="window-cleaning">Window Cleaning (Interior, $30)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="laundry-service"
+                  checked={!!addons["laundry-service"]}
+                  onCheckedChange={() => handleAddonToggle("laundry-service", 40)}
+                />
+                <Label htmlFor="laundry-service">Laundry Service ($40)</Label>
+              </div>
+            </div>
+          </div>
 
-          {/* Collapsible Sections */}
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {/* Frequency Selection */}
-            <AccordionItem value="frequency" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleaning Frequency</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <RadioGroup
-                  value={frequency}
-                  onValueChange={setFrequency}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                >
-                  {frequencyOptions.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={option.id} id={`frequency-${option.id}`} />
-                      <Label htmlFor={`frequency-${option.id}`} className="flex items-center">
-                        {option.label}
-                        {option.discount > 0 && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            Save {option.discount * 100}%
-                          </span>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+          <Separator />
 
-                {frequency !== "one_time" && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Payment Frequency</h4>
-                    <RadioGroup
-                      value={paymentFrequency}
-                      onValueChange={setPaymentFrequency}
-                      className="grid grid-cols-1 gap-2"
-                    >
-                      {paymentFrequencyOptions.map((option) => (
-                        <div key={option.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option.id} id={`payment-${option.id}`} />
-                          <Label htmlFor={`payment-${option.id}`}>{option.label}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Cleanliness Level */}
-            <AccordionItem value="cleanliness" className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
-                  <h3 className="text-lg font-medium">Cleanliness Level</h3>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="space-y-4">
-                  <CleanlinessSlider value={cleanlinessLevel} onChange={(value) => setCleanlinessLevel(value[0])} />
-                  <div className="text-center">
-                    <p className="font-medium">
-                      {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.label}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Price multiplier: {cleanlinessMultipliers.find((c) => c.level === cleanlinessLevel)?.multiplier}x
-                    </p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </TabsContent>
-      </Tabs>
+          {/* Special Requests */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Special Requests</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="eco-friendly"
+                  checked={specialRequests.includes("eco-friendly")}
+                  onCheckedChange={() => handleSpecialRequestToggle("eco-friendly")}
+                />
+                <Label htmlFor="eco-friendly">Eco-Friendly Products</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="pet-friendly"
+                  checked={specialRequests.includes("pet-friendly")}
+                  onCheckedChange={() => handleSpecialRequestToggle("pet-friendly")}
+                />
+                <Label htmlFor="pet-friendly">Pet-Friendly Cleaning</Label>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Price Summary */}
-      <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-medium">Estimated Price</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {serviceType === "standard" ? "Standard Cleaning" : "Premium Detailing"}
-              {hasSelectedRooms() && ` • ${Object.values(selectedRooms).reduce((a, b) => a + b, 0)} rooms`}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">${totalPrice.toFixed(2)}</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {frequency !== "one_time" ? "Recurring" : "One-time"} service
-            </p>
-          </div>
-        </div>
-
-        {!isServiceAvailable && (
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 text-sm">
-            For extremely dirty conditions, we recommend our Premium Detailing service. Please contact us for a custom
-            quote.
-          </div>
-        )}
-
-        {onAddToCart && (
-          <div className="mt-4">
-            <Button onClick={onAddToCart} disabled={!hasSelectedRooms() || !isServiceAvailable} className="w-full">
-              Add to Cart
-            </Button>
-          </div>
-        )}
-      </div>
+      <Card className="lg:col-span-1">
+        <CardHeader>
+          <CardTitle>Your Estimated Price</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 p-6">
+          {isCalculating ? (
+            <div className="flex items-center justify-center h-32">
+              <p>Calculating...</p>
+            </div>
+          ) : priceResult ? (
+            <>
+              <div className="flex justify-between items-center text-lg font-semibold">
+                <span>Base Price:</span>
+                <span>${priceResult.basePrice.toFixed(2)}</span>
+              </div>
+              {Object.entries(priceResult.adjustments).map(([key, value]) => (
+                <div key={key} className="flex justify-between text-sm text-gray-600">
+                  <span className="capitalize">{key.replace(/([A-Z])/g, " $1").trim()}:</span>
+                  <span>{value >= 0 ? `+ $${value.toFixed(2)}` : `- $${Math.abs(value).toFixed(2)}`}</span>
+                </div>
+              ))}
+              <Separator />
+              <div className="flex justify-between items-center text-2xl font-bold">
+                <span>Total:</span>
+                <span>${priceResult.finalPrice.toFixed(2)}</span>
+              </div>
+              <p className="text-sm text-gray-500">Estimated Duration: {priceResult.estimatedDuration} minutes</p>
+              <Button className="w-full mt-4">Proceed to Checkout</Button>
+            </>
+          ) : (
+            <p className="text-center text-gray-500">Select rooms and options to see your price.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

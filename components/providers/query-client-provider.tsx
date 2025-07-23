@@ -10,3 +10,10 @@ export function QueryClientProvider({ children }: { children: React.ReactNode })
 
   return <ReactQueryClientProvider client={queryClient}>{children}</ReactQueryClientProvider>
 }
+
+// Alias export so other modules can import { QueryClientProviderWrapper }
+export const QueryClientProviderWrapper = QueryClientProvider
+
+// Optional: make it the default export, useful for
+// `import QueryClientProviderWrapper from ...`
+export default QueryClientProviderWrapper

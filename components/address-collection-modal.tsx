@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { MapPin, CreditCard, Info } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { MapPin, CreditCard } from "lucide-react"
+import { US_STATES } from "@/lib/location-data"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// Removed Checkbox import as it's no longer used for video consent in this modal
 
 export interface AddressData {
   fullName: string
@@ -28,24 +29,17 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
-  allowVideoRecording: boolean
-  videoRecordingDiscount: number
+  // Removed wantsLiveVideo and videoConsentDetails from this interface
 }
 
 interface AddressCollectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: AddressData) => void
-  calculatedPrice: number
 }
 
-export default function AddressCollectionModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  calculatedPrice,
-}: AddressCollectionModalProps) {
-  const [formData, setFormData] = useState<Omit<AddressData, "videoRecordingDiscount">>({
+export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: AddressCollectionModalProps) {
+  const [formData, setFormData] = useState<AddressData>({
     fullName: "",
     email: "",
     phone: "",
@@ -54,7 +48,7 @@ export default function AddressCollectionModal({
     state: "",
     zipCode: "",
     specialInstructions: "",
-    allowVideoRecording: false,
+    // Removed wantsLiveVideo and videoConsentDetails from initial state
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -73,9 +67,7 @@ export default function AddressCollectionModal({
     }
   }
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, allowVideoRecording: checked }))
-  }
+  // Removed handleVideoConsentChange as it's no longer relevant for this modal
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -87,7 +79,7 @@ export default function AddressCollectionModal({
     if (!formData.phone.trim()) newErrors.phone = "Phone is required"
     if (!formData.address.trim()) newErrors.address = "Address is required"
     if (!formData.city.trim()) newErrors.city = "City is required"
-    if (!formData.state.trim()) newErrors.state = "State is required"
+    if (!formData.state) newErrors.state = "State is required"
     if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
 
     setErrors(newErrors)
@@ -98,13 +90,7 @@ export default function AddressCollectionModal({
     e.preventDefault()
 
     if (validateForm()) {
-      // Calculate video recording discount
-      const videoRecordingDiscount = formData.allowVideoRecording ? 25 : 0
-
-      onSubmit({
-        ...formData,
-        videoRecordingDiscount,
-      })
+      onSubmit(formData)
 
       // Reset form
       setFormData({
@@ -116,7 +102,7 @@ export default function AddressCollectionModal({
         state: "",
         zipCode: "",
         specialInstructions: "",
-        allowVideoRecording: false,
+        // Removed wantsLiveVideo and videoConsentDetails from reset state
       })
 
       onClose()
@@ -214,13 +200,35 @@ export default function AddressCollectionModal({
 
                 <div>
                   <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    name="state"
+                  <Select
                     value={formData.state}
-                    onChange={handleChange}
-                    className={errors.state ? "border-red-500" : ""}
-                  />
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: value,
+                      }))
+
+                      // Clear error when field is edited
+                      if (errors.state) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev }
+                          delete newErrors.state
+                          return newErrors
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {US_STATES.map((state) => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
                 </div>
               </div>
@@ -251,44 +259,14 @@ export default function AddressCollectionModal({
               />
             </div>
 
-            {/* Video Recording Discount */}
-            <div className="flex items-start space-x-3 pt-2">
-              <Checkbox
-                id="allowVideoRecording"
-                checked={formData.allowVideoRecording}
-                onCheckedChange={handleCheckboxChange}
-              />
-              <div>
-                <div className="flex items-center">
-                  <Label htmlFor="allowVideoRecording" className="font-medium cursor-pointer">
-                    Allow video recording for $25 off
-                  </Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 ml-1 text-blue-500 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        We may record cleaning sessions for training and social media purposes. By allowing this, you'll
-                        receive $25 off your order.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  We'll record parts of the cleaning process for our social media and training.
-                </p>
-              </div>
-            </div>
+            {/* Removed Live Video Option from here */}
           </div>
 
           <DialogFooter className="pt-4">
             <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-left">
                 <p className="text-sm text-gray-600">Total Price:</p>
-                <p className="text-xl font-bold">
-                  ${(formData.allowVideoRecording ? calculatedPrice - 25 : calculatedPrice).toFixed(2)}
-                </p>
+                <p className="text-xl font-bold">{/* Price will be displayed in the cart component */}</p>
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
@@ -296,7 +274,7 @@ export default function AddressCollectionModal({
                 </Button>
                 <Button type="submit" className="gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Continue to Checkout
+                  Add to Cart
                 </Button>
               </div>
             </div>
