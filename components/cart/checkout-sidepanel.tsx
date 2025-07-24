@@ -1386,5 +1386,10 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
   )
 }
 
-// Provide the named export Vercel expects
-export { default as CheckoutSidepanel } from "./checkout-sidepanel"
+// -------------------------------------------------------------
+// EXPORTS
+// -------------------------------------------------------------
+//  • default export - already present (CheckoutSidePanel)
+//  • named  export  - alias for build-time import checks
+// Provide a named export for other modules
+export { CheckoutSidePanel as CheckoutSidepanel }

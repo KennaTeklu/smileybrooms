@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -14,8 +14,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  Calendar,
-  Clock,
   CreditCard,
   Shield,
   ArrowLeft,
@@ -23,90 +21,32 @@ import {
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
 import { CheckoutSidepanel } from "@/components/cart/checkout-sidepanel"
 import { useRouter } from "next/navigation"
+import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
-
-interface CartItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  image?: string
-  category?: string
-  description?: string
-}
-
-interface CheckoutData {
-  contact: {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-  }
-  address: {
-    street: string
-    city: string
-    state: string
-    zipCode: string
-    apartmentUnit?: string
-  }
-  serviceDate: string
-  serviceTime: string
-  paymentMethod: string
-  specialInstructions?: string
-  liveVideo?: boolean
-}
+import type { CheckoutData } from "@/lib/types"
 
 export default function CartPage() {
   const router = useRouter()
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const { cart, removeItem, updateQuantity, clearCart } = useCart()
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [completedCheckoutData, setCompletedCheckoutData] = useState<CheckoutData | null>(null)
   const [isItemsExpanded, setIsItemsExpanded] = useState(false)
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(false)
 
-  useEffect(() => {
-    // Load cart items from localStorage
-    const savedCart = localStorage.getItem("cart")
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart))
+  const handleRemoveItem = (itemId: string, itemName: string) => {
+    removeItem(itemId)
+  }
+
+  const handleUpdateQuantity = (itemId: string, change: number) => {
+    const item = cart.items.find((item) => item.id === itemId)
+    if (item) {
+      const newQuantity = item.quantity + change
+      if (newQuantity <= 0) {
+        removeItem(itemId)
+      } else {
+        updateQuantity(itemId, newQuantity)
+      }
     }
-
-    // Load completed checkout data
-    const savedCheckoutData = localStorage.getItem("completedCheckoutData")
-    if (savedCheckoutData) {
-      setCompletedCheckoutData(JSON.parse(savedCheckoutData))
-    }
-  }, [])
-
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      removeItem(id)
-      return
-    }
-
-    const updatedItems = cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item))
-    setCartItems(updatedItems)
-    localStorage.setItem("cart", JSON.stringify(updatedItems))
-  }
-
-  const removeItem = (id: string) => {
-    const updatedItems = cartItems.filter((item) => item.id !== id)
-    setCartItems(updatedItems)
-    localStorage.setItem("cart", JSON.stringify(updatedItems))
-  }
-
-  const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  const calculateTax = (subtotal: number) => {
-    return subtotal * 0.08 // 8% tax
-  }
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal()
-    const tax = calculateTax(subtotal)
-    return subtotal + tax
   }
 
   const handleCheckoutComplete = (checkoutData: CheckoutData) => {
@@ -118,7 +58,7 @@ export default function CartPage() {
   const handleProceedToCheckout = () => {
     if (completedCheckoutData) {
       // Process payment with Stripe or redirect to payment
-      console.log("Processing payment...", { cartItems, checkoutData: completedCheckoutData })
+      console.log("Processing payment...", { cartItems: cart.items, checkoutData: completedCheckoutData })
       // Here you would integrate with Stripe or your payment processor
       router.push("/success")
     } else {
@@ -126,11 +66,14 @@ export default function CartPage() {
     }
   }
 
-  const subtotal = calculateSubtotal()
-  const tax = calculateTax(subtotal)
-  const total = calculateTotal()
+  const calculateTax = (subtotal: number) => {
+    return subtotal * 0.08 // 8% tax
+  }
 
-  if (cartItems.length === 0 && !completedCheckoutData) {
+  const tax = calculateTax(cart.subtotalPrice)
+  const total = cart.totalPrice + tax
+
+  if (cart.items.length === 0 && !completedCheckoutData) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -175,12 +118,17 @@ export default function CartPage() {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  Cart Items ({cartItems.length})
+                  Cart Items ({cart.items.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cartItems.map((item) => (
-                  <CartItemDisplay key={item.id} item={item} onUpdateQuantity={updateQuantity} onRemove={removeItem} />
+                {cart.items.map((item) => (
+                  <CartItemDisplay
+                    key={item.id}
+                    item={item}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRemoveItem}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -191,18 +139,39 @@ export default function CartPage() {
         <div className={`${completedCheckoutData ? "w-full max-w-4xl mx-auto" : "lg:col-span-1"} flex flex-col gap-8`}>
           {!completedCheckoutData ? (
             <Card className="shadow-lg border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                Ready to book your cleaning?
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                Almost there! Let's get your details ✨
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
-                Complete your booking in just a few simple steps
+              <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm max-w-sm">
+                We'll need your contact info and service address first, then you can securely pay with Stripe
               </p>
+
+              <div className="flex flex-col gap-3 mb-6 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">
+                    1
+                  </div>
+                  <span>Contact & Address Info</span>
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-gray-400">
+                    2
+                  </div>
+                  <span>Secure Payment with Stripe</span>
+                </div>
+              </div>
+
               <Button onClick={handleProceedToCheckout} className="w-full mb-4" size="lg">
-                Proceed to Checkout
+                <User className="mr-2 h-5 w-5" />
+                Enter My Details
               </Button>
+
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <Shield className="h-4 w-4" />
-                <span>Secure checkout</span>
+                <span>Takes 2 minutes • SSL secured</span>
               </div>
             </Card>
           ) : (
@@ -215,7 +184,7 @@ export default function CartPage() {
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <ShoppingCart className="h-5 w-5" />
-                          Purchased Items ({cartItems.length})
+                          Purchased Items ({cart.items.length})
                         </div>
                         {isItemsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                       </CardTitle>
@@ -223,12 +192,12 @@ export default function CartPage() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="space-y-4 pt-0">
-                      {cartItems.map((item) => (
+                      {cart.items.map((item) => (
                         <CartItemDisplay
                           key={item.id}
                           item={item}
-                          onUpdateQuantity={updateQuantity}
-                          onRemove={removeItem}
+                          onUpdateQuantity={handleUpdateQuantity}
+                          onRemoveItem={handleRemoveItem}
                         />
                       ))}
                     </CardContent>
@@ -291,10 +260,10 @@ export default function CartPage() {
                           Service Address
                         </h4>
                         <div className="text-sm">
-                          <p className="font-medium">{completedCheckoutData.address.street}</p>
-                          {completedCheckoutData.address.apartmentUnit && (
+                          <p className="font-medium">{completedCheckoutData.address.address}</p>
+                          {completedCheckoutData.address.address2 && (
                             <p className="text-gray-600 dark:text-gray-400">
-                              Unit: {completedCheckoutData.address.apartmentUnit}
+                              Unit: {completedCheckoutData.address.address2}
                             </p>
                           )}
                           <p className="text-gray-600 dark:text-gray-400">
@@ -306,32 +275,18 @@ export default function CartPage() {
 
                       <Separator />
 
-                      {/* Service Details */}
+                      {/* Payment Method */}
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Service Details</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Payment Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">Date:</span>
-                            <p className="font-medium flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {completedCheckoutData.serviceDate}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600 dark:text-gray-400">Time:</span>
-                            <p className="font-medium flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {completedCheckoutData.serviceTime}
-                            </p>
-                          </div>
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">Payment Method:</span>
                             <p className="font-medium flex items-center gap-1">
                               <CreditCard className="h-3 w-3" />
-                              {completedCheckoutData.paymentMethod}
+                              {completedCheckoutData.payment.paymentMethod}
                             </p>
                           </div>
-                          {completedCheckoutData.liveVideo && (
+                          {completedCheckoutData.payment.allowVideoRecording && (
                             <div>
                               <Badge
                                 variant="secondary"
@@ -342,11 +297,11 @@ export default function CartPage() {
                             </div>
                           )}
                         </div>
-                        {completedCheckoutData.specialInstructions && (
+                        {completedCheckoutData.address.specialInstructions && (
                           <div className="mt-4">
                             <span className="text-gray-600 dark:text-gray-400">Special Instructions:</span>
                             <p className="font-medium mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                              {completedCheckoutData.specialInstructions}
+                              {completedCheckoutData.address.specialInstructions}
                             </p>
                           </div>
                         )}
@@ -377,16 +332,39 @@ export default function CartPage() {
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                <span className="font-medium">${subtotal.toFixed(2)}</span>
+                <span className="font-medium">${cart.subtotalPrice.toFixed(2)}</span>
               </div>
+
+              {cart.couponDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Coupon Discount</span>
+                  <span>-${cart.couponDiscount.toFixed(2)}</span>
+                </div>
+              )}
+
+              {cart.fullHouseDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Full House Discount (5%)</span>
+                  <span>-${cart.fullHouseDiscount.toFixed(2)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">Tax (8%)</span>
                 <span className="font-medium">${tax.toFixed(2)}</span>
               </div>
+
+              {cart.inPersonPaymentTotal > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Pay in Person</span>
+                  <span className="font-medium">${cart.inPersonPaymentTotal.toFixed(2)}</span>
+                </div>
+              )}
+
               <Separator />
               <div className="flex justify-between text-lg font-semibold">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>Total (Online Payment)</span>
+                <span>${(cart.totalPrice + tax).toFixed(2)}</span>
               </div>
 
               <Button onClick={handleProceedToCheckout} className="w-full mt-6" size="lg">
@@ -405,8 +383,7 @@ export default function CartPage() {
       {/* Checkout Sidepanel */}
       <CheckoutSidepanel
         isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cartItems={cartItems}
+        onOpenChange={setIsCheckoutOpen}
         onCheckoutComplete={handleCheckoutComplete}
       />
     </div>

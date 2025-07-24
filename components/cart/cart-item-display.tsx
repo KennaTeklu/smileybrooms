@@ -4,7 +4,16 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Trash2, Minus, Plus } from "lucide-react"
 import { motion } from "framer-motion"
-import type { CartItem } from "@/lib/cart/types"
+
+interface CartItem {
+  id: string
+  name: string
+  price: number
+  quantity: number
+  image?: string
+  description?: string
+  paymentType?: "online" | "in_person"
+}
 
 interface CartItemDisplayProps {
   item: CartItem
@@ -31,8 +40,13 @@ export function CartItemDisplay({ item, onRemoveItem, onUpdateQuantity }: CartIt
       />
       <div className="flex-1 grid gap-1">
         <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{item.name}</h3>
-        <p className="text-sm text-muted-foreground">{item.description}</p>
-        <p className="font-bold text-blue-600 dark:text-blue-400">${item.price.toFixed(2)}</p>
+        {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+        <div className="flex items-center gap-2">
+          <p className="font-bold text-blue-600 dark:text-blue-400">${item.price.toFixed(2)}</p>
+          {item.paymentType === "in_person" && (
+            <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Pay in Person</span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Button

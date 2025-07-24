@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, ArrowRight, CreditCard } from "lucide-react"
+import { ArrowLeft, ArrowRight, CreditCard, Smartphone, Apple, Phone } from 'lucide-react'
 import Link from "next/link"
 import { motion } from "framer-motion"
 import DynamicPaymentSelector from "@/components/dynamic-payment-selector"
@@ -15,50 +15,66 @@ import { useToast } from "@/components/ui/use-toast"
 import type { CheckoutData } from "@/lib/types"
 import StripePaymentRequestButton from "@/components/stripe-payment-request-button"
 import { useCart } from "@/lib/cart-context"
+import { useDeviceDetection } from "@/lib/device-detection"
+import { supportsDigitalWallet, getPrimaryPaymentMethod, getContactInfo } from "@/lib/payment-config"
 
 interface PaymentStepProps {
   data: CheckoutData["payment"]
   onSave: (data: CheckoutData["payment"]) => void
   onNext: () => void
   onPrevious: () => void
-  checkoutData: CheckoutData // To get contact and address info for payment request
+  checkoutData: CheckoutData
 }
 
 export default function PaymentStep({ data, onSave, onNext, onPrevious, checkoutData }: PaymentStepProps) {
   const { toast } = useToast()
   const { cart } = useCart()
+  const deviceInfo = useDeviceDetection()
+  const contactInfo = getContactInfo()
 
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(data.paymentMethod)
+  // Initialize payment method based on device
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    return data.paymentMethod || getPrimaryPaymentMethod(deviceInfo.type)
+  })
   const [agreeToTerms, setAgreeToTerms] = useState(data.agreeToTerms)
   const [allowVideoRecording, setAllowVideoRecording] = useState(data.allowVideoRecording)
-  const [videoConsentDetails, setVideoConsentDetails] = useState<string | undefined>(data.videoConsentDetails) // New state for consent timestamp
+  const [videoConsentDetails, setVideoConsentDetails] = useState<string | undefined>(data.videoConsentDetails)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Update payment method when device detection completes
   useEffect(() => {
-    setPaymentMethod(data.paymentMethod)
+    if (deviceInfo.type !== "unknown" && !data.paymentMethod) {
+      const primaryMethod = getPrimaryPaymentMethod(deviceInfo.type)
+      setPaymentMethod(primaryMethod)
+    }
+  }, [deviceInfo.type, data.paymentMethod])
+
+  useEffect(() => {
+    setPaymentMethod(data.paymentMethod || getPrimaryPaymentMethod(deviceInfo.type))
     setAgreeToTerms(data.agreeToTerms)
     setAllowVideoRecording(data.allowVideoRecording)
     setVideoConsentDetails(data.videoConsentDetails)
-  }, [data])
+  }, [data, deviceInfo.type])
 
   const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const videoDiscount = allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
-  const tax = (subtotal - videoDiscount) * 0.08 // 8% tax
+  const tax = (subtotal - videoDiscount) * 0.08
   const total = subtotal - videoDiscount + tax
 
   const handleAllowVideoRecordingChange = (checked: boolean) => {
     setAllowVideoRecording(checked)
     if (checked) {
-      setVideoConsentDetails(new Date().toISOString()) // Record timestamp when checked
+      setVideoConsentDetails(new Date().toISOString())
     } else {
-      setVideoConsentDetails(undefined) // Clear timestamp when unchecked
+      setVideoConsentDetails(undefined)
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!agreeToTerms) {
+    // For contact_for_alternatives, we don't need terms agreement
+    if (paymentMethod !== 'contact_for_alternatives' && !agreeToTerms) {
       toast({
         title: "Terms Required",
         description: "Please agree to the terms and conditions to continue.",
@@ -68,19 +84,64 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
     }
 
     setIsSubmitting(true)
-    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms }) // Pass new field
+    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms })
     onNext()
     setIsSubmitting(false)
   }
 
-  const handleStripePaymentSuccess = () => {
-    onSave({ paymentMethod, allowVideoRecording, videoConsentDetails, agreeToTerms: true }) // Assume terms agreed if using Apple/Google Pay
+  const handleDigitalWalletSuccess = () => {
+    // For digital wallets, we assume terms are agreed and proceed directly
+    onSave({
+      paymentMethod,
+      allowVideoRecording,
+      videoConsentDetails,
+      agreeToTerms: true,
+    })
     onNext()
   }
 
-  const handleStripePaymentFailure = (error: string) => {
-    console.error("Stripe Payment Request failed:", error)
-    // Toast handled by StripePaymentRequestButton
+  const handleDigitalWalletFailure = (error: string) => {
+    console.error("Digital wallet payment failed:", error)
+    toast({
+      title: "Payment Failed",
+      description: `${error} You can try the alternative payment option below.`,
+      variant: "destructive",
+    })
+  }
+
+  const getPaymentMethodDescription = () => {
+    if (deviceInfo.isIOS) {
+      return "Choose Apple Pay for instant payment, or contact us for cash/Zelle options"
+    } else {
+      return "Choose Google Pay for instant payment, or contact us for cash/Zelle options"
+    }
+  }
+
+  const renderPaymentInterface = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="space-y-6"
+      >
+        <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
+        
+        {/* Show digital wallet button if selected */}
+        {(paymentMethod === 'apple_pay' || paymentMethod === 'google_pay') && (
+          <div className="mt-6">
+            <StripePaymentRequestButton
+              total={total}
+              onPaymentSuccess={handleDigitalWalletSuccess}
+              onPaymentFailure={handleDigitalWalletFailure}
+              customerEmail={checkoutData.contact.email}
+              customerName={`${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`}
+              paymentMethodType={paymentMethod}
+            />
+          </div>
+        )}
+      </motion.div>
+    )
   }
 
   return (
@@ -90,39 +151,16 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
           <CreditCard className="h-5 w-5" />
           Payment Method
         </CardTitle>
-        <CardDescription>Choose how you'd like to pay for your cleaning service</CardDescription>
+        <CardDescription>
+          {getPaymentMethodDescription()}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Dynamic Payment Selector */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <DynamicPaymentSelector onSelect={setPaymentMethod} selectedMethod={paymentMethod} />
-          </motion.div>
+          {/* Payment Interface */}
+          {renderPaymentInterface()}
 
-          {/* Stripe Payment Request Button for Apple Pay / Google Pay */}
-          {(paymentMethod === "apple" || paymentMethod === "google") && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <div className="pt-4">
-                <StripePaymentRequestButton
-                  total={total}
-                  onPaymentSuccess={handleStripePaymentSuccess}
-                  onPaymentFailure={handleStripePaymentFailure}
-                  customerEmail={checkoutData.contact.email}
-                  customerName={`${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`}
-                />
-              </div>
-            </motion.div>
-          )}
-
-          {/* Special Options */}
+          {/* Additional Options */}
           <div className="space-y-4 pt-4">
             <h3 className="text-lg font-medium">Additional Options</h3>
 
@@ -151,30 +189,57 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-            >
-              <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <Checkbox
-                  id="terms"
-                  checked={agreeToTerms}
-                  onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
-                  required
-                />
-                <Label htmlFor="terms" className="text-base">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
-                </Label>
-              </div>
-            </motion.div>
+            {/* Terms agreement - only show for digital wallet payments */}
+            {(paymentMethod === 'apple_pay' || paymentMethod === 'google_pay') && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <Checkbox
+                    id="terms"
+                    checked={agreeToTerms}
+                    onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                    required
+                  />
+                  <Label htmlFor="terms" className="text-base">
+                    I agree to the{" "}
+                    <Link href="/terms" className="text-primary hover:underline">
+                      Terms of Service
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" className="text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </Label>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Contact info for alternative payments */}
+            {paymentMethod === 'contact_for_alternatives' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone className="h-5 w-5 text-green-600" />
+                    <h4 className="font-medium text-green-800 dark:text-green-200">Ready to arrange payment?</h4>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-300 mb-3">
+                    Call us at <strong>{contactInfo.phoneFormatted}</strong> or visit <strong>{contactInfo.website}</strong> to arrange:
+                  </p>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                    <li>• Cash payment when we arrive</li>
+                    <li>• Zelle payment instructions</li>
+                    <li>• Other payment arrangements</li>
+                  </ul>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Navigation Buttons */}
@@ -183,7 +248,9 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Address
             </Button>
-            {paymentMethod === "card" || paymentMethod === "paypal" ? ( // Only show continue button for card/paypal
+
+            {/* Show continue button for contact_for_alternatives */}
+            {paymentMethod === 'contact_for_alternatives' && (
               <Button type="submit" size="default" className="px-6 rounded-lg" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
@@ -197,7 +264,7 @@ export default function PaymentStep({ data, onSave, onNext, onPrevious, checkout
                   </>
                 )}
               </Button>
-            ) : null}
+            )}
           </div>
         </form>
       </CardContent>
