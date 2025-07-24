@@ -1,69 +1,99 @@
-// Arizona cities data for dropdown selection
-export const AZ_CITIES = [
-  { value: "phoenix", label: "Phoenix" },
-  { value: "glendale", label: "Glendale" },
-  { value: "peoria", label: "Peoria" },
+export interface StateOption {
+  value: string
+  label: string
+}
+
+export interface CityOption {
+  value: string
+  label: string
+  zipRanges: string[]
+}
+
+// Only Arizona for our service area
+export const US_STATES: StateOption[] = [{ value: "AZ", label: "Arizona" }]
+
+// Only Phoenix, Glendale, and Peoria
+export const AZ_CITIES: CityOption[] = [
+  {
+    value: "Phoenix",
+    label: "Phoenix",
+    zipRanges: ["85001-85099", "85201-85299"],
+  },
+  {
+    value: "Glendale",
+    label: "Glendale",
+    zipRanges: ["85301-85399"],
+  },
+  {
+    value: "Peoria",
+    label: "Peoria",
+    zipRanges: ["85345", "85381-85387"],
+  },
 ]
 
-// US States data - Arizona only
-export const US_STATES = [{ value: "AZ", label: "Arizona" }]
-
-// Get city label from value
-export const getCityLabel = (cityValue: string): string => {
-  const city = AZ_CITIES.find((city) => city.value === cityValue)
-  return city ? city.label : cityValue
-}
-
-// Get city value from label
-export const getCityValue = (cityLabel: string): string => {
-  const city = AZ_CITIES.find((city) => city.label.toLowerCase() === cityLabel.toLowerCase())
-  return city ? city.value : cityLabel
-}
-
-// Check if city is in service area
-export const isServiceAreaCity = (cityName: string): boolean => {
-  return AZ_CITIES.some(
-    (city) =>
-      city.label.toLowerCase() === cityName.toLowerCase() || city.value.toLowerCase() === cityName.toLowerCase(),
-  )
-}
+// Service area message with contact info
+export const SERVICE_AREA_MESSAGE =
+  "We currently service Phoenix, Glendale, and Peoria areas. For services outside this area, please call us at (661) 602-3000."
 
 // Arizona ZIP code validation
-export const isValidArizonaZip = (zipCode: string): boolean => {
-  if (!zipCode || typeof zipCode !== "string") return false
+export function isValidArizonaZip(zipCode: string): boolean {
+  const zip = Number.parseInt(zipCode)
 
-  // Arizona ZIP codes typically start with 85, 86
-  const cleanZip = zipCode.replace(/\D/g, "")
+  // Phoenix ZIP codes
+  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
+    return true
+  }
 
-  // Basic 5-digit ZIP validation for Arizona
-  if (!/^8[5-6]\d{3}$/.test(cleanZip)) return false
+  // Glendale ZIP codes
+  if (zip >= 85301 && zip <= 85399) {
+    return true
+  }
 
-  // Phoenix area: 85001-85099, 85201-85299
-  // Glendale area: 85301-85399
-  // Peoria area: 85345, 85381-85387
-  const zipNum = Number.parseInt(cleanZip)
+  // Peoria ZIP codes
+  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
+    return true
+  }
 
-  return (
-    (zipNum >= 85001 && zipNum <= 85099) || // Phoenix central
-    (zipNum >= 85201 && zipNum <= 85299) || // Phoenix extended
-    (zipNum >= 85301 && zipNum <= 85399) || // Glendale
-    zipNum === 85345 || // Peoria
-    (zipNum >= 85381 && zipNum <= 85387) // Peoria extended
-  )
+  return false
 }
 
-// Service area message
-export const SERVICE_AREA_MESSAGE =
-  "We currently serve Phoenix, Glendale, and Peoria areas in Arizona. For services outside of these areas, please call us at (661) 602-3000 to discuss availability."
+// Get city by ZIP code
+export function getCityByZipCode(zipCode: string): string | null {
+  const zip = Number.parseInt(zipCode)
 
-// Get state label from value (keeping for compatibility)
-export const getStateLabel = (stateValue: string): string => {
-  const state = US_STATES.find((state) => state.value === stateValue)
-  return state ? state.label : stateValue
+  // Phoenix ZIP codes
+  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
+    return "Phoenix"
+  }
+
+  // Glendale ZIP codes
+  if (zip >= 85301 && zip <= 85399) {
+    return "Glendale"
+  }
+
+  // Peoria ZIP codes
+  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
+    return "Peoria"
+  }
+
+  return null
 }
 
-// Get state value from label (keeping for compatibility)
-export const getStateValue = (stateLabel: string): string => {
-  const state = US_STATES.find((state) => state.label.toLowerCase() === stateLabel.toLowerCase())
-  return state ? state.value : stateLabel
+// Validate if address is in service area
+export function isInServiceArea(city: string, state: string, zipCode: string): boolean {
+  if (state !== "AZ") return false
+
+  const validCities = AZ_CITIES.map((c) => c.value.toLowerCase())
+  if (!validCities.includes(city.toLowerCase())) return false
+
+  return isValidArizonaZip(zipCode)
+}
+
+// Get contact information for out-of-area customers
+export function getContactInfo() {
+  return {
+    phone: "6616023000",
+    phoneFormatted: "(661) 602-3000",
+    website: "smileybrooms.com",
+  }
 }

@@ -2,65 +2,30 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-06-20",
 })
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get("session_id")
+    const { sessionId } = await request.json()
 
     if (!sessionId) {
-      return NextResponse.json({ success: false, error: "No session ID provided" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "Session ID is required" }, { status: 400 })
     }
 
     // Retrieve the checkout session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["line_items", "customer_details"],
-    })
-
-    // Check payment status
-    const isPaymentSuccessful = session.payment_status === "paid"
+    const session = await stripe.checkout.sessions.retrieve(sessionId)
 
     return NextResponse.json({
-      success: isPaymentSuccessful,
-      payment_status: session.payment_status,
-      session_id: session.id,
-      amount_total: session.amount_total,
-      amount_tax: session.amount_tax,
-      currency: session.currency,
-      customer_details: session.customer_details,
-      line_items: session.line_items?.data?.map((item) => ({
-        name: item.description,
-        quantity: item.quantity,
-        amount: item.amount_total,
-      })),
-      payment_method_types: session.payment_method_types,
-      metadata: session.metadata,
-      created: session.created,
-      error: !isPaymentSuccessful ? "Payment was not completed successfully" : null,
+      success: true,
+      status: session.status,
+      sessionId: session.id,
+      customerEmail: session.customer_details?.email,
+      amount: session.amount_total,
+      paymentStatus: session.payment_status,
     })
   } catch (error) {
-    console.error("Error verifying payment:", error)
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Payment verification failed: ${error.message}`,
-          payment_status: "unknown",
-        },
-        { status: 400 },
-      )
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Unable to verify payment status",
-        payment_status: "unknown",
-      },
-      { status: 500 },
-    )
+    console.error("Payment verification error:", error)
+    return NextResponse.json({ success: false, error: "Failed to verify payment" }, { status: 500 })
   }
 }

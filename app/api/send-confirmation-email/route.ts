@@ -1,42 +1,56 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sendOrderConfirmationEmail } from "@/lib/email-actions"
+import nodemailer from "nodemailer"
+
+const transporter = nodemailer.createTransporter({
+  host: process.env.SMTP_HOST,
+  port: Number.parseInt(process.env.SMTP_PORT || "587"),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const orderData = await request.json()
+    const { email, sessionId, amount } = await request.json()
 
-    // Validate required fields
-    if (!orderData.contact?.email || !orderData.orderId) {
-      return NextResponse.json({ success: false, error: "Missing required order information" }, { status: 400 })
+    if (!email || !sessionId) {
+      return NextResponse.json({ success: false, error: "Email and session ID are required" }, { status: 400 })
     }
 
-    // Send the confirmation email
-    await sendOrderConfirmationEmail({
-      orderId: orderData.orderId,
-      customerEmail: orderData.contact.email,
-      customerName: `${orderData.contact.firstName} ${orderData.contact.lastName}`.trim(),
-      totalAmount: orderData.pricing.total,
-      items: orderData.items.map((item: any) => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      serviceAddress: orderData.address.street
-        ? `${orderData.address.street}, ${orderData.address.city}, ${orderData.address.state} ${orderData.address.zipCode}`
-        : `${orderData.address.line1}, ${orderData.address.city}, ${orderData.address.state} ${orderData.address.postal_code}`,
-      paymentMethod:
-        orderData.payment.paymentMethod === "apple_pay"
-          ? "Apple Pay"
-          : orderData.payment.paymentMethod === "google_pay"
-            ? "Google Pay"
-            : orderData.payment.paymentMethod,
-      wantsLiveVideo: orderData.payment.allowVideoRecording,
-      videoConsentDetails: orderData.payment.videoConsentDetails,
+    const emailContent = `
+      <h2>Booking Confirmation - SmileyBrooms</h2>
+      <p>Thank you for choosing SmileyBrooms! Your payment has been processed successfully.</p>
+      
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Order Details:</h3>
+        <p><strong>Session ID:</strong> ${sessionId}</p>
+        <p><strong>Amount Paid:</strong> $${(amount / 100).toFixed(2)}</p>
+        <p><strong>Status:</strong> Confirmed</p>
+      </div>
+      
+      <h3>What's Next?</h3>
+      <ul>
+        <li>We'll contact you within 24 hours to schedule your cleaning service</li>
+        <li>Please have your preferred dates and times ready</li>
+        <li>If you have any questions, call us at (661) 602-3000</li>
+      </ul>
+      
+      <p>Thank you for choosing SmileyBrooms!</p>
+      <p>Visit us at: smileybrooms.com</p>
+    `
+
+    await transporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: "Booking Confirmation - SmileyBrooms",
+      html: emailContent,
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error sending confirmation email:", error)
+    console.error("Email sending error:", error)
     return NextResponse.json({ success: false, error: "Failed to send confirmation email" }, { status: 500 })
   }
 }

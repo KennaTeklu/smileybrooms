@@ -4,6 +4,9 @@ const CA_POSTAL_REGEX = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
 const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
 
+import { z } from "zod"
+import { isValidArizonaZip, isInServiceArea } from "../location-data"
+
 /**
  * Validates an Arizona ZIP code
  * @param zipCode - The ZIP code to validate
@@ -159,6 +162,40 @@ export function isValidStreetAddress(address: string): boolean {
   return true
 }
 
+export const addressSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  address: z.string().min(5, "Address must be at least 5 characters"),
+  city: z.string().min(2, "Please select a city"),
+  state: z.string().min(2, "Please select a state"),
+  zipCode: z
+    .string()
+    .regex(/^\d{5}$/, "ZIP code must be 5 digits")
+    .refine((zip) => isValidArizonaZip(zip), {
+      message:
+        "We currently only service Phoenix, Glendale, and Peoria areas. Please call (661) 602-3000 for other locations.",
+    }),
+})
+
+export type AddressFormData = z.infer<typeof addressSchema>
+
+export function validateServiceArea(address: AddressFormData): {
+  isValid: boolean
+  message?: string
+} {
+  const { city, state, zipCode } = address
+
+  if (!isInServiceArea(city, state, zipCode)) {
+    return {
+      isValid: false,
+      message:
+        "We currently only service Phoenix, Glendale, and Peoria areas in Arizona. Please call (661) 602-3000 to discuss service in your area.",
+    }
+  }
+
+  return { isValid: true }
+}
+
 /**
  * Validates a complete address (updated for Arizona service area)
  * @param address - The address object to validate
@@ -194,17 +231,7 @@ export function formatAddress(address: {
   postalCode: string
   country: string
 }): string {
-  const { street, street2, city, state, postalCode, country } = address
-
-  // Format based on country
-  switch (country.toUpperCase()) {
-    case "US":
-      return `${street}${street2 ? `, ${street2}` : ""}, ${city}, ${state.toUpperCase()} ${formatUSZip(postalCode)}`
-    case "CA":
-      return `${street}${street2 ? `, ${street2}` : ""}, ${city}, ${state.toUpperCase()} ${formatCAPostal(postalCode)}`
-    default:
-      return `${street}${street2 ? `, ${street2}` : ""}, ${city}, ${state}, ${postalCode}, ${country}`
-  }
+  return `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
 }
 
 /**
