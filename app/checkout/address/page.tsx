@@ -8,13 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from 'lucide-react'
+import { ArrowLeft, ArrowRight, MapPin, Home, Building, Navigation } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { US_STATES } from "@/lib/location-data"
+import { US_STATES, AZ_CITIES, SERVICE_AREA_MESSAGE, isValidArizonaZip } from "@/lib/location-data"
 import { motion } from "framer-motion"
 
 type AddressData = {
@@ -103,6 +103,9 @@ export default function AddressCollectionPage() {
     if (!addressData.city.trim()) newErrors.city = "City is required"
     if (!addressData.state) newErrors.state = "State is required"
     if (!addressData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    else if (!isValidArizonaZip(addressData.zipCode)) {
+      newErrors.zipCode = "Please enter a valid Arizona ZIP code for our service area"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -313,13 +316,18 @@ export default function AddressCollectionPage() {
                       <Label htmlFor="city" className="text-base">
                         City
                       </Label>
-                      <Input
-                        id="city"
-                        value={addressData.city}
-                        onChange={(e) => handleChange("city", e.target.value)}
-                        className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}
-                        placeholder="New York"
-                      />
+                      <Select value={addressData.city} onValueChange={(value) => handleChange("city", value)}>
+                        <SelectTrigger id="city" className={`mt-2 h-12 ${errors.city ? "border-red-500" : ""}`}>
+                          <SelectValue placeholder="Select city" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AZ_CITIES.map((city) => (
+                            <SelectItem key={city.value} value={city.value}>
+                              {city.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
                     </div>
 
@@ -358,6 +366,16 @@ export default function AddressCollectionPage() {
                   </div>
                 </div>
 
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">Service Area</h4>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">{SERVICE_AREA_MESSAGE}</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Special Instructions */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Special Instructions (Optional)</h3>
@@ -373,7 +391,7 @@ export default function AddressCollectionPage() {
                 {/* Navigation Buttons */}
                 <div className="flex justify-between pt-6">
                   <Link href="/cart">
-                    <Button variant="outline" size="lg" className="px-8">
+                    <Button variant="outline" size="lg" className="px-8 bg-transparent">
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back to Cart
                     </Button>

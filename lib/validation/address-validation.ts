@@ -1,9 +1,3 @@
-/**
- * Address validation utilities for various countries
- */
-
-import { US_STATES } from "../location-data"
-
 // Regex patterns for postal codes
 const US_ZIP_REGEX = /^\d{5}(-\d{4})?$/
 const CA_POSTAL_REGEX = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/
@@ -11,47 +5,32 @@ const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
 
 /**
- * Validates a US ZIP code
+ * Validates an Arizona ZIP code
  * @param zipCode - The ZIP code to validate
- * @returns True if the ZIP code is valid, false otherwise
+ * @returns True if the ZIP code is valid for Arizona service areas
  */
-export function isValidUSZip(zipCode: string): boolean {
+export function isValidAZZip(zipCode: string): boolean {
   if (!zipCode || typeof zipCode !== "string") return false
-  return US_ZIP_REGEX.test(zipCode.trim())
+
+  const cleanZip = zipCode.replace(/\D/g, "")
+
+  // Arizona ZIP codes start with 85 or 86
+  if (!/^8[5-6]\d{3}$/.test(cleanZip)) return false
+
+  const zipNum = Number.parseInt(cleanZip)
+
+  // Service area ZIP codes
+  return (
+    (zipNum >= 85001 && zipNum <= 85099) || // Phoenix central
+    (zipNum >= 85201 && zipNum <= 85299) || // Phoenix extended
+    (zipNum >= 85301 && zipNum <= 85399) || // Glendale
+    zipNum === 85345 || // Peoria
+    (zipNum >= 85381 && zipNum <= 85387) // Peoria extended
+  )
 }
 
 /**
- * Validates a Canadian postal code
- * @param postalCode - The postal code to validate
- * @returns True if the postal code is valid, false otherwise
- */
-export function isValidCAPostal(postalCode: string): boolean {
-  if (!postalCode || typeof postalCode !== "string") return false
-  return CA_POSTAL_REGEX.test(postalCode.trim())
-}
-
-/**
- * Validates a UK postal code
- * @param postalCode - The postal code to validate
- * @returns True if the postal code is valid, false otherwise
- */
-export function isValidUKPostal(postalCode: string): boolean {
-  if (!postalCode || typeof postalCode !== "string") return false
-  return UK_POSTAL_REGEX.test(postalCode.trim())
-}
-
-/**
- * Validates an Australian postal code
- * @param postalCode - The postal code to validate
- * @returns True if the postal code is valid, false otherwise
- */
-export function isValidAUPostal(postalCode: string): boolean {
-  if (!postalCode || typeof postalCode !== "string") return false
-  return AU_POSTAL_REGEX.test(postalCode.trim())
-}
-
-/**
- * Validates a postal code based on country code
+ * Validates a postal code based on country code (updated for Arizona only)
  * @param postalCode - The postal code to validate
  * @param countryCode - The country code (ISO 2-letter code)
  * @returns True if the postal code is valid for the specified country
@@ -61,47 +40,87 @@ export function isValidPostalCode(postalCode: string, countryCode: string): bool
 
   switch (countryCode.toUpperCase()) {
     case "US":
-      return isValidUSZip(postalCode)
-    case "CA":
-      return isValidCAPostal(postalCode)
-    case "UK":
-    case "GB":
-      return isValidUKPostal(postalCode)
-    case "AU":
-      return isValidAUPostal(postalCode)
+      return isValidAZZip(postalCode)
     default:
       // For other countries, perform basic validation
-      // This should be enhanced with country-specific validation
       return postalCode.trim().length > 0
   }
 }
 
 /**
- * Validates a US state code
- * @param state - The state code to validate
- * @returns True if the state code is valid, false otherwise
+ * Validates a US ZIP code (updated for Arizona only)
+ * @param zipCode - The ZIP code to validate
+ * @returns True if the ZIP code is valid, false otherwise
  */
-export function isValidUSState(state: string): boolean {
-  if (!state || typeof state !== "string") return false
-  return US_STATES.some((s) => s.value.toLowerCase() === state.trim().toLowerCase())
+export function isValidUSZip(zipCode: string): boolean {
+  return isValidAZZip(zipCode)
 }
 
 /**
- * Formats a US ZIP code (adds hyphen if needed)
+ * Validates an Arizona city
+ * @param city - The city name to validate
+ * @returns True if the city is in our service area
+ */
+export function isValidAZCity(city: string): boolean {
+  if (!city || typeof city !== "string") return false
+
+  const serviceCities = ["phoenix", "glendale", "peoria"]
+  return serviceCities.includes(city.trim().toLowerCase())
+}
+
+/**
+ * Validates a city name (updated for Arizona service area)
+ * @param city - The city name to validate
+ * @returns True if the city appears valid and is in service area
+ */
+export function isValidCity(city: string): boolean {
+  if (!city || typeof city !== "string") return false
+
+  // Basic validation - ensure it's not empty and has minimum length
+  const trimmed = city.trim()
+  if (trimmed.length < 2) return false
+
+  // City names should not contain numbers or special characters
+  if (/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(trimmed)) return false
+
+  // Check if it's in our service area
+  return isValidAZCity(trimmed)
+}
+
+/**
+ * Validates a US state code (updated for Arizona only)
+ * @param state - The state code to validate
+ * @returns True if the state code is Arizona
+ */
+export function isValidUSState(state: string): boolean {
+  if (!state || typeof state !== "string") return false
+  return state.trim().toLowerCase() === "az" || state.trim().toLowerCase() === "arizona"
+}
+
+/**
+ * Formats an Arizona ZIP code
+ * @param zipCode - The ZIP code to format
+ * @returns Formatted ZIP code
+ */
+export function formatAZZip(zipCode: string): string {
+  // Remove all non-numeric characters
+  const cleaned = zipCode.replace(/\D/g, "")
+
+  // Return as 5-digit ZIP for Arizona
+  if (cleaned.length >= 5) {
+    return cleaned.substring(0, 5)
+  }
+
+  return zipCode
+}
+
+/**
+ * Formats a US ZIP code (updated for Arizona)
  * @param zipCode - The ZIP code to format
  * @returns Formatted ZIP code
  */
 export function formatUSZip(zipCode: string): string {
-  // Remove all non-numeric characters
-  const cleaned = zipCode.replace(/\D/g, "")
-
-  // Format as XXXXX-XXXX if it's a 9-digit ZIP
-  if (cleaned.length === 9) {
-    return `${cleaned.substring(0, 5)}-${cleaned.substring(5, 9)}`
-  }
-
-  // Return original for 5-digit or invalid ZIPs
-  return zipCode
+  return formatAZZip(zipCode)
 }
 
 /**
@@ -141,27 +160,9 @@ export function isValidStreetAddress(address: string): boolean {
 }
 
 /**
- * Validates a city name (basic validation)
- * @param city - The city name to validate
- * @returns True if the city appears valid, false otherwise
- */
-export function isValidCity(city: string): boolean {
-  if (!city || typeof city !== "string") return false
-
-  // Basic validation - ensure it's not empty and has minimum length
-  const trimmed = city.trim()
-  if (trimmed.length < 2) return false
-
-  // City names should not contain numbers or special characters
-  if (/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(trimmed)) return false
-
-  return true
-}
-
-/**
- * Validates a complete address
+ * Validates a complete address (updated for Arizona service area)
  * @param address - The address object to validate
- * @returns True if the address is valid, false otherwise
+ * @returns True if the address is valid and in service area
  */
 export function isValidAddress(address: {
   street: string
@@ -170,12 +171,13 @@ export function isValidAddress(address: {
   postalCode: string
   country: string
 }): boolean {
-  // Validate each component
+  // Validate each component with Arizona-specific rules
   return (
     isValidStreetAddress(address.street) &&
-    isValidCity(address.city) &&
-    (address.country.toUpperCase() === "US" ? isValidUSState(address.state) : address.state.trim().length > 0) &&
-    isValidPostalCode(address.postalCode, address.country)
+    isValidAZCity(address.city) &&
+    isValidUSState(address.state) &&
+    isValidAZZip(address.postalCode) &&
+    address.country.toUpperCase() === "US"
   )
 }
 
@@ -203,4 +205,14 @@ export function formatAddress(address: {
     default:
       return `${street}${street2 ? `, ${street2}` : ""}, ${city}, ${state}, ${postalCode}, ${country}`
   }
+}
+
+/**
+ * Get service area validation message
+ * @param city - The city that was entered
+ * @param zipCode - The ZIP code that was entered
+ * @returns Validation message for out-of-area locations
+ */
+export function getServiceAreaMessage(city?: string, zipCode?: string): string {
+  return "We currently serve Phoenix, Glendale, and Peoria areas in Arizona. For services outside of these areas, please call us at (661) 602-3000 to discuss availability."
 }

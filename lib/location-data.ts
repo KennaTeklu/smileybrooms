@@ -1,65 +1,68 @@
-// US States data for dropdown selection
-export const US_STATES = [
-  { value: "AL", label: "Alabama" },
-  { value: "AK", label: "Alaska" },
-  { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" },
-  { value: "CA", label: "California" },
-  { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" },
-  { value: "DE", label: "Delaware" },
-  { value: "DC", label: "District of Columbia" },
-  { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" },
-  { value: "HI", label: "Hawaii" },
-  { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" },
-  { value: "IN", label: "Indiana" },
-  { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
-  { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" },
-  { value: "MD", label: "Maryland" },
-  { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" },
-  { value: "MN", label: "Minnesota" },
-  { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" },
-  { value: "MT", label: "Montana" },
-  { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" },
-  { value: "NH", label: "New Hampshire" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" },
-  { value: "NY", label: "New York" },
-  { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" },
-  { value: "OH", label: "Ohio" },
-  { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" },
-  { value: "PA", label: "Pennsylvania" },
-  { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" },
-  { value: "SD", label: "South Dakota" },
-  { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" },
-  { value: "UT", label: "Utah" },
-  { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" },
-  { value: "WA", label: "Washington" },
-  { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" },
-  { value: "WY", label: "Wyoming" },
+// Arizona cities data for dropdown selection
+export const AZ_CITIES = [
+  { value: "phoenix", label: "Phoenix" },
+  { value: "glendale", label: "Glendale" },
+  { value: "peoria", label: "Peoria" },
 ]
 
-// Get state label from value
+// US States data - Arizona only
+export const US_STATES = [{ value: "AZ", label: "Arizona" }]
+
+// Get city label from value
+export const getCityLabel = (cityValue: string): string => {
+  const city = AZ_CITIES.find((city) => city.value === cityValue)
+  return city ? city.label : cityValue
+}
+
+// Get city value from label
+export const getCityValue = (cityLabel: string): string => {
+  const city = AZ_CITIES.find((city) => city.label.toLowerCase() === cityLabel.toLowerCase())
+  return city ? city.value : cityLabel
+}
+
+// Check if city is in service area
+export const isServiceAreaCity = (cityName: string): boolean => {
+  return AZ_CITIES.some(
+    (city) =>
+      city.label.toLowerCase() === cityName.toLowerCase() || city.value.toLowerCase() === cityName.toLowerCase(),
+  )
+}
+
+// Arizona ZIP code validation
+export const isValidArizonaZip = (zipCode: string): boolean => {
+  if (!zipCode || typeof zipCode !== "string") return false
+
+  // Arizona ZIP codes typically start with 85, 86
+  const cleanZip = zipCode.replace(/\D/g, "")
+
+  // Basic 5-digit ZIP validation for Arizona
+  if (!/^8[5-6]\d{3}$/.test(cleanZip)) return false
+
+  // Phoenix area: 85001-85099, 85201-85299
+  // Glendale area: 85301-85399
+  // Peoria area: 85345, 85381-85387
+  const zipNum = Number.parseInt(cleanZip)
+
+  return (
+    (zipNum >= 85001 && zipNum <= 85099) || // Phoenix central
+    (zipNum >= 85201 && zipNum <= 85299) || // Phoenix extended
+    (zipNum >= 85301 && zipNum <= 85399) || // Glendale
+    zipNum === 85345 || // Peoria
+    (zipNum >= 85381 && zipNum <= 85387) // Peoria extended
+  )
+}
+
+// Service area message
+export const SERVICE_AREA_MESSAGE =
+  "We currently serve Phoenix, Glendale, and Peoria areas in Arizona. For services outside of these areas, please call us at (661) 602-3000 to discuss availability."
+
+// Get state label from value (keeping for compatibility)
 export const getStateLabel = (stateValue: string): string => {
   const state = US_STATES.find((state) => state.value === stateValue)
   return state ? state.label : stateValue
 }
 
-// Get state value from label
+// Get state value from label (keeping for compatibility)
 export const getStateValue = (stateLabel: string): string => {
   const state = US_STATES.find((state) => state.label.toLowerCase() === stateLabel.toLowerCase())
   return state ? state.value : stateLabel

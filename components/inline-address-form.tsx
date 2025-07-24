@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Save, Info } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { US_STATES } from "@/lib/location-data"
+import { US_STATES, AZ_CITIES, SERVICE_AREA_MESSAGE, isValidArizonaZip } from "@/lib/location-data"
 
 export interface AddressFormData {
   fullName: string
@@ -102,6 +102,9 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
     if (!formData.city.trim()) newErrors.city = "City is required"
     if (!formData.state) newErrors.state = "State is required"
     if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    else if (!isValidArizonaZip(formData.zipCode)) {
+      newErrors.zipCode = "Please enter a valid Arizona ZIP code for our service area"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -218,14 +221,18 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className={errors.city ? "border-red-500" : ""}
-                  placeholder="City"
-                />
+                <Select value={formData.city} onValueChange={(value) => handleSelectChange("city", value)}>
+                  <SelectTrigger id="city" className={errors.city ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AZ_CITIES.map((city) => (
+                      <SelectItem key={city.value} value={city.value}>
+                        {city.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
               </div>
 
@@ -259,6 +266,13 @@ export function InlineAddressForm({ onSubmit, calculatedPrice, serviceDetails }:
               />
               {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
             </div>
+          </div>
+
+          {/* Service Area Notice */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Service Area:</strong> {SERVICE_AREA_MESSAGE}
+            </p>
           </div>
 
           {/* Special Instructions */}
