@@ -166,29 +166,21 @@ export const addressSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  street: z.string().min(1, "Street address is required"),
+  address: z.string().min(1, "Address is required"),
   city: z.enum(["Phoenix", "Glendale", "Peoria"], {
     errorMap: () => ({ message: "Please select a valid city" }),
   }),
   state: z.literal("AZ"),
-  zipCode: z.string().refine((zip) => isValidArizonaZip(zip), "Please enter a valid ZIP code for our service area"),
+  zipCode: z.string().min(5, "ZIP code must be 5 digits").max(5, "ZIP code must be 5 digits"),
 })
 
-export type AddressFormData = z.infer<typeof addressSchema>
+export const addressFormSchema = addressSchema.refine((data) => isValidArizonaZip(data.zipCode, data.city), {
+  message: "ZIP code is not valid for the selected city or is outside our service area",
+  path: ["zipCode"],
+})
 
-export function validateArizonaAddress(data: any): { isValid: boolean; errors: string[] } {
-  try {
-    addressSchema.parse(data)
-    return { isValid: true, errors: [] }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        isValid: false,
-        errors: error.errors.map((err) => err.message),
-      }
-    }
-    return { isValid: false, errors: ["Invalid address data"] }
-  }
+export function validateArizonaAddress(data: any) {
+  return addressFormSchema.safeParse(data)
 }
 
 /**

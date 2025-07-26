@@ -1,82 +1,91 @@
 import { type NextRequest, NextResponse } from "next/server"
-import nodemailer from "nodemailer"
-
-const transporter = nodemailer.createTransporter({
-  host: process.env.SMTP_HOST,
-  port: Number.parseInt(process.env.SMTP_PORT || "587"),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-})
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, orderData } = await request.json()
+    const { orderId, customerEmail, customerName, paymentMethod, amount } = await request.json()
 
-    if (!sessionId || !orderData) {
-      return NextResponse.json({ success: false, error: "Missing required data" }, { status: 400 })
+    // Check if email is configured
+    const smtpHost = process.env.SMTP_HOST
+    const smtpUser = process.env.SMTP_USER
+    const smtpPassword = process.env.SMTP_PASSWORD
+
+    if (!smtpHost || !smtpUser || !smtpPassword) {
+      console.log("Email not configured, skipping email send")
+      return NextResponse.json({ success: true, message: "Email not configured" })
     }
 
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #2563eb;">Booking Confirmation - SmileyBrooms</h1>
-        
-        <p>Dear ${orderData.customerName || "Valued Customer"},</p>
-        
-        <p>Thank you for choosing SmileyBrooms! Your booking has been confirmed and payment processed successfully.</p>
-        
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h2 style="margin-top: 0;">Order Details</h2>
-          <p><strong>Order ID:</strong> ${orderData.id}</p>
-          <p><strong>Amount:</strong> $${(orderData.amount / 100).toFixed(2)} ${orderData.currency.toUpperCase()}</p>
-          <p><strong>Payment Status:</strong> ${orderData.paymentStatus}</p>
-          <p><strong>Date:</strong> ${new Date(orderData.createdAt).toLocaleDateString()}</p>
-        </div>
-        
-        <h3>What's Next?</h3>
-        <ul>
-          <li>We'll contact you within 24 hours to schedule your cleaning service</li>
-          <li>Our team will confirm the appointment time and any special requirements</li>
-          <li>We'll send you a reminder before your scheduled cleaning</li>
-        </ul>
-        
-        <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Contact Information</h3>
-          <p><strong>Phone:</strong> (661) 602-3000</p>
-          <p><strong>Website:</strong> smileybrooms.com</p>
-          <p><strong>Email:</strong> info@smileybrooms.com</p>
-        </div>
-        
-        <p>If you have any questions or need to make changes to your booking, please don't hesitate to contact us.</p>
-        
-        <p>Thank you for choosing SmileyBrooms!</p>
-        
-        <hr style="margin: 30px 0;">
-        <p style="font-size: 12px; color: #6b7280;">
-          This is an automated confirmation email. Please do not reply to this email.
-          For support, please call (661) 602-3000 or visit smileybrooms.com
-        </p>
-      </div>
-    `
+    // Only import nodemailer if SMTP is configured
+    let nodemailer
+    try {
+      nodemailer = await import("nodemailer")
+    } catch (error) {
+      console.log("Nodemailer not available, skipping email send")
+      return NextResponse.json({ success: true, message: "Email service not available" })
+    }
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: orderData.customerEmail,
-      subject: "Booking Confirmation - SmileyBrooms Cleaning Service",
-      html: emailHtml,
+    // Create transporter
+    const transporter = nodemailer.createTransporter({
+      host: smtpHost,
+      port: Number.parseInt(process.env.SMTP_PORT || "587"),
+      secure: false,
+      auth: {
+        user: smtpUser,
+        pass: smtpPassword,
+      },
     })
 
-    return NextResponse.json({ success: true })
+    // Email content
+    const emailContent = `
+Dear ${customerName},
+
+Thank you for choosing SmileyBrooms! Your booking has been confirmed.
+
+Order Details:
+- Order ID: ${orderId}
+- Payment Method: ${paymentMethod}
+${amount > 0 ? `- Amount: $${amount.toFixed(2)}` : ""}
+
+${
+  paymentMethod === "Contact Payment"
+    ? `
+Please call us at (661) 602-3000 to complete your payment using:
+- Cash
+- Zelle
+- Other payment methods
+
+We will contact you shortly to schedule your cleaning service.
+`
+    : `
+Your payment has been processed successfully. We will contact you shortly to schedule your cleaning service.
+`
+}
+
+If you have any questions, please don't hesitate to contact us:
+- Phone: (661) 602-3000
+- Website: smileybrooms.com
+
+Thank you for choosing SmileyBrooms!
+
+Best regards,
+The SmileyBrooms Team
+    `
+
+    // Send email
+    await transporter.sendMail({
+      from: smtpUser,
+      to: customerEmail,
+      subject: `SmileyBrooms - Booking Confirmation #${orderId}`,
+      text: emailContent,
+    })
+
+    return NextResponse.json({ success: true, message: "Confirmation email sent" })
   } catch (error) {
-    console.error("Email sending error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to send email",
-      },
-      { status: 500 },
-    )
+    console.error("Error sending confirmation email:", error)
+    // Don't fail the request if email fails
+    return NextResponse.json({
+      success: true,
+      message: "Email send failed but order processed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    })
   }
 }
