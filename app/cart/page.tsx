@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import type { CheckoutData } from "@/lib/types"
+import { logCartProceedToCheckout, logCartReviewPayNowClick } from "@/lib/google-sheet-logger" // Updated import
 
 export default function CartPage() {
   const router = useRouter()
@@ -57,17 +58,45 @@ export default function CartPage() {
 
   const handleProceedToCheckout = () => {
     if (completedCheckoutData) {
-      // Process payment with Stripe or redirect to payment
+      logCartReviewPayNowClick({
+        // Using the new specific function
+        checkoutData: completedCheckoutData,
+        cartItems: cart.items,
+        subtotalPrice: cart.subtotalPrice,
+        couponDiscount: cart.couponDiscount,
+        fullHouseDiscount: cart.fullHouseDiscount,
+        totalPrice: cart.totalPrice,
+      })
       console.log("Processing payment...", { cartItems: cart.items, checkoutData: completedCheckoutData })
-      // Here you would integrate with Stripe or your payment processor
       router.push("/success")
     } else {
+      logCartProceedToCheckout({
+        // Using the new specific function
+        checkoutData: {
+          contact: { firstName: "", lastName: "", email: "", phone: "" },
+          address: {
+            address: "",
+            address2: "",
+            city: "",
+            state: "",
+            zipCode: "",
+            specialInstructions: "",
+            addressType: "residential",
+          },
+          payment: { paymentMethod: "card", allowVideoRecording: false, agreeToTerms: false },
+        },
+        cartItems: cart.items,
+        subtotalPrice: cart.subtotalPrice,
+        couponDiscount: cart.couponDiscount,
+        fullHouseDiscount: cart.fullHouseDiscount,
+        totalPrice: cart.totalPrice,
+      })
       setIsCheckoutOpen(true)
     }
   }
 
   const calculateTax = (subtotal: number) => {
-    return subtotal * 0.08 // 8% tax
+    return subtotal * 0.08
   }
 
   const tax = calculateTax(cart.subtotalPrice)
@@ -92,7 +121,6 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header - Hidden when checkout is completed */}
       {!completedCheckoutData && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Your Shopping Cart</h1>
@@ -100,7 +128,6 @@ export default function CartPage() {
         </div>
       )}
 
-      {/* Review Header - Shown when checkout is completed */}
       {completedCheckoutData && (
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Review Your Order</h1>
@@ -111,7 +138,6 @@ export default function CartPage() {
       )}
 
       <div className={`grid gap-8 ${completedCheckoutData ? "grid-cols-1" : "lg:grid-cols-3"}`}>
-        {/* Left Column: Cart Items - Hidden when checkout is completed */}
         {!completedCheckoutData && (
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-gray-200 dark:border-gray-700">
@@ -135,7 +161,6 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* Right Column: CTA or Order Summary */}
         <div className={`${completedCheckoutData ? "w-full max-w-4xl mx-auto" : "lg:col-span-1"} flex flex-col gap-8`}>
           {!completedCheckoutData ? (
             <Card className="shadow-lg border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
@@ -176,7 +201,6 @@ export default function CartPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Collapsed Purchased Items Section */}
               <Card className="shadow-lg border-gray-200 dark:border-gray-700">
                 <Collapsible open={isItemsExpanded} onOpenChange={setIsItemsExpanded}>
                   <CollapsibleTrigger asChild>
@@ -205,7 +229,6 @@ export default function CartPage() {
                 </Collapsible>
               </Card>
 
-              {/* Collapsed Customer Information Section */}
               <Card className="shadow-lg border-gray-200 dark:border-gray-700">
                 <Collapsible open={isCustomerExpanded} onOpenChange={setIsCustomerExpanded}>
                   <CollapsibleTrigger asChild>
@@ -221,7 +244,6 @@ export default function CartPage() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="space-y-6 pt-0">
-                      {/* Contact Information */}
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                           <User className="h-4 w-4" />
@@ -253,7 +275,6 @@ export default function CartPage() {
 
                       <Separator />
 
-                      {/* Service Address */}
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
@@ -275,7 +296,6 @@ export default function CartPage() {
 
                       <Separator />
 
-                      {/* Payment Method */}
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Payment Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -311,7 +331,6 @@ export default function CartPage() {
                 </Collapsible>
               </Card>
 
-              {/* Continue Shopping Link */}
               <div className="text-center">
                 <Link
                   href="/"
@@ -324,7 +343,6 @@ export default function CartPage() {
             </div>
           )}
 
-          {/* Order Summary */}
           <Card className="shadow-lg border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
@@ -380,7 +398,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Checkout Sidepanel */}
       <CheckoutSidepanel
         isOpen={isCheckoutOpen}
         onOpenChange={setIsCheckoutOpen}

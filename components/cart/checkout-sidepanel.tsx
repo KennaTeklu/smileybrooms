@@ -33,9 +33,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import type { CheckoutData } from "@/lib/types"
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
-
-// Add the isValidArizonaZip function at the top of the file, before the component definition.
-// This function was already provided in previous responses.
+import { logWelcomeStart, logContactSubmit, logAddressSubmit, logCheckoutComplete } from "@/lib/google-sheet-logger" // Updated import
+import { useCart } from "@/lib/cart-context"
 
 const isValidArizonaZip = (zipCode: string): boolean => {
   const arizonaZipRanges = [
@@ -89,8 +88,8 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
   const formRef = useRef<HTMLDivElement>(null)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>()
   const validationTimeoutRef = useRef<NodeJS.Timeout>()
+  const { cart } = useCart()
 
-  // Core state
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("welcome")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -99,7 +98,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
   const [isDirty, setIsDirty] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
-  // Advanced functionality state
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([])
   const [isLoadingAddressSuggestions, setIsLoadingAddressSuggestions] = useState(false)
@@ -134,7 +132,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     },
   })
 
-  // Advanced validation rules
   const validationRules: ValidationRule[] = useMemo(
     () => [
       {
@@ -161,11 +158,10 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           if (!value?.trim()) return "Email address is required"
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
           if (!emailRegex.test(value)) return "Please enter a valid email address"
-          // Check for common typos
           const commonDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
           const domain = value.split("@")[1]?.toLowerCase()
           if (domain && !commonDomains.includes(domain) && domain.includes(".co")) {
-            return null // Valid but might want to suggest .com
+            return null
           }
           return null
         },
@@ -213,13 +209,12 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           if (!isValidArizonaZip(value)) return "Please enter a valid Arizona ZIP code"
           return null
         },
-        dependencies: ["state"], // Keep this dependency as it's good practice, though state is now fixed
+        dependencies: ["state"],
       },
     ],
     [],
   )
 
-  // Network status monitoring
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
@@ -247,7 +242,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     }
   }, [toast])
 
-  // Advanced auto-save with conflict resolution
   const performAutoSave = useCallback(
     async (data: CheckoutData, force = false) => {
       if (!isDirty && !force) return
@@ -259,12 +253,10 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           version: Date.now(),
         }
 
-        // Save to multiple storage locations for redundancy
         localStorage.setItem("checkout-data", JSON.stringify(saveData))
         localStorage.setItem("checkout-contact", JSON.stringify(data.contact))
         localStorage.setItem("checkout-address", JSON.stringify(data.address))
 
-        // IndexedDB for offline support
         if ("indexedDB" in window) {
           const request = indexedDB.open("CheckoutDB", 1)
           request.onupgradeneeded = (event) => {
@@ -288,7 +280,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         setIsDirty(false)
 
         if (isOnline) {
-          // Sync to server if online
           try {
             await fetch("/api/checkout/save", {
               method: "POST",
@@ -311,7 +302,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     [isDirty, isOnline, toast],
   )
 
-  // Debounced auto-save
   useEffect(() => {
     if (!isOpen || !isDirty) return
 
@@ -321,7 +311,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
 
     autoSaveTimeoutRef.current = setTimeout(() => {
       performAutoSave(checkoutData)
-    }, 2000) // Save after 2 seconds of inactivity
+    }, 2000)
 
     return () => {
       if (autoSaveTimeoutRef.current) {
@@ -330,7 +320,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     }
   }, [checkoutData, isDirty, isOpen, performAutoSave])
 
-  // Load saved data with conflict resolution
   useEffect(() => {
     if (!isOpen) return
 
@@ -338,7 +327,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       try {
         let savedData = null
 
-        // Try IndexedDB first for most recent data
         if ("indexedDB" in window) {
           const request = indexedDB.open("CheckoutDB", 1)
           request.onupgradeneeded = (event) => {
@@ -366,11 +354,9 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           }
         }
 
-        // Fallback to localStorage if IndexedDB fails or is empty
         if (!savedData) {
           savedData = JSON.parse(localStorage.getItem("checkout-data") || "null")
           if (!savedData) {
-            // Legacy localStorage items
             const savedContact = JSON.parse(localStorage.getItem("checkout-contact") || "null")
             const savedAddress = JSON.parse(localStorage.getItem("checkout-address") || "null")
             if (savedContact || savedAddress) {
@@ -380,20 +366,17 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         }
 
         if (savedData) {
-          // Merge with current data, preserving any existing values
           setCheckoutData((prev) => ({
             contact: { ...prev.contact, ...(savedData.contact || {}) },
             address: { ...prev.address, ...(savedData.address || {}) },
             payment: { ...prev.payment, ...(savedData.payment || {}) },
           }))
 
-          // Load form history
           const historyData = localStorage.getItem("checkout-history")
           if (historyData) {
-            setFormHistory(JSON.parse(historyData).slice(0, 5)) // Keep last 5 entries
+            setFormHistory(JSON.parse(historyData).slice(0, 5))
           }
 
-          // Skip welcome if we have substantial data
           if (savedData.contact?.firstName && savedData.contact?.email) {
             setCurrentStep("contact")
           }
@@ -405,7 +388,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         }
       } catch (error) {
         console.error("Failed to load saved data:", error)
-        // Clear corrupted data
         localStorage.removeItem("checkout-data")
         localStorage.removeItem("checkout-contact")
         localStorage.removeItem("checkout-address")
@@ -418,7 +400,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     loadSavedData()
   }, [isOpen, toast])
 
-  // Real-time validation with debouncing
   const validateField = useCallback(
     async (fieldName: string, value: any, allData: CheckoutData) => {
       const rule = validationRules.find((r) => r.field === fieldName)
@@ -426,7 +407,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
 
       setValidationInProgress((prev) => new Set([...prev, fieldName]))
 
-      // Simulate async validation (e.g., checking email uniqueness)
       await new Promise((resolve) => setTimeout(resolve, 300))
 
       const error = rule.validator(value, allData)
@@ -441,7 +421,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         return newErrors
       })
 
-      // Generate warnings for potential issues
       if (fieldName === "email" && value && !error) {
         const domain = value.split("@")[1]?.toLowerCase()
         if (domain && domain.includes(".co") && !domain.includes(".com")) {
@@ -467,7 +446,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     [validationRules],
   )
 
-  // Address autocomplete functionality
   const fetchAddressSuggestions = useCallback(async (query: string) => {
     if (query.length < 3) {
       setAddressSuggestions([])
@@ -477,7 +455,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     setIsLoadingAddressSuggestions(true)
 
     try {
-      // Actual API call to our new route
       const response = await fetch(`/api/address/autocomplete?q=${encodeURIComponent(query)}`)
       if (response.ok) {
         const suggestions = await response.json()
@@ -494,11 +471,9 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     }
   }, [])
 
-  // Smart form completion
   const generateAutoFillSuggestions = useCallback((fieldName: string, currentValue: string) => {
     const suggestions: string[] = []
 
-    // Generate suggestions based on field type and current value
     switch (fieldName) {
       case "firstName":
         if (currentValue.length > 0) {
@@ -514,7 +489,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         }
         break
       case "city":
-        // Could integrate with a cities API
         const commonCities = ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"]
         suggestions.push(...commonCities.filter((city) => city.toLowerCase().includes(currentValue.toLowerCase())))
         break
@@ -526,7 +500,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     }))
   }, [])
 
-  // Enhanced input change handler
   const handleInputChange = useCallback(
     (section: "contact" | "address", field: string, value: string) => {
       setCheckoutData((prev) => {
@@ -538,7 +511,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           },
         }
 
-        // Trigger validation after a delay
         if (validationTimeoutRef.current) {
           clearTimeout(validationTimeoutRef.current)
         }
@@ -555,15 +527,12 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       setIsDirty(true)
       setFieldTouched((prev) => new Set([...prev, field]))
 
-      // Generate auto-fill suggestions
       generateAutoFillSuggestions(field, value)
 
-      // Address-specific functionality
       if (field === "address") {
         fetchAddressSuggestions(value)
       }
 
-      // Clear errors when user starts typing
       if (errors[field]) {
         setErrors((prev) => {
           const newErrors = { ...prev }
@@ -575,7 +544,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     [errors, fieldTouched, validateField, generateAutoFillSuggestions, fetchAddressSuggestions],
   )
 
-  // Comprehensive validation
   const validateStep = useCallback(
     (step: CheckoutStepId): boolean => {
       const fieldsToValidate =
@@ -606,16 +574,13 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     [checkoutData, validationRules],
   )
 
-  // Enhanced step transition with analytics
   const handleStepTransition = useCallback(
     async (nextStep: CheckoutStepId) => {
-      // Validate current step
       if (currentStep === "contact" && !validateStep("contact")) {
         const firstError = Object.keys(errors)[0]
         const errorElement = document.getElementById(firstError)
         errorElement?.focus()
 
-        // Track validation failures
         if (typeof window !== "undefined" && (window as any).gtag) {
           ;(window as any).gtag("event", "checkout_validation_failed", {
             step: currentStep,
@@ -635,7 +600,27 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       setIsSubmitting(true)
 
       try {
-        // Save to form history
+        // Log event before transitioning to the next step
+        if (currentStep === "contact") {
+          await logContactSubmit({
+            checkoutData,
+            cartItems: cart.items,
+            subtotalPrice: cart.subtotalPrice,
+            couponDiscount: cart.couponDiscount,
+            fullHouseDiscount: cart.fullHouseDiscount,
+            totalPrice: cart.totalPrice,
+          })
+        } else if (currentStep === "address") {
+          await logAddressSubmit({
+            checkoutData,
+            cartItems: cart.items,
+            subtotalPrice: cart.subtotalPrice,
+            couponDiscount: cart.couponDiscount,
+            fullHouseDiscount: cart.fullHouseDiscount,
+            totalPrice: cart.totalPrice,
+          })
+        }
+
         if (currentStep !== "welcome") {
           setFormHistory((prev) => {
             const newHistory = [checkoutData, ...prev.slice(0, 4)]
@@ -644,7 +629,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           })
         }
 
-        // Auto-populate related fields
         if (currentStep === "contact") {
           setCheckoutData((prev) => ({
             ...prev,
@@ -657,16 +641,17 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           }))
         }
 
-        // Force save before transition
         await performAutoSave(checkoutData, true)
 
         if (nextStep === "confirmation") {
-          // Track completion
-          if (typeof window !== "undefined" && (window as any).gtag) {
-            ;(window as any).gtag("event", "checkout_info_completed", {
-              step_completed: currentStep,
-            })
-          }
+          await logCheckoutComplete({
+            checkoutData,
+            cartItems: cart.items,
+            subtotalPrice: cart.subtotalPrice,
+            couponDiscount: cart.couponDiscount,
+            fullHouseDiscount: cart.fullHouseDiscount,
+            totalPrice: cart.totalPrice,
+          })
 
           onCheckoutComplete(checkoutData)
           onOpenChange(false)
@@ -678,7 +663,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           return
         }
 
-        // Track step progression
         if (typeof window !== "undefined" && (window as any).gtag) {
           ;(window as any).gtag("event", "checkout_progress", {
             step_completed: currentStep,
@@ -698,10 +682,9 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         setIsSubmitting(false)
       }
     },
-    [currentStep, validateStep, errors, checkoutData, performAutoSave, onCheckoutComplete, onOpenChange, toast],
+    [currentStep, validateStep, errors, checkoutData, performAutoSave, onCheckoutComplete, onOpenChange, toast, cart],
   )
 
-  // Auto-fill suggestion handler
   const handleAutoFillSuggestion = useCallback(
     (section: "contact" | "address", field: string, suggestion: string) => {
       handleInputChange(section, field, suggestion)
@@ -713,7 +696,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     [handleInputChange],
   )
 
-  // Address suggestion handler
   const handleAddressSuggestion = useCallback((suggestion: AddressSuggestion) => {
     const { components } = suggestion
 
@@ -732,7 +714,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
     setIsDirty(true)
   }, [])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimeoutRef.current) {
@@ -743,6 +724,19 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (isOpen && currentStep === "welcome") {
+      logWelcomeStart({
+        checkoutData,
+        cartItems: cart.items,
+        subtotalPrice: cart.subtotalPrice,
+        couponDiscount: cart.couponDiscount,
+        fullHouseDiscount: cart.fullHouseDiscount,
+        totalPrice: cart.totalPrice,
+      })
+    }
+  }, [isOpen, currentStep, checkoutData, cart])
 
   const renderWelcomeStep = () => (
     <motion.div
@@ -1086,7 +1080,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       </div>
 
       <div className="space-y-6">
-        {/* Property Type */}
         <div className="space-y-3">
           <Label className="text-base font-medium">What type of space is this?</Label>
           <div className="grid grid-cols-3 gap-3">
@@ -1113,7 +1106,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           </div>
         </div>
 
-        {/* Address Fields */}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="address" className="text-base font-medium">
@@ -1190,7 +1182,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                   <SelectValue placeholder="Select your city" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Glendale">Glendale</SelectItem>
+                  <SelectItem value="Glendale">Glandom</SelectItem>
                   <SelectItem value="Phoenix">Phoenix</SelectItem>
                   <SelectItem value="Peoria">Peoria</SelectItem>
                 </SelectContent>
@@ -1239,7 +1231,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                         : ""
                   }`}
                   placeholder="85001"
-                  maxLength={5} // Add maxLength to prevent longer inputs
+                  maxLength={5}
                   aria-describedby={errors.zipCode ? "zipCode-error" : undefined}
                 />
                 {validationInProgress.has("zipCode") && (
@@ -1310,7 +1302,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         aria-labelledby="checkout-title"
         aria-describedby="checkout-description"
       >
-        {/* Header */}
         <div className="flex-shrink-0 border-b bg-gradient-to-r from-blue-50 via-purple-50 to-green-50 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-green-950/50 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -1348,7 +1339,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
           <Card className="border-0 shadow-none h-full">
             <CardContent className="p-0 h-full">
@@ -1361,7 +1351,6 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           </Card>
         </div>
 
-        {/* Footer */}
         <div className="flex-shrink-0 border-t bg-gray-50 dark:bg-gray-900/50 p-4">
           <div className="flex justify-center items-center space-x-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -1383,10 +1372,4 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
   )
 }
 
-// -------------------------------------------------------------
-// EXPORTS
-// -------------------------------------------------------------
-//  • default export - already present (CheckoutSidePanel)
-//  • named  export  - alias for build-time import checks
-// Provide a named export for other modules
 export { CheckoutSidePanel as CheckoutSidepanel }
