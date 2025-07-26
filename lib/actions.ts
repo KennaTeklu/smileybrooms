@@ -9,9 +9,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 // Function to send order data to Google Apps Script
 async function sendOrderToGoogleSheet(orderData: any) {
   const appsScriptUrl = process.env.APPS_SCRIPT_WEB_APP_URL
+  const appsScriptDeploymentId = process.env.APPS_SCRIPT_DEPLOYMENT_ID // Not directly used in fetch URL for doPost, but good to log
+
+  console.log(
+    `[Apps Script Integration] Attempting to send data to URL: ${appsScriptUrl ? appsScriptUrl.substring(0, 50) + "..." : "URL not set"}`,
+  )
+  console.log(`[Apps Script Integration] APPS_SCRIPT_DEPLOYMENT_ID: ${appsScriptDeploymentId || "Not set"}`)
 
   if (!appsScriptUrl) {
-    console.error("APPS_SCRIPT_WEB_APP_URL is not set in environment variables.")
+    console.error(
+      "[Apps Script Integration] ERROR: APPS_SCRIPT_WEB_APP_URL is not set in environment variables. Data will not be sent to Google Sheet.",
+    )
     return { success: false, error: "Apps Script URL not configured." }
   }
 
@@ -20,20 +28,32 @@ async function sendOrderToGoogleSheet(orderData: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // If you enable webhook signature verification in Apps Script,
+        // you would generate and send it here. For now, we omit it.
+        // "X-Webhook-Signature": "sha256=" + generateWebhookSignature(JSON.stringify(orderData), process.env.WEBHOOK_SECRET_FOR_NEXTJS)
       },
       body: JSON.stringify(orderData),
     })
 
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`[Apps Script Integration] HTTP Error! Status: ${response.status}, Response: ${errorText}`)
+      return { success: false, error: `Apps Script returned an error: ${response.status} - ${errorText}` }
+    }
+
     const result = await response.json()
     if (result.success) {
-      console.log("Order data successfully sent to Google Sheet:", result.message)
+      console.log("[Apps Script Integration] Order data successfully sent to Google Sheet:", result.message)
       return { success: true, message: result.message }
     } else {
-      console.error("Failed to send order data to Google Sheet:", result.error)
+      console.error(
+        "[Apps Script Integration] Failed to send order data to Google Sheet (Apps Script reported error):",
+        result.error,
+      )
       return { success: false, error: result.error }
     }
   } catch (error: any) {
-    console.error("Error sending order data to Google Sheet:", error)
+    console.error("[Apps Script Integration] Network or Fetch Error sending order data to Google Sheet:", error)
     return { success: false, error: error.message || "Network error sending data to Google Sheet." }
   }
 }
@@ -42,7 +62,7 @@ interface CustomerData {
   name: string
   email: string
   phone?: string
-  address?: {
+  address: {
     line1: string
     line2?: string
     city: string
@@ -83,6 +103,23 @@ export interface CheckoutSessionData {
     allowVideoRecording: boolean
     videoConsentDetails?: string
     orderType: string
+    frequency?: string
+    bookingDate?: string
+    bookingTime?: string
+    specialInstructions?: string
+    browser?: string
+    ipAddress?: string
+    userAgent?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
+    referrerUrl?: string
+    sessionId?: string
+    cartId?: string
+    couponCodeApplied?: string
+    customerSegment?: string
+    internalNotes?: string
+    // Add any other metadata fields your Apps Script expects
   }
 }
 
@@ -91,12 +128,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     const { customLineItems, discount, customerData, metadata } = checkoutData
 
     // Calculate total amount in cents for Stripe
-    const totalAmountCents = customLineItems.reduce((sum, item) => sum + item.amount * item.quantity, 0)
-    const discountAmountCents = discount ? discount.value * 100 : 0
+    const subtotalAmount = customLineItems.reduce((sum, item) => sum + item.amount * item.quantity, 0)
+    const discountAmount = discount ? discount.value : 0
     const taxRate = 0.08 // 8% tax
-    const taxableAmountCents = totalAmountCents - discountAmountCents
-    const taxAmountCents = Math.round(taxableAmountCents * taxRate)
-    const finalAmountCents = totalAmountCents - discountAmountCents + taxAmountCents
+    const taxableAmount = subtotalAmount - discountAmount
+    const taxAmount = taxableAmount * taxRate
+    const finalAmount = subtotalAmount - discountAmount + taxAmount
 
     // Prepare line items for Stripe
     const lineItems = customLineItems.map((item) => ({
@@ -112,7 +149,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     }))
 
     // Add tax as a separate line item if applicable
-    if (taxAmountCents > 0) {
+    if (taxAmount > 0) {
       lineItems.push({
         price_data: {
           currency: "usd",
@@ -120,7 +157,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
             name: "Sales Tax",
             description: "Applicable sales tax",
           },
-          unit_amount: taxAmountCents,
+          unit_amount: Math.round(taxAmount * 100),
         },
         quantity: 1,
       })
@@ -132,7 +169,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           {
             coupon: await stripe.coupons
               .create({
-                amount_off: discountAmountCents,
+                amount_off: Math.round(discount.value * 100),
                 currency: "usd",
                 name: discount.description,
                 duration: "once",
@@ -172,8 +209,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       metadata: {
         ...metadata,
         customer_id: customer.id,
-        cart_value: totalAmountCents.toString(),
-        final_total: finalAmountCents.toString(),
+        cart_value: subtotalAmount.toString(),
+        final_total: finalAmount.toString(),
       },
       // Dynamic payment method options for Apple Pay / Google Pay
       payment_method_options: {
@@ -204,10 +241,16 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         phone: customerData.phone,
         notes: metadata.internalNotes || "",
       },
-      address: customerData.address,
+      address: {
+        street: customerData.address.line1,
+        apartment: customerData.address.line2,
+        city: customerData.address.city,
+        state: customerData.address.state,
+        zipCode: customerData.address.postal_code,
+      },
       serviceDetails: {
         type: metadata.orderType || "Cleaning Service",
-        frequency: metadata.frequency || "One-time", // Assuming these are passed in metadata
+        frequency: metadata.frequency || "One-time",
         date: metadata.bookingDate || "",
         time: metadata.bookingTime || "",
         specialInstructions: metadata.specialInstructions || "",
@@ -218,20 +261,21 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           .map((item) => ({
             category: item.name,
             count: item.quantity,
-            customizations: item.description?.split(", ").slice(1) || [], // Example: "Bathroom, Deep Clean"
+            customizations: item.description?.split(", ").slice(1) || [],
           })),
         addons: customLineItems
           .filter((item) => !item.description?.includes("room"))
           .map((item) => ({
             name: item.name,
             quantity: item.quantity,
+            price: item.amount, // Include price for addons as per Apps Script's processOrderData
           })),
       },
       pricing: {
-        subtotal: totalAmountCents / 100,
-        discountAmount: discountAmountCents / 100,
-        taxAmount: taxAmountCents / 100,
-        totalAmount: finalAmountCents / 100,
+        subtotal: subtotalAmount,
+        discountAmount: discountAmount,
+        taxAmount: taxAmount,
+        totalAmount: finalAmount,
       },
       payment: {
         method: metadata.paymentMethod,
@@ -254,14 +298,16 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         couponCodeApplied: metadata.couponCodeApplied || "",
         customerSegment: metadata.customerSegment || "",
         internalNotes: metadata.internalNotes || "",
+        dataSource: "checkout_form", // As per Apps Script's processOrderData
       },
     }
 
+    console.log("[Apps Script Integration] Sending order data to Google Sheet for Stripe session...")
     await sendOrderToGoogleSheet(orderDataForSheet)
 
     return { success: true, checkout_url: session.url, session_id: session.id }
   } catch (error: any) {
-    console.error("Error creating checkout session:", error)
+    console.error("[Stripe Checkout] Error creating checkout session:", error)
     return { success: false, error: error.message || "Failed to create checkout session." }
   }
 }
@@ -287,7 +333,13 @@ export async function processContactOrder(checkoutData: CheckoutData) {
       phone: customerData.phone,
       notes: metadata.internalNotes || "",
     },
-    address: address,
+    address: {
+      street: address.line1,
+      apartment: address.line2,
+      city: address.city,
+      state: address.state,
+      zipCode: address.postal_code,
+    },
     serviceDetails: {
       type: metadata.orderType || "Cleaning Service",
       frequency: metadata.frequency || "One-time",
@@ -308,6 +360,7 @@ export async function processContactOrder(checkoutData: CheckoutData) {
         .map((item) => ({
           name: item.name,
           quantity: item.quantity,
+          price: item.amount, // Include price for addons as per Apps Script's processOrderData
         })),
     },
     pricing: {
@@ -337,9 +390,11 @@ export async function processContactOrder(checkoutData: CheckoutData) {
       couponCodeApplied: metadata.couponCodeApplied || "",
       customerSegment: metadata.customerSegment || "",
       internalNotes: metadata.internalNotes || "",
+      dataSource: "contact_form", // As per Apps Script's processOrderData
     },
   }
 
+  console.log("[Apps Script Integration] Sending order data to Google Sheet for contact order...")
   await sendOrderToGoogleSheet(orderDataForSheet)
 
   return {
