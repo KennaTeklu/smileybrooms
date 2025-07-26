@@ -30,6 +30,10 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
+  useEffect(() => {
+    router.replace("/cart")
+  }, [router])
+
   const [currentStep, setCurrentStep] = useState<CheckoutStepId>("contact")
   const [completedSteps, setCompletedSteps] = useState<CheckoutStepId[]>([])
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({

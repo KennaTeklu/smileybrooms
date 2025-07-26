@@ -33,7 +33,30 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import type { CheckoutData } from "@/lib/types"
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
-import { US_STATES } from "@/lib/location-data"
+
+// Add the isValidArizonaZip function at the top of the file, before the component definition.
+// This function was already provided in previous responses.
+
+const isValidArizonaZip = (zipCode: string): boolean => {
+  const arizonaZipRanges = [
+    { min: 85001, max: 85099 }, // Phoenix metro area
+    { min: 85201, max: 85299 }, // Mesa/Tempe/Chandler area
+    { min: 85301, max: 85399 }, // Glendale/Peoria/Surprise area
+    { min: 85501, max: 85599 }, // Globe/Superior area
+    { min: 85601, max: 85699 }, // Sierra Vista/Benson area
+    { min: 85701, max: 85799 }, // Tucson metro area
+    { min: 86001, max: 86099 }, // Flagstaff/Sedona area
+    { min: 86301, max: 86399 }, // Prescott/Prescott Valley area
+    { min: 86401, max: 86499 }, // Kingman/Bullhead City area
+    { min: 86501, max: 86599 }, // Yuma area
+  ]
+
+  const cleanZip = zipCode.replace(/\D/g, "").substring(0, 5)
+  if (cleanZip.length !== 5) return false
+
+  const zipNum = Number.parseInt(cleanZip, 10)
+  return arizonaZipRanges.some((range) => zipNum >= range.min && zipNum <= range.max)
+}
 
 type CheckoutStepId = "welcome" | "contact" | "address" | "confirmation"
 
@@ -170,27 +193,27 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       {
         field: "city",
         validator: (value: string) => {
+          const allowedCities = ["Glendale", "Phoenix", "Peoria"]
           if (!value?.trim()) return "City is required"
-          if (value.trim().length < 2) return "City name must be at least 2 characters"
-          if (!/^[a-zA-Z\s'-]+$/.test(value)) return "City name contains invalid characters"
+          if (!allowedCities.includes(value)) return "Please select a valid city (Glendale, Phoenix, or Peoria)"
+          return null
+        },
+      },
+      {
+        field: "state",
+        validator: (value: string) => {
+          if (value !== "AZ") return "Only Arizona is supported"
           return null
         },
       },
       {
         field: "zipCode",
-        validator: (value: string, data?: any) => {
+        validator: (value: string) => {
           if (!value?.trim()) return "ZIP code is required"
-          const state = data?.address?.state
-          if (state === "CA" && !/^9[0-6]\d{3}$/.test(value)) {
-            return "Invalid California ZIP code"
-          }
-          if (state === "NY" && !/^1[0-4]\d{3}$/.test(value)) {
-            return "Invalid New York ZIP code"
-          }
-          if (!/^\d{5}(-\d{4})?$/.test(value)) return "Please enter a valid ZIP code"
+          if (!isValidArizonaZip(value)) return "Please enter a valid Arizona ZIP code"
           return null
         },
-        dependencies: ["state"],
+        dependencies: ["state"], // Keep this dependency as it's good practice, though state is now fixed
       },
     ],
     [],
@@ -882,7 +905,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                 className={`h-12 transition-all ${
                   errors.lastName
                     ? "border-red-500 focus:border-red-500"
-                    : focusedField === "lastName"
+                    : focusedField === ""
                       ? "border-blue-500 ring-2 ring-blue-200"
                       : ""
                 }`}
@@ -1159,43 +1182,19 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
               <Label htmlFor="city" className="text-base font-medium">
                 City *
               </Label>
-              <div className="relative">
-                <Input
-                  id="city"
-                  value={checkoutData.address.city}
-                  onChange={(e) => handleInputChange("address", "city", e.target.value)}
-                  onFocus={() => setFocusedField("city")}
-                  onBlur={() => setFocusedField(null)}
-                  className={`h-12 transition-all ${
-                    errors.city
-                      ? "border-red-500 focus:border-red-500"
-                      : focusedField === "city"
-                        ? "border-blue-500 ring-2 ring-blue-200"
-                        : ""
-                  }`}
-                  placeholder="New York"
-                  aria-describedby={errors.city ? "city-error" : undefined}
-                />
-                {validationInProgress.has("city") && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                  </div>
-                )}
-              </div>
-              {autoFillSuggestions.city?.length > 0 && (
-                <div className="space-y-1">
-                  {autoFillSuggestions.city.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => handleAutoFillSuggestion("address", "city", suggestion)}
-                      className="text-sm text-blue-600 hover:text-blue-800 block"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <Select
+                value={checkoutData.address.city}
+                onValueChange={(value) => handleInputChange("address", "city", value)}
+              >
+                <SelectTrigger className={`h-12 ${errors.city ? "border-red-500" : ""}`}>
+                  <SelectValue placeholder="Select your city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Glendale">Glendale</SelectItem>
+                  <SelectItem value="Phoenix">Phoenix</SelectItem>
+                  <SelectItem value="Peoria">Peoria</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.city && (
                 <p id="city-error" className="text-sm text-red-500">
                   {errors.city}
@@ -1212,14 +1211,10 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                 onValueChange={(value) => handleInputChange("address", "state", value)}
               >
                 <SelectTrigger className={`h-12 ${errors.state ? "border-red-500" : ""}`}>
-                  <SelectValue placeholder="Select state" />
+                  <SelectValue placeholder="Arizona" />
                 </SelectTrigger>
                 <SelectContent>
-                  {US_STATES.map((state) => (
-                    <SelectItem key={state.value} value={state.value}>
-                      {state.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="AZ">Arizona</SelectItem>
                 </SelectContent>
               </Select>
               {errors.state && <p className="text-sm text-red-500">{errors.state}</p>}
@@ -1243,7 +1238,8 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                         ? "border-blue-500 ring-2 ring-blue-200"
                         : ""
                   }`}
-                  placeholder="10001"
+                  placeholder="85001"
+                  maxLength={5} // Add maxLength to prevent longer inputs
                   aria-describedby={errors.zipCode ? "zipCode-error" : undefined}
                 />
                 {validationInProgress.has("zipCode") && (
@@ -1257,6 +1253,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
                   {errors.zipCode}
                 </p>
               )}
+              <p className="text-xs text-gray-500 mt-1">Enter a valid Arizona ZIP code</p>
             </div>
           </div>
 
