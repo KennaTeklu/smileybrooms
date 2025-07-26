@@ -32,6 +32,7 @@
     "@radix-ui/react-scroll-area": "latest",
     "@radix-ui/react-select": "latest",
     "@radix-ui/react-separator": "latest",
+    "@radix-ui/react-sheet": "^1.1.0",
     "@radix-ui/react-slider": "latest",
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-switch": "latest",
@@ -43,7 +44,6 @@
     "@stripe/stripe-js": "latest",
     "@tanstack/react-query": "latest",
     "ai": "latest",
-    "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
@@ -79,8 +79,11 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "15.2.4",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

@@ -1,71 +1,107 @@
+export interface City {
+  value: string
+  label: string
+  zipRanges: string[]
+}
+
+export interface State {
+  value: string
+  label: string
+}
+
 export interface ContactInfo {
   website: string
   phone: string
   displayPhone: string
+  email: string
 }
 
 export const CONTACT_INFO: ContactInfo = {
   website: "smileybrooms.com",
   phone: "6616023000",
   displayPhone: "(661) 602-3000",
+  email: "info@smileybrooms.com",
 }
 
-export const US_STATES = [{ value: "AZ", label: "Arizona" }]
-
-export const AZ_CITIES = [
-  { value: "Phoenix", label: "Phoenix" },
-  { value: "Glendale", label: "Glendale" },
-  { value: "Peoria", label: "Peoria" },
+export const US_STATES: State[] = [
+  {
+    value: "AZ",
+    label: "Arizona",
+  },
 ]
 
-export const SERVICE_AREA_MESSAGE = `We currently serve Phoenix, Glendale, and Peoria, Arizona. For services outside this area, please call us at ${CONTACT_INFO.displayPhone}.`
-
-// Arizona ZIP code ranges
-const PHOENIX_ZIP_RANGES = [
-  { start: 85001, end: 85099 },
-  { start: 85201, end: 85299 },
+export const AZ_CITIES: City[] = [
+  {
+    value: "phoenix",
+    label: "Phoenix",
+    zipRanges: ["85001-85099", "85201-85299"],
+  },
+  {
+    value: "glendale",
+    label: "Glendale",
+    zipRanges: ["85301-85399"],
+  },
+  {
+    value: "peoria",
+    label: "Peoria",
+    zipRanges: ["85345", "85381-85387"],
+  },
 ]
 
-const GLENDALE_ZIP_RANGES = [{ start: 85301, end: 85399 }]
+export const SERVICE_AREA_MESSAGE = `We currently service Phoenix, Glendale, and Peoria areas in Arizona. For services outside this area, please call us at ${CONTACT_INFO.displayPhone}.`
 
-const PEORIA_ZIP_RANGES = [
-  { start: 85345, end: 85345 },
-  { start: 85381, end: 85387 },
-]
+export function isValidArizonaZip(zipCode: string): boolean {
+  if (!zipCode || zipCode.length !== 5) return false
 
-function isZipInRanges(zip: number, ranges: { start: number; end: number }[]): boolean {
-  return ranges.some((range) => zip >= range.start && zip <= range.end)
+  const zip = Number.parseInt(zipCode, 10)
+  if (isNaN(zip)) return false
+
+  // Phoenix: 85001-85099, 85201-85299
+  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
+    return true
+  }
+
+  // Glendale: 85301-85399
+  if (zip >= 85301 && zip <= 85399) {
+    return true
+  }
+
+  // Peoria: 85345, 85381-85387
+  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
+    return true
+  }
+
+  return false
 }
 
-export function isValidArizonaZip(zipCode: string, city?: string): boolean {
+export function getCityByZipCode(zipCode: string): string | null {
+  if (!isValidArizonaZip(zipCode)) return null
+
   const zip = Number.parseInt(zipCode, 10)
 
-  if (isNaN(zip) || zipCode.length !== 5) {
-    return false
+  // Phoenix ranges
+  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
+    return "phoenix"
   }
 
-  // Check if ZIP starts with 85 or 86 (Arizona prefixes)
-  if (!zipCode.startsWith("85") && !zipCode.startsWith("86")) {
-    return false
+  // Glendale range
+  if (zip >= 85301 && zip <= 85399) {
+    return "glendale"
   }
 
-  if (city) {
-    switch (city.toLowerCase()) {
-      case "phoenix":
-        return isZipInRanges(zip, PHOENIX_ZIP_RANGES)
-      case "glendale":
-        return isZipInRanges(zip, GLENDALE_ZIP_RANGES)
-      case "peoria":
-        return isZipInRanges(zip, PEORIA_ZIP_RANGES)
-      default:
-        return false
-    }
+  // Peoria ranges
+  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
+    return "peoria"
   }
 
-  // If no city specified, check all ranges
-  return (
-    isZipInRanges(zip, PHOENIX_ZIP_RANGES) ||
-    isZipInRanges(zip, GLENDALE_ZIP_RANGES) ||
-    isZipInRanges(zip, PEORIA_ZIP_RANGES)
-  )
+  return null
+}
+
+export function getZipCodesByCity(cityValue: string): string[] {
+  const city = AZ_CITIES.find((c) => c.value === cityValue)
+  return city ? city.zipRanges : []
+}
+
+export function getServiceAreas(): string[] {
+  return AZ_CITIES.map((city) => city.label)
 }

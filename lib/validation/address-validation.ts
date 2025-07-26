@@ -5,7 +5,7 @@ const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
 
 import { z } from "zod"
-import { isValidArizonaZip, AZ_CITIES } from "@/lib/location-data"
+import { isValidArizonaZip, AZ_CITIES, getCityByZipCode } from "@/lib/location-data"
 
 /**
  * Validates an Arizona ZIP code
@@ -161,26 +161,70 @@ export function isValidStreetAddress(address: string): boolean {
   return true
 }
 
-export const addressSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+export const addressFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(50, "First name too long"),
+  lastName: z.string().min(1, "Last name is required").max(50, "Last name too long"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  address: z.string().min(1, "Address is required"),
-  city: z.enum(["Phoenix", "Glendale", "Peoria"], {
+  phone: z.string().min(10, "Please enter a valid phone number").max(15, "Phone number too long"),
+  address: z.string().min(5, "Please enter a complete street address").max(100, "Address too long"),
+  city: z.enum(["phoenix", "glendale", "peoria"], {
     errorMap: () => ({ message: "Please select a valid city" }),
   }),
   state: z.literal("AZ"),
-  zipCode: z.string().min(5, "ZIP code must be 5 digits").max(5, "ZIP code must be 5 digits"),
+  zipCode: z.string().length(5, "ZIP code must be 5 digits").refine(isValidArizonaZip, {
+    message: "We currently serve Phoenix, Glendale, and Peoria areas only",
+  }),
+  specialInstructions: z.string().max(500, "Instructions too long").optional(),
 })
 
-export const addressFormSchema = addressSchema.refine((data) => isValidArizonaZip(data.zipCode, data.city), {
-  message: "ZIP code is not valid for the selected city or is outside our service area",
-  path: ["zipCode"],
-})
+export type AddressFormData = z.infer<typeof addressFormSchema>
 
-export function validateArizonaAddress(data: any) {
-  return addressFormSchema.safeParse(data)
+export const addressSchema = addressFormSchema
+
+export function validateAndFormatZip(zipCode: string): {
+  isValid: boolean
+  formatted: string
+  city: string | null
+} {
+  // Remove any non-digits
+  const cleaned = zipCode.replace(/\D/g, "")
+
+  // Limit to 5 digits
+  const formatted = cleaned.slice(0, 5)
+
+  // Check if valid Arizona ZIP
+  const isValid = formatted.length === 5 && isValidArizonaZip(formatted)
+
+  // Get city if valid
+  const city = isValid ? getCityByZipCode(formatted) : null
+
+  return {
+    isValid,
+    formatted,
+    city,
+  }
+}
+
+export function validatePhoneNumber(phone: string): boolean {
+  // Remove all non-digits
+  const cleaned = phone.replace(/\D/g, "")
+
+  // Check if it's a valid US phone number (10 or 11 digits)
+  return cleaned.length === 10 || (cleaned.length === 11 && cleaned.startsWith("1"))
+}
+
+export function formatPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, "")
+
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`
+  }
+
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
+    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`
+  }
+
+  return phone
 }
 
 /**

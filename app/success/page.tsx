@@ -5,232 +5,138 @@ import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, XCircle, Phone, Download, RefreshCw, Loader2 } from "lucide-react"
-import { CONTACT_INFO } from "@/lib/location-data"
+import { CheckCircle, XCircle, Phone, Mail, Home, Loader2 } from "lucide-react"
+import { getContactInfo } from "@/lib/payment-config"
 
-type PaymentStatus = "loading" | "success" | "failed" | "contact_payment"
-
-interface OrderData {
-  orderId: string
-  amount: number
-  customerEmail: string
-  customerName: string
-  paymentMethod: string
+interface PaymentVerification {
+  success: boolean
+  paymentIntentId?: string
+  amount?: number
+  currency?: string
+  customerEmail?: string
+  error?: string
 }
 
 export default function SuccessPage() {
   const searchParams = useSearchParams()
-  const [status, setStatus] = useState<PaymentStatus>("loading")
-  const [orderData, setOrderData] = useState<OrderData | null>(null)
-  const [error, setError] = useState<string>("")
-  const [retryCount, setRetryCount] = useState(0)
+  const [verification, setVerification] = useState<PaymentVerification | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [emailSent, setEmailSent] = useState(false)
 
-  const sessionId = searchParams.get("session_id")
-  const paymentMethod = searchParams.get("payment_method")
-  const isContactPayment = paymentMethod === "contact_payment"
+  const paymentIntentId = searchParams.get("payment_intent")
+  const contactInfo = getContactInfo()
 
   useEffect(() => {
-    if (isContactPayment) {
-      handleContactPayment()
-    } else if (sessionId) {
-      verifyPayment()
-    } else {
-      setStatus("failed")
-      setError("No payment information found")
-    }
-  }, [sessionId, isContactPayment])
-
-  const handleContactPayment = () => {
-    try {
-      const savedOrderData = localStorage.getItem("pendingOrder")
-      if (savedOrderData) {
-        const orderInfo = JSON.parse(savedOrderData)
-        setOrderData({
-          orderId: `CONTACT-${Date.now()}`,
-          amount: orderInfo.total || 0,
-          customerEmail: orderInfo.email || "",
-          customerName: `${orderInfo.firstName || ""} ${orderInfo.lastName || ""}`.trim(),
-          paymentMethod: "Contact Payment",
+    const verifyPayment = async () => {
+      if (!paymentIntentId) {
+        setVerification({
+          success: false,
+          error: "No payment information found",
         })
-        setStatus("contact_payment")
-
-        // Send confirmation email for contact payment
-        sendConfirmationEmail({
-          orderId: `CONTACT-${Date.now()}`,
-          customerEmail: orderInfo.email || "",
-          customerName: `${orderInfo.firstName || ""} ${orderInfo.lastName || ""}`.trim(),
-          paymentMethod: "Contact Payment",
-          amount: orderInfo.total || 0,
-        })
-      } else {
-        setStatus("contact_payment")
-        setOrderData({
-          orderId: `CONTACT-${Date.now()}`,
-          amount: 0,
-          customerEmail: "",
-          customerName: "Customer",
-          paymentMethod: "Contact Payment",
-        })
+        setIsLoading(false)
+        return
       }
-    } catch (error) {
-      console.error("Error handling contact payment:", error)
-      setStatus("contact_payment")
-    }
-  }
 
-  const verifyPayment = async () => {
-    try {
-      const response = await fetch("/api/verify-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sessionId }),
-      })
-
-      const data = await response.json()
-
-      if (data.success && data.session) {
-        setOrderData({
-          orderId: data.session.id,
-          amount: data.session.amount_total / 100,
-          customerEmail: data.session.customer_details?.email || "",
-          customerName: data.session.customer_details?.name || "",
-          paymentMethod: data.session.payment_method_types?.[0] || "card",
-        })
-        setStatus("success")
-
-        // Send confirmation email
-        await sendConfirmationEmail({
-          orderId: data.session.id,
-          customerEmail: data.session.customer_details?.email || "",
-          customerName: data.session.customer_details?.name || "",
-          paymentMethod: data.session.payment_method_types?.[0] || "card",
-          amount: data.session.amount_total / 100,
+      try {
+        const response = await fetch("/api/verify-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ paymentIntentId }),
         })
 
-        // Clear any pending order data
-        localStorage.removeItem("pendingOrder")
-      } else {
-        setStatus("failed")
-        setError(data.error || "Payment verification failed")
+        const result = await response.json()
+        setVerification(result)
+
+        // Send confirmation email if payment was successful
+        if (result.success && result.customerEmail) {
+          try {
+            await fetch("/api/send-confirmation-email", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: result.customerEmail,
+                paymentIntentId: result.paymentIntentId,
+                amount: result.amount,
+              }),
+            })
+            setEmailSent(true)
+          } catch (emailError) {
+            console.error("Failed to send confirmation email:", emailError)
+          }
+        }
+      } catch (error) {
+        console.error("Payment verification failed:", error)
+        setVerification({
+          success: false,
+          error: "Failed to verify payment",
+        })
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error("Error verifying payment:", error)
-      setStatus("failed")
-      setError("Unable to verify payment. Please contact support.")
     }
-  }
 
-  const sendConfirmationEmail = async (emailData: any) => {
-    try {
-      await fetch("/api/send-confirmation-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(emailData),
-      })
-    } catch (error) {
-      console.error("Error sending confirmation email:", error)
-    }
-  }
-
-  const handleRetryVerification = () => {
-    setRetryCount((prev) => prev + 1)
-    setStatus("loading")
-    setError("")
     verifyPayment()
-  }
+  }, [paymentIntentId])
 
-  const downloadContactInfo = () => {
-    const contactData = `
-SmileyBrooms Contact Information
-Website: ${CONTACT_INFO.website}
-Phone: ${CONTACT_INFO.displayPhone}
-
-Order ID: ${orderData?.orderId || "N/A"}
-Customer: ${orderData?.customerName || "N/A"}
-Email: ${orderData?.customerEmail || "N/A"}
-
-Please call us to complete your payment using:
-- Cash
-- Zelle
-- Other payment methods
-
-Thank you for choosing SmileyBrooms!
-    `.trim()
-
-    const blob = new Blob([contactData], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "smileybrooms-contact-info.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  if (status === "loading") {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center p-8">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Verifying Payment</h2>
-            <p className="text-gray-600 text-center">Please wait while we confirm your payment...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
+            <p className="text-lg font-medium">Verifying your payment...</p>
+            <p className="text-sm text-gray-600 mt-2">Please wait while we confirm your booking</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  if (status === "success") {
+  if (!verification || !verification.success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <CardTitle className="text-2xl text-green-600">Payment Successful!</CardTitle>
+            <div className="mx-auto mb-4">
+              <XCircle className="h-16 w-16 text-red-500" />
+            </div>
+            <CardTitle className="text-xl text-red-600">Payment Verification Failed</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
+          <CardContent className="text-center space-y-4">
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
               <AlertDescription>
-                Your payment has been processed successfully. You will receive a confirmation email shortly.
+                {verification?.error || "We couldn't verify your payment. Please contact us for assistance."}
               </AlertDescription>
             </Alert>
 
-            {orderData && (
-              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <p>
-                  <strong>Order ID:</strong> {orderData.orderId}
-                </p>
-                <p>
-                  <strong>Amount:</strong> ${orderData.amount.toFixed(2)}
-                </p>
-                <p>
-                  <strong>Payment Method:</strong> {orderData.paymentMethod}
-                </p>
-                <p>
-                  <strong>Customer:</strong> {orderData.customerName}
-                </p>
-              </div>
-            )}
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Don't worry! If you were charged, we'll help resolve this quickly.
+              </p>
 
-            <div className="space-y-2">
-              <Button className="w-full" onClick={() => (window.location.href = "/")}>
-                Return to Home
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full flex items-center gap-2 bg-transparent"
-                onClick={() => window.print()}
-              >
-                <Download className="h-4 w-4" />
-                Print Receipt
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => window.open(`tel:${contactInfo.phone}`, "_self")}
+                  className="flex items-center gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call {contactInfo.displayPhone}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`mailto:${contactInfo.email}`, "_self")}
+                  className="flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Support
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -238,110 +144,91 @@ Thank you for choosing SmileyBrooms!
     )
   }
 
-  if (status === "contact_payment") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Phone className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-            <CardTitle className="text-2xl text-blue-600">Contact Payment Selected</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Phone className="h-4 w-4" />
-              <AlertDescription>
-                Your booking request has been received. Please call us to complete payment.
-              </AlertDescription>
-            </Alert>
-
-            {orderData && (
-              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <p>
-                  <strong>Order ID:</strong> {orderData.orderId}
-                </p>
-                <p>
-                  <strong>Customer:</strong> {orderData.customerName}
-                </p>
-                <p>
-                  <strong>Email:</strong> {orderData.customerEmail}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Button
-                className="w-full flex items-center gap-2"
-                onClick={() => window.open(`tel:${CONTACT_INFO.phone}`, "_self")}
-              >
-                <Phone className="h-4 w-4" />
-                Call {CONTACT_INFO.displayPhone}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full flex items-center gap-2 bg-transparent"
-                onClick={downloadContactInfo}
-              >
-                <Download className="h-4 w-4" />
-                Download Contact Info
-              </Button>
-            </div>
-
-            <div className="text-sm text-gray-600 text-center">
-              <p>Available payment methods over the phone:</p>
-              <p>• Cash • Zelle • Other options</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Failed status
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-          <CardTitle className="text-2xl text-red-600">Payment Issue</CardTitle>
+          <div className="mx-auto mb-4">
+            <CheckCircle className="h-16 w-16 text-green-500" />
+          </div>
+          <CardTitle className="text-2xl text-green-600">Booking Confirmed!</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error || "Payment verification failed. Please try again or contact support."}
+        <CardContent className="space-y-6">
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Your payment has been processed successfully and your cleaning service has been booked.
             </AlertDescription>
           </Alert>
 
-          <div className="space-y-2">
-            {sessionId && retryCount < 3 && (
-              <Button className="w-full flex items-center gap-2" onClick={handleRetryVerification}>
-                <RefreshCw className="h-4 w-4" />
-                Retry Verification
-              </Button>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">Payment Details</h3>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="text-gray-600">Payment ID:</span> {verification.paymentIntentId}
+                </p>
+                <p>
+                  <span className="text-gray-600">Amount:</span> ${((verification.amount || 0) / 100).toFixed(2)}{" "}
+                  {verification.currency?.toUpperCase()}
+                </p>
+                {verification.customerEmail && (
+                  <p>
+                    <span className="text-gray-600">Email:</span> {verification.customerEmail}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {emailSent && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <Mail className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  A confirmation email has been sent to {verification.customerEmail}
+                </AlertDescription>
+              </Alert>
             )}
 
-            <Button
-              variant="outline"
-              className="w-full flex items-center gap-2 bg-transparent"
-              onClick={() => window.open(`tel:${CONTACT_INFO.phone}`, "_self")}
-            >
-              <Phone className="h-4 w-4" />
-              Call Support {CONTACT_INFO.displayPhone}
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full flex items-center gap-2 bg-transparent"
-              onClick={downloadContactInfo}
-            >
-              <Download className="h-4 w-4" />
-              Download Contact Info
-            </Button>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2 text-blue-800">What's Next?</h3>
+              <ul className="space-y-1 text-sm text-blue-700">
+                <li>• We'll contact you within 24 hours to schedule your service</li>
+                <li>• You'll receive a confirmation email with all the details</li>
+                <li>• Our team will arrive at your scheduled time</li>
+                <li>• Enjoy your sparkling clean space!</li>
+              </ul>
+            </div>
           </div>
 
-          <div className="text-sm text-gray-600 text-center">
-            <p>Need help? Call us for assistance with:</p>
-            <p>• Payment issues • Booking questions • Alternative payment methods</p>
+          <div className="flex flex-col gap-3">
+            <Button onClick={() => (window.location.href = "/")} className="flex items-center gap-2">
+              <Home className="h-4 w-4" />
+              Return to Home
+            </Button>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">Questions about your booking?</p>
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`tel:${contactInfo.phone}`, "_self")}
+                  className="flex items-center gap-1"
+                >
+                  <Phone className="h-3 w-3" />
+                  {contactInfo.displayPhone}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`mailto:${contactInfo.email}`, "_self")}
+                  className="flex items-center gap-1"
+                >
+                  <Mail className="h-3 w-3" />
+                  Email
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
