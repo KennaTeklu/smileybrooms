@@ -5,27 +5,43 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20",
 })
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const { sessionId } = await request.json()
+    const { sessionId } = await req.json()
 
     if (!sessionId) {
-      return NextResponse.json({ success: false, error: "Session ID is required" }, { status: 400 })
+      return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
     }
 
-    // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId)
 
-    return NextResponse.json({
-      success: true,
-      status: session.status,
-      sessionId: session.id,
-      customerEmail: session.customer_details?.email,
-      amount: session.amount_total,
-      paymentStatus: session.payment_status,
-    })
-  } catch (error) {
-    console.error("Payment verification error:", error)
-    return NextResponse.json({ success: false, error: "Failed to verify payment" }, { status: 500 })
+    if (session.payment_status === "paid") {
+      // Payment was successful
+      // You might want to update your database here, fulfill the order, etc.
+      console.log(`Payment successful for session: ${sessionId}`)
+      return NextResponse.json(
+        {
+          status: "paid",
+          message: "Payment successfully verified.",
+          orderId: session.id, // Or your internal order ID
+          customerEmail: session.customer_details?.email,
+          amount: session.amount_total,
+        },
+        { status: 200 },
+      )
+    } else {
+      // Payment not yet paid or failed
+      console.log(`Payment status for session ${sessionId}: ${session.payment_status}`)
+      return NextResponse.json(
+        {
+          status: session.payment_status,
+          message: `Payment status is ${session.payment_status}.`,
+        },
+        { status: 400 },
+      )
+    }
+  } catch (error: any) {
+    console.error("Error verifying payment session:", error)
+    return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 })
   }
 }

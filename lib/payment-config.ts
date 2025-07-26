@@ -1,6 +1,12 @@
-import type { DeviceType } from "./device-detection"
+import type { DeviceType } from "./device-detection" // Import DeviceType
 
-export type PaymentMethod = "apple_pay" | "google_pay" | "contact_for_alternatives"
+export const CONTACT_INFO = {
+  companyName: "SmileyBrooms.com",
+  phoneNumber: "6616023000",
+  email: "support@smileybrooms.com",
+}
+
+export type PaymentMethod = "applePay" | "googlePay" | "contact"
 
 export interface PaymentMethodConfig {
   id: PaymentMethod
@@ -22,31 +28,31 @@ export interface DevicePaymentConfig {
 // Simplified payment configuration - only 2 options per device type
 export const paymentConfig: Record<DeviceType, DevicePaymentConfig> = {
   ios: {
-    primary: "apple_pay",
-    fallback: "contact_for_alternatives",
+    primary: "applePay",
+    fallback: "contact",
     theme: "light-blur",
   },
   android: {
-    primary: "google_pay",
-    fallback: "contact_for_alternatives",
+    primary: "googlePay",
+    fallback: "contact",
     theme: "material-dark",
   },
   desktop: {
-    primary: "google_pay",
-    fallback: "contact_for_alternatives",
+    primary: "googlePay",
+    fallback: "contact",
     theme: "standard",
   },
   unknown: {
-    primary: "google_pay",
-    fallback: "contact_for_alternatives",
+    primary: "googlePay",
+    fallback: "contact",
     theme: "standard",
   },
 }
 
 // Payment method definitions
 export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
-  apple_pay: {
-    id: "apple_pay",
+  applePay: {
+    id: "applePay",
     name: "Apple Pay",
     description: "Pay securely with Touch ID, Face ID, or passcode",
     icon: "apple",
@@ -55,8 +61,8 @@ export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
     supportedDevices: ["ios"],
     isDigitalWallet: true,
   },
-  google_pay: {
-    id: "google_pay",
+  googlePay: {
+    id: "googlePay",
     name: "Google Pay",
     description: "Pay quickly and securely with Google Pay",
     icon: "smartphone",
@@ -65,8 +71,8 @@ export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
     supportedDevices: ["android", "desktop", "unknown"],
     isDigitalWallet: true,
   },
-  contact_for_alternatives: {
-    id: "contact_for_alternatives",
+  contact: {
+    id: "contact",
     name: "Other Payment Options",
     description: "Call us for cash, Zelle, or other payment methods",
     icon: "phone",
@@ -96,8 +102,11 @@ export function supportsDigitalWallet(deviceType: DeviceType): boolean {
 
 export function getContactInfo() {
   return {
-    website: "smileybrooms.com",
-    phone: "6616023000",
-    phoneFormatted: "(661) 602-3000",
+    website: CONTACT_INFO.companyName,
+    phone: CONTACT_INFO.phoneNumber,
+    phoneFormatted: `(${CONTACT_INFO.phoneNumber.substring(0, 3)}) ${CONTACT_INFO.phoneNumber.substring(
+      3,
+      6,
+    )}-${CONTACT_INFO.phoneNumber.substring(6)}`,
   }
 }

@@ -69,3 +69,15 @@ export function useDeviceDetection(): DeviceInfo {
 
   return deviceInfo
 }
+
+export function isIOS(): boolean {
+  if (typeof window === "undefined") return false
+  const ua = navigator.userAgent.toLowerCase()
+  return /iphone|ipad|ipod/.test(ua)
+}
+
+export function isAndroid(): boolean {
+  if (typeof window === "undefined") return false
+  const ua = navigator.userAgent.toLowerCase()
+  return /android/.test(ua)
+}

@@ -1,255 +1,222 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { CheckCircle, XCircle, Loader2, Phone, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, XCircle, Phone, Download, RefreshCw, Loader2 } from "lucide-react"
-import { getContactInfo } from "@/lib/payment-config"
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { getContactInfo } from "@/lib/payment-config" // Ensure this is correctly imported
+import { toast } from "@/components/ui/use-toast"
 
 type PaymentStatus = "verifying" | "success" | "failed" | "error"
-
-interface PaymentVerificationResult {
-  success: boolean
-  status?: string
-  error?: string
-  sessionId?: string
-  customerEmail?: string
-  amount?: number
-}
 
 export default function SuccessPage() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("verifying")
-  const [paymentData, setPaymentData] = useState<PaymentVerificationResult | null>(null)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
+  const paymentType = searchParams.get("payment_type") // 'digital_wallet' or 'contact'
+  const [status, setStatus] = useState<PaymentStatus>("verifying")
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
 
-  const contactInfo = getContactInfo()
+  const { phoneFormatted, website } = getContactInfo()
 
-  const verifyPayment = async () => {
+  const handleDownloadContact = useCallback(() => {
+    const contactContent = `Company: ${website}\nPhone: ${phoneFormatted}\n`
+    const blob = new Blob([contactContent], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "smileybrooms_contact.txt"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({
+      title: "Contact Info Downloaded!",
+      description: "You can find our contact details in your downloads.",
+    })
+  }, [phoneFormatted, website])
+
+  const handleDownloadReceipt = useCallback(() => {
+    // In a real application, you would fetch the receipt from your backend
+    // For this example, we'll simulate a simple receipt
+    const receiptContent = `
+      SmileyBrooms.com - Order Receipt
+      ---------------------------------
+      Order ID: ${orderId || "N/A"}
+      Payment Status: ${status === "success" ? "Paid" : "Pending/Failed"}
+      Date: ${new Date().toLocaleDateString()}
+      Time: ${new Date().toLocaleTimeString()}
+
+      Thank you for your business!
+      ---------------------------------
+      For support, call us at ${phoneFormatted}
+    `
+    const blob = new Blob([receiptContent], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `smileybrooms_receipt_${orderId || "unknown"}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast({
+      title: "Receipt Downloaded!",
+      description: "Your order receipt is in your downloads.",
+    })
+  }, [orderId, status, phoneFormatted])
+
+  const verifyPayment = useCallback(async () => {
+    if (paymentType === "contact") {
+      setStatus("success")
+      setOrderId("CONTACT-BOOKING-" + Date.now()) // Simulate an order ID for contact bookings
+      toast({
+        title: "Booking Received!",
+        description: "We've received your booking request. We'll contact you shortly.",
+        variant: "success",
+      })
+      return
+    }
+
     if (!sessionId) {
-      setPaymentStatus("error")
-      setPaymentData({ success: false, error: "No payment session found" })
+      setStatus("error")
+      setErrorMessage("No payment session ID found.")
+      toast({
+        title: "Payment Error",
+        description: "No payment session ID was provided. Please try again.",
+        variant: "destructive",
+      })
       return
     }
 
     try {
       const response = await fetch("/api/verify-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ sessionId }),
       })
 
-      const result: PaymentVerificationResult = await response.json()
-      setPaymentData(result)
+      const data = await response.json()
 
-      if (result.success && result.status === "complete") {
-        setPaymentStatus("success")
-        // Send confirmation email
-        if (result.customerEmail && !emailSent) {
-          sendConfirmationEmail(result)
-        }
-      } else if (result.status === "open" || result.status === "expired") {
-        setPaymentStatus("failed")
+      if (response.ok && data.status === "paid") {
+        setStatus("success")
+        setOrderId(data.orderId || "STRIPE-" + sessionId.substring(0, 8))
+        toast({
+          title: "Payment Successful!",
+          description: "Your payment has been confirmed and your booking is complete.",
+          variant: "success",
+        })
+
+        // Optionally send confirmation email
+        await fetch("/api/send-confirmation-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: data.orderId,
+            customerEmail: data.customerEmail,
+            amount: data.amount,
+          }),
+        })
       } else {
-        setPaymentStatus("error")
+        setStatus("failed")
+        setErrorMessage(data.message || "Payment could not be verified. Please try again.")
+        toast({
+          title: "Payment Failed",
+          description: data.message || "Your payment could not be verified.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error("Payment verification failed:", error)
-      setPaymentStatus("error")
-      setPaymentData({ success: false, error: "Failed to verify payment" })
-    }
-  }
-
-  const sendConfirmationEmail = async (data: PaymentVerificationResult) => {
-    try {
-      await fetch("/api/send-confirmation-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: data.customerEmail,
-          sessionId: data.sessionId,
-          amount: data.amount,
-        }),
+      console.error("Error verifying payment:", error)
+      setStatus("error")
+      setErrorMessage("An unexpected error occurred during payment verification.")
+      toast({
+        title: "Verification Error",
+        description: "An unexpected error occurred. Please try again or contact support.",
+        variant: "destructive",
       })
-      setEmailSent(true)
-    } catch (error) {
-      console.error("Failed to send confirmation email:", error)
     }
-  }
-
-  const handleRetryVerification = async () => {
-    setIsRetrying(true)
-    setPaymentStatus("verifying")
-    await verifyPayment()
-    setIsRetrying(false)
-  }
-
-  const downloadContactInfo = () => {
-    const contactData = `
-SmileyBrooms Contact Information
-Website: ${contactInfo.website}
-Phone: ${contactInfo.phoneFormatted}
-
-For assistance with:
-- Cash payments
-- Zelle transfers
-- Payment issues
-- Booking questions
-
-Call us during business hours for immediate assistance.
-    `.trim()
-
-    const blob = new Blob([contactData], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "smileybrooms-contact.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const callNow = () => {
-    window.location.href = `tel:${contactInfo.phone}`
-  }
+  }, [sessionId, paymentType])
 
   useEffect(() => {
     verifyPayment()
-  }, [sessionId])
+  }, [verifyPayment])
 
-  if (paymentStatus === "verifying") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-              <h2 className="text-xl font-semibold">Verifying Payment</h2>
-              <p className="text-gray-600">Please wait while we confirm your payment...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (paymentStatus === "success") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <CardTitle className="text-2xl text-green-800">Payment Successful!</CardTitle>
-            <CardDescription>Your cleaning service has been booked successfully.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="font-medium text-green-800 mb-2">What's Next?</h3>
-              <ul className="text-sm text-green-700 space-y-1">
-                <li>• Confirmation email sent to your inbox</li>
-                <li>• We'll contact you to schedule your service</li>
-                <li>• Expect a call within 24 hours</li>
-              </ul>
-            </div>
-
-            {paymentData?.amount && (
-              <div className="text-center py-2">
-                <p className="text-sm text-gray-600">
-                  Amount paid: <span className="font-semibold">${(paymentData.amount / 100).toFixed(2)}</span>
-                </p>
-              </div>
+  const renderContent = () => {
+    if (status === "verifying") {
+      return (
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-16 w-16 animate-spin text-blue-500" />
+          <CardTitle className="text-2xl font-bold">Verifying your payment...</CardTitle>
+          <CardDescription>Please do not close this page.</CardDescription>
+        </div>
+      )
+    } else if (status === "success") {
+      return (
+        <div className="flex flex-col items-center space-y-4">
+          <CheckCircle className="h-16 w-16 text-green-500" />
+          <CardTitle className="text-2xl font-bold">
+            {paymentType === "contact" ? "Booking Confirmed!" : "Payment Successful!"}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {paymentType === "contact"
+              ? "Thank you for your booking! We will contact you shortly to confirm details and arrange payment."
+              : `Your payment has been successfully processed. Your order ID is: ${orderId}. A confirmation email has been sent.`}
+          </CardDescription>
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            {paymentType !== "contact" && (
+              <Button onClick={handleDownloadReceipt} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Download Receipt
+              </Button>
             )}
-
-            <div className="flex gap-2">
-              <Button onClick={downloadContactInfo} variant="outline" className="flex-1 bg-transparent">
-                <Download className="h-4 w-4 mr-2" />
-                Download Receipt
+            <Button variant="outline" onClick={() => (window.location.href = "/")} className="w-full sm:w-auto">
+              Go to Homepage
+            </Button>
+          </div>
+        </div>
+      )
+    } else if (status === "failed" || status === "error") {
+      return (
+        <div className="flex flex-col items-center space-y-4">
+          <XCircle className="h-16 w-16 text-red-500" />
+          <CardTitle className="text-2xl font-bold">Payment Failed</CardTitle>
+          <CardDescription className="text-center">
+            {errorMessage || "There was an issue processing your payment. Please try again."}
+          </CardDescription>
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+            <Button onClick={() => verifyPayment()} className="w-full sm:w-auto">
+              <Loader2 className="mr-2 h-4 w-4" /> Retry Verification
+            </Button>
+            <Button onClick={() => (window.location.href = "/checkout")} className="w-full sm:w-auto">
+              Retry Payment
+            </Button>
+          </div>
+          <div className="mt-8 text-center">
+            <p className="text-lg font-semibold">Need assistance?</p>
+            <p className="text-muted-foreground">If you continue to experience issues, please contact us directly.</p>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <Button variant="outline" onClick={() => window.open(`tel:${phoneFormatted.replace(/\D/g, "")}`)}>
+                <Phone className="mr-2 h-4 w-4" /> Call Us: {phoneFormatted}
               </Button>
-              <Button onClick={callNow} className="flex-1">
-                <Phone className="h-4 w-4 mr-2" />
-                Call Us
+              <Button variant="outline" onClick={handleDownloadContact}>
+                <Download className="mr-2 h-4 w-4" /> Download Contact Info
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+            <p className="text-sm text-muted-foreground mt-2">We also accept Zelle or cash payments over the phone.</p>
+          </div>
+        </div>
+      )
+    }
   }
 
-  if (paymentStatus === "failed" || paymentStatus === "error") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <CardTitle className="text-2xl text-red-800">Payment Issue</CardTitle>
-            <CardDescription>
-              {paymentStatus === "failed"
-                ? "Your payment was not completed successfully."
-                : "We encountered an issue verifying your payment."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="font-medium text-red-800 mb-2">What happened?</h3>
-              <p className="text-sm text-red-700">
-                {paymentData?.error || "The payment process was interrupted or failed to complete."}
-              </p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-800 mb-2">No worries! We can help:</h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Call us to complete your booking over the phone</li>
-                <li>• Pay with cash, Zelle, or card over the phone</li>
-                <li>• Get immediate assistance with your order</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                onClick={handleRetryVerification}
-                variant="outline"
-                className="w-full bg-transparent"
-                disabled={isRetrying}
-              >
-                {isRetrying ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Check Payment Again
-                  </>
-                )}
-              </Button>
-
-              <div className="flex gap-2">
-                <Button onClick={callNow} className="flex-1">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Call {contactInfo.phoneFormatted}
-                </Button>
-                <Button onClick={downloadContactInfo} variant="outline" className="flex-1 bg-transparent">
-                  <Download className="h-4 w-4 mr-2" />
-                  Get Contact Info
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-xs text-gray-500">Available for cash, Zelle, and phone payments</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  return null
+  return (
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-gray-100 dark:bg-gray-950 p-4">
+      <Card className="w-full max-w-2xl p-6 text-center shadow-lg">
+        <CardContent className="flex flex-col items-center justify-center">{renderContent()}</CardContent>
+      </Card>
+    </div>
+  )
 }
