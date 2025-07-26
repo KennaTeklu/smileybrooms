@@ -1,112 +1,110 @@
-import type { DeviceType } from "./device-detection" // Import DeviceType
+import { getDeviceType } from "./device-detection"
+import { ApplePaySession } from "apple-pay-js"
 
-export const CONTACT_INFO = {
-  companyName: "SmileyBrooms.com",
-  phoneNumber: "6616023000",
-  email: "support@smileybrooms.com",
+export interface ContactInfo {
+  website: string
+  phone: string
+  email?: string
 }
 
-export type PaymentMethod = "applePay" | "googlePay" | "contact"
+export const CONTACT_INFO: ContactInfo = {
+  website: "smileybrooms.com",
+  phone: "(661) 602-3000",
+  email: "info@smileybrooms.com",
+}
 
-export interface PaymentMethodConfig {
-  id: PaymentMethod
+export interface PaymentMethod {
+  id: string
   name: string
-  description: string
-  icon: string
-  theme: string
-  priority: number
-  supportedDevices: DeviceType[]
-  isDigitalWallet: boolean
+  type: "digital_wallet" | "contact"
+  icon?: string
+  description?: string
 }
 
-export interface DevicePaymentConfig {
-  primary: PaymentMethod
-  fallback: PaymentMethod
-  theme: string
-}
-
-// Simplified payment configuration - only 2 options per device type
-export const paymentConfig: Record<DeviceType, DevicePaymentConfig> = {
-  ios: {
-    primary: "applePay",
-    fallback: "contact",
-    theme: "light-blur",
-  },
-  android: {
-    primary: "googlePay",
-    fallback: "contact",
-    theme: "material-dark",
-  },
-  desktop: {
-    primary: "googlePay",
-    fallback: "contact",
-    theme: "standard",
-  },
-  unknown: {
-    primary: "googlePay",
-    fallback: "contact",
-    theme: "standard",
-  },
-}
-
-// Payment method definitions
-export const paymentMethods: Record<PaymentMethod, PaymentMethodConfig> = {
-  applePay: {
-    id: "applePay",
+export const PAYMENT_METHODS: PaymentMethod[] = [
+  {
+    id: "apple_pay",
     name: "Apple Pay",
-    description: "Pay securely with Touch ID, Face ID, or passcode",
-    icon: "apple",
-    theme: "black",
-    priority: 1,
-    supportedDevices: ["ios"],
-    isDigitalWallet: true,
+    type: "digital_wallet",
+    icon: "🍎",
+    description: "Pay securely with Touch ID or Face ID",
   },
-  googlePay: {
-    id: "googlePay",
+  {
+    id: "google_pay",
     name: "Google Pay",
-    description: "Pay quickly and securely with Google Pay",
-    icon: "smartphone",
-    theme: "blue",
-    priority: 1,
-    supportedDevices: ["android", "desktop", "unknown"],
-    isDigitalWallet: true,
+    type: "digital_wallet",
+    icon: "🟢",
+    description: "Pay quickly with your Google account",
   },
-  contact: {
-    id: "contact",
-    name: "Other Payment Options",
-    description: "Call us for cash, Zelle, or other payment methods",
-    icon: "phone",
-    theme: "green",
-    priority: 2,
-    supportedDevices: ["ios", "android", "desktop", "unknown"],
-    isDigitalWallet: false,
+  {
+    id: "contact_payment",
+    name: "Call to Pay",
+    type: "contact",
+    icon: "📞",
+    description: "Pay with cash, Zelle, or over the phone",
   },
-}
+]
 
-export function getDeviceOptimizedPaymentMethods(deviceType: DeviceType): PaymentMethodConfig[] {
-  const config = paymentConfig[deviceType] || paymentConfig.unknown
+export function getDeviceOptimizedPaymentMethods(): PaymentMethod[] {
+  const deviceType = getDeviceType()
 
-  return [paymentMethods[config.primary], paymentMethods[config.fallback]].filter((method) =>
-    method.supportedDevices.includes(deviceType),
-  )
-}
-
-export function getPrimaryPaymentMethod(deviceType: DeviceType): PaymentMethod {
-  return paymentConfig[deviceType]?.primary || paymentConfig.unknown.primary
-}
-
-export function supportsDigitalWallet(deviceType: DeviceType): boolean {
-  const primaryMethod = getPrimaryPaymentMethod(deviceType)
-  return paymentMethods[primaryMethod].isDigitalWallet
-}
-
-export function getContactInfo() {
-  return {
-    website: CONTACT_INFO.companyName,
-    phone: CONTACT_INFO.phoneNumber,
-    phoneFormatted: `(${CONTACT_INFO.phoneNumber.substring(0, 3)}) ${CONTACT_INFO.phoneNumber.substring(
-      3,
-      6,
-    )}-${CONTACT_INFO.phoneNumber.substring(6)}`,
+  switch (deviceType) {
+    case "ios":
+      return [
+        PAYMENT_METHODS.find((m) => m.id === "apple_pay")!,
+        PAYMENT_METHODS.find((m) => m.id === "contact_payment")!,
+      ]
+    case "android":
+    case "desktop":
+    default:
+      return [
+        PAYMENT_METHODS.find((m) => m.id === "google_pay")!,
+        PAYMENT_METHODS.find((m) => m.id === "contact_payment")!,
+      ]
   }
+}
+
+export function supportsDigitalWallet(): boolean {
+  if (typeof window === "undefined") return false
+
+  const deviceType = getDeviceType()
+
+  if (deviceType === "ios") {
+    return "ApplePaySession" in window && ApplePaySession.canMakePayments()
+  }
+
+  if (deviceType === "android" || deviceType === "desktop") {
+    return "PaymentRequest" in window
+  }
+
+  return false
+}
+
+export function getPrimaryPaymentMethod(): PaymentMethod {
+  const methods = getDeviceOptimizedPaymentMethods()
+  return methods[0]
+}
+
+export function getContactInfo(): ContactInfo {
+  return CONTACT_INFO
+}
+
+export function createContactDownload(): string {
+  const contactData = `
+SmileyBrooms Cleaning Service
+Website: ${CONTACT_INFO.website}
+Phone: ${CONTACT_INFO.phone}
+Email: ${CONTACT_INFO.email}
+
+Available Payment Methods:
+- Cash (in person)
+- Zelle
+- Phone payment
+- Credit/Debit card over phone
+
+Call us to complete your booking!
+  `.trim()
+
+  const blob = new Blob([contactData], { type: "text/plain" })
+  return URL.createObjectURL(blob)
 }

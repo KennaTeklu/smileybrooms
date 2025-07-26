@@ -33,10 +33,12 @@ export function useDeviceDetection(): DeviceInfo {
     if (typeof window === "undefined") return
 
     const ua = navigator.userAgent.toLowerCase()
-    const isIOS = /iphone|ipad|ipod/.test(ua)
-    const isAndroid = /android/.test(ua)
-    const isMobile = isIOS || isAndroid || /mobi/.test(ua)
-    const isTablet = /ipad/.test(ua) || (/android/.test(ua) && !/mobi/.test(ua))
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    const isAndroid = /Android/.test(navigator.userAgent)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    const isTablet = /iPad/.test(ua) || (/Android/.test(ua) && !/mobi/.test(ua))
     const isDesktop = !isMobile && !isTablet
 
     // Determine device type
@@ -72,12 +74,23 @@ export function useDeviceDetection(): DeviceInfo {
 
 export function isIOS(): boolean {
   if (typeof window === "undefined") return false
-  const ua = navigator.userAgent.toLowerCase()
-  return /iphone|ipad|ipod/.test(ua)
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  )
 }
 
 export function isAndroid(): boolean {
   if (typeof window === "undefined") return false
-  const ua = navigator.userAgent.toLowerCase()
-  return /android/.test(ua)
+  return /Android/.test(navigator.userAgent)
+}
+
+export function isMobile(): boolean {
+  if (typeof window === "undefined") return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
+
+export function getDeviceType(): "ios" | "android" | "desktop" {
+  if (isIOS()) return "ios"
+  if (isAndroid()) return "android"
+  return "desktop"
 }

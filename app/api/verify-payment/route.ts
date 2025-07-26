@@ -5,43 +5,54 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20",
 })
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { sessionId } = await req.json()
+    const { sessionId } = await request.json()
 
     if (!sessionId) {
-      return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "Session ID is required" }, { status: 400 })
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId)
+    // Retrieve the checkout session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["line_items", "customer"],
+    })
 
-    if (session.payment_status === "paid") {
-      // Payment was successful
-      // You might want to update your database here, fulfill the order, etc.
-      console.log(`Payment successful for session: ${sessionId}`)
-      return NextResponse.json(
-        {
-          status: "paid",
-          message: "Payment successfully verified.",
-          orderId: session.id, // Or your internal order ID
-          customerEmail: session.customer_details?.email,
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Session not found" }, { status: 404 })
+    }
+
+    // Check if payment was successful
+    if (session.payment_status === "paid" && session.status === "complete") {
+      return NextResponse.json({
+        success: true,
+        status: "complete",
+        sessionId: session.id,
+        orderData: {
+          id: session.id,
           amount: session.amount_total,
+          currency: session.currency,
+          customerEmail: session.customer_details?.email,
+          customerName: session.customer_details?.name,
+          paymentStatus: session.payment_status,
+          createdAt: new Date(session.created * 1000).toISOString(),
         },
-        { status: 200 },
-      )
+      })
     } else {
-      // Payment not yet paid or failed
-      console.log(`Payment status for session ${sessionId}: ${session.payment_status}`)
-      return NextResponse.json(
-        {
-          status: session.payment_status,
-          message: `Payment status is ${session.payment_status}.`,
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({
+        success: false,
+        status: session.status,
+        error: `Payment status: ${session.payment_status}, Session status: ${session.status}`,
+      })
     }
-  } catch (error: any) {
-    console.error("Error verifying payment session:", error)
-    return NextResponse.json({ message: error.message || "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error("Payment verification error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Payment verification failed",
+      },
+      { status: 500 },
+    )
   }
 }

@@ -5,7 +5,7 @@ const UK_POSTAL_REGEX = /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
 const AU_POSTAL_REGEX = /^\d{4}$/
 
 import { z } from "zod"
-import { isValidArizonaZip, isInServiceArea, AZ_CITIES } from "@/lib/location-data"
+import { isValidArizonaZip, AZ_CITIES } from "@/lib/location-data"
 
 /**
  * Validates an Arizona ZIP code
@@ -162,52 +162,33 @@ export function isValidStreetAddress(address: string): boolean {
 }
 
 export const addressSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
   street: z.string().min(1, "Street address is required"),
-  city: z
-    .string()
-    .min(1, "City is required")
-    .refine(
-      (city) => AZ_CITIES.some((c) => c.value.toLowerCase() === city.toLowerCase()),
-      "We currently only serve Phoenix, Glendale, and Peoria.",
-    ),
-  state: z
-    .string()
-    .min(1, "State is required")
-    .refine((state) => state === "AZ", "We currently only serve Arizona."),
-  zipCode: z
-    .string()
-    .min(5, "ZIP code must be 5 digits")
-    .max(5, "ZIP code must be 5 digits")
-    .refine(isValidArizonaZip, "Invalid Arizona ZIP code for our service area."),
+  city: z.enum(["Phoenix", "Glendale", "Peoria"], {
+    errorMap: () => ({ message: "Please select a valid city" }),
+  }),
+  state: z.literal("AZ"),
+  zipCode: z.string().refine((zip) => isValidArizonaZip(zip), "Please enter a valid ZIP code for our service area"),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>
 
-// This function can be used if you need to validate an address object outside of a form context
-export function validateArizonaAddress(address: AddressFormData): {
-  isValid: boolean
-  errors: z.ZodIssue[] | null
-} {
-  const result = addressSchema.safeParse(address)
-  if (!result.success) {
-    return { isValid: false, errors: result.error.issues }
-  }
-
-  // Additional check for service area based on all fields
-  if (!isInServiceArea(address.city, address.state, address.zipCode)) {
-    return {
-      isValid: false,
-      errors: [
-        {
-          code: z.ZodIssueCode.custom,
-          path: ["zipCode"],
-          message: "Address is outside our service area. Please call us for assistance.",
-        },
-      ],
+export function validateArizonaAddress(data: any): { isValid: boolean; errors: string[] } {
+  try {
+    addressSchema.parse(data)
+    return { isValid: true, errors: [] }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        isValid: false,
+        errors: error.errors.map((err) => err.message),
+      }
     }
+    return { isValid: false, errors: ["Invalid address data"] }
   }
-
-  return { isValid: true, errors: null }
 }
 
 /**
