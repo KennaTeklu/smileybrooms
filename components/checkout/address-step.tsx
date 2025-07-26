@@ -1,276 +1,130 @@
 "use client"
 
-import React from "react"
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@/components/ui/button"
+import type React from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Phone, Info, Download, MapPin } from "lucide-react"
-import { addressFormSchema, type AddressFormData, validateAndFormatZip } from "@/lib/validation/address-validation"
-import { AZ_CITIES, SERVICE_AREA_MESSAGE, CONTACT_INFO, getCityByZipCode } from "@/lib/location-data"
-import { createContactDownload } from "@/lib/payment-config"
+import { Button } from "@/components/ui/button"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+
+const addressSchema = z.object({
+  firstName: z.string().min(2, {
+    message: "First name must be at least 2 characters.",
+  }),
+  lastName: z.string().min(2, {
+    message: "Last name must be at least 2 characters.",
+  }),
+  address: z.string().min(5, {
+    message: "Address must be at least 5 characters.",
+  }),
+  city: z.string().min(2, {
+    message: "City must be at least 2 characters.",
+  }),
+  state: z.string().min(2, {
+    message: "State must be at least 2 characters.",
+  }),
+  zipCode: z.string().regex(/^\d{5}(?:-\d{4})?$/, {
+    message: "Invalid zip code.",
+  }),
+})
+
+type AddressSchemaType = z.infer<typeof addressSchema>
 
 interface AddressStepProps {
-  data: Partial<AddressFormData>
-  onSave: (data: AddressFormData) => void
-  onNext: () => void
-  onPrevious: () => void
+  open: boolean
+  onClose: () => void
+  onSubmit: (values: AddressSchemaType) => void
 }
 
-export default function AddressStep({ data, onSave, onNext, onPrevious }: AddressStepProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [zipError, setZipError] = useState<string>("")
-
+const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit }) => {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<AddressFormData>({
-    resolver: zodResolver(addressFormSchema),
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<AddressSchemaType>({
     defaultValues: {
-      firstName: data.firstName || "",
-      lastName: data.lastName || "",
-      email: data.email || "",
-      phone: data.phone || "",
-      address: data.address || "",
-      city: data.city || undefined,
-      state: "AZ",
-      zipCode: data.zipCode || "",
-      specialInstructions: data.specialInstructions || "",
+      firstName: "",
+      lastName: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
     },
   })
 
-  const zipCode = watch("zipCode")
-  const selectedCity = watch("city")
-
-  // Auto-detect city from ZIP code
-  React.useEffect(() => {
-    if (zipCode && zipCode.length === 5) {
-      const detectedCity = getCityByZipCode(zipCode)
-      if (detectedCity && detectedCity !== selectedCity) {
-        setValue("city", detectedCity as any)
-        setZipError("")
-      } else if (!detectedCity) {
-        setZipError("We currently serve Phoenix, Glendale, and Peoria areas only")
-      }
-    } else {
-      setZipError("")
+  // LOCAL Zod validation (no external resolver needed)
+  const onValid = (values: AddressSchemaType) => {
+    const parsed = addressSchema.safeParse(values)
+    if (!parsed.success) {
+      parsed.error.issues.forEach((issue) => {
+        const field = issue.path[0] as keyof AddressSchemaType
+        setError(field, { message: issue.message })
+      })
+      return
     }
-  }, [zipCode, selectedCity, setValue])
-
-  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    const { formatted } = validateAndFormatZip(value)
-    setValue("zipCode", formatted)
-  }
-
-  const onSubmit = async (formData: AddressFormData) => {
-    setIsSubmitting(true)
-    try {
-      const { isValid } = validateAndFormatZip(formData.zipCode)
-      if (!isValid) {
-        setZipError("We currently serve Phoenix, Glendale, and Peoria areas only")
-        setIsSubmitting(false)
-        return
-      }
-
-      onSave(formData)
-      onNext()
-    } catch (error) {
-      console.error("Error submitting address:", error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleContactDownload = () => {
-    const contactData = createContactDownload()
-    const blob = new Blob([contactData], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "smileybrooms-contact.txt"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    onSubmit(values)
   }
 
   return (
-    <div className="p-6">
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Service Address
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-6">
-            <Info className="h-4 w-4" />
-            <AlertDescription>{SERVICE_AREA_MESSAGE}</AlertDescription>
-          </Alert>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  {...register("firstName")}
-                  placeholder="Enter your first name"
-                  className={errors.firstName ? "border-red-500" : ""}
-                />
-                {errors.firstName && <p className="text-sm text-red-600 mt-1">{errors.firstName.message}</p>}
-              </div>
-
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  {...register("lastName")}
-                  placeholder="Enter your last name"
-                  className={errors.lastName ? "border-red-500" : ""}
-                />
-                {errors.lastName && <p className="text-sm text-red-600 mt-1">{errors.lastName.message}</p>}
-              </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Shipping Address</DialogTitle>
+          <DialogDescription>Enter your shipping address to complete your order.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onValid)} className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input id="firstName" placeholder="John" {...register("firstName")} />
+              {errors.firstName && <p className="text-sm text-red-500">{errors.firstName.message}</p>}
             </div>
-
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                placeholder="Enter your email address"
-                className={errors.email ? "border-red-500" : ""}
-              />
-              {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                {...register("phone")}
-                placeholder="Enter your phone number"
-                className={errors.phone ? "border-red-500" : ""}
-              />
-              {errors.phone && <p className="text-sm text-red-600 mt-1">{errors.phone.message}</p>}
-            </div>
-
-            <div>
-              <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                {...register("address")}
-                placeholder="Enter your street address"
-                className={errors.address ? "border-red-500" : ""}
-              />
-              {errors.address && <p className="text-sm text-red-600 mt-1">{errors.address.message}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Select onValueChange={(value) => setValue("city", value as any)} value={selectedCity}>
-                  <SelectTrigger className={errors.city ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AZ_CITIES.map((city) => (
-                      <SelectItem key={city.value} value={city.value}>
-                        {city.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.city && <p className="text-sm text-red-600 mt-1">{errors.city.message}</p>}
-              </div>
-
-              <div>
-                <Label htmlFor="state">State</Label>
-                <Input id="state" value="Arizona" disabled className="bg-gray-50" />
-              </div>
-
-              <div>
-                <Label htmlFor="zipCode">ZIP Code</Label>
-                <Input
-                  id="zipCode"
-                  {...register("zipCode")}
-                  onChange={handleZipChange}
-                  placeholder="85001"
-                  maxLength={5}
-                  className={errors.zipCode || zipError ? "border-red-500" : ""}
-                />
-                {(errors.zipCode || zipError) && (
-                  <p className="text-sm text-red-600 mt-1">{errors.zipCode?.message || zipError}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="specialInstructions">Special Instructions (Optional)</Label>
-              <Textarea
-                id="specialInstructions"
-                {...register("specialInstructions")}
-                placeholder="Gate code, parking instructions, pet information, etc."
-                rows={3}
-                className={errors.specialInstructions ? "border-red-500" : ""}
-              />
-              {errors.specialInstructions && (
-                <p className="text-sm text-red-600 mt-1">{errors.specialInstructions.message}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <Button type="button" variant="outline" onClick={onPrevious} className="flex-1 bg-transparent">
-                Previous
-              </Button>
-              <Button type="submit" disabled={isSubmitting || !!zipError} className="flex-1">
-                {isSubmitting ? "Validating..." : "Continue to Payment"}
-              </Button>
-            </div>
-          </form>
-
-          <div className="border-t pt-6 mt-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-3">Need help or have questions about our service area?</p>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`tel:${CONTACT_INFO.phone}`, "_self")}
-                  className="flex items-center gap-2"
-                >
-                  <Phone className="h-4 w-4" />
-                  Call {CONTACT_INFO.displayPhone}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleContactDownload}
-                  className="flex items-center gap-2 bg-transparent"
-                >
-                  <Download className="h-4 w-4" />
-                  Download Contact Info
-                </Button>
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input id="lastName" placeholder="Doe" {...register("lastName")} />
+              {errors.lastName && <p className="text-sm text-red-500">{errors.lastName.message}</p>}
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="grid gap-2">
+            <Label htmlFor="address">Address</Label>
+            <Input id="address" placeholder="123 Main St" {...register("address")} />
+            {errors.address && <p className="text-sm text-red-500">{errors.address.message}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="city">City</Label>
+              <Input id="city" placeholder="Anytown" {...register("city")} />
+              {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="state">State</Label>
+              <Input id="state" placeholder="CA" {...register("state")} />
+              {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="zipCode">Zip Code</Label>
+            <Input id="zipCode" placeholder="12345" {...register("zipCode")} />
+            {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode.message}</p>}
+          </div>
+        </form>
+        <DialogFooter>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Review My Order"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
+
+export default AddressStep

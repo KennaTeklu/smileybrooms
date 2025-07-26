@@ -1,125 +1,54 @@
-import { isIOS, isAndroid, supportsApplePay, supportsGooglePay } from "./device-detection"
+export type PaymentMethod = "apple_pay" | "google_pay" | "contact_for_alternatives"
 
-export interface ContactInfo {
-  website: string
-  phone: string
-  displayPhone: string
-  email: string
-  businessName: string
+export interface DeviceInfo {
+  type: "ios" | "android" | "desktop" | "unknown"
+  isIOS: boolean
+  isAndroid: boolean
+  isMobile: boolean
 }
 
-export const CONTACT_INFO: ContactInfo = {
-  website: "smileybrooms.com",
-  phone: "6616023000",
-  displayPhone: "(661) 602-3000",
-  email: "info@smileybrooms.com",
-  businessName: "Smiley Brooms Cleaning Service",
+export function supportsDigitalWallet(deviceType: string): boolean {
+  return deviceType === "ios" || deviceType === "android"
 }
 
-export interface PaymentMethod {
-  id: string
-  name: string
-  type: "digital_wallet" | "contact" | "card"
-  icon: string
-  description: string
-  available: boolean
-  primary?: boolean
-}
-
-export function getDeviceOptimizedPaymentMethods(): PaymentMethod[] {
-  const methods: PaymentMethod[] = []
-
-  // Add device-specific digital wallet first
-  if (isIOS() && supportsApplePay()) {
-    methods.push({
-      id: "apple_pay",
-      name: "Apple Pay",
-      type: "digital_wallet",
-      icon: "🍎",
-      description: "Pay securely with Touch ID or Face ID",
-      available: true,
-      primary: true,
-    })
-  } else if ((isAndroid() || !isIOS()) && supportsGooglePay()) {
-    methods.push({
-      id: "google_pay",
-      name: "Google Pay",
-      type: "digital_wallet",
-      icon: "🟢",
-      description: "Pay quickly with Google Pay",
-      available: true,
-      primary: true,
-    })
+export function getPrimaryPaymentMethod(deviceType: string): PaymentMethod {
+  switch (deviceType) {
+    case "ios":
+      return "apple_pay"
+    case "android":
+    case "desktop":
+    case "unknown":
+    default:
+      return "google_pay"
   }
-
-  // Add card payment
-  methods.push({
-    id: "card",
-    name: "Credit/Debit Card",
-    type: "card",
-    icon: "💳",
-    description: "Pay with your credit or debit card",
-    available: true,
-    primary: methods.length === 0,
-  })
-
-  // Always add contact option as fallback
-  methods.push({
-    id: "contact",
-    name: "Call to Pay",
-    type: "contact",
-    icon: "📞",
-    description: "Pay with cash, Zelle, or card over phone",
-    available: true,
-  })
-
-  return methods
 }
 
-export function supportsDigitalWallet(): boolean {
-  return supportsApplePay() || supportsGooglePay()
+export function getContactInfo() {
+  return {
+    website: "smileybrooms.com",
+    phone: "6616023000",
+    phoneFormatted: "(661) 602-3000",
+  }
 }
 
-export function getPrimaryPaymentMethod(): PaymentMethod {
-  const methods = getDeviceOptimizedPaymentMethods()
-  return methods.find((method) => method.primary) || methods[0]
+export function getPaymentMethodDisplayName(method: PaymentMethod): string {
+  switch (method) {
+    case "apple_pay":
+      return "Apple Pay"
+    case "google_pay":
+      return "Google Pay"
+    case "contact_for_alternatives":
+      return "Call for Payment Options"
+    default:
+      return "Unknown Payment Method"
+  }
 }
 
-export function getContactInfo(): ContactInfo {
-  return CONTACT_INFO
+export function shouldShowSinglePaymentOption(deviceType: string): boolean {
+  // Always show simplified options for better UX
+  return true
 }
 
-export function createContactDownload(): string {
-  const contactData = `
-${CONTACT_INFO.businessName}
-Website: ${CONTACT_INFO.website}
-Phone: ${CONTACT_INFO.displayPhone}
-Email: ${CONTACT_INFO.email}
-
-Available Payment Methods:
-- Cash (in person)
-- Zelle
-- Phone payment
-- Credit/Debit card over phone
-
-Call us to complete your booking!
-  `.trim()
-
-  return contactData
-}
-
-export interface PaymentConfig {
-  stripePublishableKey: string
-  supportedMethods: string[]
-  currency: string
-  country: string
-  contactInfo: ContactInfo
-}
-
-export const paymentConfig: PaymentConfig = {
-  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-  supportedMethods: ["card", "apple_pay", "google_pay"],
-  currency: "usd",
-  country: "US",
-  contactInfo: CONTACT_INFO,
+export function getPreferredPaymentMethod(deviceType: string): PaymentMethod | null {
+  return getPrimaryPaymentMethod(deviceType)
 }

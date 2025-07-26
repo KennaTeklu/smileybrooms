@@ -1,107 +1,66 @@
-export interface City {
-  value: string
-  label: string
-  zipRanges: string[]
-}
-
-export interface State {
-  value: string
-  label: string
-}
-
-export interface ContactInfo {
-  website: string
-  phone: string
-  displayPhone: string
-  email: string
-}
-
-export const CONTACT_INFO: ContactInfo = {
-  website: "smileybrooms.com",
-  phone: "6616023000",
-  displayPhone: "(661) 602-3000",
-  email: "info@smileybrooms.com",
-}
-
-export const US_STATES: State[] = [
-  {
-    value: "AZ",
-    label: "Arizona",
-  },
+// US States data for dropdown selection
+export const US_STATES = [
+  { value: "AL", label: "Alabama" },
+  { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" },
+  { value: "AR", label: "Arkansas" },
+  { value: "CA", label: "California" },
+  { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" },
+  { value: "DE", label: "Delaware" },
+  { value: "DC", label: "District of Columbia" },
+  { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" },
+  { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" },
+  { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" },
+  { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" },
+  { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" },
+  { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" },
+  { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" },
+  { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" },
+  { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" },
+  { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" },
+  { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" },
+  { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" },
+  { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" },
+  { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" },
+  { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" },
+  { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" },
+  { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" },
+  { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" },
+  { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" },
+  { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" },
+  { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
 ]
 
-export const AZ_CITIES: City[] = [
-  {
-    value: "phoenix",
-    label: "Phoenix",
-    zipRanges: ["85001-85099", "85201-85299"],
-  },
-  {
-    value: "glendale",
-    label: "Glendale",
-    zipRanges: ["85301-85399"],
-  },
-  {
-    value: "peoria",
-    label: "Peoria",
-    zipRanges: ["85345", "85381-85387"],
-  },
-]
-
-export const SERVICE_AREA_MESSAGE = `We currently service Phoenix, Glendale, and Peoria areas in Arizona. For services outside this area, please call us at ${CONTACT_INFO.displayPhone}.`
-
-export function isValidArizonaZip(zipCode: string): boolean {
-  if (!zipCode || zipCode.length !== 5) return false
-
-  const zip = Number.parseInt(zipCode, 10)
-  if (isNaN(zip)) return false
-
-  // Phoenix: 85001-85099, 85201-85299
-  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
-    return true
-  }
-
-  // Glendale: 85301-85399
-  if (zip >= 85301 && zip <= 85399) {
-    return true
-  }
-
-  // Peoria: 85345, 85381-85387
-  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
-    return true
-  }
-
-  return false
+// Get state label from value
+export const getStateLabel = (stateValue: string): string => {
+  const state = US_STATES.find((state) => state.value === stateValue)
+  return state ? state.label : stateValue
 }
 
-export function getCityByZipCode(zipCode: string): string | null {
-  if (!isValidArizonaZip(zipCode)) return null
-
-  const zip = Number.parseInt(zipCode, 10)
-
-  // Phoenix ranges
-  if ((zip >= 85001 && zip <= 85099) || (zip >= 85201 && zip <= 85299)) {
-    return "phoenix"
-  }
-
-  // Glendale range
-  if (zip >= 85301 && zip <= 85399) {
-    return "glendale"
-  }
-
-  // Peoria ranges
-  if (zip === 85345 || (zip >= 85381 && zip <= 85387)) {
-    return "peoria"
-  }
-
-  return null
-}
-
-export function getZipCodesByCity(cityValue: string): string[] {
-  const city = AZ_CITIES.find((c) => c.value === cityValue)
-  return city ? city.zipRanges : []
-}
-
-export function getServiceAreas(): string[] {
-  return AZ_CITIES.map((city) => city.label)
+// Get state value from label
+export const getStateValue = (stateLabel: string): string => {
+  const state = US_STATES.find((state) => state.label.toLowerCase() === stateLabel.toLowerCase())
+  return state ? state.value : stateLabel
 }
