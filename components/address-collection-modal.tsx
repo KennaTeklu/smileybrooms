@@ -16,9 +16,30 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { MapPin, CreditCard } from "lucide-react"
-import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // Removed Checkbox import as it's no longer used for video consent in this modal
+
+// Arizona ZIP code validation
+const isValidArizonaZip = (zipCode: string): boolean => {
+  const arizonaZipRanges = [
+    { min: 85001, max: 85099 }, // Phoenix area
+    { min: 85201, max: 85299 }, // Mesa/Tempe area
+    { min: 85301, max: 85399 }, // Glendale/Peoria area
+    { min: 85501, max: 85599 }, // Globe area
+    { min: 85601, max: 85699 }, // Sierra Vista area
+    { min: 85701, max: 85799 }, // Tucson area
+    { min: 86001, max: 86099 }, // Flagstaff area
+    { min: 86301, max: 86399 }, // Prescott area
+    { min: 86401, max: 86499 }, // Kingman area
+    { min: 86501, max: 86599 }, // Yuma area
+  ]
+
+  const cleanZip = zipCode.replace(/\D/g, "").substring(0, 5)
+  if (cleanZip.length !== 5) return false
+
+  const zipNum = Number.parseInt(cleanZip, 10)
+  return arizonaZipRanges.some((range) => zipNum >= range.min && zipNum <= range.max)
+}
 
 export interface AddressData {
   fullName: string
@@ -45,7 +66,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     phone: "",
     address: "",
     city: "",
-    state: "",
+    state: "AZ",
     zipCode: "",
     specialInstructions: "",
     // Removed wantsLiveVideo and videoConsentDetails from initial state
@@ -81,6 +102,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     if (!formData.city.trim()) newErrors.city = "City is required"
     if (!formData.state) newErrors.state = "State is required"
     if (!formData.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+    else if (!isValidArizonaZip(formData.zipCode)) newErrors.zipCode = "Please enter a valid Arizona ZIP code"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -99,7 +121,7 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         phone: "",
         address: "",
         city: "",
-        state: "",
+        state: "AZ",
         zipCode: "",
         specialInstructions: "",
         // Removed wantsLiveVideo and videoConsentDetails from reset state
@@ -188,20 +210,40 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    name="city"
+                  <Select
                     value={formData.city}
-                    onChange={handleChange}
-                    className={errors.city ? "border-red-500" : ""}
-                  />
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        city: value,
+                      }))
+
+                      // Clear error when field is edited
+                      if (errors.city) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev }
+                          delete newErrors.city
+                          return newErrors
+                        })
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="city" className={errors.city ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Glendale">Glendale</SelectItem>
+                      <SelectItem value="Phoenix">Phoenix</SelectItem>
+                      <SelectItem value="Peoria">Peoria</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                 </div>
 
                 <div>
                   <Label htmlFor="state">State</Label>
                   <Select
-                    value={formData.state}
+                    value={formData.state || "AZ"}
                     onValueChange={(value) => {
                       setFormData((prev) => ({
                         ...prev,
@@ -219,14 +261,10 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                     }}
                   >
                     <SelectTrigger id="state" className={errors.state ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Select state" />
+                      <SelectValue placeholder="Arizona" />
                     </SelectTrigger>
                     <SelectContent>
-                      {US_STATES.map((state) => (
-                        <SelectItem key={state.value} value={state.value}>
-                          {state.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="AZ">Arizona</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}

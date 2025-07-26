@@ -14,6 +14,29 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+// Arizona ZIP code validation
+const isValidArizonaZip = (zipCode: string): boolean => {
+  const arizonaZipRanges = [
+    { min: 85001, max: 85099 }, // Phoenix area
+    { min: 85201, max: 85299 }, // Mesa/Tempe area
+    { min: 85301, max: 85399 }, // Glendale/Peoria area
+    { min: 85501, max: 85599 }, // Globe area
+    { min: 85601, max: 85699 }, // Sierra Vista area
+    { min: 85701, max: 85799 }, // Tucson area
+    { min: 86001, max: 86099 }, // Flagstaff area
+    { min: 86301, max: 86399 }, // Prescott area
+    { min: 86401, max: 86499 }, // Kingman area
+    { min: 86501, max: 86599 }, // Yuma area
+  ]
+
+  const cleanZip = zipCode.replace(/\D/g, "").substring(0, 5)
+  if (cleanZip.length !== 5) return false
+
+  const zipNum = Number.parseInt(cleanZip, 10)
+  return arizonaZipRanges.some((range) => zipNum >= range.min && zipNum <= range.max)
+}
 
 const addressSchema = z.object({
   firstName: z.string().min(2, {
@@ -25,14 +48,14 @@ const addressSchema = z.object({
   address: z.string().min(5, {
     message: "Address must be at least 5 characters.",
   }),
-  city: z.string().min(2, {
-    message: "City must be at least 2 characters.",
+  city: z.enum(["Glendale", "Phoenix", "Peoria"], {
+    errorMap: () => ({ message: "Please select a valid city." }),
   }),
-  state: z.string().min(2, {
-    message: "State must be at least 2 characters.",
+  state: z.literal("AZ", {
+    errorMap: () => ({ message: "Only Arizona is supported." }),
   }),
-  zipCode: z.string().regex(/^\d{5}(?:-\d{4})?$/, {
-    message: "Invalid zip code.",
+  zipCode: z.string().refine((val) => isValidArizonaZip(val), {
+    message: "Please enter a valid Arizona ZIP code.",
   }),
 })
 
@@ -49,6 +72,7 @@ const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit }) =>
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AddressSchemaType>({
     defaultValues: {
@@ -56,7 +80,7 @@ const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit }) =>
       lastName: "",
       address: "",
       city: "",
-      state: "",
+      state: "AZ",
       zipCode: "",
     },
   })
@@ -102,12 +126,28 @@ const AddressStep: React.FC<AddressStepProps> = ({ open, onClose, onSubmit }) =>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" placeholder="Anytown" {...register("city")} />
+              <Select onValueChange={(value) => setValue("city", value)} defaultValue="">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Glendale">Glendale</SelectItem>
+                  <SelectItem value="Phoenix">Phoenix</SelectItem>
+                  <SelectItem value="Peoria">Peoria</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="state">State</Label>
-              <Input id="state" placeholder="CA" {...register("state")} />
+              <Select onValueChange={(value) => setValue("state", value)} defaultValue="AZ">
+                <SelectTrigger>
+                  <SelectValue placeholder="Arizona" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AZ">Arizona</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
             </div>
           </div>
