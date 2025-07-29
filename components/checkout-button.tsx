@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Send, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useCart } from "@/lib/cart-context"
-import { CheckoutSidepanel } from "@/components/cart/checkout-sidepanel"
+import { ApplicationSidepanel } from "@/components/cart/application-sidepanel"
 import type { CheckoutData } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
@@ -15,10 +15,10 @@ export default function CheckoutButton() {
   const { cart } = useCart()
   const router = useRouter()
   const { toast } = useToast()
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleCheckoutComplete = async (checkoutData: CheckoutData) => {
+  const handleApplicationComplete = async (checkoutData: CheckoutData) => {
     setIsSubmitting(true)
 
     try {
@@ -126,7 +126,7 @@ export default function CheckoutButton() {
     <>
       <motion.div whileHover={{ scale: isDisabled ? 1 : 1.02 }} whileTap={{ scale: isDisabled ? 1 : 0.98 }}>
         <Button
-          onClick={() => setIsCheckoutOpen(true)}
+          onClick={() => setIsApplicationOpen(true)}
           disabled={isDisabled}
           size="lg"
           className="w-full h-14 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -145,10 +145,10 @@ export default function CheckoutButton() {
         </Button>
       </motion.div>
 
-      <CheckoutSidepanel
-        isOpen={isCheckoutOpen}
-        onOpenChange={setIsCheckoutOpen}
-        onCheckoutComplete={handleCheckoutComplete}
+      <ApplicationSidepanel
+        isOpen={isApplicationOpen}
+        onOpenChange={setIsApplicationOpen}
+        onCheckoutComplete={handleApplicationComplete}
       />
     </>
   )

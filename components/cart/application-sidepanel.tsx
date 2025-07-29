@@ -77,13 +77,13 @@ interface AddressSuggestion {
   }
 }
 
-interface CheckoutSidePanelProps {
+interface ApplicationSidePanelProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onCheckoutComplete: (data: CheckoutData) => void
 }
 
-export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComplete }: CheckoutSidePanelProps) {
+export default function ApplicationSidePanel({ isOpen, onOpenChange, onCheckoutComplete }: ApplicationSidePanelProps) {
   const { toast } = useToast()
   const formRef = useRef<HTMLDivElement>(null)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>()
@@ -750,10 +750,10 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
           <Sparkles className="h-10 w-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Let's get your space sparkling! ✨
+          Apply for Professional Cleaning Service! ✨
         </h2>
         <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto">
-          We just need a few quick details to personalize your cleaning experience. This will only take 2 minutes!
+          We just need a few quick details to process your service application. This will only take 2 minutes!
         </p>
       </div>
 
@@ -779,7 +779,7 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
         size="lg"
         className="w-full max-w-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
       >
-        Let's Start!
+        Start Application!
         <ArrowRight className="ml-2 h-5 w-5" />
       </Button>
 
@@ -1299,19 +1299,19 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
       <SheetContent
         side="right"
         className="w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl p-0 flex flex-col"
-        aria-labelledby="checkout-title"
-        aria-describedby="checkout-description"
+        aria-labelledby="application-title"
+        aria-describedby="application-description"
       >
         <div className="flex-shrink-0 border-b bg-gradient-to-r from-blue-50 via-purple-50 to-green-50 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-green-950/50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 id="checkout-title" className="text-xl font-bold">
+              <h1 id="application-title" className="text-xl font-bold">
                 {currentStep === "welcome" && "Welcome!"}
                 {currentStep === "contact" && "Contact Info"}
                 {currentStep === "address" && "Service Address"}
                 {currentStep === "confirmation" && "Almost Done!"}
               </h1>
-              <p id="checkout-description" className="text-sm text-muted-foreground">
+              <p id="application-description" className="text-sm text-muted-foreground">
                 {currentStep === "welcome" && "Let's get started with your cleaning service"}
                 {currentStep === "contact" && "Tell us how to reach you"}
                 {currentStep === "address" && "Where should we clean?"}
@@ -1372,4 +1372,4 @@ export default function CheckoutSidePanel({ isOpen, onOpenChange, onCheckoutComp
   )
 }
 
-export { CheckoutSidePanel as CheckoutSidepanel }
+export { ApplicationSidePanel as ApplicationSidepanel }

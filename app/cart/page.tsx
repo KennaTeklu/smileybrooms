@@ -19,7 +19,7 @@ import {
   ArrowLeft,
 } from "lucide-react"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
-import { CheckoutSidepanel } from "@/components/cart/checkout-sidepanel"
+import { ApplicationSidepanel } from "@/components/cart/application-sidepanel"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
@@ -29,8 +29,8 @@ import { logCartProceedToCheckout, logCartReviewPayNowClick } from "@/lib/google
 export default function CartPage() {
   const router = useRouter()
   const { cart, removeItem, updateQuantity, clearCart } = useCart()
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
-  const [completedCheckoutData, setCompletedCheckoutData] = useState<CheckoutData | null>(null)
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false)
+  const [completedApplicationData, setCompletedApplicationData] = useState<CheckoutData | null>(null)
   const [isItemsExpanded, setIsItemsExpanded] = useState(false)
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(false)
 
@@ -50,24 +50,24 @@ export default function CartPage() {
     }
   }
 
-  const handleCheckoutComplete = (checkoutData: CheckoutData) => {
-    setCompletedCheckoutData(checkoutData)
-    setIsCheckoutOpen(false)
+  const handleApplicationComplete = (checkoutData: CheckoutData) => {
+    setCompletedApplicationData(checkoutData)
+    setIsApplicationOpen(false)
     localStorage.setItem("completedCheckoutData", JSON.stringify(checkoutData))
   }
 
-  const handleProceedToCheckout = () => {
-    if (completedCheckoutData) {
+  const handleProceedToApplication = () => {
+    if (completedApplicationData) {
       logCartReviewPayNowClick({
         // Using the new specific function
-        checkoutData: completedCheckoutData,
+        checkoutData: completedApplicationData,
         cartItems: cart.items,
         subtotalPrice: cart.subtotalPrice,
         couponDiscount: cart.couponDiscount,
         fullHouseDiscount: cart.fullHouseDiscount,
         totalPrice: cart.totalPrice,
       })
-      console.log("Processing payment...", { cartItems: cart.items, checkoutData: completedCheckoutData })
+      console.log("Processing payment...", { cartItems: cart.items, checkoutData: completedApplicationData })
       router.push("/success")
     } else {
       logCartProceedToCheckout({
@@ -91,7 +91,7 @@ export default function CartPage() {
         fullHouseDiscount: cart.fullHouseDiscount,
         totalPrice: cart.totalPrice,
       })
-      setIsCheckoutOpen(true)
+      setIsApplicationOpen(true)
     }
   }
 
@@ -102,17 +102,17 @@ export default function CartPage() {
   const tax = calculateTax(cart.subtotalPrice)
   const total = cart.totalPrice + tax
 
-  if (cart.items.length === 0 && !completedCheckoutData) {
+  if (cart.items.length === 0 && !completedApplicationData) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <ShoppingCart className="mx-auto h-24 w-24 text-gray-400 mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Your cart is empty</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No services selected</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Add some services to get started with your cleaning booking.
+            Add some services to get started with your cleaning service application.
           </p>
           <Link href="/">
-            <Button>Continue Shopping</Button>
+            <Button>Browse Services</Button>
           </Link>
         </div>
       </div>
@@ -121,30 +121,28 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {!completedCheckoutData && (
+      {!completedApplicationData && (
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Your Shopping Cart</h1>
-          <p className="text-gray-600 dark:text-gray-400">Review your selected services and proceed to checkout</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Your Service Application</h1>
+          <p className="text-gray-600 dark:text-gray-400">Review your selected services and submit your application</p>
         </div>
       )}
 
-      {completedCheckoutData && (
+      {completedApplicationData && (
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Review Your Order</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please review your order details before completing your payment
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Review Your Application</h1>
+          <p className="text-gray-600 dark:text-gray-400">Please review your application details before submitting</p>
         </div>
       )}
 
-      <div className={`grid gap-8 ${completedCheckoutData ? "grid-cols-1" : "lg:grid-cols-3"}`}>
-        {!completedCheckoutData && (
+      <div className={`grid gap-8 ${completedApplicationData ? "grid-cols-1" : "lg:grid-cols-3"}`}>
+        {!completedApplicationData && (
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-gray-200 dark:border-gray-700">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  Cart Items ({cart.items.length})
+                  Selected Services ({cart.items.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -161,17 +159,19 @@ export default function CartPage() {
           </div>
         )}
 
-        <div className={`${completedCheckoutData ? "w-full max-w-4xl mx-auto" : "lg:col-span-1"} flex flex-col gap-8`}>
-          {!completedCheckoutData ? (
+        <div
+          className={`${completedApplicationData ? "w-full max-w-4xl mx-auto" : "lg:col-span-1"} flex flex-col gap-8`}
+        >
+          {!completedApplicationData ? (
             <Card className="shadow-lg border-gray-200 dark:border-gray-700 p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
-                Almost there! Let's get your details ✨
+                Ready to submit! Let's get your details ✨
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm max-w-sm">
-                We'll need your contact info and service address first, then you can securely pay with Stripe
+                We'll need your contact info and service address to process your application
               </p>
 
               <div className="flex flex-col gap-3 mb-6 text-sm text-gray-500 dark:text-gray-400">
@@ -179,19 +179,19 @@ export default function CartPage() {
                   <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">
                     1
                   </div>
-                  <span>Contact & Address Info</span>
+                  <span>Application Details</span>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-6 h-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-xs font-medium text-gray-400">
                     2
                   </div>
-                  <span>Secure Payment with Stripe</span>
+                  <span>Submit Application</span>
                 </div>
               </div>
 
-              <Button onClick={handleProceedToCheckout} className="w-full mb-4" size="lg">
+              <Button onClick={handleProceedToApplication} className="w-full mb-4" size="lg">
                 <User className="mr-2 h-5 w-5" />
-                Enter My Details
+                Begin Application
               </Button>
 
               <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -208,7 +208,7 @@ export default function CartPage() {
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <ShoppingCart className="h-5 w-5" />
-                          Purchased Items ({cart.items.length})
+                          Requested Services ({cart.items.length})
                         </div>
                         {isItemsExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                       </CardTitle>
@@ -236,7 +236,7 @@ export default function CartPage() {
                       <CardTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <User className="h-5 w-5" />
-                          Customer Information
+                          Applicant Information
                         </div>
                         {isCustomerExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                       </CardTitle>
@@ -253,21 +253,21 @@ export default function CartPage() {
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">Name:</span>
                             <p className="font-medium">
-                              {completedCheckoutData.contact.firstName} {completedCheckoutData.contact.lastName}
+                              {completedApplicationData.contact.firstName} {completedApplicationData.contact.lastName}
                             </p>
                           </div>
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">Email:</span>
                             <p className="font-medium flex items-center gap-1">
                               <Mail className="h-3 w-3" />
-                              {completedCheckoutData.contact.email}
+                              {completedApplicationData.contact.email}
                             </p>
                           </div>
                           <div>
                             <span className="text-gray-600 dark:text-gray-400">Phone:</span>
                             <p className="font-medium flex items-center gap-1">
                               <Phone className="h-3 w-3" />
-                              {completedCheckoutData.contact.phone}
+                              {completedApplicationData.contact.phone}
                             </p>
                           </div>
                         </div>
@@ -281,15 +281,15 @@ export default function CartPage() {
                           Service Address
                         </h4>
                         <div className="text-sm">
-                          <p className="font-medium">{completedCheckoutData.address.address}</p>
-                          {completedCheckoutData.address.address2 && (
+                          <p className="font-medium">{completedApplicationData.address.address}</p>
+                          {completedApplicationData.address.address2 && (
                             <p className="text-gray-600 dark:text-gray-400">
-                              Unit: {completedCheckoutData.address.address2}
+                              Unit: {completedApplicationData.address.address2}
                             </p>
                           )}
                           <p className="text-gray-600 dark:text-gray-400">
-                            {completedCheckoutData.address.city}, {completedCheckoutData.address.state}{" "}
-                            {completedCheckoutData.address.zipCode}
+                            {completedApplicationData.address.city}, {completedApplicationData.address.state}{" "}
+                            {completedApplicationData.address.zipCode}
                           </p>
                         </div>
                       </div>
@@ -303,10 +303,10 @@ export default function CartPage() {
                             <span className="text-gray-600 dark:text-gray-400">Payment Method:</span>
                             <p className="font-medium flex items-center gap-1">
                               <CreditCard className="h-3 w-3" />
-                              {completedCheckoutData.payment.paymentMethod}
+                              {completedApplicationData.payment.paymentMethod}
                             </p>
                           </div>
-                          {completedCheckoutData.payment.allowVideoRecording && (
+                          {completedApplicationData.payment.allowVideoRecording && (
                             <div>
                               <Badge
                                 variant="secondary"
@@ -317,11 +317,11 @@ export default function CartPage() {
                             </div>
                           )}
                         </div>
-                        {completedCheckoutData.address.specialInstructions && (
+                        {completedApplicationData.address.specialInstructions && (
                           <div className="mt-4">
                             <span className="text-gray-600 dark:text-gray-400">Special Instructions:</span>
                             <p className="font-medium mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                              {completedCheckoutData.address.specialInstructions}
+                              {completedApplicationData.address.specialInstructions}
                             </p>
                           </div>
                         )}
@@ -345,7 +345,7 @@ export default function CartPage() {
 
           <Card className="shadow-lg border-gray-200 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle>Application Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
@@ -381,27 +381,27 @@ export default function CartPage() {
 
               <Separator />
               <div className="flex justify-between text-lg font-semibold">
-                <span>Total (Online Payment)</span>
+                <span>Estimated Total</span>
                 <span>${(cart.totalPrice + tax).toFixed(2)}</span>
               </div>
 
-              <Button onClick={handleProceedToCheckout} className="w-full mt-6" size="lg">
-                {completedCheckoutData ? "Pay Now" : "Proceed to Checkout"}
+              <Button onClick={handleProceedToApplication} className="w-full mt-6" size="lg">
+                {completedApplicationData ? "Submit Application" : "Submit Application"}
               </Button>
 
               <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-4">
                 <Shield className="h-4 w-4" />
-                <span>Secure checkout with SSL encryption</span>
+                <span>Secure application with SSL encryption</span>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <CheckoutSidepanel
-        isOpen={isCheckoutOpen}
-        onOpenChange={setIsCheckoutOpen}
-        onCheckoutComplete={handleCheckoutComplete}
+      <ApplicationSidepanel
+        isOpen={isApplicationOpen}
+        onOpenChange={setIsApplicationOpen}
+        onCheckoutComplete={handleApplicationComplete}
       />
     </div>
   )

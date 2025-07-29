@@ -77,7 +77,7 @@ export default function SuccessPage() {
   const sessionId = searchParams.get("session_id")
   const paymentType = searchParams.get("type") // 'contact' or null (digital wallet)
   const applicationType = searchParams.get("type") // 'application'
-  const pageType: PageType = paymentType === "contact" || paymentType === null ? "order" : "application"
+  const pageType: PageType = applicationType === "application" ? "application" : "order"
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
@@ -123,6 +123,14 @@ export default function SuccessPage() {
           const applicationData = JSON.parse(serviceApplicationData)
           setApplicationData(applicationData)
 
+          // Clear cart immediately after successful application submission
+          clearCart()
+          toast({
+            title: "Cart Updated",
+            description: "Your cart has been cleared after successful booking confirmation.",
+            variant: "default",
+          })
+
           // Send confirmation email for service applications
           try {
             await sendOrderConfirmationEmail(applicationData)
@@ -163,6 +171,14 @@ export default function SuccessPage() {
         const orderData = JSON.parse(pendingOrderData)
         setOrderData(orderData)
 
+        // Clear cart immediately after successful order data loading
+        clearCart()
+        toast({
+          title: "Cart Updated",
+          description: "Your cart has been cleared after successful booking confirmation.",
+          variant: "default",
+        })
+
         // Send confirmation email for contact orders
         try {
           await sendOrderConfirmationEmail(orderData)
@@ -192,12 +208,20 @@ export default function SuccessPage() {
 
         setOrderData(orderData)
 
+        // Clear cart immediately after successful order confirmation
+        clearCart()
+        toast({
+          title: "Cart Updated",
+          description: "Your cart has been cleared after successful booking confirmation.",
+          variant: "default",
+        })
+
         // Send confirmation email
         try {
           await sendOrderConfirmationEmail(orderData)
           setEmailSent(true)
         } catch (error) {
-          console.error("Failed to send confirmation email:", error)
+          console.error("Failed to load digital wallet order data:", error)
         }
 
         clearCart()
@@ -211,7 +235,7 @@ export default function SuccessPage() {
   const downloadOrderSummary = () => {
     if (!orderData) return
 
-    const orderSummary = `SmileyBrooms Order Confirmation
+    const orderSummary = `SmileyBrooms Service Request Confirmation
 Order ID: ${orderData.orderId}
 Date: ${new Date(orderData.createdAt).toLocaleDateString()}
 
@@ -232,45 +256,31 @@ Subtotal: ${formatCurrency(orderData.pricing.subtotal)}
 ${orderData.pricing.videoDiscount > 0 ? `Video Discount: -${formatCurrency(orderData.pricing.videoDiscount)}\n` : ""}Tax: ${formatCurrency(orderData.pricing.tax)}
 Total: ${formatCurrency(orderData.pricing.total)}
 
-Payment Method: ${
-      orderData.payment.paymentMethod === "contact_for_alternatives"
-        ? "Call for Payment Options"
-        : orderData.payment.paymentMethod === "apple_pay"
-          ? "Apple Pay"
-          : "Google Pay"
-    }
+Payment Status: ${paymentType === "contact" ? "To be arranged (Invoice to follow)" : "Invoice to be sent"}
 
-${
-  paymentType === "contact"
-    ? `
 Next Steps:
-- We will call you at ${orderData.contact.phone} within 24 hours
-- We'll confirm your booking and arrange payment
-- Payment options: Cash, Zelle, or other arrangements
+- We will contact you at ${orderData.contact.phone} within 24 hours to confirm your booking.
+- A detailed invoice with payment options will be sent to your email.
+- Your service will be confirmed once payment is arranged.
 
 Contact Us:
 Phone: ${contactInfo.phoneFormatted}
 Website: ${contactInfo.website}
 `
-    : `
-Status: Payment Completed
-Your cleaning service has been booked!
-`
-}`
 
     const blob = new Blob([orderSummary], { type: "text/plain" })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `smileybrooms-order-${orderData?.orderId || "failed"}.txt`
+    a.download = `smileybrooms-service-request-${orderData?.orderId || "failed"}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     window.URL.revokeObjectURL(url)
 
     toast({
-      title: "Order Summary Downloaded! 📄",
-      description: "Your order details have been saved to your device.",
+      title: "Service Request Summary Downloaded! 📄",
+      description: "Your service request details have been saved to your device.",
       variant: "default",
     })
   }
@@ -351,14 +361,20 @@ We look forward to serving you.`
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Verifying Payment...</h2>
-          <p className="text-muted-foreground">Please wait while we confirm your payment status</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            {pageType === "application" ? "Processing Application..." : "Confirming Service Request..."}
+          </h2>
+          <p className="text-muted-foreground">
+            {pageType === "application"
+              ? "Please wait while we process your service application."
+              : "Please wait while we confirm your service request details."}
+          </p>
         </motion.div>
       </div>
     )
   }
 
-  // Payment failed state
+  // Payment failed state (only applicable for direct payment orders, not applications)
   if (
     pageType === "order" &&
     paymentType !== "contact" &&
@@ -377,8 +393,8 @@ We look forward to serving you.`
             <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full mb-4">
               <XCircle className="h-8 w-8 text-red-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Payment Issue Detected</h1>
-            <p className="text-lg text-muted-foreground mb-4">We encountered a problem processing your payment</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Service Request Issue</h1>
+            <p className="text-lg text-muted-foreground mb-4">We encountered a problem confirming your request</p>
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
@@ -386,7 +402,7 @@ We look forward to serving you.`
                   <h3 className="font-medium text-red-800 dark:text-red-200 mb-1">What happened?</h3>
                   <p className="text-sm text-red-700 dark:text-red-300">
                     {errorMessage ||
-                      "Your payment did not complete successfully. This could be due to insufficient funds, network issues, or payment method restrictions."}
+                      "There was an issue confirming your service request. This could be due to a technical error or incomplete information. Please contact support to finalize your booking."}
                   </p>
                 </div>
               </div>
@@ -411,10 +427,9 @@ We look forward to serving you.`
                     Don't worry - we can help you complete your booking!
                   </h4>
                   <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                    <li>• Call us and we'll book your service over the phone</li>
-                    <li>• We accept cash payment when we arrive</li>
-                    <li>• We can provide Zelle payment instructions</li>
-                    <li>• Same great service, just a different payment method</li>
+                    <li>• Call us and we'll finalize your service over the phone</li>
+                    <li>• We'll arrange payment details after confirmation</li>
+                    <li>• Same great service, just a different confirmation method</li>
                   </ul>
                 </div>
 
@@ -430,11 +445,11 @@ We look forward to serving you.`
                 </div>
 
                 <div className="text-center pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-3">Or try booking online again</p>
+                  <p className="text-sm text-muted-foreground mb-3">Or try submitting your request again</p>
                   <Link href="/checkout">
                     <Button variant="outline">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Return to Checkout
+                      Return to Service Request
                     </Button>
                   </Link>
                 </div>
@@ -472,9 +487,9 @@ We look forward to serving you.`
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              {paymentType === "contact" ? "Order Submitted Successfully!" : "Payment Successful!"}
+              Service Request Submitted Successfully!
             </h1>
-            <p className="text-lg text-muted-foreground">Order #{orderData?.orderId || "PENDING"}</p>
+            <p className="text-lg text-muted-foreground">Request #{orderData?.orderId || "PENDING"}</p>
             {emailSent && <p className="text-sm text-green-600 mt-2">✓ Confirmation email sent</p>}
           </motion.div>
         )}
@@ -490,7 +505,7 @@ We look forward to serving you.`
               <Send className="h-8 w-8 text-green-600" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Application Submitted Successfully!
+              🎉 Application Submitted Successfully!
             </h1>
             <p className="text-lg text-muted-foreground">Application #{applicationData?.applicationId || "PENDING"}</p>
             {emailSent && <p className="text-sm text-green-600 mt-2">✓ Confirmation email sent</p>}
@@ -508,55 +523,30 @@ We look forward to serving you.`
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {paymentType === "contact" ? <Phone className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                    {paymentType === "contact" ? "Next Steps" : "Order Status"}
+                    <Phone className="h-5 w-5" />
+                    Next Steps for Your Service Request
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {paymentType === "contact" ? (
-                    <>
-                      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">We'll contact you soon!</h4>
-                        <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                          <li>• We will call you at {orderData?.contact.phone} within 24 hours</li>
-                          <li>• We'll confirm your booking details and schedule</li>
-                          <li>• We'll arrange payment (cash, Zelle, or other options)</li>
-                          <li>• Your service will be confirmed once payment is arranged</li>
-                        </ul>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={callNow} className="flex-1 bg-green-600 hover:bg-green-700">
-                          <Phone className="mr-2 h-4 w-4" />
-                          Call Us Now
-                        </Button>
-                        <Button onClick={downloadOrderSummary} variant="outline" className="flex-1 bg-transparent">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Details
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default" className="bg-green-600">
-                          Payment Completed
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Your cleaning service has been booked and payment has been processed successfully.
-                      </p>
-                      <div className="flex gap-2">
-                        <Button onClick={downloadOrderSummary} className="flex-1">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Receipt
-                        </Button>
-                        <Button onClick={callNow} variant="outline" className="flex-1 bg-transparent">
-                          <Phone className="mr-2 h-4 w-4" />
-                          Contact Us
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">We'll contact you soon!</h4>
+                    <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                      <li>• We will call you at {orderData?.contact.phone} within 24 hours</li>
+                      <li>• We'll confirm your booking details and schedule</li>
+                      <li>• A detailed invoice with payment options will be sent to your email</li>
+                      <li>• Your service will be confirmed once payment is arranged</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={callNow} className="flex-1 bg-green-600 hover:bg-green-700">
+                      <Phone className="mr-2 h-4 w-4" />
+                      Call Us Now
+                    </Button>
+                    <Button onClick={downloadOrderSummary} variant="outline" className="flex-1 bg-transparent">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Details
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -683,7 +673,7 @@ We look forward to serving you.`
           >
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>Service Request Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {orderData.items.map((item, index) => (
@@ -693,7 +683,7 @@ We look forward to serving you.`
                       {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary">{item.category}</Badge>
-                        {item.paymentType === "pay_in_person" && <Badge variant="outline">Pay in Person</Badge>}
+                        {item.paymentType === "pay_in_person" && <Badge variant="outline">Invoice to Follow</Badge>}
                       </div>
                     </div>
                     <div className="text-right">
@@ -719,14 +709,17 @@ We look forward to serving you.`
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span>Tax (8%)</span>
+                    <span>Estimated Tax (8%)</span>
                     <span>{formatCurrency(orderData.pricing.tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
+                    <span>Estimated Total</span>
                     <span>{formatCurrency(orderData.pricing.total)}</span>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    * This is an estimate. Final pricing will be provided in your personalized quote.
+                  </p>
                 </div>
               </CardContent>
             </Card>
