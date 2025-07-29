@@ -3,6 +3,8 @@ import { getRoomCartItemDisplayName } from "@/lib/cart/item-utils"
 
 // Get the webhook URL from environment variables
 const WEBHOOK_URL = process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || ""
+const GOOGLE_SHEET_URL =
+  process.env.NEXT_PUBLIC_GOOGLE_SHEET_URL || "https://docs.google.com/spreadsheets/d/your-sheet-id"
 
 interface LogEventData {
   step: string
@@ -35,6 +37,19 @@ interface EmailNotificationResult {
   error?: string
   retryAttempts?: number
   fallbackUsed?: boolean
+  emailContent?: {
+    subject: string
+    preview: string
+    htmlLength: number
+  }
+}
+
+interface EmailTemplate {
+  subject: string
+  htmlContent: string
+  textContent: string
+  priority: "high" | "normal" | "low"
+  category: string
 }
 
 // Enhanced client metadata with UX tracking
@@ -149,6 +164,756 @@ function getClientMetadata() {
   }
 }
 
+// Generate rich HTML email template
+function generateEmailTemplate(data: any, step: string, errors: any[] = []): EmailTemplate {
+  const timestamp = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  })
+
+  const stepTitles = {
+    welcome_start: "🎉 Welcome to SmileyBrooms!",
+    contact_submit: "📝 Contact Information Received",
+    address_submit: "📍 Service Address Confirmed",
+    cart_proceed_to_checkout_click: "🛒 Proceeding to Checkout",
+    cart_review_pay_now_click: "💳 Payment Processing",
+    checkout_complete: "✅ Checkout Complete",
+    booking_confirmation: "🎊 Booking Confirmed!",
+    test_email: "🧪 Test Email",
+    health_check: "🏥 System Health Check",
+  }
+
+  const stepColors = {
+    welcome_start: "#10B981", // Green
+    contact_submit: "#3B82F6", // Blue
+    address_submit: "#8B5CF6", // Purple
+    cart_proceed_to_checkout_click: "#F59E0B", // Amber
+    cart_review_pay_now_click: "#EF4444", // Red
+    checkout_complete: "#059669", // Emerald
+    booking_confirmation: "#DC2626", // Rose
+    test_email: "#6366F1", // Indigo
+    health_check: "#84CC16", // Lime
+  }
+
+  const stepColor = stepColors[step as keyof typeof stepColors] || "#6B7280"
+  const stepTitle = stepTitles[step as keyof typeof stepTitles] || `📊 Data Logged: ${step}`
+
+  // Generate cart summary HTML
+  const cartSummaryHtml =
+    data.cart?.rooms?.length > 0 || data.cart?.addons?.length > 0
+      ? `
+    <div style="background: #F9FAFB; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #1F2937; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        🛒 Service Summary
+      </h3>
+      
+      ${
+        data.cart.rooms?.length > 0
+          ? `
+        <div style="margin-bottom: 20px;">
+          <h4 style="color: #374151; font-size: 16px; font-weight: 500; margin: 0 0 12px 0;">Rooms & Spaces:</h4>
+          ${data.cart.rooms
+            .map(
+              (room: any) => `
+            <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px; border-left: 4px solid ${stepColor};">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong style="color: #1F2937;">${room.category}</strong>
+                  <span style="color: #6B7280; margin-left: 8px;">× ${room.count}</span>
+                  ${
+                    room.customizations?.length > 0
+                      ? `
+                    <div style="margin-top: 4px;">
+                      <small style="color: #059669;">+ ${room.customizations.join(", ")}</small>
+                    </div>
+                  `
+                      : ""
+                  }
+                </div>
+                <div style="text-align: right;">
+                  <strong style="color: #1F2937; font-size: 16px;">$${room.totalPrice || room.price}</strong>
+                </div>
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      `
+          : ""
+      }
+      
+      ${
+        data.cart.addons?.length > 0
+          ? `
+        <div>
+          <h4 style="color: #374151; font-size: 16px; font-weight: 500; margin: 0 0 12px 0;">Add-on Services:</h4>
+          ${data.cart.addons
+            .map(
+              (addon: any) => `
+            <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px; border-left: 4px solid #10B981;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong style="color: #1F2937;">${addon.name}</strong>
+                  <span style="color: #6B7280; margin-left: 8px;">× ${addon.quantity}</span>
+                </div>
+                <div style="text-align: right;">
+                  <strong style="color: #1F2937; font-size: 16px;">$${addon.totalPrice || addon.price}</strong>
+                </div>
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `
+      : ""
+
+  // Generate pricing breakdown HTML
+  const pricingHtml = data.pricing
+    ? `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 24px; margin: 24px 0; color: white;">
+      <h3 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        💰 Pricing Breakdown
+      </h3>
+      
+      <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span>Subtotal:</span>
+          <span style="font-weight: 500;">$${data.pricing.subtotal?.toFixed(2) || "0.00"}</span>
+        </div>
+        
+        ${
+          data.pricing.discountAmount > 0
+            ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #10B981;">
+            <span>💚 Total Discounts:</span>
+            <span style="font-weight: 500;">-$${data.pricing.discountAmount?.toFixed(2) || "0.00"}</span>
+          </div>
+        `
+            : ""
+        }
+        
+        ${
+          data.pricing.couponCode
+            ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #10B981;">
+            <span>🎟️ Coupon (${data.pricing.couponCode}):</span>
+            <span style="font-weight: 500;">-$${data.pricing.couponDiscount?.toFixed(2) || "0.00"}</span>
+          </div>
+        `
+            : ""
+        }
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span>Tax (${data.pricing.taxRate || 8}%):</span>
+          <span style="font-weight: 500;">$${data.pricing.taxAmount?.toFixed(2) || "0.00"}</span>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid rgba(255, 255, 255, 0.3); margin: 12px 0;">
+        
+        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: 600;">
+          <span>Total Amount:</span>
+          <span>${data.pricing.totalAmount?.toFixed(2) || "0.00"} ${data.pricing.currency || "USD"}</span>
+        </div>
+      </div>
+    </div>
+  `
+    : ""
+
+  // Generate customer info HTML
+  const customerHtml = data.customer
+    ? `
+    <div style="background: #EFF6FF; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #1E40AF; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        👤 Customer Information
+      </h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div>
+          <strong style="color: #1F2937;">Name:</strong><br>
+          <span style="color: #374151;">${data.customer.firstName} ${data.customer.lastName}</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Email:</strong><br>
+          <a href="mailto:${data.customer.email}" style="color: #2563EB; text-decoration: none;">${data.customer.email}</a>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Phone:</strong><br>
+          <a href="tel:${data.customer.phone}" style="color: #2563EB; text-decoration: none;">${data.customer.phone}</a>
+        </div>
+        
+        ${
+          data.customer.timezone
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Timezone:</strong><br>
+            <span style="color: #374151;">${data.customer.timezone}</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+      
+      ${
+        data.customer.notes
+          ? `
+        <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #3B82F6;">
+          <strong style="color: #1F2937;">Notes:</strong><br>
+          <span style="color: #374151;">${data.customer.notes}</span>
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `
+    : ""
+
+  // Generate address HTML
+  const addressHtml = data.address
+    ? `
+    <div style="background: #F0FDF4; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #166534; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        📍 Service Address
+      </h3>
+      
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #10B981;">
+        <div style="color: #1F2937; line-height: 1.6;">
+          ${data.address.street}<br>
+          ${data.address.apartment ? `${data.address.apartment}<br>` : ""}
+          ${data.address.city}, ${data.address.state} ${data.address.zipCode}
+        </div>
+        
+        ${
+          data.address.addressType
+            ? `
+          <div style="margin-top: 12px;">
+            <span style="background: #DCFCE7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+              ${data.address.addressType}
+            </span>
+          </div>
+        `
+            : ""
+        }
+        
+        ${
+          data.address.accessInstructions || data.address.parkingInstructions
+            ? `
+          <div style="margin-top: 16px;">
+            ${
+              data.address.accessInstructions
+                ? `
+              <div style="margin-bottom: 8px;">
+                <strong style="color: #1F2937;">Access Instructions:</strong><br>
+                <span style="color: #374151;">${data.address.accessInstructions}</span>
+              </div>
+            `
+                : ""
+            }
+            
+            ${
+              data.address.parkingInstructions
+                ? `
+              <div>
+                <strong style="color: #1F2937;">Parking Instructions:</strong><br>
+                <span style="color: #374151;">${data.address.parkingInstructions}</span>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+            : ""
+        }
+      </div>
+    </div>
+  `
+    : ""
+
+  // Generate service details HTML
+  const serviceHtml = data.serviceDetails
+    ? `
+    <div style="background: #FEF3C7; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #92400E; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        🧹 Service Details
+      </h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div>
+          <strong style="color: #1F2937;">Service Type:</strong><br>
+          <span style="color: #374151;">${data.serviceDetails.type}</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Frequency:</strong><br>
+          <span style="color: #374151;">${data.serviceDetails.frequency}</span>
+        </div>
+        
+        ${
+          data.serviceDetails.date
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Preferred Date:</strong><br>
+            <span style="color: #374151;">${data.serviceDetails.date}</span>
+          </div>
+        `
+            : ""
+        }
+        
+        ${
+          data.serviceDetails.time
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Preferred Time:</strong><br>
+            <span style="color: #374151;">${data.serviceDetails.time}</span>
+          </div>
+        `
+            : ""
+        }
+        
+        ${
+          data.serviceDetails.estimatedDuration
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Estimated Duration:</strong><br>
+            <span style="color: #374151;">${data.serviceDetails.estimatedDuration} minutes</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+      
+      ${
+        data.serviceDetails.specialInstructions
+          ? `
+        <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid #F59E0B;">
+          <strong style="color: #1F2937;">Special Instructions:</strong><br>
+          <span style="color: #374151;">${data.serviceDetails.specialInstructions}</span>
+        </div>
+      `
+          : ""
+      }
+      
+      ${
+        data.serviceDetails.preferences?.length > 0
+          ? `
+        <div style="margin-top: 16px;">
+          <strong style="color: #1F2937;">Service Preferences:</strong><br>
+          <div style="margin-top: 8px;">
+            ${data.serviceDetails.preferences
+              .map(
+                (pref: string) => `
+              <span style="background: white; color: #92400E; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; margin-right: 8px; margin-bottom: 4px; display: inline-block;">
+                ${pref}
+              </span>
+            `,
+              )
+              .join("")}
+          </div>
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `
+    : ""
+
+  // Generate payment info HTML
+  const paymentHtml = data.payment
+    ? `
+    <div style="background: #FDF2F8; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #BE185D; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        💳 Payment Information
+      </h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div>
+          <strong style="color: #1F2937;">Payment Method:</strong><br>
+          <span style="color: #374151;">${data.payment.method}</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Status:</strong><br>
+          <span style="background: ${data.payment.status === "completed" ? "#DCFCE7" : "#FEF3C7"}; color: ${data.payment.status === "completed" ? "#166534" : "#92400E"}; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+            ${data.payment.status}
+          </span>
+        </div>
+        
+        ${
+          data.payment.transactionId
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Transaction ID:</strong><br>
+            <code style="background: white; color: #374151; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px;">${data.payment.transactionId}</code>
+          </div>
+        `
+            : ""
+        }
+        
+        ${
+          data.payment.paymentDate
+            ? `
+          <div>
+            <strong style="color: #1F2937;">Payment Date:</strong><br>
+            <span style="color: #374151;">${new Date(data.payment.paymentDate).toLocaleString()}</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+      
+      ${
+        data.payment.allowVideoRecording !== undefined
+          ? `
+        <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid ${data.payment.allowVideoRecording ? "#10B981" : "#EF4444"};">
+          <strong style="color: #1F2937;">Video Recording Consent:</strong><br>
+          <span style="color: ${data.payment.allowVideoRecording ? "#059669" : "#DC2626"};">
+            ${data.payment.allowVideoRecording ? "✅ Customer consented to video recording" : "❌ Customer declined video recording"}
+          </span>
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `
+    : ""
+
+  // Generate metadata HTML
+  const metadataHtml = data.metadata
+    ? `
+    <div style="background: #F3F4F6; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #374151; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        📊 Technical Details
+      </h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div>
+          <strong style="color: #1F2937;">Device:</strong><br>
+          <span style="color: #374151;">${data.metadata.deviceType} (${data.metadata.screenSize})</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Browser:</strong><br>
+          <span style="color: #374151;">${data.metadata.browser}</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Location:</strong><br>
+          <span style="color: #374151;">${data.metadata.timezone}</span>
+        </div>
+        
+        <div>
+          <strong style="color: #1F2937;">Session ID:</strong><br>
+          <code style="background: white; color: #374151; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">${data.metadata.sessionId}</code>
+        </div>
+      </div>
+      
+      ${
+        data.metadata.utmSource || data.metadata.utmMedium || data.metadata.utmCampaign
+          ? `
+        <div style="margin-top: 16px;">
+          <strong style="color: #1F2937;">Marketing Attribution:</strong><br>
+          <div style="margin-top: 8px;">
+            ${data.metadata.utmSource ? `<span style="background: white; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; margin-bottom: 4px; display: inline-block;">Source: ${data.metadata.utmSource}</span>` : ""}
+            ${data.metadata.utmMedium ? `<span style="background: white; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; margin-bottom: 4px; display: inline-block;">Medium: ${data.metadata.utmMedium}</span>` : ""}
+            ${data.metadata.utmCampaign ? `<span style="background: white; color: #374151; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 8px; margin-bottom: 4px; display: inline-block;">Campaign: ${data.metadata.utmCampaign}</span>` : ""}
+          </div>
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `
+    : ""
+
+  // Generate error reporting HTML
+  const errorHtml =
+    errors.length > 0
+      ? `
+    <div style="background: #FEF2F2; border: 2px solid #FECACA; border-radius: 12px; padding: 24px; margin: 24px 0;">
+      <h3 style="color: #DC2626; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; display: flex; align-items: center;">
+        ⚠️ Issues Encountered
+      </h3>
+      
+      ${errors
+        .map(
+          (error, index) => `
+        <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #EF4444;">
+          <div style="display: flex; justify-content: between; align-items: start;">
+            <div style="flex: 1;">
+              <strong style="color: #DC2626;">Error ${index + 1}:</strong><br>
+              <span style="color: #374151; font-family: monospace; font-size: 14px;">${error.message || error}</span>
+            </div>
+            <div style="text-align: right; color: #6B7280; font-size: 12px;">
+              ${error.timestamp || timestamp}
+            </div>
+          </div>
+          
+          ${
+            error.stack
+              ? `
+            <details style="margin-top: 12px;">
+              <summary style="color: #6B7280; cursor: pointer; font-size: 12px;">Stack Trace</summary>
+              <pre style="background: #F9FAFB; padding: 8px; border-radius: 4px; font-size: 11px; color: #374151; margin-top: 8px; overflow-x: auto;">${error.stack}</pre>
+            </details>
+          `
+              : ""
+          }
+        </div>
+      `,
+        )
+        .join("")}
+      
+      <div style="background: #FEF3C7; border-radius: 8px; padding: 12px; margin-top: 16px;">
+        <strong style="color: #92400E;">💡 Troubleshooting:</strong><br>
+        <span style="color: #374151; font-size: 14px;">
+          These errors have been automatically logged. If issues persist, please check the 
+          <a href="${GOOGLE_SHEET_URL}" style="color: #2563EB; text-decoration: none;">Google Sheet</a> 
+          for detailed logs or contact the development team.
+        </span>
+      </div>
+    </div>
+  `
+      : ""
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${stepTitle} - SmileyBrooms Data Logger</title>
+      <style>
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+          line-height: 1.6; 
+          color: #1F2937; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #F9FAFB; 
+        }
+        .container { 
+          max-width: 800px; 
+          margin: 0 auto; 
+          background: white; 
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); 
+        }
+        .header { 
+          background: linear-gradient(135deg, ${stepColor} 0%, ${stepColor}CC 100%); 
+          color: white; 
+          padding: 40px 32px; 
+          text-align: center; 
+        }
+        .content { 
+          padding: 32px; 
+        }
+        .footer { 
+          background: #F3F4F6; 
+          padding: 24px 32px; 
+          text-align: center; 
+          border-top: 1px solid #E5E7EB; 
+        }
+        .quick-actions {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 12px;
+          padding: 24px;
+          margin: 24px 0;
+          text-align: center;
+        }
+        .quick-actions a {
+          display: inline-block;
+          background: white;
+          color: #667eea;
+          padding: 12px 24px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: 600;
+          margin: 0 8px;
+          transition: transform 0.2s;
+        }
+        .quick-actions a:hover {
+          transform: translateY(-2px);
+        }
+        @media (max-width: 600px) {
+          .container { margin: 0; box-shadow: none; }
+          .header, .content, .footer { padding: 24px 16px; }
+          .quick-actions a { display: block; margin: 8px 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <!-- Header -->
+        <div class="header">
+          <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">
+            ${stepTitle}
+          </h1>
+          <p style="margin: 0; font-size: 16px; opacity: 0.9;">
+            Data successfully logged to SmileyBrooms system
+          </p>
+          <div style="margin-top: 16px; font-size: 14px; opacity: 0.8;">
+            📅 ${timestamp}
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+          <!-- Order ID -->
+          ${
+            data.orderId
+              ? `
+            <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; opacity: 0.9;">Order Reference</h3>
+              <div style="font-size: 24px; font-weight: 700; font-family: monospace; letter-spacing: 1px;">
+                ${data.orderId}
+              </div>
+            </div>
+          `
+              : ""
+          }
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <h3 style="color: white; margin: 0 0 16px 0; font-size: 18px;">🚀 Quick Actions</h3>
+            <a href="${GOOGLE_SHEET_URL}" target="_blank">📊 View Google Sheet</a>
+            <a href="mailto:${data.customer?.email || "support@smileybrooms.com"}" target="_blank">📧 Contact Customer</a>
+            <a href="tel:${data.customer?.phone || ""}" target="_blank">📞 Call Customer</a>
+          </div>
+
+          <!-- Data Sections -->
+          ${customerHtml}
+          ${addressHtml}
+          ${serviceHtml}
+          ${cartSummaryHtml}
+          ${pricingHtml}
+          ${paymentHtml}
+          ${metadataHtml}
+          ${errorHtml}
+
+          <!-- Summary Stats -->
+          <div style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <h3 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">
+              📈 Summary Statistics
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700;">${data.cart?.totalItems || 0}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Items</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700;">${data.cart?.rooms?.length || 0}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Rooms</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700;">${data.cart?.addons?.length || 0}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Add-ons</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: 700;">$${data.pricing?.totalAmount?.toFixed(2) || "0.00"}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Value</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+          <p style="margin: 0 0 8px 0; color: #6B7280; font-size: 14px;">
+            This email was automatically generated by the SmileyBrooms Beautiful Email System
+          </p>
+          <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+            🧹 Making your home sparkle, one notification at a time ✨
+          </p>
+          <div style="margin-top: 16px;">
+            <a href="${GOOGLE_SHEET_URL}" style="color: #2563EB; text-decoration: none; font-size: 12px;">
+              📊 View Full Data in Google Sheet
+            </a>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+    ${stepTitle}
+    SmileyBrooms Data Logger Notification
+    
+    Timestamp: ${timestamp}
+    ${data.orderId ? `Order ID: ${data.orderId}` : ""}
+    
+    ${
+      data.customer
+        ? `
+    CUSTOMER INFORMATION:
+    Name: ${data.customer.firstName} ${data.customer.lastName}
+    Email: ${data.customer.email}
+    Phone: ${data.customer.phone}
+    ${data.customer.notes ? `Notes: ${data.customer.notes}` : ""}
+    `
+        : ""
+    }
+    
+    ${
+      data.address
+        ? `
+    SERVICE ADDRESS:
+    ${data.address.street}
+    ${data.address.apartment ? data.address.apartment : ""}
+    ${data.address.city}, ${data.address.state} ${data.address.zipCode}
+    Type: ${data.address.addressType}
+    `
+        : ""
+    }
+    
+    ${
+      data.pricing
+        ? `
+    PRICING:
+    Subtotal: $${data.pricing.subtotal?.toFixed(2) || "0.00"}
+    Discounts: -$${data.pricing.discountAmount?.toFixed(2) || "0.00"}
+    Tax: $${data.pricing.taxAmount?.toFixed(2) || "0.00"}
+    Total: $${data.pricing.totalAmount?.toFixed(2) || "0.00"}
+    `
+        : ""
+    }
+    
+    ${
+      errors.length > 0
+        ? `
+    ERRORS ENCOUNTERED:
+    ${errors.map((error, index) => `${index + 1}. ${error.message || error}`).join("\n")}
+    `
+        : ""
+    }
+    
+    View full data: ${GOOGLE_SHEET_URL}
+    
+    ---
+    This email was automatically generated by SmileyBrooms Beautiful Email System
+    🧹 Making your home sparkle, one notification at a time ✨
+  `
+
+  return {
+    subject: `${stepTitle} - Order ${data.orderId || "N/A"} - ${timestamp}`,
+    htmlContent,
+    textContent,
+    priority: errors.length > 0 ? "high" : data.urgencyLevel === "high" ? "high" : "normal",
+    category: step,
+  }
+}
+
 // Enhanced retry mechanism with better UX feedback
 async function sendToGoogleSheetWithRetry(
   data: any,
@@ -165,12 +930,30 @@ async function sendToGoogleSheetWithRetry(
     }
   }
 
+  // Generate rich email template
+  const emailTemplate = generateEmailTemplate(data, step)
+
+  // Enhanced payload with email template
+  const enhancedData = {
+    ...data,
+    emailTemplate,
+    systemInfo: {
+      version: "2.0.0",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      webhookUrl: WEBHOOK_URL,
+      sheetUrl: GOOGLE_SHEET_URL,
+    },
+  }
+
   // Debug logging with beautiful formatting
   if (process.env.NEXT_PUBLIC_EMAIL_DEBUG === "true") {
     console.group("🎨 [Beautiful Email Debug]")
     console.log("📧 Step:", step)
-    console.log("🎯 Attempt:", "Starting")
-    console.log("📦 Payload:", JSON.stringify(data, null, 2))
+    console.log("🎯 Email Subject:", emailTemplate.subject)
+    console.log("📏 HTML Length:", emailTemplate.htmlContent.length)
+    console.log("🎨 Email Priority:", emailTemplate.priority)
+    console.log("📦 Full Payload:", JSON.stringify(enhancedData, null, 2))
     console.groupEnd()
   }
 
@@ -189,15 +972,19 @@ async function sendToGoogleSheetWithRetry(
         headers: {
           "Content-Type": "application/json",
           "X-Requested-With": "SmileyBrooms-Beautiful-Email",
+          "X-Email-Priority": emailTemplate.priority,
+          "X-Email-Category": emailTemplate.category,
         },
         body: JSON.stringify({
-          ...data,
+          ...enhancedData,
           emailMetadata: {
             attempt,
             maxRetries,
             method: "no-cors",
             timestamp: new Date().toISOString(),
             userAgent: navigator?.userAgent || "server-side",
+            emailLength: emailTemplate.htmlContent.length,
+            hasErrors: data.errors?.length > 0,
           },
         }),
       })
@@ -206,7 +993,7 @@ async function sendToGoogleSheetWithRetry(
 
       return {
         success: true,
-        message: `Beautiful email sent successfully! 📧✨`,
+        message: `Beautiful email notification sent successfully! 📧✨`,
         emailsSent: {
           customer: true,
           business: true,
@@ -214,6 +1001,11 @@ async function sendToGoogleSheetWithRetry(
         },
         retryAttempts: attempt,
         fallbackUsed,
+        emailContent: {
+          subject: emailTemplate.subject,
+          preview: emailTemplate.textContent.substring(0, 150) + "...",
+          htmlLength: emailTemplate.htmlContent.length,
+        },
       }
     } catch (error) {
       lastError = error
@@ -230,15 +1022,18 @@ async function sendToGoogleSheetWithRetry(
             headers: {
               "Content-Type": "application/json",
               "X-Requested-With": "SmileyBrooms-Beautiful-Email-Fallback",
+              "X-Email-Priority": emailTemplate.priority,
+              "X-Email-Category": emailTemplate.category,
             },
             body: JSON.stringify({
-              ...data,
+              ...enhancedData,
               emailMetadata: {
                 attempt: attempt + 1,
                 maxRetries,
                 method: "cors-fallback",
                 timestamp: new Date().toISOString(),
                 fallbackReason: "no-cors-failed",
+                emailLength: emailTemplate.htmlContent.length,
               },
             }),
           })
@@ -258,6 +1053,11 @@ async function sendToGoogleSheetWithRetry(
               },
               retryAttempts: attempt + 1,
               fallbackUsed: true,
+              emailContent: {
+                subject: emailTemplate.subject,
+                preview: emailTemplate.textContent.substring(0, 150) + "...",
+                htmlLength: emailTemplate.htmlContent.length,
+              },
             }
           } else {
             throw new Error(`HTTP ${fallbackResponse.status}: ${fallbackResponse.statusText}`)
@@ -270,7 +1070,7 @@ async function sendToGoogleSheetWithRetry(
             onProgress?.(attempt, maxRetries, "form-submission")
             console.log(`🔄 [Beautiful Email] Trying form submission fallback for '${step}'`)
 
-            await sendViaFormSubmission(data, step)
+            await sendViaFormSubmission(enhancedData, step)
             fallbackUsed = true
 
             return {
@@ -283,6 +1083,11 @@ async function sendToGoogleSheetWithRetry(
               },
               retryAttempts: attempt + 2,
               fallbackUsed: true,
+              emailContent: {
+                subject: emailTemplate.subject,
+                preview: emailTemplate.textContent.substring(0, 150) + "...",
+                htmlLength: emailTemplate.htmlContent.length,
+              },
             }
           } catch (formError) {
             console.error(`❌ [Beautiful Email] All methods failed for '${step}':`, formError)
@@ -293,6 +1098,11 @@ async function sendToGoogleSheetWithRetry(
               error: `All delivery methods failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
               retryAttempts: attempt + 2,
               fallbackUsed: false,
+              emailContent: {
+                subject: emailTemplate.subject,
+                preview: "Failed to send",
+                htmlLength: emailTemplate.htmlContent.length,
+              },
             }
           }
         }
@@ -310,6 +1120,11 @@ async function sendToGoogleSheetWithRetry(
     error: `Max retries exceeded: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     retryAttempts: maxRetries,
     fallbackUsed,
+    emailContent: {
+      subject: emailTemplate.subject,
+      preview: "Failed to send",
+      htmlLength: emailTemplate.htmlContent.length,
+    },
   }
 }
 
@@ -786,6 +1601,8 @@ export async function checkEmailSystemHealth(): Promise<{
         "Enhanced UX tracking",
         "Multiple fallback methods",
         "Real-time progress updates",
+        "Rich error reporting",
+        "Google Sheet integration",
       ],
     }
 
@@ -800,6 +1617,7 @@ export async function checkEmailSystemHealth(): Promise<{
           features: healthData.features,
           lastCheck: new Date().toISOString(),
           fallbacksAvailable: true,
+          emailTemplate: result.emailContent,
         },
       }
     } else {
