@@ -312,7 +312,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
   }
 }
 
-// This function is for 'contact_for_alternatives' payment method
+// This function is now for service applications instead of 'contact_for_alternatives' payment method
 export async function processContactOrder(checkoutData: CheckoutData) {
   const contactInfo = getContactInfo()
   const { customerData, address, metadata, customLineItems } = checkoutData
@@ -323,9 +323,9 @@ export async function processContactOrder(checkoutData: CheckoutData) {
   const tax = (subtotal - discountAmount) * 0.08
   const total = subtotal - discountAmount + tax
 
-  const orderDataForSheet = {
-    orderId: `ORD-${Date.now()}`, // Generate a unique ID for contact orders
-    orderStatus: "Pending Contact", // Status for contact orders
+  const applicationDataForSheet = {
+    orderId: `APP-${Date.now()}`, // Generate a unique ID for service applications
+    orderStatus: "Application Submitted", // Status for service applications
     customer: {
       firstName: customerData.name.split(" ")[0] || "",
       lastName: customerData.name.split(" ").slice(1).join(" ") || "",
@@ -341,7 +341,7 @@ export async function processContactOrder(checkoutData: CheckoutData) {
       zipCode: address.postal_code,
     },
     serviceDetails: {
-      type: metadata.orderType || "Cleaning Service",
+      type: metadata.orderType || "Cleaning Service Application",
       frequency: metadata.frequency || "One-time",
       date: metadata.bookingDate || "",
       time: metadata.bookingTime || "",
@@ -370,9 +370,9 @@ export async function processContactOrder(checkoutData: CheckoutData) {
       totalAmount: total,
     },
     payment: {
-      method: "contact_for_alternatives",
-      status: "pending_contact",
-      transactionId: "", // No Stripe transaction ID for this method
+      method: "service_application",
+      status: "application_submitted",
+      transactionId: "", // No Stripe transaction ID for applications
     },
     metadata: {
       deviceType: metadata.deviceType,
@@ -390,17 +390,24 @@ export async function processContactOrder(checkoutData: CheckoutData) {
       couponCodeApplied: metadata.couponCodeApplied || "",
       customerSegment: metadata.customerSegment || "",
       internalNotes: metadata.internalNotes || "",
-      dataSource: "contact_form", // As per Apps Script's processOrderData
+      dataSource: "service_application", // Updated data source
     },
   }
 
-  console.log("[Apps Script Integration] Sending order data to Google Sheet for contact order...")
-  await sendOrderToGoogleSheet(orderDataForSheet)
+  console.log("[Apps Script Integration] Sending application data to Google Sheet...")
+  const result = await sendOrderToGoogleSheet(applicationDataForSheet)
 
-  return {
-    success: true,
-    message: `Order submitted! We'll call you at ${customerData.phone} to arrange payment.`,
-    contactPhone: contactInfo.phoneFormatted,
+  if (result.success) {
+    return {
+      success: true,
+      message: `Service application submitted! We'll contact you at ${customerData.phone} within 24 hours with a personalized quote.`,
+      contactPhone: contactInfo.phoneFormatted,
+    }
+  } else {
+    return {
+      success: false,
+      error: result.error || "Failed to submit service application",
+    }
   }
 }
 

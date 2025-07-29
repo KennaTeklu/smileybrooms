@@ -1,17 +1,14 @@
 "use client"
-
-import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, ShoppingCart, MapPin, CreditCard, Phone, Apple, Smartphone, CheckCircle } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, MapPin, Send, CheckCircle, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 import { useCart } from "@/lib/cart-context"
 import { formatCurrency } from "@/lib/utils"
 import type { CheckoutData } from "@/lib/types"
-import { createCheckoutSession } from "@/lib/actions"
 import { useToast } from "@/components/ui/use-toast"
 import { getContactInfo } from "@/lib/payment-config"
 
@@ -31,108 +28,42 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
   const tax = (subtotal - videoDiscount) * 0.08
   const total = subtotal - videoDiscount + tax
 
-  const handlePlaceOrder = async () => {
+  const handleSubmitApplication = async () => {
     setIsSubmitting(true)
 
     try {
-      // For contact_for_alternatives, show confirmation and redirect
-      if (checkoutData.payment.paymentMethod === 'contact_for_alternatives') {
-        // Store order data for confirmation
-        const orderData = {
-          orderId: `ORDER-${Date.now()}`,
-          items: cart.items,
-          contact: checkoutData.contact,
-          address: checkoutData.address,
-          payment: checkoutData.payment,
-          pricing: {
-            subtotal,
-            videoDiscount,
-            tax,
-            total,
-          },
-          status: 'pending_contact',
-          createdAt: new Date().toISOString(),
-        }
-
-        localStorage.setItem('pendingOrder', JSON.stringify(orderData))
-
-        toast({
-          title: "Order Submitted! 📞",
-          description: `We'll call you at ${checkoutData.contact.phone} to arrange payment and confirm your booking.`,
-          variant: "default",
-        })
-
-        // Redirect to success page with contact type
-        window.location.href = '/success?type=contact'
-        return
-      }
-
-      // For digital wallet payments, create Stripe checkout session
-      const customLineItems = cart.items.map(item => ({
-        name: item.name,
-        description: item.description || `${item.category} service`,
-        amount: item.price,
-        quantity: item.quantity,
-      }))
-
-      const discount = videoDiscount > 0 ? {
-        type: "fixed" as const,
-        value: videoDiscount,
-        description: "Video recording discount",
-      } : undefined
-
-      const sessionData = {
-        customLineItems,
-        discount,
-        customerData: {
-          name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
-          email: checkoutData.contact.email,
-          phone: checkoutData.contact.phone,
-          address: {
-            line1: checkoutData.address.street,
-            line2: checkoutData.address.apartment || undefined,
-            city: checkoutData.address.city,
-            state: checkoutData.address.state,
-            postal_code: checkoutData.address.zipCode,
-            country: "US",
-          },
-        },
-        metadata: {
-          paymentMethod: checkoutData.payment.paymentMethod,
-          deviceType: navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? 'ios' : 
-                     navigator.userAgent.includes('Android') ? 'android' : 'desktop',
-          allowVideoRecording: checkoutData.payment.allowVideoRecording,
-          videoConsentDetails: checkoutData.payment.videoConsentDetails,
-          orderType: 'cleaning_service',
-        },
-      }
-
-      // Store order data for success page
-      const orderData = {
-        orderId: `ORDER-${Date.now()}`,
+      // Store application data for success page
+      const applicationData = {
+        applicationId: `APP-${Date.now()}`,
         items: cart.items,
         contact: checkoutData.contact,
         address: checkoutData.address,
-        payment: checkoutData.payment,
+        payment: { ...checkoutData.payment, paymentMethod: "service_application" },
         pricing: {
           subtotal,
           videoDiscount,
           tax,
           total,
         },
-        status: 'pending_payment',
+        status: "application_submitted",
         createdAt: new Date().toISOString(),
       }
 
-      localStorage.setItem('orderConfirmation', JSON.stringify(orderData))
+      localStorage.setItem("serviceApplication", JSON.stringify(applicationData))
 
-      // Create checkout session (will redirect to Stripe)
-      await createCheckoutSession(sessionData)
-    } catch (error: any) {
-      console.error('Error placing order:', error)
       toast({
-        title: "Order Failed",
-        description: error.message || "There was an error processing your order. Please try again.",
+        title: "Application Submitted! 📋",
+        description: "We'll review your request and contact you within 24 hours.",
+        variant: "default",
+      })
+
+      // Redirect to success page with application type
+      window.location.href = "/success?type=application"
+    } catch (error: any) {
+      console.error("Error submitting application:", error)
+      toast({
+        title: "Application Failed",
+        description: error.message || "There was an error submitting your application. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -140,59 +71,17 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
     }
   }
 
-  const getPaymentMethodDisplay = () => {
-    switch (checkoutData.payment.paymentMethod) {
-      case 'apple_pay':
-        return (
-          <div className="flex items-center gap-2">
-            <Apple className="h-5 w-5" />
-            <span>Apple Pay</span>
-          </div>
-        )
-      case 'google_pay':
-        return (
-          <div className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            <span>Google Pay</span>
-          </div>
-        )
-      case 'contact_for_alternatives':
-        return (
-          <div className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
-            <span>Call for Payment Options</span>
-          </div>
-        )
-      default:
-        return <span>Unknown Payment Method</span>
-    }
-  }
-
-  const getOrderButtonText = () => {
-    if (isSubmitting) {
-      return checkoutData.payment.paymentMethod === 'contact_for_alternatives' 
-        ? 'Submitting Order...' 
-        : 'Redirecting to Payment...'
-    }
-    
-    return checkoutData.payment.paymentMethod === 'contact_for_alternatives' 
-      ? 'Submit Order (We\'ll Call You)' 
-      : `Pay ${formatCurrency(total)} Now`
-  }
-
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5" />
-          Review Your Order
+          <FileText className="h-5 w-5" />
+          Review Your Service Application
         </CardTitle>
-        <CardDescription>
-          Please review your order details before {checkoutData.payment.paymentMethod === 'contact_for_alternatives' ? 'submitting' : 'payment'}
-        </CardDescription>
+        <CardDescription>Please review your service request before submitting your application</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* Order Items */}
+        {/* Service Request Items */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -202,7 +91,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <ShoppingCart className="h-5 w-5" />
-                Order Summary
+                Requested Services
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -210,14 +99,10 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                 <div key={index} className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-medium">{item.name}</h4>
-                    {item.description && (
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    )}
+                    {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary">{item.category}</Badge>
-                      {item.paymentType === 'pay_in_person' && (
-                        <Badge variant="outline">Pay in Person</Badge>
-                      )}
+                      <Badge variant="outline">Service Request</Badge>
                     </div>
                   </div>
                   <div className="text-right">
@@ -225,7 +110,7 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                       {item.quantity} × {formatCurrency(item.price)}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {formatCurrency(item.price * item.quantity)}
+                      Est. {formatCurrency(item.price * item.quantity)}
                     </div>
                   </div>
                 </div>
@@ -246,7 +131,9 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <strong>{checkoutData.contact.firstName} {checkoutData.contact.lastName}</strong>
+                <strong>
+                  {checkoutData.contact.firstName} {checkoutData.contact.lastName}
+                </strong>
               </div>
               <div className="text-muted-foreground">{checkoutData.contact.email}</div>
               <div className="text-muted-foreground">{checkoutData.contact.phone}</div>
@@ -264,23 +151,27 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <MapPin className="h-5 w-5" />
-                Service Address
+                Service Location
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-muted-foreground">
                 {checkoutData.address.street}
-                {checkoutData.address.apartment && (
-                  <>, {checkoutData.address.apartment}</>
-                )}
+                {checkoutData.address.apartment && <>, {checkoutData.address.apartment}</>}
                 <br />
                 {checkoutData.address.city}, {checkoutData.address.state} {checkoutData.address.zipCode}
               </div>
+              {checkoutData.address.specialInstructions && (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-1">Special Instructions:</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">{checkoutData.address.specialInstructions}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Payment Method */}
+        {/* Estimated Pricing */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -288,40 +179,12 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="h-5 w-5" />
-                Payment Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>{getPaymentMethodDisplay()}</div>
-                {checkoutData.payment.paymentMethod === 'contact_for_alternatives' && (
-                  <Badge variant="outline">Call {contactInfo.phoneFormatted}</Badge>
-                )}
-              </div>
-              {checkoutData.payment.allowVideoRecording && (
-                <div className="mt-2 text-sm text-green-600">
-                  ✓ Video recording consent given (10% discount applied)
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Pricing Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pricing Breakdown</CardTitle>
+              <CardTitle className="text-lg">Estimated Pricing</CardTitle>
+              <CardDescription>Final pricing will be confirmed in your personalized quote</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>Estimated Subtotal</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
               {videoDiscount > 0 && (
@@ -331,39 +194,62 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
                 </div>
               )}
               <div className="flex justify-between">
-                <span>Tax (8%)</span>
+                <span>Estimated Tax (8%)</span>
                 <span>{formatCurrency(tax)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-semibold">
-                <span>Total</span>
+                <span>Estimated Total</span>
                 <span>{formatCurrency(total)}</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                * This is an estimate. Final pricing will be provided in your personalized quote.
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Application Process Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+        >
+          <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">What happens after you apply?</h4>
+                  <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                    <li>• We'll review your service request within 24 hours</li>
+                    <li>• You'll receive a personalized quote via email, text, or phone call</li>
+                    <li>• We'll schedule a convenient time for your cleaning service</li>
+                    <li>• Payment will be processed after service confirmation</li>
+                    <li>• You'll receive an invoice with final pricing and payment options</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Special Instructions for Contact Payment */}
-        {checkoutData.payment.paymentMethod === 'contact_for_alternatives' && (
+        {/* Video Recording Consent */}
+        {checkoutData.payment.allowVideoRecording && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.6 }}
           >
-            <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
               <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
                   <div>
-                    <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
-                      What happens next?
-                    </h4>
-                    <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                      <li>• We'll call you at {checkoutData.contact.phone} within 24 hours</li>
-                      <li>• We'll confirm your booking details and schedule</li>
-                      <li>• We'll arrange payment (cash, Zelle, or other options)</li>
-                      <li>• Your cleaning service will be confirmed once payment is arranged</li>
-                    </ul>
+                    <h4 className="font-medium text-blue-800 dark:text-blue-200">Video Recording Consent</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      You've agreed to video recording during service (10% discount applied to estimate)
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -378,30 +264,27 @@ export default function ReviewStep({ checkoutData, onPrevious }: ReviewStepProps
           transition={{ duration: 0.3, delay: 0.7 }}
           className="flex justify-between pt-6"
         >
-          <Button variant="outline" size="default" className="px-6 rounded-lg" onClick={onPrevious}>
+          <Button variant="outline" size="default" className="px-6 rounded-lg bg-transparent" onClick={onPrevious}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Payment
+            Back to Address
           </Button>
 
           <Button
-            onClick={handlePlaceOrder}
+            onClick={handleSubmitApplication}
             size="default"
-            className={`px-8 rounded-lg text-lg font-semibold ${
-              checkoutData.payment.paymentMethod === 'contact_for_alternatives'
-                ? 'bg-green-600 hover:bg-green-700'
-                : checkoutData.payment.paymentMethod === 'apple_pay'
-                ? 'bg-black hover:bg-gray-800'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className="px-8 rounded-lg text-lg font-semibold bg-green-600 hover:bg-green-700"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                {getOrderButtonText()}
+                Submitting Application...
               </>
             ) : (
-              getOrderButtonText()
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Submit Service Application
+              </>
             )}
           </Button>
         </motion.div>

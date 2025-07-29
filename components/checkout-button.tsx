@@ -1,120 +1,155 @@
 "use client"
 
-import type React from "react"
-
-import { Button } from "@/components/ui/button"
-import { createCheckoutSession } from "@/lib/actions"
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Send, Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
+import { useCart } from "@/lib/cart-context"
+import { CheckoutSidepanel } from "@/components/cart/checkout-sidepanel"
+import type { CheckoutData } from "@/lib/types"
+import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import type { CartItem } from "@/lib/cart/types" // Import CartItem type
-import type Stripe from "stripe" // Declare Stripe variable
+import { processContactOrder } from "@/lib/actions"
 
-interface CheckoutButtonProps extends React.ComponentProps<typeof Button> {
-  useCheckoutPage?: boolean
-  cartItems: CartItem[] // Changed to accept an array of CartItem
-  customerEmail?: string
-  customerData?: {
-    name?: string
-    email?: string
-    phone?: string
-    address?: {
-      line1?: string
-      city?: string
-      state?: string
-      postal_code?: string
-      country?: string
-    }
-    allowVideoRecording?: boolean
-    videoConsentDetails?: string
-  }
-  isRecurring?: boolean
-  recurringInterval?: "day" | "week" | "month" | "year"
-  discount?: {
-    amount: number
-    reason: string
-  }
-  shippingAddressCollection?: { allowed_countries: string[] }
-  automaticTax?: { enabled: boolean }
-  paymentMethodTypes?: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
-  trialPeriodDays?: number
-  cancelAtPeriodEnd?: boolean
-  allowPromotions?: boolean
-}
-
-export function CheckoutButton({
-  useCheckoutPage = false,
-  cartItems, // Destructure cartItems
-  customerEmail,
-  customerData,
-  isRecurring,
-  recurringInterval,
-  discount,
-  shippingAddressCollection,
-  automaticTax,
-  paymentMethodTypes,
-  trialPeriodDays,
-  cancelAtPeriodEnd,
-  allowPromotions,
-  ...props
-}: CheckoutButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
+export default function CheckoutButton() {
+  const { cart } = useCart()
+  const router = useRouter()
   const { toast } = useToast()
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleCheckout = async () => {
-    setIsLoading(true)
+  const handleCheckoutComplete = async (checkoutData: CheckoutData) => {
+    setIsSubmitting(true)
+
     try {
-      // Map cartItems to customLineItems for Stripe
-      const customLineItems = cartItems.map((item) => ({
+      // Calculate pricing
+      const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+      const videoDiscount = checkoutData.payment.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+      const tax = (subtotal - videoDiscount) * 0.08
+      const total = subtotal - videoDiscount + tax
+
+      // Prepare line items for the application
+      const customLineItems = cart.items.map((item) => ({
         name: item.name,
-        // Ensure unitPrice is a valid number, default to 0 if not
-        amount: Number(item.unitPrice) || 0,
+        description: item.description || `${item.category} service`,
+        amount: item.price,
         quantity: item.quantity,
-        description: item.description,
-        images: item.images,
-        metadata: item.meta, // Pass the entire meta object as metadata
       }))
 
-      const checkoutUrl = await createCheckoutSession({
-        customLineItems, // Pass the mapped customLineItems
-        successUrl: `${window.location.origin}/success`,
-        cancelUrl: `${window.location.origin}/canceled`,
-        customerEmail,
-        customerData,
-        isRecurring,
-        recurringInterval,
-        discount,
-        shippingAddressCollection,
-        automaticTax,
-        paymentMethodTypes,
-        trialPeriodDays,
-        cancelAtPeriodEnd,
-        allowPromotions,
-      })
+      const applicationData = {
+        customLineItems,
+        discount:
+          videoDiscount > 0
+            ? {
+                type: "fixed" as const,
+                value: videoDiscount,
+                description: "Video recording discount",
+              }
+            : undefined,
+        customerData: {
+          name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
+          email: checkoutData.contact.email,
+          phone: checkoutData.contact.phone,
+          address: {
+            line1: checkoutData.address.street,
+            line2: checkoutData.address.apartment || undefined,
+            city: checkoutData.address.city,
+            state: checkoutData.address.state,
+            postal_code: checkoutData.address.zipCode,
+            country: "US",
+          },
+        },
+        metadata: {
+          paymentMethod: "service_application",
+          deviceType:
+            navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")
+              ? "ios"
+              : navigator.userAgent.includes("Android")
+                ? "android"
+                : "desktop",
+          allowVideoRecording: checkoutData.payment.allowVideoRecording,
+          videoConsentDetails: checkoutData.payment.videoConsentDetails,
+          orderType: "cleaning_service_application",
+          specialInstructions: checkoutData.address.specialInstructions,
+        },
+      }
 
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
-      } else {
+      // Store application data for success page
+      const applicationRecord = {
+        applicationId: `APP-${Date.now()}`,
+        items: cart.items,
+        contact: checkoutData.contact,
+        address: checkoutData.address,
+        payment: { ...checkoutData.payment, paymentMethod: "service_application" },
+        pricing: {
+          subtotal,
+          videoDiscount,
+          tax,
+          total,
+        },
+        status: "application_submitted",
+        createdAt: new Date().toISOString(),
+      }
+
+      localStorage.setItem("serviceApplication", JSON.stringify(applicationRecord))
+
+      // Process the application (this will log to Google Sheets and send notifications)
+      const result = await processContactOrder(applicationData)
+
+      if (result.success) {
         toast({
-          title: "Checkout Failed",
-          description: "Could not initiate checkout. Please try again.",
-          variant: "destructive",
+          title: "Application Submitted! 📋",
+          description: "We'll review your request and contact you within 24 hours.",
+          variant: "default",
         })
+
+        // Redirect to success page with application type
+        router.push("/success?type=application")
+      } else {
+        throw new Error(result.error || "Failed to submit application")
       }
     } catch (error: any) {
-      console.error("Error during checkout:", error)
+      console.error("Error submitting application:", error)
       toast({
-        title: "Checkout Error",
-        description: `An unexpected error occurred during checkout: ${error.message || "Unknown error"}. Please try again.`,
+        title: "Application Failed",
+        description: error.message || "There was an error submitting your application. Please try again.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
+  const isDisabled = cart.items.length === 0 || isSubmitting
+
   return (
-    <Button onClick={handleCheckout} disabled={isLoading || cartItems.length === 0} {...props}>
-      {isLoading ? "Processing..." : "Proceed to Checkout"}
-    </Button>
+    <>
+      <motion.div whileHover={{ scale: isDisabled ? 1 : 1.02 }} whileTap={{ scale: isDisabled ? 1 : 0.98 }}>
+        <Button
+          onClick={() => setIsCheckoutOpen(true)}
+          disabled={isDisabled}
+          size="lg"
+          className="w-full h-14 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Submitting Application...
+            </>
+          ) : (
+            <>
+              <Send className="mr-2 h-5 w-5" />
+              Apply for Service
+            </>
+          )}
+        </Button>
+      </motion.div>
+
+      <CheckoutSidepanel
+        isOpen={isCheckoutOpen}
+        onOpenChange={setIsCheckoutOpen}
+        onCheckoutComplete={handleCheckoutComplete}
+      />
+    </>
   )
 }

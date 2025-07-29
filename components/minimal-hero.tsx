@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { ArrowDown } from "lucide-react"
+import { ArrowDown, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function MinimalHero() {
@@ -19,6 +19,34 @@ export default function MinimalHero() {
   const erasingSpeed = 30
   const pauseDuration = 2000
   const textRef = useRef(fullTexts[0])
+
+  const downloadVCardAndCall = () => {
+    // Create vCard data
+    const vCardData = `BEGIN:VCARD
+VERSION:3.0
+FN:smileybrooms.com cleaning services
+ORG:Smiley Brooms
+TEL:+16616023000
+URL:https://smileybrooms.com
+EMAIL:smileybrooms@gmail.com
+NOTE:Professional cleaning services - Always accessible and flexible for your needs
+END:VCARD`
+
+    // Create and download vCard
+    const blob = new Blob([vCardData], { type: "text/vcard" })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "smileybrooms-cleaning-services.vcf"
+    link.style.display = "none"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    // Simultaneously initiate phone call
+    window.location.href = "tel:+16616023000"
+  }
 
   // Typing effect
   useEffect(() => {
@@ -85,17 +113,39 @@ export default function MinimalHero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.8 }}
+            className="flex flex-col sm:flex-row gap-4 items-center"
           >
-            <Button
-              onClick={scrollToBooking}
-              size="lg"
-              className="group relative overflow-hidden rounded-full px-8 py-6 neon-button"
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <span className="relative z-10 text-lg font-medium">Book Now</span>
-              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:translate-y-1">
-                <ArrowDown className="h-4 w-4 animate-bounce" />
-              </span>
-            </Button>
+              <Button
+                onClick={scrollToBooking}
+                size="lg"
+                className="group relative overflow-hidden rounded-full px-8 py-6 neon-button transition-transform duration-200"
+              >
+                <span className="relative z-10 text-lg font-medium">Book Now</span>
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:translate-y-1">
+                  <ArrowDown className="h-4 w-4 animate-bounce" />
+                </span>
+              </Button>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <Button
+                onClick={downloadVCardAndCall}
+                size="lg"
+                className="group relative overflow-hidden rounded-full px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Phone className="mr-2 h-5 w-5" />
+                <span className="relative z-10 text-lg font-medium">Call Now</span>
+              </Button>
+            </motion.div>
           </motion.div>
         </div>
       </div>
