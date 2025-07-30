@@ -125,12 +125,14 @@ END:VCARD`
                 size="lg"
                 className="group relative overflow-hidden rounded-full px-8 py-6 neon-button transition-transform duration-200"
               >
-                <span className="relative z-10 text-lg font-medium">Book Now</span>
+                <span className="relative z-10 text-lg font-medium">Book Online</span>
                 <span className="absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-300 group-hover:translate-y-1">
                   <ArrowDown className="h-4 w-4 animate-bounce" />
                 </span>
               </Button>
             </motion.div>
+
+            <span className="text-gray-700 dark:text-gray-300 text-lg font-medium mx-4">or</span>
 
             <motion.div
               whileHover={{ scale: 1.1 }}

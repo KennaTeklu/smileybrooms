@@ -38,8 +38,8 @@ export default function UnifiedFooter() {
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <Phone className="h-4 w-4 text-blue-400" />
-              <a href="tel:+15551234567" className="hover:underline text-blue-300">
-                +1 (555) 123-4567
+              <a href="tel:+16616023000" className="hover:underline text-blue-300">
+                (661) 602 3000
               </a>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
