@@ -1182,7 +1182,7 @@ export default function ApplicationSidePanel({ isOpen, onOpenChange, onCheckoutC
                   <SelectValue placeholder="Select your city" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Glendale">Glandom</SelectItem>
+                  <SelectItem value="Glendale">Glendale</SelectItem>
                   <SelectItem value="Phoenix">Phoenix</SelectItem>
                   <SelectItem value="Peoria">Peoria</SelectItem>
                 </SelectContent>
