@@ -29,8 +29,6 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { useClickOutside } from "@/hooks/use-click-outside"
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useVibration } from "@/hooks/use-vibration"
 import { useNetworkStatus } from "@/hooks/use-network-status"
 import { useToast } from "@/components/ui/use-toast"
@@ -197,24 +195,60 @@ export function CollapsibleSharePanel() {
   const [shareCount, setShareCount] = useState(0)
   const expandedPanelRef = useRef<HTMLDivElement>(null)
   const collapsedButtonRef = useRef<HTMLButtonElement>(null)
-  const qrCodeRef = useRef<HTMLDivElement>(null) // Ref for QR code container
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const qrCodeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
     setCurrentUrl(window.location.href)
   }, [])
 
-  useClickOutside(expandedPanelRef, (event) => {
-    if (collapsedButtonRef.current && collapsedButtonRef.current.contains(event.target as Node)) {
-      return
-    }
-    setIsExpanded(false)
-  })
+  // Enhanced click outside detection
+  useEffect(() => {
+    if (!isMounted || !isExpanded) return
 
-  useKeyboardShortcuts({
-    "alt+s": () => setIsExpanded((prev) => !prev),
-    Escape: () => setIsExpanded(false),
-  })
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node
+
+      // Don't close if clicking on the collapsed button
+      if (collapsedButtonRef.current && collapsedButtonRef.current.contains(target)) {
+        return
+      }
+
+      // Don't close if clicking inside the expanded panel
+      if (expandedPanelRef.current && expandedPanelRef.current.contains(target)) {
+        return
+      }
+
+      // Close if clicking on backdrop or outside
+      if (backdropRef.current && (backdropRef.current === target || backdropRef.current.contains(target))) {
+        setIsExpanded(false)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false)
+      }
+    }
+
+    // Add multiple event listeners for better coverage
+    document.addEventListener("mousedown", handleClickOutside, true)
+    document.addEventListener("touchstart", handleClickOutside, true)
+    document.addEventListener("click", handleClickOutside, true)
+    document.addEventListener("keydown", handleEscape)
+
+    // Prevent body scroll when panel is open
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside, true)
+      document.removeEventListener("touchstart", handleClickOutside, true)
+      document.removeEventListener("click", handleClickOutside, true)
+      document.removeEventListener("keydown", handleEscape)
+      document.body.style.overflow = "unset"
+    }
+  }, [isExpanded, isMounted])
 
   const { vibrate } = useVibration()
   const { isOnline } = useNetworkStatus()
@@ -326,7 +360,6 @@ export function CollapsibleSharePanel() {
       return
     }
 
-    // For platforms that don't have direct sharing URLs (e.g., Instagram, GitHub)
     if (["instagram", "github", "slack"].includes(platform.id)) {
       navigator.clipboard.writeText(shareText)
       window.open(platform.url, "_blank")
@@ -337,7 +370,6 @@ export function CollapsibleSharePanel() {
       return
     }
 
-    // For all other platforms with sharing URLs
     const shareUrl = platform.url + encodeURIComponent(shareText)
     window.open(shareUrl, "_blank", "width=600,height=400")
     setShareCount((prev) => prev + 1)
@@ -352,21 +384,33 @@ export function CollapsibleSharePanel() {
       {isExpanded ? (
         <motion.div
           key="expanded-share"
-          ref={expandedPanelRef}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed inset-0 flex items-center justify-center p-4 z-20"
+          ref={backdropRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            // Close if clicking directly on backdrop
+            if (e.target === backdropRef.current) {
+              setIsExpanded(false)
+            }
+          }}
         >
-          <div
-            className="w-full max-w-sm bg-transparent backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 max-h-[90vh] flex flex-col"
+          <motion.div
+            ref={expandedPanelRef}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="w-full max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border-2 border-purple-200/50 dark:border-purple-800/50 max-h-[90vh] flex flex-col"
             style={{
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(168, 85, 247, 0.1)",
             }}
+            onClick={(e) => e.stopPropagation()} // Prevent backdrop click when clicking inside panel
           >
             {/* Enhanced Header */}
-            <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-purple-600 text-white p-5">
+            <div className="bg-gradient-to-r from-purple-800 via-purple-700 to-purple-600 text-white p-5 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -395,7 +439,7 @@ export function CollapsibleSharePanel() {
             </div>
 
             {/* Enhanced Quick Actions */}
-            <div className="p-5 border-b border-gray-200 dark:border-gray-700 space-y-4">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-700 space-y-4 flex-shrink-0">
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
@@ -414,7 +458,6 @@ export function CollapsibleSharePanel() {
                   QR Code
                 </Button>
               </div>
-
               {showQR && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -441,7 +484,6 @@ export function CollapsibleSharePanel() {
                   </Button>
                 </motion.div>
               )}
-
               {/* Popular Platforms Quick Access */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -465,8 +507,12 @@ export function CollapsibleSharePanel() {
               </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-              <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full flex-1 flex flex-col overflow-y-auto"
+            >
+              <TabsList className="grid grid-cols-4 p-3 m-3 bg-gray-100 dark:bg-gray-700 rounded-xl flex-shrink-0">
                 <TabsTrigger value="social" className="rounded-lg font-medium text-xs text-gray-700 dark:text-gray-300">
                   <Users className="h-3 w-3 mr-1" />
                   Social
@@ -484,10 +530,9 @@ export function CollapsibleSharePanel() {
                   More
                 </TabsTrigger>
               </TabsList>
-
               <div className="p-5 flex-1 overflow-y-auto">
                 {/* Enhanced Search */}
-                <div className="relative mb-4">
+                <div className="relative mb-4 flex-shrink-0">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search platforms..."
@@ -496,7 +541,6 @@ export function CollapsibleSharePanel() {
                     className="pl-10 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 text-gray-800 dark:text-gray-200"
                   />
                 </div>
-
                 {/* Enhanced Platform Grid */}
                 <div className="grid grid-cols-1 gap-3">
                   {filteredPlatforms.map((platform) => (
@@ -533,7 +577,6 @@ export function CollapsibleSharePanel() {
                     </motion.button>
                   ))}
                 </div>
-
                 {filteredPlatforms.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Share2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -543,7 +586,7 @@ export function CollapsibleSharePanel() {
                 )}
               </div>
             </Tabs>
-          </div>
+          </motion.div>
         </motion.div>
       ) : (
         <motion.div
@@ -552,21 +595,21 @@ export function CollapsibleSharePanel() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="fixed bottom-4 left-4 z-10" // Position for collapsed state
+          className="fixed bottom-4 left-4 z-40"
         >
           <Button
             ref={collapsedButtonRef}
             variant="outline"
             size="icon"
             className={cn(
-              `rounded-full bg-transparent text-white shadow-lg hover:bg-purple-700 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent`,
-              "w-10 h-10 p-0",
+              "rounded-full bg-transparent text-white shadow-lg hover:bg-purple-700/20 hover:text-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 border-transparent",
+              "w-12 h-12 p-0",
             )}
             onClick={() => setIsExpanded(!isExpanded)}
             aria-label={isExpanded ? "Close share panel" : "Open share panel"}
             aria-expanded={isExpanded}
           >
-            <Share2 className="h-5 w-5" />
+            <Share2 className="h-6 w-6" />
           </Button>
         </motion.div>
       )}

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   ChevronDown,
@@ -17,6 +18,7 @@ import {
   CreditCard,
   Shield,
   ArrowLeft,
+  Trash2,
 } from "lucide-react"
 import { CartItemDisplay } from "@/components/cart/cart-item-display"
 import { ApplicationSidepanel } from "@/components/cart/application-sidepanel"
@@ -24,7 +26,17 @@ import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import type { CheckoutData } from "@/lib/types"
-import { logCartProceedToCheckout, logCartReviewPayNowClick } from "@/lib/google-sheet-logger" // Updated import
+import { logCartProceedToCheckout, logCartReviewPayNowClick } from "@/lib/google-sheet-logger"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function CartPage() {
   const router = useRouter()
@@ -33,9 +45,72 @@ export default function CartPage() {
   const [completedApplicationData, setCompletedApplicationData] = useState<CheckoutData | null>(null)
   const [isItemsExpanded, setIsItemsExpanded] = useState(false)
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [itemsToDeleteBulk, setItemsToDeleteBulk] = useState<Array<{ id: string; name: string }>>([])
 
+  // Selection handlers
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    const newSelected = new Set(selectedItems)
+    if (checked) {
+      newSelected.add(itemId)
+    } else {
+      newSelected.delete(itemId)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(new Set(cart.items.map((item) => item.id)))
+    } else {
+      setSelectedItems(new Set())
+    }
+  }
+
+  const isAllSelected = cart.items.length > 0 && selectedItems.size === cart.items.length
+  const isPartiallySelected = selectedItems.size > 0 && selectedItems.size < cart.items.length
+
+  // Remove handlers
   const handleRemoveItem = (itemId: string, itemName: string) => {
-    removeItem(itemId)
+    setItemToDelete({ id: itemId, name: itemName })
+  }
+
+  const handleRemoveSelected = () => {
+    const itemsToRemove = cart.items
+      .filter((item) => selectedItems.has(item.id))
+      .map((item) => ({ id: item.id, name: item.name }))
+
+    if (itemsToRemove.length > 0) {
+      setItemsToDeleteBulk(itemsToRemove)
+    }
+  }
+
+  const confirmRemoveItem = () => {
+    if (itemToDelete) {
+      removeItem(itemToDelete.id)
+      setItemToDelete(null)
+      // Remove from selection if it was selected
+      const newSelected = new Set(selectedItems)
+      newSelected.delete(itemToDelete.id)
+      setSelectedItems(newSelected)
+    }
+  }
+
+  const confirmRemoveSelected = () => {
+    itemsToDeleteBulk.forEach((item) => {
+      removeItem(item.id)
+    })
+    setItemsToDeleteBulk([])
+    setSelectedItems(new Set()) // Clear selection after bulk delete
+  }
+
+  const cancelRemoveItem = () => {
+    setItemToDelete(null)
+  }
+
+  const cancelRemoveSelected = () => {
+    setItemsToDeleteBulk([])
   }
 
   const handleUpdateQuantity = (itemId: string, change: number) => {
@@ -44,6 +119,10 @@ export default function CartPage() {
       const newQuantity = item.quantity + change
       if (newQuantity <= 0) {
         removeItem(itemId)
+        // Remove from selection if it was selected
+        const newSelected = new Set(selectedItems)
+        newSelected.delete(itemId)
+        setSelectedItems(newSelected)
       } else {
         updateQuantity(itemId, newQuantity)
       }
@@ -59,7 +138,6 @@ export default function CartPage() {
   const handleProceedToApplication = () => {
     if (completedApplicationData) {
       logCartReviewPayNowClick({
-        // Using the new specific function
         checkoutData: completedApplicationData,
         cartItems: cart.items,
         subtotalPrice: cart.subtotalPrice,
@@ -71,7 +149,6 @@ export default function CartPage() {
       router.push("/success")
     } else {
       logCartProceedToCheckout({
-        // Using the new specific function
         checkoutData: {
           contact: { firstName: "", lastName: "", email: "", phone: "" },
           address: {
@@ -140,19 +217,70 @@ export default function CartPage() {
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-gray-200 dark:border-gray-700">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Selected Services ({cart.items.length})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Selected Services ({cart.items.length})
+                  </CardTitle>
+
+                  {cart.items.length > 0 && (
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="select-all"
+                          checked={isAllSelected}
+                          ref={(ref) => {
+                            if (ref) {
+                              ref.indeterminate = isPartiallySelected
+                            }
+                          }}
+                          onCheckedChange={handleSelectAll}
+                          className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                        />
+                        <label htmlFor="select-all" className="text-sm font-medium cursor-pointer select-none">
+                          Select All
+                        </label>
+                      </div>
+
+                      {selectedItems.size > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleRemoveSelected}
+                          className="flex items-center gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove Selected ({selectedItems.size})
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {selectedItems.size > 0 && (
+                  <div className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                    {selectedItems.size} of {cart.items.length} services selected
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 {cart.items.map((item) => (
-                  <CartItemDisplay
-                    key={item.id}
-                    item={item}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onRemoveItem={handleRemoveItem}
-                  />
+                  <div key={item.id} className="flex items-start gap-3">
+                    <Checkbox
+                      id={`select-${item.id}`}
+                      checked={selectedItems.has(item.id)}
+                      onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                      className="mt-4 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    />
+                    <div className="flex-1">
+                      <CartItemDisplay
+                        item={item}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onRemoveItem={handleRemoveItem}
+                        isSelected={selectedItems.has(item.id)}
+                      />
+                    </div>
+                  </div>
                 ))}
               </CardContent>
             </Card>
@@ -403,6 +531,52 @@ export default function CartPage() {
         onOpenChange={setIsApplicationOpen}
         onCheckoutComplete={handleApplicationComplete}
       />
+
+      {/* Single item delete confirmation */}
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && cancelRemoveItem()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove "{itemToDelete?.name}" from your cart? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelRemoveItem}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveItem} className="bg-red-600 hover:bg-red-700">
+              Remove Service
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={itemsToDeleteBulk.length > 0} onOpenChange={(open) => !open && cancelRemoveSelected()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Selected Services</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {itemsToDeleteBulk.length} selected service
+              {itemsToDeleteBulk.length > 1 ? "s" : ""} from your cart?
+              <div className="mt-2 text-sm">
+                <strong>Services to be removed:</strong>
+                <ul className="list-disc list-inside mt-1 max-h-32 overflow-y-auto">
+                  {itemsToDeleteBulk.map((item, index) => (
+                    <li key={index}>{item.name}</li>
+                  ))}
+                </ul>
+              </div>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelRemoveSelected}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveSelected} className="bg-red-600 hover:bg-red-700">
+              Remove {itemsToDeleteBulk.length} Service{itemsToDeleteBulk.length > 1 ? "s" : ""}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
