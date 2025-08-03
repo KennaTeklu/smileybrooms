@@ -54,18 +54,15 @@ interface EmailTemplate {
 }
 
 interface OrderData {
-  // Customer Information
+  orderId: string
+  timestamp: string
   customer: {
     firstName: string
     lastName: string
     email: string
     phone: string
     notes?: string
-    preferredContactMethod?: string
-    timezone?: string
   }
-
-  // Service Address
   address: {
     street: string
     apartment?: string
@@ -76,82 +73,63 @@ interface OrderData {
     accessInstructions?: string
     parkingInstructions?: string
   }
-
-  // Service Details
   serviceDetails: {
     type: string
     frequency: string
     date?: string
     time?: string
-    estimatedDuration?: string
     specialInstructions?: string
-    preferences?: string[]
-    urgencyLevel?: "low" | "medium" | "high" | "urgent"
+    preferences?: string
   }
-
-  // Cart Information
   cart: {
     rooms: Array<{
-      category: string
-      count: number
-      customizations?: string[]
+      name: string
+      price: number
+      quantity: number
     }>
     addons: Array<{
       name: string
+      price: number
       quantity: number
-      price?: number
-      totalPrice?: number
     }>
     totalItems: number
   }
-
-  // Pricing Details
   pricing: {
     subtotal: number
-    couponDiscount?: number
-    fullHouseDiscount?: number
     discountAmount?: number
-    taxRate?: number
     taxAmount?: number
     totalAmount: number
-    currency: string
     couponCode?: string
   }
-
-  // Payment Information
   payment: {
     method: string
     status: string
     transactionId?: string
-    paymentDate?: string
-    allowVideoRecording?: boolean
+    allowVideoRecording: boolean
   }
-
-  // Metadata
-  metadata: {
+  metadata?: {
+    source?: string
     deviceType?: string
-    browser?: string
-    ipAddress?: string
     userAgent?: string
-    screenResolution?: string
-    viewportSize?: string
-    colorScheme?: string
-    videoConsentDetails?: string
-    utmSource?: string
-    utmMedium?: string
-    utmCampaign?: string
-    referrerUrl?: string
+    referrer?: string
     sessionId?: string
-    cartId?: string
-    userInteractions?: number
-    pageLoadTime?: number
-    internalNotes?: string
+    [key: string]: any
   }
-
-  // Order Metadata
-  orderId?: string
-  orderStatus?: string
 }
+
+interface AnalyticsData {
+  eventType: string
+  timestamp: string
+  sessionId?: string
+  userId?: string
+  pageUrl?: string
+  referrer?: string
+  deviceType?: string
+  userAgent?: string
+  customData?: Record<string, any>
+}
+
+const GOOGLE_APPS_SCRIPT_URL = process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL || process.env.APPS_SCRIPT_WEB_APP_URL
 
 // Rate limiting for Google Sheets API
 const rateLimiter = {
@@ -943,403 +921,218 @@ if (typeof window !== "undefined") {
   }
 }
 
-// Exported logging functions
-export function logWelcomeStart(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "welcome_start" }, "welcome_start", onProgress)
-}
+// Export types for better TypeScript support
+export type { LogEventData, EmailNotificationResult, OrderData, AnalyticsData }
 
-export function logContactSubmit(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "contact_submit" }, "contact_submit", onProgress)
-}
-
-export function logAddressSubmit(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "address_submit" }, "address_submit", onProgress)
-}
-
-export function logCartProceedToCheckout(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely(
-    { ...eventData, step: "cart_proceed_to_checkout_click" },
-    "cart_proceed_to_checkout_click",
-    onProgress,
-  )
-}
-
-export function logCartReviewPayNowClick(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "cart_review_pay_now_click" }, "cart_review_pay_now_click", onProgress)
-}
-
-export function logCheckoutComplete(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "checkout_complete" }, "checkout_complete", onProgress)
-}
-
-export function logBookingConfirmation(
-  eventData: Omit<LogEventData, "step">,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  return logEventSafely({ ...eventData, step: "booking_confirmation" }, "booking_confirmation", onProgress)
-}
-
-// Enhanced testing function
-export async function testAppsScript(
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-): Promise<EmailNotificationResult> {
-  const testData = {
-    orderId: `TEST-${Date.now()}`,
-    timestamp: new Date().toISOString(),
-    step: "test_email",
-    urgencyLevel: "medium" as const,
-    customer: {
-      firstName: "Test",
-      lastName: "Customer",
-      email: "test@smileybrooms.com",
-      phone: "(555) 123-4567",
-      notes: "This is a test from the updated system! 🧹✨",
-      preferredContactMethod: "email",
-      timezone: "America/New_York",
-      language: "en",
-    },
-    address: {
-      street: "123 Test Street",
-      apartment: "Suite 100",
-      city: "Test City",
-      state: "CA",
-      zipCode: "90210",
-      addressType: "Residential",
-      accessInstructions: "Ring doorbell twice",
-      parkingInstructions: "Driveway available",
-    },
-    serviceDetails: {
-      type: "Residential",
-      frequency: "One-time",
-      date: new Date().toLocaleDateString(),
-      time: "10:00 AM",
-      estimatedDuration: 120,
-      specialInstructions: "Please use eco-friendly products",
-      preferences: ["Eco-Friendly", "Deep Clean", "Pet-Safe"],
-      urgencyLevel: "medium" as const,
-    },
-    cart: {
-      rooms: [
-        {
-          category: "Living Room",
-          count: 1,
-          customizations: ["Deep Clean", "Eco-Friendly Products"],
-          price: 75,
-          totalPrice: 75,
-        },
-      ],
-      addons: [
-        {
-          name: "Window Cleaning (Interior)",
-          quantity: 1,
-          price: 50,
-          totalPrice: 50,
-        },
-      ],
-      totalItems: 2,
-    },
-    pricing: {
-      subtotal: 125,
-      discountAmount: 12.5,
-      couponDiscount: 12.5,
-      fullHouseDiscount: 0,
-      taxAmount: 9.0,
-      totalAmount: 121.5,
-      couponCode: "TEST10",
-      currency: "USD",
-      taxRate: 8,
-    },
-    payment: {
-      method: "test_payment",
-      status: "test_completed",
-      transactionId: "test_txn_123456789",
-      allowVideoRecording: true,
-      paymentDate: new Date().toISOString(),
-    },
-    metadata: {
-      deviceType: "desktop",
-      browser: "Chrome 120",
-      userAgent: "Test User Agent",
-      screenResolution: "1920x1080",
-      viewportSize: "1200x800",
-      colorScheme: "light",
-      reducedMotion: false,
-      utmSource: "test",
-      utmMedium: "email",
-      utmCampaign: "apps_script_test",
-      referrerUrl: "https://test.smileybrooms.com",
-      sessionId: "test_session_123",
-      cartId: "test_cart_123",
-      userInteractions: 15,
-      pageLoadTime: 1250,
-      timezone: "America/New_York",
-      language: "en",
-      connectionType: "4g",
-      ipAddress: "127.0.0.1",
-      videoConsentDetails: "User consented to video recording for testing purposes",
-      orderType: "Residential",
-      couponCodeApplied: "Yes",
-      customerSegment: "Test",
-      internalNotes: "🧪 This is a test from the updated Apps Script integration! ✨",
-      dataSource: "enhanced_checkout_form",
-    },
-  }
-
-  console.log("🧪 Testing Apps Script integration...")
-  return sendToAppsScript(testData, "test_email", onProgress)
-}
-
-export async function checkAppsScriptHealth(): Promise<{
-  healthy: boolean
-  message: string
-  details?: any
-}> {
-  if (!WEBHOOK_URL) {
-    return {
-      healthy: false,
-      message: "❌ Apps Script not configured. Please set NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL environment variable.",
-      details: {
-        issue: "missing_webhook_url",
-        solution: "Add NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL to your environment variables",
-      },
-    }
-  }
-
+// Send order data to Google Apps Script with business email template AND send email notification
+export async function logOrderToGoogleSheets(orderData: OrderData): Promise<boolean> {
   try {
-    const response = await fetch(`${WEBHOOK_URL}?health=check`, {
-      method: "GET",
-      mode: "cors",
-    })
-
-    if (response.ok) {
-      const result = await response.json()
-      return {
-        healthy: true,
-        message: "✅ Apps Script is healthy and ready! 🎉",
-        details: {
-          status: "operational",
-          version: result.version || "3.0.0",
-          features: result.features || [],
-          lastCheck: new Date().toISOString(),
-        },
-      }
-    } else {
-      return {
-        healthy: false,
-        message: `❌ Apps Script health check failed: HTTP ${response.status}`,
-        details: {
-          status: "degraded",
-          httpStatus: response.status,
-          statusText: response.statusText,
-        },
-      }
-    }
-  } catch (error) {
-    return {
-      healthy: false,
-      message: `❌ Apps Script health check error: ${error instanceof Error ? error.message : String(error)}`,
-      details: {
-        status: "error",
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
-      },
-    }
-  }
-}
-
-// Enhanced validation
-export function validateLogEventData(eventData: Partial<LogEventData>): {
-  valid: boolean
-  errors: string[]
-  warnings: string[]
-} {
-  const errors: string[] = []
-  const warnings: string[] = []
-
-  // Required fields validation
-  if (!eventData.checkoutData) {
-    errors.push("Missing checkout data - cannot send to Apps Script")
-  } else {
-    if (!eventData.checkoutData.contact?.email) {
-      errors.push("Customer email is required for Apps Script processing")
-    }
-    if (!eventData.checkoutData.contact?.firstName) {
-      warnings.push("Customer first name missing - email will be less personalized")
-    }
-  }
-
-  if (!eventData.cartItems || eventData.cartItems.length === 0) {
-    warnings.push("No cart items found - Apps Script will show empty cart")
-  }
-
-  if (typeof eventData.subtotalPrice !== "number" || eventData.subtotalPrice < 0) {
-    errors.push("Invalid subtotal price - cannot calculate pricing for Apps Script")
-  }
-
-  if (typeof eventData.totalPrice !== "number" || eventData.totalPrice < 0) {
-    errors.push("Invalid total price - cannot show final amount in Apps Script")
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-  }
-}
-
-// Enhanced safe logging
-export async function logEventSafely(
-  eventData: Omit<LogEventData, "step">,
-  step: string,
-  onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
-  onValidationError?: (errors: string[], warnings: string[]) => void,
-): Promise<EmailNotificationResult> {
-  const validation = validateLogEventData(eventData)
-
-  if (!validation.valid) {
-    console.error(`❌ [Apps Script] Invalid event data for step: ${step}`, validation.errors)
-    onValidationError?.(validation.errors, validation.warnings)
-
-    return {
-      success: false,
-      message: "Cannot send to Apps Script due to missing required information",
-      error: `Validation failed: ${validation.errors.join(", ")}`,
-    }
-  }
-
-  if (validation.warnings.length > 0) {
-    console.warn(`⚠️ [Apps Script] Warnings for step: ${step}`, validation.warnings)
-  }
-
-  return logEvent({ ...eventData, step }, onProgress)
-}
-
-// Utility function to track user interactions
-export function trackUserInteraction() {
-  if (typeof window !== "undefined") {
-    const current = Number.parseInt(localStorage.getItem("userInteractions") || "0")
-    localStorage.setItem("userInteractions", (current + 1).toString())
-  }
-}
-
-/**
- * Send order data to Google Apps Script with business email template AND send email notification
- */
-export async function logOrderToGoogleSheets(orderData: OrderData): Promise<{ success: boolean; orderId: string }> {
-  const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL
-
-  if (!appsScriptUrl) {
-    console.error("Google Apps Script URL not configured")
-    throw new Error("Google Apps Script URL not configured")
-  }
-
-  try {
-    // Check rate limiting
-    if (!canMakeRequest()) {
-      throw new Error("Request rate limited to prevent server overload")
-    }
-
-    // Prepare the payload
-    const payload = {
-      ...orderData,
-      timestamp: new Date().toISOString(),
-      dataSource: "enhanced_checkout_form",
-      emailSystemVersion: "3.0.0",
-    }
-
-    console.log("Sending order to Google Sheets...")
-
-    // Send to Google Sheets
-    const response = await fetch(appsScriptUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "SmileyBrooms-Order",
-      },
-      body: JSON.stringify(payload),
-      mode: "no-cors",
-    })
-
-    // Update rate limiter
-    updateRateLimiter()
-
-    // Since we're using no-cors, assume success if no error thrown
-    const orderId = orderData.orderId || `SB-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-
-    console.log("✅ Order logged successfully to Google Sheets:", orderId)
-
-    // Also send email notification to smileybrooms@gmail.com
-    try {
-      const emailData = convertToEmailData(orderData)
-      const emailResult = await sendOrderEmailNotification(emailData)
-
-      if (emailResult.success) {
-        console.log("✅ Order email notification sent successfully")
-      } else {
-        console.warn("⚠️ Order email notification failed:", emailResult.error)
-      }
-    } catch (emailError) {
-      console.error("❌ Failed to send order email notification:", emailError)
-      // Don't throw error here - we still want to return success for Google Sheets logging
-    }
-
-    return { success: true, orderId }
-  } catch (error) {
-    console.error("❌ Failed to log order to Google Sheets:", error)
-    throw error
-  }
-}
-
-/**
- * Test the Google Apps Script connection
- */
-export async function testGoogleSheetsConnection(): Promise<boolean> {
-  const appsScriptUrl = process.env.NEXT_PUBLIC_APPS_SCRIPT_WEB_APP_URL
-
-  if (!appsScriptUrl) {
-    console.error("Google Apps Script URL not configured")
-    return false
-  }
-
-  try {
-    // Check rate limiting
-    if (!canMakeRequest()) {
-      console.warn("Rate limited - cannot test connection")
+    if (!GOOGLE_APPS_SCRIPT_URL) {
+      console.warn("⚠️ Google Apps Script URL not configured")
       return false
     }
 
-    const response = await fetch(`${appsScriptUrl}?health=check`, {
-      mode: "no-cors",
+    // Log to Google Sheets
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "logOrder",
+        data: orderData,
+      }),
     })
 
-    // Update rate limiter
-    updateRateLimiter()
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
 
-    console.log("Apps Script Health Check completed")
-    return true // Assume success with no-cors
+    const result = await response.json()
+
+    if (result.success) {
+      console.log("✅ Order logged to Google Sheets successfully")
+
+      // Send email notification for orders
+      try {
+        const emailData = convertToEmailData(orderData)
+        const emailSent = await sendOrderEmailNotification(emailData)
+
+        if (emailSent) {
+          console.log("✅ Order email notification sent successfully")
+        } else {
+          console.warn("⚠️ Order email notification failed to send")
+        }
+      } catch (emailError) {
+        console.error("❌ Error sending order email notification:", emailError)
+      }
+
+      return true
+    } else {
+      throw new Error(result.error || "Unknown error occurred")
+    }
   } catch (error) {
-    console.error("Apps Script health check failed:", error)
+    console.error("❌ Failed to log order to Google Sheets:", error)
     return false
   }
 }
 
-// Export types for better TypeScript support
-export type { LogEventData, EmailNotificationResult, OrderData }
+export async function logAnalyticsToGoogleSheets(analyticsData: AnalyticsData): Promise<boolean> {
+  try {
+    if (!GOOGLE_APPS_SCRIPT_URL) {
+      console.warn("⚠️ Google Apps Script URL not configured")
+      return false
+    }
+
+    // Only log analytics to Google Sheets (no email for analytics)
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "logAnalytics",
+        data: analyticsData,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success) {
+      console.log("✅ Analytics logged to Google Sheets successfully")
+      return true
+    } else {
+      throw new Error(result.error || "Unknown error occurred")
+    }
+  } catch (error) {
+    console.error("❌ Failed to log analytics to Google Sheets:", error)
+    return false
+  }
+}
+
+export async function logContactFormToGoogleSheets(contactData: any): Promise<boolean> {
+  try {
+    if (!GOOGLE_APPS_SCRIPT_URL) {
+      console.warn("⚠️ Google Apps Script URL not configured")
+      return false
+    }
+
+    // Log contact form to Google Sheets (no email for contact forms)
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "logContact",
+        data: contactData,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success) {
+      console.log("✅ Contact form logged to Google Sheets successfully")
+      return true
+    } else {
+      throw new Error(result.error || "Unknown error occurred")
+    }
+  } catch (error) {
+    console.error("❌ Failed to log contact form to Google Sheets:", error)
+    return false
+  }
+}
+
+// Helper function to generate order ID
+export function generateOrderId(): string {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase()
+  return `SB-${timestamp}-${random}`
+}
+
+// Helper function to get device type from user agent
+export function getDeviceType(userAgent?: string): string {
+  if (!userAgent) return "unknown"
+
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return "ios"
+  if (/Android/i.test(userAgent)) return "android"
+  if (/Windows|Mac|Linux/i.test(userAgent)) return "desktop"
+
+  return "unknown"
+}
+
+// Helper function to create order data from cart and customer info
+export function createOrderData(cart: any, customer: any, address: any, payment: any, metadata?: any): OrderData {
+  const orderId = generateOrderId()
+  const timestamp = new Date().toISOString()
+
+  // Calculate pricing
+  const subtotal = cart.items?.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) || 0
+  const discountAmount = payment.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
+  const taxAmount = (subtotal - discountAmount) * 0.08
+  const totalAmount = subtotal - discountAmount + taxAmount
+
+  return {
+    orderId,
+    timestamp,
+    customer: {
+      firstName: customer.firstName || customer.name?.split(" ")[0] || "",
+      lastName: customer.lastName || customer.name?.split(" ").slice(1).join(" ") || "",
+      email: customer.email || "",
+      phone: customer.phone || "",
+      notes: customer.notes,
+    },
+    address: {
+      street: address.street || address.line1 || "",
+      apartment: address.apartment || address.line2,
+      city: address.city || "",
+      state: address.state || "",
+      zipCode: address.zipCode || address.postal_code || "",
+      addressType: address.addressType,
+      accessInstructions: address.accessInstructions,
+      parkingInstructions: address.parkingInstructions,
+    },
+    serviceDetails: {
+      type: "Cleaning Service",
+      frequency: "One-time",
+      date: metadata?.preferredDate,
+      time: metadata?.preferredTime,
+      specialInstructions: address.specialInstructions || metadata?.specialInstructions,
+      preferences: metadata?.preferences,
+    },
+    cart: {
+      rooms: cart.items?.filter((item: any) => item.category === "room") || [],
+      addons: cart.items?.filter((item: any) => item.category === "addon") || [],
+      totalItems: cart.items?.length || 0,
+    },
+    pricing: {
+      subtotal,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
+      taxAmount,
+      totalAmount,
+      couponCode: payment.couponCode,
+    },
+    payment: {
+      method: payment.method || "unknown",
+      status: payment.status || "pending",
+      transactionId: payment.transactionId,
+      allowVideoRecording: payment.allowVideoRecording || false,
+    },
+    metadata: {
+      source: "website",
+      deviceType: metadata?.deviceType || getDeviceType(metadata?.userAgent),
+      userAgent: metadata?.userAgent,
+      referrer: metadata?.referrer,
+      sessionId: metadata?.sessionId,
+      ...metadata,
+    },
+  }
+}
