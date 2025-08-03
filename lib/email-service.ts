@@ -1,5 +1,3 @@
-"use server"
-
 interface OrderEmailData {
   orderId: string
   timestamp: string
