@@ -448,7 +448,7 @@ async function sendToAppsScript(
 }
 
 // Enhanced event logging that matches your Apps Script structure
-async function logEvent(
+export async function logEvent(
   eventData: LogEventData,
   onProgress?: (attempt: number, maxAttempts: number, method: string) => void,
 ): Promise<EmailNotificationResult> {

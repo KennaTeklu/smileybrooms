@@ -43,6 +43,23 @@ END:VCARD`
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
+
+    // Trigger browser notification
+    if (Notification.permission === "granted") {
+      new Notification("Contact Downloaded!", {
+        body: "Please call us at (602) 730-1144. Check your downloads for the contact file.",
+        icon: "/favicon.png", // Use an existing icon for the notification
+      })
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification("Contact Downloaded!", {
+            body: "Please call us at (602) 730-1144. Check your downloads for the contact file.",
+            icon: "/favicon.png",
+          })
+        }
+      })
+    }
   }
 
   // Typing effect
@@ -142,7 +159,7 @@ END:VCARD`
                 className="group relative overflow-hidden rounded-full px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Phone className="mr-2 h-5 w-5" />
-                <span className="relative z-10 text-lg font-medium">Save Contact</span>
+                <span className="relative z-10 text-lg font-medium">Call Now</span>
               </Button>
             </motion.div>
           </motion.div>

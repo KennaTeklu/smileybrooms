@@ -33,7 +33,12 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import type { CheckoutData } from "@/lib/types"
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet"
-import { logWelcomeStart, logContactSubmit, logAddressSubmit, logCheckoutComplete } from "@/lib/google-sheet-logger" // Updated import
+import {
+  logAnalyticsToGoogleSheets,
+  logContactFormToGoogleSheets,
+  logOrderToGoogleSheets,
+  createOrderData,
+} from "@/lib/google-sheet-logger" // Updated import
 import { useCart } from "@/lib/cart-context"
 
 const isValidArizonaZip = (zipCode: string): boolean => {
@@ -602,22 +607,27 @@ export default function ApplicationSidePanel({ isOpen, onOpenChange, onCheckoutC
       try {
         // Log event before transitioning to the next step
         if (currentStep === "contact") {
-          await logContactSubmit({
-            checkoutData,
+          await logContactFormToGoogleSheets({
+            ...checkoutData.contact,
             cartItems: cart.items,
             subtotalPrice: cart.subtotalPrice,
             couponDiscount: cart.couponDiscount,
             fullHouseDiscount: cart.fullHouseDiscount,
             totalPrice: cart.totalPrice,
+            step: "contact_submit",
           })
         } else if (currentStep === "address") {
-          await logAddressSubmit({
-            checkoutData,
-            cartItems: cart.items,
-            subtotalPrice: cart.subtotalPrice,
-            couponDiscount: cart.couponDiscount,
-            fullHouseDiscount: cart.fullHouseDiscount,
-            totalPrice: cart.totalPrice,
+          await logAnalyticsToGoogleSheets({
+            eventType: "address_submit",
+            timestamp: new Date().toISOString(),
+            customData: {
+              checkoutData,
+              cartItems: cart.items,
+              subtotalPrice: cart.subtotalPrice,
+              couponDiscount: cart.couponDiscount,
+              fullHouseDiscount: cart.fullHouseDiscount,
+              totalPrice: cart.totalPrice,
+            },
           })
         }
 
@@ -644,14 +654,11 @@ export default function ApplicationSidePanel({ isOpen, onOpenChange, onCheckoutC
         await performAutoSave(checkoutData, true)
 
         if (nextStep === "confirmation") {
-          await logCheckoutComplete({
-            checkoutData,
-            cartItems: cart.items,
-            subtotalPrice: cart.subtotalPrice,
-            couponDiscount: cart.couponDiscount,
-            fullHouseDiscount: cart.fullHouseDiscount,
-            totalPrice: cart.totalPrice,
+          const orderData = createOrderData(cart, checkoutData.contact, checkoutData.address, checkoutData.payment, {
+            // Add any additional metadata needed for the order
+            step: "checkout_complete",
           })
+          await logOrderToGoogleSheets(orderData)
 
           onCheckoutComplete(checkoutData)
           onOpenChange(false)
@@ -727,13 +734,17 @@ export default function ApplicationSidePanel({ isOpen, onOpenChange, onCheckoutC
 
   useEffect(() => {
     if (isOpen && currentStep === "welcome") {
-      logWelcomeStart({
-        checkoutData,
-        cartItems: cart.items,
-        subtotalPrice: cart.subtotalPrice,
-        couponDiscount: cart.couponDiscount,
-        fullHouseDiscount: cart.fullHouseDiscount,
-        totalPrice: cart.totalPrice,
+      logAnalyticsToGoogleSheets({
+        eventType: "welcome_start",
+        timestamp: new Date().toISOString(),
+        customData: {
+          checkoutData,
+          cartItems: cart.items,
+          subtotalPrice: cart.subtotalPrice,
+          couponDiscount: cart.couponDiscount,
+          fullHouseDiscount: cart.fullHouseDiscount,
+          totalPrice: cart.totalPrice,
+        },
       })
     }
   }, [isOpen, currentStep, checkoutData, cart])

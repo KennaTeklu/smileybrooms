@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 import Link from "next/link"
 import type { CheckoutData } from "@/lib/types"
-import { logCartProceedToCheckout, logCartReviewPayNowClick } from "@/lib/google-sheet-logger"
+import { logAnalyticsToGoogleSheets } from "@/lib/google-sheet-logger" // Updated import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +46,7 @@ export default function CartPage() {
   const [isItemsExpanded, setIsItemsExpanded] = useState(false)
   const [isCustomerExpanded, setIsCustomerExpanded] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null)
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set()) // Corrected initialization
   const [itemsToDeleteBulk, setItemsToDeleteBulk] = useState<Array<{ id: string; name: string }>>([])
 
   // Selection handlers
@@ -135,38 +135,48 @@ export default function CartPage() {
     localStorage.setItem("completedCheckoutData", JSON.stringify(checkoutData))
   }
 
-  const handleProceedToApplication = () => {
+  const handleProceedToApplication = async () => {
     if (completedApplicationData) {
-      logCartReviewPayNowClick({
-        checkoutData: completedApplicationData,
-        cartItems: cart.items,
-        subtotalPrice: cart.subtotalPrice,
-        couponDiscount: cart.couponDiscount,
-        fullHouseDiscount: cart.fullHouseDiscount,
-        totalPrice: cart.totalPrice,
+      // Log "cart_review_pay_now_click" analytics event
+      await logAnalyticsToGoogleSheets({
+        eventType: "cart_review_pay_now_click",
+        timestamp: new Date().toISOString(),
+        customData: {
+          checkoutData: completedApplicationData,
+          cartItems: cart.items,
+          subtotalPrice: cart.subtotalPrice,
+          couponDiscount: cart.couponDiscount,
+          fullHouseDiscount: cart.fullHouseDiscount,
+          totalPrice: cart.totalPrice,
+        },
       })
       console.log("Processing payment...", { cartItems: cart.items, checkoutData: completedApplicationData })
       router.push("/success")
     } else {
-      logCartProceedToCheckout({
-        checkoutData: {
-          contact: { firstName: "", lastName: "", email: "", phone: "" },
-          address: {
-            address: "",
-            address2: "",
-            city: "",
-            state: "",
-            zipCode: "",
-            specialInstructions: "",
-            addressType: "residential",
+      // Log "cart_proceed_to_checkout" analytics event
+      await logAnalyticsToGoogleSheets({
+        eventType: "cart_proceed_to_checkout",
+        timestamp: new Date().toISOString(),
+        customData: {
+          checkoutData: {
+            contact: { firstName: "", lastName: "", email: "", phone: "" },
+            address: {
+              address: "",
+              address2: "",
+              city: "",
+              state: "",
+              zipCode: "",
+              specialInstructions: "",
+              addressType: "residential",
+            },
+            payment: { paymentMethod: "card", allowVideoRecording: false, agreeToTerms: false },
           },
-          payment: { paymentMethod: "card", allowVideoRecording: false, agreeToTerms: false },
+          cartItems: cart.items,
+          subtotalPrice: cart.subtotalPrice,
+          couponDiscount: cart.couponDiscount,
+          fullHouseDiscount: cart.fullHouseDiscount,
+          totalPrice: cart.totalPrice,
         },
-        cartItems: cart.items,
-        subtotalPrice: cart.subtotalPrice,
-        couponDiscount: cart.couponDiscount,
-        fullHouseDiscount: cart.fullHouseDiscount,
-        totalPrice: cart.totalPrice,
       })
       setIsApplicationOpen(true)
     }
