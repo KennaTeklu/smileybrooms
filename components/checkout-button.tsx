@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Send, Loader2 } from "lucide-react"
@@ -13,23 +11,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { processContactOrder } from "@/lib/actions"
 
-interface CheckoutButtonProps {
-  cartItems?: any[]
-  customerEmail?: string
-  customerData?: any
-  discount?: any
-  className?: string
-  children?: React.ReactNode
-}
-
-export function CheckoutButton({
-  cartItems,
-  customerEmail,
-  customerData,
-  discount,
-  className,
-  children,
-}: CheckoutButtonProps) {
+export default function CheckoutButton() {
   const { cart } = useCart()
   const router = useRouter()
   const { toast } = useToast()
@@ -41,14 +23,13 @@ export function CheckoutButton({
 
     try {
       // Calculate pricing
-      const items = cartItems || cart.items
-      const subtotal = items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0)
+      const subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
       const videoDiscount = checkoutData.payment.allowVideoRecording ? (subtotal >= 250 ? 25 : subtotal * 0.1) : 0
       const tax = (subtotal - videoDiscount) * 0.08
       const total = subtotal - videoDiscount + tax
 
       // Prepare line items for the application
-      const customLineItems = items.map((item: any) => ({
+      const customLineItems = cart.items.map((item) => ({
         name: item.name,
         description: item.description || `${item.category} service`,
         amount: item.price,
@@ -65,7 +46,7 @@ export function CheckoutButton({
                 description: "Video recording discount",
               }
             : undefined,
-        customerData: customerData || {
+        customerData: {
           name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
           email: checkoutData.contact.email,
           phone: checkoutData.contact.phone,
@@ -96,7 +77,7 @@ export function CheckoutButton({
       // Store application data for success page
       const applicationRecord = {
         applicationId: `APP-${Date.now()}`,
-        items: items,
+        items: cart.items,
         contact: checkoutData.contact,
         address: checkoutData.address,
         payment: { ...checkoutData.payment, paymentMethod: "service_application" },
@@ -139,8 +120,7 @@ export function CheckoutButton({
     }
   }
 
-  const items = cartItems || cart.items
-  const isDisabled = items.length === 0 || isSubmitting
+  const isDisabled = cart.items.length === 0 || isSubmitting
 
   return (
     <>
@@ -149,10 +129,7 @@ export function CheckoutButton({
           onClick={() => setIsApplicationOpen(true)}
           disabled={isDisabled}
           size="lg"
-          className={
-            className ||
-            "w-full h-14 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          }
+          className="w-full h-14 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
             <>
@@ -160,12 +137,10 @@ export function CheckoutButton({
               Submitting Application...
             </>
           ) : (
-            children || (
-              <>
-                <Send className="mr-2 h-5 w-5" />
-                Apply for Service
-              </>
-            )
+            <>
+              <Send className="mr-2 h-5 w-5" />
+              Apply for Service
+            </>
           )}
         </Button>
       </motion.div>
@@ -178,5 +153,3 @@ export function CheckoutButton({
     </>
   )
 }
-
-export default CheckoutButton

@@ -675,7 +675,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[40vh] overflow-y-auto pr-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           <AnimatePresence>
                             {" "}
                             {/* Wrap with AnimatePresence */}
@@ -723,7 +723,7 @@ export function CollapsibleAddAllPanel({ isOpen, onOpenChange }: CollapsibleAddA
                                         />
                                         {count > 0 && (
                                           <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                            <CheckCircle className="h-5 w-5" />
+                                            <CheckCircle className="h-5 w-5 text-white" />
                                           </div>
                                         )}
                                       </div>

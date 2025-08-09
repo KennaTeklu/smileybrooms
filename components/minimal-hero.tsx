@@ -20,13 +20,13 @@ export default function MinimalHero() {
   const pauseDuration = 2000
   const textRef = useRef(fullTexts[0])
 
-  const downloadVCard = () => {
+  const downloadVCardAndCall = () => {
     // Create vCard data
     const vCardData = `BEGIN:VCARD
 VERSION:3.0
 FN:smileybrooms.com cleaning services
 ORG:Smiley Brooms
-TEL:+16027301144
+TEL:+16616023000
 URL:https://smileybrooms.com
 EMAIL:smileybrooms@gmail.com
 NOTE:Professional cleaning services - Always accessible and flexible for your needs
@@ -44,22 +44,8 @@ END:VCARD`
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
 
-    // Trigger browser notification
-    if (Notification.permission === "granted") {
-      new Notification("Contact Downloaded!", {
-        body: "Please call us at (602) 730-1144. Check your downloads for the contact file.",
-        icon: "/favicon.png", // Use an existing icon for the notification
-      })
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          new Notification("Contact Downloaded!", {
-            body: "Please call us at (602) 730-1144. Check your downloads for the contact file.",
-            icon: "/favicon.png",
-          })
-        }
-      })
-    }
+    // Simultaneously initiate phone call
+    window.location.href = "tel:+16616023000"
   }
 
   // Typing effect
@@ -154,7 +140,7 @@ END:VCARD`
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <Button
-                onClick={downloadVCard}
+                onClick={downloadVCardAndCall}
                 size="lg"
                 className="group relative overflow-hidden rounded-full px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
