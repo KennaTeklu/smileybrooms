@@ -26,7 +26,7 @@ export default function MinimalHero() {
 VERSION:3.0
 FN:smileybrooms.com cleaning services
 ORG:Smiley Brooms
-TEL:+16616023000
+TEL:+16027301144
 URL:https://smileybrooms.com
 EMAIL:smileybrooms@gmail.com
 NOTE:Professional cleaning services - Always accessible and flexible for your needs
@@ -43,9 +43,6 @@ END:VCARD`
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-
-    // Simultaneously initiate phone call
-    window.location.href = "tel:+16616023000"
   }
 
   // Typing effect
