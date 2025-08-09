@@ -43,6 +43,56 @@ END:VCARD`
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
+
+    // Show confirmation popup
+    const userAgent = navigator.userAgent.toLowerCase()
+    let browserName = "your browser"
+    let downloadPath = "downloads folder"
+
+    if (userAgent.includes("chrome")) {
+      browserName = "Chrome"
+      downloadPath = "Downloads (Ctrl+J)"
+    } else if (userAgent.includes("firefox")) {
+      browserName = "Firefox"
+      downloadPath = "Downloads (Ctrl+Shift+Y)"
+    } else if (userAgent.includes("safari")) {
+      browserName = "Safari"
+      downloadPath = "Downloads folder"
+    } else if (userAgent.includes("edge")) {
+      browserName = "Edge"
+      downloadPath = "Downloads (Ctrl+J)"
+    }
+
+    // Show immediate confirmation
+    alert(
+      `✅ Contact Downloaded!\n\n"smileybrooms-cleaning-services.vcf" has been saved to your ${downloadPath}.\n\nNext steps:\n1. Open the downloaded contact file\n2. Import it to your contacts\n3. Call us directly from your contacts\n\nRedirecting you to downloads in 3 seconds...`,
+    )
+
+    // Redirect to downloads after delay
+    setTimeout(() => {
+      try {
+        // Try to open downloads page based on browser
+        if (userAgent.includes("chrome") || userAgent.includes("edge")) {
+          window.open("chrome://downloads/", "_blank")
+        } else if (userAgent.includes("firefox")) {
+          window.open("about:downloads", "_blank")
+        } else {
+          // Fallback: try to trigger downloads view
+          const downloadLink = document.createElement("a")
+          downloadLink.href = "data:text/plain;charset=utf-8,Look for: smileybrooms-cleaning-services.vcf"
+          downloadLink.download = "find-our-contact.txt"
+          downloadLink.style.display = "none"
+          document.body.appendChild(downloadLink)
+          downloadLink.click()
+          document.body.removeChild(downloadLink)
+        }
+      } catch (error) {
+        // If browser blocks the redirect, show another helpful message
+        alert(
+          `Please check your ${downloadPath} for "smileybrooms-cleaning-services.vcf" and import it to your contacts to call us!`,
+        )
+      }
+    }, 3000)
   }
 
   // Typing effect
