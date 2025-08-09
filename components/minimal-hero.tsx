@@ -20,13 +20,13 @@ export default function MinimalHero() {
   const pauseDuration = 2000
   const textRef = useRef(fullTexts[0])
 
-  const downloadVCardAndCall = () => {
+  const downloadVCard = () => {
     // Create vCard data
     const vCardData = `BEGIN:VCARD
 VERSION:3.0
 FN:smileybrooms.com cleaning services
 ORG:Smiley Brooms
-TEL:+16616023000
+TEL:+16027301144
 URL:https://smileybrooms.com
 EMAIL:smileybrooms@gmail.com
 NOTE:Professional cleaning services - Always accessible and flexible for your needs
@@ -43,9 +43,6 @@ END:VCARD`
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-
-    // Simultaneously initiate phone call
-    window.location.href = "tel:+16616023000"
   }
 
   // Typing effect
@@ -140,12 +137,12 @@ END:VCARD`
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <Button
-                onClick={downloadVCardAndCall}
+                onClick={downloadVCard}
                 size="lg"
                 className="group relative overflow-hidden rounded-full px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Phone className="mr-2 h-5 w-5" />
-                <span className="relative z-10 text-lg font-medium">Call Now</span>
+                <span className="relative z-10 text-lg font-medium">Save Contact</span>
               </Button>
             </motion.div>
           </motion.div>
