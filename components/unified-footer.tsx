@@ -19,131 +19,7 @@ export default function UnifiedFooter() {
 
   return (
     <footer className="bg-gray-900 text-gray-200 p-8 md:py-16 w-full shadow-lg">
-      <div className="container max-w-7xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 text-sm relative">
-        {/* Invisible backdrop for closing panels */}
-        <div
-          className="fixed inset-0 z-[998] bg-transparent pointer-events-auto"
-          onClick={() => {
-            // Close all collapsible panels when clicking outside
-            const panels = document.querySelectorAll('[data-collapsible-panel="true"]')
-            panels.forEach((panel) => {
-              const closeButton = panel.querySelector("[data-close-panel]")
-              if (closeButton) {
-                ;(closeButton as HTMLElement).click()
-              }
-            })
-
-            // Dispatch custom event for panels to listen to
-            window.dispatchEvent(new CustomEvent("closeAllPanels"))
-          }}
-          style={{
-            display: document.querySelector('[data-collapsible-panel="true"][data-panel-open="true"]')
-              ? "block"
-              : "none",
-          }}
-        />
-        {/* Enhanced panel management system */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Enhanced collapsible panel management
-              (function() {
-                let panelObserver;
-                
-                function initPanelManager() {
-                  // Listen for panel state changes
-                  window.addEventListener('closeAllPanels', () => {
-                    const openPanels = document.querySelectorAll('[data-collapsible-panel="true"][data-panel-open="true"]');
-                    openPanels.forEach(panel => {
-                      panel.setAttribute('data-panel-open', 'false');
-                      panel.style.display = 'none';
-                    });
-                    updateBackdrop();
-                  });
-                  
-                  // Monitor panel visibility changes
-                  panelObserver = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                      if (mutation.type === 'attributes' && 
-                          (mutation.attributeName === 'data-panel-open' || 
-                           mutation.attributeName === 'style')) {
-                        updateBackdrop();
-                      }
-                    });
-                  });
-                  
-                  // Observe all collapsible panels
-                  document.querySelectorAll('[data-collapsible-panel="true"]').forEach(panel => {
-                    panelObserver.observe(panel, { 
-                      attributes: true, 
-                      attributeFilter: ['data-panel-open', 'style'] 
-                    });
-                  });
-                }
-                
-                function updateBackdrop() {
-                  const backdrop = document.querySelector('[data-backdrop="collapsible-panels"]');
-                  const hasOpenPanels = document.querySelector('[data-collapsible-panel="true"][data-panel-open="true"]');
-                  
-                  if (backdrop) {
-                    backdrop.style.display = hasOpenPanels ? 'block' : 'none';
-                    backdrop.style.zIndex = hasOpenPanels ? '998' : '-1';
-                  }
-                }
-                
-                // Enhanced click outside detection
-                document.addEventListener('click', (e) => {
-                  const clickedElement = e.target;
-                  const openPanels = document.querySelectorAll('[data-collapsible-panel="true"][data-panel-open="true"]');
-                  
-                  openPanels.forEach(panel => {
-                    // Check if click is outside panel and not on a trigger button
-                    if (!panel.contains(clickedElement) && 
-                        !clickedElement.closest('[data-panel-trigger]')) {
-                      
-                      // Close the panel
-                      panel.setAttribute('data-panel-open', 'false');
-                      panel.style.display = 'none';
-                      
-                      // Trigger any close callbacks
-                      const closeEvent = new CustomEvent('panelClosed', { 
-                        detail: { panel: panel } 
-                      });
-                      panel.dispatchEvent(closeEvent);
-                    }
-                  });
-                  
-                  updateBackdrop();
-                });
-                
-                // Initialize when DOM is ready
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', initPanelManager);
-                } else {
-                  initPanelManager();
-                }
-                
-                // Keyboard support (ESC to close all panels)
-                document.addEventListener('keydown', (e) => {
-                  if (e.key === 'Escape') {
-                    window.dispatchEvent(new CustomEvent('closeAllPanels'));
-                  }
-                });
-              })();
-            `,
-          }}
-        />
-
-        {/* Transparent backdrop element */}
-        <div
-          data-backdrop="collapsible-panels"
-          className="fixed inset-0 bg-black/5 backdrop-blur-[0.5px] pointer-events-auto transition-opacity duration-200 opacity-0 hover:opacity-100"
-          style={{
-            zIndex: 998,
-            display: "none",
-          }}
-          onClick={() => window.dispatchEvent(new CustomEvent("closeAllPanels"))}
-        />
+      <div className="container max-w-7xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-12 text-sm">
         {/* Company Info */}
         <div className="space-y-4">
           <h3 className="font-bold text-xl text-white">
@@ -162,9 +38,29 @@ export default function UnifiedFooter() {
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <Phone className="h-4 w-4 text-blue-400" />
-              <a href="tel:+16616023000" className="hover:underline text-blue-300">
-                (661) 602 3000
-              </a>
+              <button
+                onClick={() => {
+                  const vCard = `BEGIN:VCARD
+VERSION:3.0
+FN:Smiley Brooms Cleaning Services
+ORG:smileybrooms.com
+TEL:+16027301144
+EMAIL:info@smileybrooms.com
+URL:https://smileybrooms.com
+NOTE:Professional cleaning services - residential and commercial
+END:VCARD`
+                  const blob = new Blob([vCard], { type: "text/vcard" })
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.href = url
+                  a.download = "smileybrooms-contact.vcf"
+                  a.click()
+                  window.URL.revokeObjectURL(url)
+                }}
+                className="hover:underline text-blue-300"
+              >
+                (602) 730-1144
+              </button>
             </div>
             <div className="flex items-center gap-2 text-gray-400">
               <MapPin className="h-4 w-4 text-blue-400" />

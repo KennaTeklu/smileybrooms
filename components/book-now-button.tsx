@@ -6,13 +6,13 @@ import { CalendarCheck, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-const downloadContact = () => {
+const downloadVCardAndCall = () => {
   // Create vCard data
   const vCardData = `BEGIN:VCARD
 VERSION:3.0
 FN:smileybrooms.com cleaning services
 ORG:Smiley Brooms
-TEL:+16027301144
+TEL:+16616023000
 URL:https://smileybrooms.com
 EMAIL:smileybrooms@gmail.com
 NOTE:Professional cleaning services - Always accessible and flexible for your needs
@@ -29,6 +29,9 @@ END:VCARD`
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
+
+  // Simultaneously initiate phone call
+  window.location.href = "tel:+16616023000"
 }
 
 export default function BookNowButton() {
@@ -74,7 +77,7 @@ export default function BookNowButton() {
 
       <Button
         size="lg"
-        onClick={downloadContact}
+        onClick={downloadVCardAndCall}
         className="rounded-full shadow-lg bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white px-6 py-6"
       >
         <Phone className="mr-2 h-5 w-5" />
