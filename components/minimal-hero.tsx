@@ -9,6 +9,8 @@ export default function MinimalHero() {
   const [currentTextIndex, setCurrentTextIndex] = useState(0)
   const [displayText, setDisplayText] = useState("")
   const [isTyping, setIsTyping] = useState(true)
+  const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [countdown, setCountdown] = useState(3)
   const fullTexts = [
     "You rest, we take care of the rest!",
     "Professional cleaning at your fingertips!",
@@ -44,55 +46,95 @@ END:VCARD`
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
 
-    // Show confirmation popup
-    const userAgent = navigator.userAgent.toLowerCase()
-    let browserName = "your browser"
-    let downloadPath = "downloads folder"
+    // Show custom modal instead of alert
+    setShowDownloadModal(true)
+    setCountdown(3)
 
-    if (userAgent.includes("chrome")) {
-      browserName = "Chrome"
-      downloadPath = "Downloads (Ctrl+J)"
-    } else if (userAgent.includes("firefox")) {
-      browserName = "Firefox"
-      downloadPath = "Downloads (Ctrl+Shift+Y)"
-    } else if (userAgent.includes("safari")) {
-      browserName = "Safari"
-      downloadPath = "Downloads folder"
-    } else if (userAgent.includes("edge")) {
-      browserName = "Edge"
-      downloadPath = "Downloads (Ctrl+J)"
-    }
-
-    // Show immediate confirmation
-    alert(
-      `✅ Contact Downloaded!\n\n"smileybrooms-cleaning-services.vcf" has been saved to your ${downloadPath}.\n\nNext steps:\n1. Open the downloaded contact file\n2. Import it to your contacts\n3. Call us directly from your contacts\n\nRedirecting you to downloads in 3 seconds...`,
-    )
-
-    // Redirect to downloads after delay
-    setTimeout(() => {
-      try {
-        // Try to open downloads page based on browser
-        if (userAgent.includes("chrome") || userAgent.includes("edge")) {
-          window.open("chrome://downloads/", "_blank")
-        } else if (userAgent.includes("firefox")) {
-          window.open("about:downloads", "_blank")
-        } else {
-          // Fallback: try to trigger downloads view
-          const downloadLink = document.createElement("a")
-          downloadLink.href = "data:text/plain;charset=utf-8,Look for: smileybrooms-cleaning-services.vcf"
-          downloadLink.download = "find-our-contact.txt"
-          downloadLink.style.display = "none"
-          document.body.appendChild(downloadLink)
-          downloadLink.click()
-          document.body.removeChild(downloadLink)
+    // Start countdown and redirect
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval)
+          redirectToDownloads()
+          setShowDownloadModal(false)
+          return 0
         }
-      } catch (error) {
-        // If browser blocks the redirect, show another helpful message
-        alert(
-          `Please check your ${downloadPath} for "smileybrooms-cleaning-services.vcf" and import it to your contacts to call us!`,
-        )
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const redirectToDownloads = () => {
+    const userAgent = navigator.userAgent.toLowerCase()
+
+    try {
+      if (userAgent.includes("chrome") && !userAgent.includes("edg")) {
+        // Chrome
+        window.open("chrome://downloads/", "_blank")
+      } else if (userAgent.includes("edg")) {
+        // Edge
+        window.open("edge://downloads/", "_blank")
+      } else if (userAgent.includes("firefox")) {
+        // Firefox
+        window.open("about:downloads", "_blank")
+      } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
+        // Safari - try to open downloads
+        const a = document.createElement("a")
+        a.href = "x-apple-systempreferences:com.apple.preference.downloads"
+        a.click()
+      } else {
+        // Fallback - try generic approaches
+        if (window.navigator && window.navigator.msSaveBlob) {
+          // IE/Edge legacy
+          alert("Please check your Downloads folder for 'smileybrooms-cleaning-services.vcf'")
+        } else {
+          // Modern browsers fallback
+          const downloadHint = document.createElement("div")
+          downloadHint.innerHTML = `
+            <div style="position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px; border-radius: 8px; z-index: 10000; font-family: Arial, sans-serif;">
+              <strong>✅ Contact Downloaded!</strong><br>
+              Look for: "smileybrooms-cleaning-services.vcf"<br>
+              <small>Check your Downloads folder</small>
+            </div>
+          `
+          document.body.appendChild(downloadHint)
+          setTimeout(() => {
+            document.body.removeChild(downloadHint)
+          }, 5000)
+        }
       }
-    }, 3000)
+    } catch (error) {
+      console.log("Redirect failed, showing fallback message")
+      // Fallback notification
+      const notification = document.createElement("div")
+      notification.innerHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: #2196F3; color: white; padding: 15px; border-radius: 8px; z-index: 10000; font-family: Arial, sans-serif; max-width: 300px;">
+          <strong>📱 Contact Downloaded!</strong><br>
+          File: "smileybrooms-cleaning-services.vcf"<br>
+          <small>1. Find it in your Downloads<br>2. Import to contacts<br>3. Call us from there!</small>
+        </div>
+      `
+      document.body.appendChild(notification)
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification)
+        }
+      }, 8000)
+    }
+  }
+
+  const getBrowserInfo = () => {
+    const userAgent = navigator.userAgent.toLowerCase()
+    if (userAgent.includes("chrome") && !userAgent.includes("edg")) {
+      return { name: "Chrome", shortcut: "Ctrl+J" }
+    } else if (userAgent.includes("edg")) {
+      return { name: "Edge", shortcut: "Ctrl+J" }
+    } else if (userAgent.includes("firefox")) {
+      return { name: "Firefox", shortcut: "Ctrl+Shift+Y" }
+    } else if (userAgent.includes("safari") && !userAgent.includes("chrome")) {
+      return { name: "Safari", shortcut: "⌘+Option+L" }
+    }
+    return { name: "your browser", shortcut: "Downloads folder" }
   }
 
   // Typing effect
@@ -129,10 +171,55 @@ END:VCARD`
     window.location.href = "/pricing"
   }
 
+  const browserInfo = getBrowserInfo()
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-pattern">
       {/* Background overlay with consistent opacity */}
       <div className="absolute inset-0 bg-image-overlay" />
+
+      {/* Download Success Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center shadow-2xl">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Contact Downloaded!</h3>
+            <p className="text-gray-700 mb-4">
+              <strong>"smileybrooms-cleaning-services.vcf"</strong>
+              <br />
+              has been saved to your Downloads folder.
+            </p>
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <p className="text-sm text-gray-800">
+                <strong>Next steps:</strong>
+                <br />
+                1. Open the downloaded contact file
+                <br />
+                2. Import it to your contacts
+                <br />
+                3. Call us directly from your contacts
+              </p>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Opening your {browserInfo.name} downloads in <strong>{countdown}</strong> seconds...
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={() => {
+                  redirectToDownloads()
+                  setShowDownloadModal(false)
+                }}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Open Downloads Now
+              </Button>
+              <Button onClick={() => setShowDownloadModal(false)} variant="outline">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 z-10">
         <div className="flex flex-col items-center text-center">
