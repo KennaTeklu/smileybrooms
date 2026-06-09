@@ -1050,7 +1050,7 @@ export async function testAppsScript(
           category: "Living Room",
           count: 1,
           customizations: ["Deep Clean", "Eco-Friendly Products"],
-          price: 75,
+          price: 18.75,
           totalPrice: 75,
         },
       ],
@@ -1058,7 +1058,7 @@ export async function testAppsScript(
         {
           name: "Window Cleaning (Interior)",
           quantity: 1,
-          price: 50,
+          price: 12.50,
           totalPrice: 50,
         },
       ],

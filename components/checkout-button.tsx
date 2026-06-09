@@ -62,9 +62,9 @@ export default function CheckoutButton() {
         metadata: {
           paymentMethod: "service_application",
           deviceType:
-            navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")
+            typeof window !== "undefined" ? navigator.userAgent : "".includes("iPhone") || typeof window !== "undefined" ? navigator.userAgent : "".includes("iPad")
               ? "ios"
-              : navigator.userAgent.includes("Android")
+              : typeof window !== "undefined" ? navigator.userAgent : "".includes("Android")
                 ? "android"
                 : "desktop",
           allowVideoRecording: checkoutData.payment.allowVideoRecording,

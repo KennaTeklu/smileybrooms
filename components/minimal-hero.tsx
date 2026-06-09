@@ -65,7 +65,7 @@ END:VCARD`
   }
 
   const redirectToDownloads = () => {
-    const userAgent = navigator.userAgent.toLowerCase()
+    const userAgent = typeof window !== "undefined" ? navigator.userAgent : "".toLowerCase()
 
     try {
       if (userAgent.includes("chrome") && !userAgent.includes("edg")) {
@@ -124,7 +124,7 @@ END:VCARD`
   }
 
   const getBrowserInfo = () => {
-    const userAgent = navigator.userAgent.toLowerCase()
+    const userAgent = typeof window !== "undefined" ? navigator.userAgent : "".toLowerCase()
     if (userAgent.includes("chrome") && !userAgent.includes("edg")) {
       return { name: "Chrome", shortcut: "Ctrl+J" }
     } else if (userAgent.includes("edg")) {
