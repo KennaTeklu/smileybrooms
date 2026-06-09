@@ -5,6 +5,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { cartDB } from "@/lib/cart/persistence" // Import cartDB
 
 export type CartItem = {
+  description?: string
+  category?: string
   id: string
   name: string
   price: number

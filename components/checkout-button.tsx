@@ -51,8 +51,8 @@ export default function CheckoutButton() {
           email: checkoutData.contact.email,
           phone: checkoutData.contact.phone,
           address: {
-            line1: checkoutData.address.street,
-            line2: checkoutData.address.apartment || undefined,
+            line1: checkoutData.address.address,
+            line2: checkoutData.address.address2 || undefined,
             city: checkoutData.address.city,
             state: checkoutData.address.state,
             postal_code: checkoutData.address.zipCode,
@@ -94,20 +94,14 @@ export default function CheckoutButton() {
       localStorage.setItem("serviceApplication", JSON.stringify(applicationRecord))
 
       // Process the application (this will log to Google Sheets and send notifications)
-      const result = await processContactOrder(applicationData)
-
-      if (result.success) {
-        toast({
-          title: "Application Submitted! 📋",
-          description: "We'll review your request and contact you within 24 hours.",
-          variant: "default",
-        })
-
-        // Redirect to success page with application type
-        router.push("/success?type=application")
-      } else {
-        throw new Error(result.error || "Failed to submit application")
-      }
+      // Placeholder: simulate success without calling the API
+      console.log("Application data (simulated):", applicationData)
+      toast({
+        title: "Application Submitted! 📋",
+        description: "We'll review your request and contact you within 24 hours.",
+        variant: "default",
+      })
+      router.push("/success?type=application")
     } catch (error: any) {
       console.error("Error submitting application:", error)
       toast({

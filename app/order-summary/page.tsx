@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { CheckoutButton } from "@/components/checkout-button"
+import CheckoutButton from "@/components/checkout-button"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/components/ui/use-toast"
 import {
@@ -41,7 +41,7 @@ export default function OrderSummaryPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCart()
+  const { cart: { items }, updateQuantity, removeItem, clearCart } = useCart()
 
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -67,7 +67,6 @@ export default function OrderSummaryPage() {
 
         setCheckoutData({ contact, address, payment })
       } else {
-        // Redirect to checkout if no checkout data found
         toast({
           title: "Missing order information",
           description: "Please complete the checkout process first.",
@@ -114,7 +113,7 @@ export default function OrderSummaryPage() {
   }
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   }
 
   const calculateVideoDiscount = () => {
@@ -259,7 +258,7 @@ export default function OrderSummaryPage() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
-                  {items.map((item, index) => (
+                  {items.map((item: any, index: number) => (
                     <div key={item.id} className="group">
                       <div className="flex items-start gap-6 p-6 border-2 border-gray-100 dark:border-gray-800 rounded-xl hover:border-blue-200 dark:hover:border-blue-800 transition-all duration-200 hover:shadow-md">
                         {item.image && (
@@ -277,23 +276,13 @@ export default function OrderSummaryPage() {
                             <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{item.name}</h3>
                             <div className="text-right">
                               <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                                ${(item.unitPrice * item.quantity).toFixed(2)}
+                                ${(item.price * item.quantity).toFixed(2)}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                ${item.unitPrice.toFixed(2)} × {item.quantity}
+                                ${item.price.toFixed(2)} × {item.quantity}
                               </p>
                             </div>
                           </div>
-
-                          {item.meta && Object.keys(item.meta).length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {Object.entries(item.meta).map(([key, value]) => (
-                                <Badge key={key} variant="secondary" className="text-xs">
-                                  {key}: {String(value)}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -499,36 +488,7 @@ export default function OrderSummaryPage() {
 
                 {/* Checkout Button */}
                 <div className="space-y-4">
-                  <CheckoutButton
-                    cartItems={items}
-                    customerEmail={checkoutData.contact.email}
-                    customerData={{
-                      name: `${checkoutData.contact.firstName} ${checkoutData.contact.lastName}`,
-                      email: checkoutData.contact.email,
-                      phone: checkoutData.contact.phone,
-                      address: {
-                        line1: checkoutData.address.address,
-                        city: checkoutData.address.city,
-                        state: checkoutData.address.state,
-                        postal_code: checkoutData.address.zipCode,
-                        country: "US",
-                      },
-                      allowVideoRecording: checkoutData.payment.allowVideoRecording,
-                      videoConsentDetails: checkoutData.payment.videoConsentDetails,
-                    }}
-                    discount={
-                      checkoutData.payment.allowVideoRecording
-                        ? {
-                            amount: calculateVideoDiscount(),
-                            reason: "Live Video Discount",
-                          }
-                        : undefined
-                    }
-                    className="w-full h-14 text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 hover:from-blue-700 hover:via-purple-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all duration-200"
-                  >
-                    🚀 Complete Booking - ${calculateTotal().toFixed(2)}
-                  </CheckoutButton>
-
+                  <CheckoutButton />
                   <div className="text-center space-y-2">
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Shield className="h-4 w-4" />

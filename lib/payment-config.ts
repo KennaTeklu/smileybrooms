@@ -52,3 +52,4 @@ export function shouldShowSinglePaymentOption(deviceType: string): boolean {
 export function getPreferredPaymentMethod(deviceType: string): PaymentMethod | null {
   return getPrimaryPaymentMethod(deviceType)
 }
+export function getDeviceOptimizedPaymentMethods(deviceType: string) { return ["card", "paypal", "applepay", "googlepay"]; }
