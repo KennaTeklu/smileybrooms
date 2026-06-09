@@ -1,150 +1,98 @@
 "use client"
 
 import { AccessibilityProvider } from "@/lib/accessibility-context"
+import { EnhancedAccessibilityPanel } from "@/components/enhanced-accessibility-panel"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare, Share2, Settings } from "lucide-react" // Importing Lucide icons
 
 export default function AccessibilityPage() {
   return (
     <AccessibilityProvider>
       <div className="container py-8">
-        <h1 className="text-4xl font-extrabold mb-4 text-center">Making Our Website Accessible for Everyone</h1>
-        <p className="text-lg text-muted-foreground mb-12 text-center max-w-2xl mx-auto">
-          We are dedicated to providing an inclusive online experience. Discover how our built-in tools can help you
-          customize your browsing for better comfort and ease of use.
+        <h1 className="text-3xl font-bold mb-2">Accessibility Features</h1>
+        <p className="text-muted-foreground mb-8">
+          Explore our enhanced accessibility features designed to make smileybrooms accessible to everyone.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          <Card className="flex flex-col h-full">
-            <CardHeader className="flex flex-row items-center space-x-4 pb-2">
-              <Settings className="h-8 w-8 text-primary" />
-              <CardTitle className="text-2xl">Accessibility Settings Panel</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Display Preferences</CardTitle>
+              <CardDescription>Customize how content appears</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow pt-4">
-              <CardDescription className="mb-4">
-                Our dedicated accessibility panel offers various options to adjust how you view and interact with our
-                site.
-              </CardDescription>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>
-                  **How to Open:** Look for the accessibility icon (often a person icon) usually found at the
-                  bottom-right of your screen. You can also press{" "}
-                  <code className="font-mono bg-muted px-1 py-0.5 rounded text-sm">Alt + A</code> on your keyboard.
-                </li>
-                <li>
-                  **Key Features:**
-                  <ul className="list-circle pl-4 mt-1 space-y-1">
-                    <li>
-                      **High Contrast Mode:** Boosts color contrast for easier reading, especially helpful for users
-                      with visual impairments or color blindness.
-                    </li>
-                    <li>
-                      **Adjust Text Size:** Change the size of the text to suit your reading preference, making content
-                      more comfortable to read.
-                    </li>
-                    <li>
-                      **Reduce Motion:** Minimizes or removes animations and transitions, creating a calmer experience
-                      for those sensitive to movement.
-                    </li>
-                    <li>
-                      **Keyboard Navigation:** Enhances site navigation using only your keyboard, with clear focus
-                      indicators and logical tab order.
-                    </li>
-                    <li>
-                      **Screen Reader Optimization:** Improves compatibility with screen readers and other assistive
-                      technologies by providing proper semantic structure.
-                    </li>
-                  </ul>
-                </li>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>High contrast mode</li>
+                <li>Large text option</li>
+                <li>Reduced motion settings</li>
+                <li>Screen reader optimizations</li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">
-              <p className="text-sm text-muted-foreground">
-                These settings are available site-wide through a floating icon or a menu option.
-              </p>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                Open Display Settings
+              </Button>
             </CardFooter>
           </Card>
 
-          <Card className="flex flex-col h-full">
-            <CardHeader className="flex flex-row items-center space-x-4 pb-2">
-              <MessageSquare className="h-8 w-8 text-primary" />
-              <CardTitle className="text-2xl">AI-Powered Chatbot Support</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle>Voice Control</CardTitle>
+              <CardDescription>Navigate using voice commands</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow pt-4">
-              <CardDescription className="mb-4">
-                Our smart chatbot provides instant help and guides you through the website using simple, natural
-                language.
-              </CardDescription>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>
-                  **How to Access:** Find the chat icon (a speech bubble) typically located at the bottom-right of your
-                  screen.
-                </li>
-                <li>
-                  **How it Helps You:**
-                  <ul className="list-circle pl-4 mt-1 space-y-1">
-                    <li>
-                      **Get Answers:** Ask questions about our services, prices, or policies, and receive quick, clear
-                      responses.
-                    </li>
-                    <li>
-                      **Navigate Easily:** Tell the chatbot where you want to go (e.g., "Take me to the pricing page"),
-                      and it will guide you.
-                    </li>
-                    <li>
-                      **Understand Content:** If something is unclear, the chatbot can rephrase or summarize complex
-                      information for better understanding.
-                    </li>
-                    <li>
-                      **Troubleshoot:** Get immediate assistance with common issues or frequently asked questions
-                      without manual searching.
-                    </li>
-                  </ul>
-                </li>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Open cart with voice</li>
+                <li>Add items to cart</li>
+                <li>Proceed to checkout</li>
+                <li>Navigate between pages</li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">
-              <p className="text-sm text-muted-foreground">
-                Engage with the chatbot via its icon for interactive support whenever you need it.
-              </p>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                Try Voice Commands
+              </Button>
             </CardFooter>
           </Card>
 
-          <Card className="flex flex-col h-full">
-            <CardHeader className="flex flex-row items-center space-x-4 pb-2">
-              <Share2 className="h-8 w-8 text-primary" />
-              <CardTitle className="text-2xl">Share Content with Ease</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle>Keyboard Navigation</CardTitle>
+              <CardDescription>Use keyboard shortcuts</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow pt-4">
-              <CardDescription className="mb-4">
-                Our sharing feature lets you easily send web pages to others, with built-in considerations for
-                accessibility.
-              </CardDescription>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>**How to Share:** Click the share icon (often a paper plane or arrow) found on relevant pages.</li>
-                <li>
-                  **What You Can Do:**
-                  <ul className="list-circle pl-4 mt-1 space-y-1">
-                    <li>**Copy Link:** Quickly copy the page URL to share via email, messages, or social media.</li>
-                    <li>
-                      **Use Device Sharing:** Integrate with your device's native sharing options to send content to
-                      various installed applications.
-                    </li>
-                    <li>
-                      **Accessibility for Recipients:** When you share, the recipient's own device or browser
-                      accessibility settings will apply, ensuring they can view the content in their preferred way.
-                    </li>
-                  </ul>
-                </li>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Alt+C to open cart</li>
+                <li>Alt+A for accessibility panel</li>
+                <li>Alt+H to go to homepage</li>
+                <li>Improved focus indicators</li>
               </ul>
             </CardContent>
-            <CardFooter className="pt-6">
-              <p className="text-sm text-muted-foreground">
-                The share panel is available on relevant pages, making it simple to distribute content.
-              </p>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                View All Shortcuts
+              </Button>
             </CardFooter>
           </Card>
         </div>
+
+        <div className="bg-muted p-6 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Our Commitment to Accessibility</h2>
+          <p className="mb-4">
+            At smileybrooms, we believe that everyone should be able to access and use our services, regardless of
+            ability or circumstance. We are committed to meeting WCAG 2.2 AA standards and continuously improving our
+            accessibility features.
+          </p>
+          <p>
+            If you encounter any accessibility barriers or have suggestions for improvement, please contact us at{" "}
+            <a href="mailto:accessibility@smileybrooms.com" className="underline">
+              accessibility@smileybrooms.com
+            </a>
+          </p>
+        </div>
+
+        {/* The accessibility panel is available throughout the site */}
+        <EnhancedAccessibilityPanel />
       </div>
     </AccessibilityProvider>
   )

@@ -2,11 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import ClientLayout from "./client-layout" // Import the client layout
-import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
-import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
-import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
+import { ClientRootLayout } from "./client-layout"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,17 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ClientLayout>
-            {children}
-            {/* Centered Fixed Panels - Solution 2 */}
-            <div className="centered-fixed-panels">
-              <CollapsibleSettingsPanel />
-              <CollapsibleSharePanel />
-              <CollapsibleChatbotPanel />
-            </div>
-          </ClientLayout>
-        </ThemeProvider>
+        <ClientRootLayout>{children}</ClientRootLayout>
       </body>
     </html>
   )

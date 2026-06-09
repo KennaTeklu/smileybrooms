@@ -1,14 +1,9 @@
 "use server"
-
 import Stripe from "stripe"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 })
-
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
 
 interface CheckoutSessionParams {
   lineItems?: Array<{
@@ -37,8 +32,6 @@ interface CheckoutSessionParams {
       postal_code?: string
       country?: string
     }
-    allowVideoRecording?: boolean
-    videoConsentDetails?: string
   }
   isRecurring?: boolean
   recurringInterval?: "day" | "week" | "month" | "year"
@@ -53,10 +46,6 @@ interface CheckoutSessionParams {
   cancelAtPeriodEnd?: boolean
   allowPromotions?: boolean
 }
-
-/* -------------------------------------------------------------------------- */
-/* Server Action                                                              */
-/* -------------------------------------------------------------------------- */
 
 export async function createCheckoutSession(params: CheckoutSessionParams) {
   try {
@@ -78,45 +67,37 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       allowPromotions,
     } = params
 
-    /* -------- Generate dynamic Line-Items ---------------------------------- */
     const customLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = (initialCustomLineItems || []).map(
-      (item) => {
-        const unitAmount = Math.round((Number(item.amount) || 0) * 100)
-        if (Number.isNaN(unitAmount)) throw new Error(`Invalid amount for item "${item.name}": ${item.amount}`)
-
-        return {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: item.name,
-              description: item.description,
-              images: item.images,
-              metadata: item.metadata,
-            },
-            unit_amount: unitAmount,
-            recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
+      (item) => ({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: item.name,
+            description: item.description,
+            images: item.images,
+            metadata: item.metadata,
           },
-          quantity: item.quantity,
-        }
-      },
+          unit_amount: Math.round(item.amount * 100), // Convert to cents
+          recurring: isRecurring && recurringInterval ? { interval: recurringInterval } : undefined,
+        },
+        quantity: item.quantity,
+      }),
     )
 
-    /* -------- Optional Discount ------------------------------------------- */
+    // Apply discount if provided
     if (discount && discount.amount > 0) {
-      const discountAmount = Math.round((Number(discount.amount) || 0) * 100)
-      if (Number.isNaN(discountAmount)) throw new Error(`Invalid discount amount: ${discount.amount}`)
-
       customLineItems.push({
         price_data: {
           currency: "usd",
-          product_data: { name: `Discount – ${discount.reason}` },
-          unit_amount: -discountAmount,
+          product_data: {
+            name: `Discount: ${discount.reason}`,
+          },
+          unit_amount: -Math.round(discount.amount * 100), // Negative amount for discount
         },
         quantity: 1,
       })
     }
 
-    /* -------- Assemble Checkout-Session params ---------------------------- */
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: paymentMethodTypes || ["card"],
       mode: isRecurring ? "subscription" : "payment",
@@ -127,14 +108,19 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
       shipping_address_collection: shippingAddressCollection,
       automatic_tax: automaticTax,
       allow_promotion_codes: allowPromotions,
-      line_items: lineItems && lineItems.length ? lineItems : customLineItems,
+      line_items: lineItems && lineItems.length > 0 ? lineItems : customLineItems, // Prioritize priceId lineItems if present
       subscription_data: isRecurring
         ? {
             trial_period_days: trialPeriodDays,
             cancel_at_period_end: cancelAtPeriodEnd,
           }
         : undefined,
-      // ⚠️ DO NOT include `customer_update` unless you pass an explicit `customer`
+      customer_update: customerData
+        ? {
+            address: "auto",
+            name: "auto",
+          }
+        : undefined,
       metadata: customerData
         ? {
             customer_name: customerData.name,
@@ -145,16 +131,15 @@ export async function createCheckoutSession(params: CheckoutSessionParams) {
             customer_address_state: customerData.address?.state,
             customer_address_postal_code: customerData.address?.postal_code,
             customer_address_country: customerData.address?.country,
-            wants_live_video: customerData.allowVideoRecording ? "true" : "false",
-            video_consent_details: customerData.videoConsentDetails || "N/A",
           }
         : undefined,
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams)
+
     return session.url
-  } catch (err: any) {
-    console.error("Error creating checkout session:", err)
-    throw new Error(`Failed to create checkout session: ${err?.message ?? "unknown error"}`)
+  } catch (error: any) {
+    console.error("Error creating checkout session:", error)
+    throw new Error(`Failed to create checkout session: ${error.message || "Unknown error"}`)
   }
 }

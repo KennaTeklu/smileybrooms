@@ -5,7 +5,9 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen">
-        <MinimalHero />
+        <div className="container mx-auto">
+          <MinimalHero />
+        </div>
       </div>
     </ErrorBoundary>
   )

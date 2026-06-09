@@ -4,17 +4,20 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { X, Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { getRoomTiers, roomImages, roomDisplayNames } from "@/lib/room-tiers"
+import { getRoomTiers, getRoomAddOns } from "@/lib/room-tiers"
 import { FrequencySelector } from "./frequency-selector"
+import { ConfigurationManager } from "./configuration-manager"
+import { InlineAddressForm } from "./inline-address-form"
 import { useCart } from "@/lib/cart-context"
 import { useToast } from "@/hooks/use-toast"
-import Image from "next/image"
 
 interface RoomConfig {
   roomName: string
   selectedTier: string
+  selectedAddOns: string[]
   basePrice: number
   tierUpgradePrice: number
+  addOnsPrice: number
   totalPrice: number
 }
 
@@ -29,17 +32,21 @@ interface WizardProps {
   onConfigChange: (config: RoomConfig) => void
 }
 
-type WizardStep = "room-config" | "frequency" | "review"
+type WizardStep = "frequency" | "room-config" | "configuration-manager" | "address" | "review"
 
 const STEP_TITLES = {
   "room-config": "Customize Room",
   frequency: "Cleaning Frequency",
+  "configuration-manager": "Save Configuration",
+  address: "Service Address",
   review: "Review & Add to Cart",
 }
 
 const STEP_DESCRIPTIONS = {
-  "room-config": "Select cleaning level",
+  "room-config": "Select cleaning level and add-ons",
   frequency: "Choose how often you want cleaning",
+  "configuration-manager": "Save or load configurations",
+  address: "Enter your service address",
   review: "Review your selections and add to cart",
 }
 
@@ -53,10 +60,12 @@ export function MultiStepCustomizationWizard({
   config,
   onConfigChange,
 }: WizardProps) {
-  const [currentStep, setCurrentStep] = useState<WizardStep>("room-config")
+  const [currentStep, setCurrentStep] = useState<WizardStep>("frequency") // Changed initial step to "frequency"
   const [selectedTier, setSelectedTier] = useState(config?.selectedTier || "ESSENTIAL CLEAN")
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(config?.selectedAddOns || [])
   const [selectedFrequency, setSelectedFrequency] = useState("one_time")
   const [frequencyDiscount, setFrequencyDiscount] = useState(0)
+  const [addressData, setAddressData] = useState<any>(null)
 
   const { addItem } = useCart()
   const { toast } = useToast()
@@ -74,10 +83,11 @@ export function MultiStepCustomizationWizard({
     try {
       return {
         tiers: getRoomTiers(roomType) || [],
+        addOns: getRoomAddOns(roomType) || [],
       }
     } catch (error) {
       console.error("Error getting room data:", error)
-      return { tiers: [] }
+      return { tiers: [], addOns: [] }
     }
   }, [roomType])
 
@@ -87,6 +97,7 @@ export function MultiStepCustomizationWizard({
         return {
           basePrice: 0,
           tierUpgradePrice: 0,
+          addOnsPrice: 0,
           totalPrice: 0,
         }
       }
@@ -95,14 +106,19 @@ export function MultiStepCustomizationWizard({
       const currentTier = roomData.tiers.find((t) => t.name === selectedTier) || baseTier
 
       const tierUpgradePrice = Math.max(0, currentTier.price - baseTier.price)
+      const addOnsPrice = selectedAddOns.reduce((sum, addOnId) => {
+        const addOn = roomData.addOns.find((a) => a.id === addOnId)
+        return sum + (addOn?.price || 0)
+      }, 0)
 
-      let totalPrice = currentTier.price
+      let totalPrice = currentTier.price + addOnsPrice
       const discountAmount = totalPrice * (frequencyDiscount / 100)
       totalPrice = Math.max(0, totalPrice - discountAmount)
 
       return {
         basePrice: baseTier.price,
         tierUpgradePrice,
+        addOnsPrice,
         totalPrice,
       }
     } catch (error) {
@@ -110,12 +126,13 @@ export function MultiStepCustomizationWizard({
       return {
         basePrice: 0,
         tierUpgradePrice: 0,
+        addOnsPrice: 0,
         totalPrice: 0,
       }
     }
-  }, [selectedTier, frequencyDiscount, roomData])
+  }, [selectedTier, selectedAddOns, frequencyDiscount, roomData])
 
-  const steps: WizardStep[] = ["room-config", "frequency", "review"]
+  const steps: WizardStep[] = ["frequency", "room-config", "configuration-manager", "address", "review"] // Reordered steps
   const currentStepIndex = steps.indexOf(currentStep)
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === steps.length - 1
@@ -132,9 +149,24 @@ export function MultiStepCustomizationWizard({
     }
   }, [currentStepIndex, isFirstStep, steps])
 
+  const toggleAddOn = useCallback((addOnId: string) => {
+    setSelectedAddOns((prev) => (prev.includes(addOnId) ? prev.filter((id) => id !== addOnId) : [...prev, addOnId]))
+  }, [])
+
   const handleFrequencyChange = useCallback((frequency: string, discount: number) => {
     setSelectedFrequency(frequency)
     setFrequencyDiscount(discount)
+  }, [])
+
+  const handleLoadConfig = useCallback((loadedConfig: any) => {
+    if (loadedConfig.rooms && loadedConfig.rooms.length > 0) {
+      const roomConfig = loadedConfig.rooms[0]
+      setSelectedTier(roomConfig.tier || "ESSENTIAL CLEAN")
+    }
+  }, [])
+
+  const handleAddressSubmit = useCallback((data: any) => {
+    setAddressData(data)
   }, [])
 
   const handleAddToCart = useCallback(() => {
@@ -148,7 +180,9 @@ export function MultiStepCustomizationWizard({
         metadata: {
           roomType,
           selectedTier,
+          selectedAddOns,
           frequency: selectedFrequency,
+          customer: addressData,
           isRecurring: selectedFrequency !== "one_time",
         },
       }
@@ -171,7 +205,19 @@ export function MultiStepCustomizationWizard({
         duration: 3000,
       })
     }
-  }, [roomName, pricing.totalPrice, roomCount, roomType, selectedTier, selectedFrequency, addItem, toast, onClose])
+  }, [
+    roomName,
+    pricing.totalPrice,
+    roomCount,
+    roomType,
+    selectedTier,
+    selectedAddOns,
+    selectedFrequency,
+    addressData,
+    addItem,
+    toast,
+    onClose,
+  ])
 
   const canProceedToNext = useMemo(() => {
     switch (currentStep) {
@@ -179,6 +225,10 @@ export function MultiStepCustomizationWizard({
         return selectedTier !== ""
       case "frequency":
         return selectedFrequency !== ""
+      case "configuration-manager":
+        return true
+      case "address":
+        return true
       case "review":
         return false
       default:
@@ -188,27 +238,16 @@ export function MultiStepCustomizationWizard({
 
   if (!isOpen) return null
 
-  const roomImageSrc = roomImages[roomType] || "/room-icon.png"
-  const roomDisplayName = roomDisplayNames[roomType] || roomName
-
   return (
     <>
       <div className="fixed inset-0 z-50 flex">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-        <div className="relative mx-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
+        <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-gray-900 shadow-xl flex flex-col max-h-screen">
           <div className="flex-shrink-0 border-b p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                  <Image
-                    src={roomImageSrc || "/placeholder.svg"}
-                    alt={`${roomDisplayName} icon`}
-                    width={48}
-                    height={48}
-                    className="object-cover"
-                  />
-                </div>
+                <span className="text-2xl">{roomIcon}</span>
                 <div>
                   <h2 className="text-lg font-semibold">{STEP_TITLES[currentStep]}</h2>
                   <p className="text-sm text-gray-500">{STEP_DESCRIPTIONS[currentStep]}</p>
@@ -236,6 +275,12 @@ export function MultiStepCustomizationWizard({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            {currentStep === "frequency" && (
+              <div>
+                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
+              </div>
+            )}
+
             {currentStep === "room-config" && (
               <div className="space-y-6">
                 {roomData.tiers.length > 0 && (
@@ -269,12 +314,72 @@ export function MultiStepCustomizationWizard({
                     </div>
                   </div>
                 )}
+
+                {roomData.addOns.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Add-ons</h3>
+                    <div className="space-y-2">
+                      {roomData.addOns.map((addOn, index) => (
+                        <Card
+                          key={addOn.id || index}
+                          className={`cursor-pointer transition-colors ${
+                            selectedAddOns.includes(addOn.id)
+                              ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                          }`}
+                          onClick={() => toggleAddOn(addOn.id)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{addOn.name}</span>
+                                  {selectedAddOns.includes(addOn.id) && <Check className="h-4 w-4 text-green-600" />}
+                                </div>
+                                {addOn.description && <p className="text-sm text-gray-500">{addOn.description}</p>}
+                              </div>
+                              <span className="font-medium">+${addOn.price}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {currentStep === "frequency" && (
+            {currentStep === "configuration-manager" && (
               <div>
-                <FrequencySelector onFrequencyChange={handleFrequencyChange} selectedFrequency={selectedFrequency} />
+                <ConfigurationManager
+                  currentConfig={{
+                    rooms: [
+                      {
+                        type: roomName,
+                        count: roomCount,
+                        tier: selectedTier,
+                      },
+                    ],
+                    totalPrice: pricing.totalPrice,
+                  }}
+                  onLoadConfig={handleLoadConfig}
+                />
+              </div>
+            )}
+
+            {currentStep === "address" && (
+              <div>
+                <InlineAddressForm
+                  onSubmit={handleAddressSubmit}
+                  calculatedPrice={pricing.totalPrice}
+                  serviceDetails={{
+                    roomName,
+                    roomCount,
+                    selectedTier,
+                    selectedAddOns,
+                    frequency: selectedFrequency,
+                  }}
+                />
               </div>
             )}
 
@@ -295,10 +400,32 @@ export function MultiStepCustomizationWizard({
                           <span>Cleaning Level:</span>
                           <span className="font-medium">{selectedTier}</span>
                         </div>
+                        {selectedAddOns.length > 0 && (
+                          <div className="flex justify-between">
+                            <span>Add-ons:</span>
+                            <span className="font-medium">{selectedAddOns.length} selected</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span>Frequency:</span>
                           <span className="font-medium">{selectedFrequency.replace("_", " ")}</span>
                         </div>
+                        {addressData && (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Customer:</span>
+                              <span className="font-medium text-right text-sm">{addressData.fullName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Address:</span>
+                              <span className="font-medium text-right text-sm">
+                                {addressData.address}
+                                <br />
+                                {addressData.city}, {addressData.state}
+                              </span>
+                            </div>
+                          </>
+                        )}
                         <div className="border-t pt-3">
                           <div className="flex justify-between text-lg font-bold">
                             <span>Total:</span>
@@ -309,6 +436,15 @@ export function MultiStepCustomizationWizard({
                     </CardContent>
                   </Card>
                 </div>
+
+                {!addressData && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <strong>Note:</strong> You haven't provided address information yet. You can go back to step 4 to
+                      add your service address, or add this to cart and provide address details later.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

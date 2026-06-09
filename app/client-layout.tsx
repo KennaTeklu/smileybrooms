@@ -2,44 +2,43 @@
 
 import type React from "react"
 
-import { RoomProvider } from "@/lib/room-context"
+import { ThemeProvider } from "@/components/theme-provider"
 import { CartProvider } from "@/lib/cart-context"
-import { QueryClientProviderWrapper } from "@/components/providers/query-client-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { RoomProvider } from "@/lib/room-context"
 import { AccessibilityProvider } from "@/lib/accessibility-context"
-import { AbandonmentProvider } from "@/components/abandonment/abandonment-provider"
-import { TourProvider } from "@/contexts/tour-context"
-import { CookieConsentManager } from "@/components/legal/cookie-consent-manager"
-import { usePathname } from "next/navigation"
-import { useEffect } from "react"
+import { TranslationProvider } from "@/contexts/translation-context" // Import TranslationProvider
 import { EnhancedHeader } from "@/components/enhanced-header"
-import UnifiedFooter from "@/components/unified-footer"
+import { EnhancedFooter } from "@/components/enhanced-footer"
+import { CollapsibleSettingsPanel } from "@/components/collapsible-settings-panel"
+import { CollapsibleSharePanel } from "@/components/collapsible-share-panel"
+import { CollapsibleChatbotPanel } from "@/components/collapsible-chatbot-panel"
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-
-  useEffect(() => {
-    // Scroll to top on route change
-    window.scrollTo(0, 0)
-  }, [pathname])
-
+const ClientRootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <QueryClientProviderWrapper>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AccessibilityProvider>
-        <RoomProvider>
+        <TranslationProvider>
+          {" "}
+          {/* Wrap with TranslationProvider */}
           <CartProvider>
-            <AbandonmentProvider>
-              <TourProvider>
+            <RoomProvider>
+              <div className="flex min-h-screen flex-col">
                 <EnhancedHeader />
                 <main className="flex-1">{children}</main>
-                <Toaster />
-                <CookieConsentManager />
-                <UnifiedFooter />
-              </TourProvider>
-            </AbandonmentProvider>
+                <EnhancedFooter />
+                <CollapsibleSettingsPanel />
+                <CollapsibleSharePanel />
+                <CollapsibleChatbotPanel />
+              </div>
+            </RoomProvider>
           </CartProvider>
-        </RoomProvider>
+        </TranslationProvider>
       </AccessibilityProvider>
-    </QueryClientProviderWrapper>
+    </ThemeProvider>
   )
 }
+
+export default ClientRootLayout // Default export
+
+// Also export as a named export for consumers using `import { ClientRootLayout }`
+export { ClientRootLayout }

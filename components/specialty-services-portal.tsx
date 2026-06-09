@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { AlertCircle, Clock, DollarSign, Calendar, CheckCircle, ArrowRight, Phone } from "lucide-react"
-import Link from "next/link" // Import Link for the phone number CTA
+import { AlertCircle, Clock, DollarSign, Calendar, CheckCircle, ArrowRight } from "lucide-react"
 
 interface SpecialtyService {
   id: string
@@ -333,19 +332,6 @@ export function SpecialtyServicesPortal() {
               </div>
 
               <Button className="w-full">Request Quote</Button>
-
-              <Separator className="my-6" />
-
-              <div className="text-center space-y-2">
-                <h4 className="text-lg font-medium">Need immediate assistance?</h4>
-                <p className="text-sm text-gray-600">Call us directly for urgent inquiries or commercial services.</p>
-                <Button asChild className="w-full">
-                  <Link href="tel:+1-800-555-0199">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call Us: (800) 555-0199
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -408,7 +394,7 @@ export function SpecialtyServicesPortal() {
                 </div>
                 <h4 className="text-lg font-medium mb-2">No Service Selected</h4>
                 <p className="text-sm text-gray-500 mb-4">Select a service from the list to view details</p>
-                <Button variant="outline" className="flex items-center gap-1 bg-transparent">
+                <Button variant="outline" className="flex items-center gap-1">
                   Browse Services <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>

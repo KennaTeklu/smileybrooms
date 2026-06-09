@@ -5,27 +5,46 @@ import { useRouter } from "next/navigation"
 import { useDeviceNotifications } from "@/lib/notifications/device-notifications"
 
 interface RescueFunnelOptions {
-  inactivityTimeoutMs?: number // Default to 1 month
+  exitIntentEnabled?: boolean
+  inactivityTimeoutMs?: number
+  abandonedCartReminderMs?: number
+  discountPercentage?: number
+  maxDiscountPercentage?: number
+  discountSteps?: number[]
+  enableSmsReminders?: boolean
   enableChatIntervention?: boolean
 }
 
 interface RescueFunnelState {
+  discountOffered: number
+  remindersSent: number
   lastInteractionTime: number
-  hasTriggeredHelp: boolean
+  hasExitIntent: boolean
+  hasAbandonedCart: boolean
 }
 
-export function rescueFunnel(options: RescueFunnelOptions = {}) {
+export function useAbandonmentRescue(options: RescueFunnelOptions = {}) {
   const {
-    inactivityTimeoutMs = 2592000000, // 1 month in milliseconds
+    exitIntentEnabled = true,
+    inactivityTimeoutMs = 60000, // 1 minute
+    abandonedCartReminderMs = 300000, // 5 minutes
+    discountPercentage = 10,
+    maxDiscountPercentage = 20,
+    discountSteps = [10, 15, 20],
+    enableSmsReminders = false,
     enableChatIntervention = true,
   } = options
 
   const [state, setState] = useState<RescueFunnelState>({
+    discountOffered: 0,
+    remindersSent: 0,
     lastInteractionTime: Date.now(),
-    hasTriggeredHelp: false,
+    hasExitIntent: false,
+    hasAbandonedCart: false,
   })
 
-  const [showHelpPrompt, setShowHelpPrompt] = useState(false)
+  const [showDiscountModal, setShowDiscountModal] = useState(false)
+  const [showChatPrompt, setShowChatPrompt] = useState(false)
 
   const router = useRouter()
   const { sendNotification, isSupported } = useDeviceNotifications()
@@ -39,63 +58,131 @@ export function rescueFunnel(options: RescueFunnelOptions = {}) {
       }))
     }
 
+    const trackMouseLeave = (e: MouseEvent) => {
+      // Exit intent detection - mouse moving toward top of page
+      if (exitIntentEnabled && e.clientY <= 5 && !state.hasExitIntent) {
+        setState((prev) => ({ ...prev, hasExitIntent: true }))
+        handleExitIntent()
+      }
+    }
+
     // Set up event listeners
     window.addEventListener("mousemove", updateLastInteraction)
     window.addEventListener("click", updateLastInteraction)
     window.addEventListener("keydown", updateLastInteraction)
     window.addEventListener("scroll", updateLastInteraction)
+    window.addEventListener("mouseleave", trackMouseLeave)
 
     // Check for inactivity
     const inactivityInterval = setInterval(() => {
       const now = Date.now()
       const timeSinceLastInteraction = now - state.lastInteractionTime
 
-      // Trigger help if inactive for a month and help hasn't been triggered yet
-      if (timeSinceLastInteraction > inactivityTimeoutMs && !state.hasTriggeredHelp) {
-        checkCartAndTriggerHelp()
+      // Check for inactivity timeout
+      if (timeSinceLastInteraction > inactivityTimeoutMs) {
+        checkCartAndTriggerRescue()
       }
-    }, inactivityTimeoutMs / 2) // Check periodically, e.g., every half month
+    }, inactivityTimeoutMs / 2)
 
     return () => {
       window.removeEventListener("mousemove", updateLastInteraction)
       window.removeEventListener("click", updateLastInteraction)
       window.removeEventListener("keydown", updateLastInteraction)
       window.removeEventListener("scroll", updateLastInteraction)
+      window.removeEventListener("mouseleave", trackMouseLeave)
       clearInterval(inactivityInterval)
     }
-  }, [inactivityTimeoutMs, state.hasTriggeredHelp, state.lastInteractionTime])
+  }, [exitIntentEnabled, inactivityTimeoutMs, state.hasExitIntent, state.lastInteractionTime])
 
-  // Check for cart items and trigger help
-  const checkCartAndTriggerHelp = () => {
+  // Check for cart items
+  const checkCartAndTriggerRescue = () => {
     // Check if there are items in cart (simplified - replace with actual cart check)
     const hasItemsInCart =
       localStorage.getItem("cart") && JSON.parse(localStorage.getItem("cart") || '{"items":[]}').items.length > 0
 
-    if (hasItemsInCart && enableChatIntervention) {
-      setState((prev) => ({ ...prev, hasTriggeredHelp: true }))
-      setShowHelpPrompt(true)
+    if (hasItemsInCart && !state.hasAbandonedCart) {
+      setState((prev) => ({ ...prev, hasAbandonedCart: true }))
 
-      // Optionally send a device notification if supported and user is not on the page
-      if (document.visibilityState === "hidden" && isSupported) {
-        sendNotification({
-          title: "Need a hand with your booking?",
-          body: "We noticed you haven't completed your cleaning service booking. Click to chat with us!",
-          priority: "normal",
-          actions: [
-            {
-              title: "Chat with Support",
-              action: () => {
-                router.push("/contact") // Or a specific chat page
-              },
+      // Schedule abandoned cart reminder
+      setTimeout(() => {
+        if (document.visibilityState === "hidden") {
+          sendAbandonmentNotification()
+        } else {
+          offerDiscount()
+        }
+      }, abandonedCartReminderMs)
+    }
+  }
+
+  // Handle exit intent
+  const handleExitIntent = () => {
+    const hasItemsInCart =
+      localStorage.getItem("cart") && JSON.parse(localStorage.getItem("cart") || '{"items":[]}').items.length > 0
+
+    if (hasItemsInCart && state.remindersSent === 0) {
+      offerDiscount()
+    }
+  }
+
+  // Offer discount
+  const offerDiscount = () => {
+    if (state.remindersSent < discountSteps.length) {
+      const currentDiscount = discountSteps[state.remindersSent]
+
+      setState((prev) => ({
+        ...prev,
+        discountOffered: currentDiscount,
+        remindersSent: prev.remindersSent + 1,
+      }))
+
+      setShowDiscountModal(true)
+
+      // Store discount in localStorage
+      localStorage.setItem("rescueDiscount", currentDiscount.toString())
+    } else if (enableChatIntervention && !showChatPrompt) {
+      setShowChatPrompt(true)
+    }
+  }
+
+  // Send notification for abandoned cart
+  const sendAbandonmentNotification = () => {
+    if (isSupported) {
+      sendNotification({
+        title: "Your cleaning service is waiting!",
+        body: `Complete your booking now and save ${discountSteps[state.remindersSent] || discountPercentage}%!`,
+        priority: "normal",
+        actions: [
+          {
+            title: "Complete Booking",
+            action: () => {
+              router.push("/cart")
             },
-          ],
-        })
-      }
+          },
+        ],
+      })
+
+      setState((prev) => ({
+        ...prev,
+        remindersSent: prev.remindersSent + 1,
+      }))
+    }
+  }
+
+  // Send SMS reminder (would connect to actual SMS service)
+  const sendSmsReminder = (phoneNumber: string) => {
+    if (enableSmsReminders) {
+      console.log(`Would send SMS to ${phoneNumber} with discount offer`)
+      // In real implementation, this would call an API to send SMS
     }
   }
 
   return {
-    showHelpPrompt,
-    setShowHelpPrompt,
+    showDiscountModal,
+    setShowDiscountModal,
+    showChatPrompt,
+    setShowChatPrompt,
+    currentDiscount: state.discountOffered,
+    sendSmsReminder,
+    rescueState: state,
   }
 }

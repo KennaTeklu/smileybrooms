@@ -1,54 +1,48 @@
-"use client" // This page needs to be a client component to manage state for the modal
+"use client"
 
 import { useState } from "react"
-import { VoiceCommandButton } from "@/components/voice/voice-command-button"
 import { PricingContent } from "@/components/pricing-content"
-import { CollapsibleAddAllPanel } from "@/components/collapsible-add-all-panel" // Import the modified panel
-import { Button } from "@/components/ui/button"
-import { ShoppingCart } from "lucide-react" // Added ShoppingCart for the button
-import { cn } from "@/lib/utils"
-import { useRoomContext } from "@/lib/room-context" // To get selected room count for badge
-import { Badge } from "@/components/ui/badge"
+import { PriceCalculator } from "@/components/price-calculator"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { getRoomTiers } from "@/lib/room-tiers"
 
 export default function PricingPage() {
-  const [isAddAllPanelOpen, setIsAddAllPanelOpen] = useState(false)
-  const { getSelectedRoomTypes, getTotalPrice } = useRoomContext()
-  const selectedRoomTypes = getSelectedRoomTypes()
-  const totalPrice = getTotalPrice()
+  const [activeTab, setActiveTab] = useState("tiers")
+  const [initialSelectedRooms, setInitialSelectedRooms] = useState<Record<string, number>>({})
+  const [initialServiceType, setInitialServiceType] = useState<"standard" | "detailing">("standard")
+
+  const handleSelectTier = (roomType: string, tierId: string) => {
+    const selectedRooms: Record<string, number> = {}
+    selectedRooms[roomType] = 1 // Set the selected room count to 1 for the chosen room
+
+    setInitialSelectedRooms(selectedRooms)
+
+    const tiers = getRoomTiers(roomType)
+    const selectedTier = tiers.find((tier) => tier.id === tierId)
+
+    let serviceType: "standard" | "detailing" = "standard"
+    if (selectedTier) {
+      // Determine service type based on tier name
+      if (selectedTier.name.includes("PREMIUM CLEAN") || selectedTier.name.includes("ADVANCED CLEAN")) {
+        serviceType = "detailing"
+      } else {
+        serviceType = "standard"
+      }
+    }
+    setInitialServiceType(serviceType)
+    setActiveTab("custom") // Switch to the custom plan tab
+  }
 
   return (
-    <div className="container mx-auto px-2 py-8 md:px-4 lg:px-6">
-      <div className="flex flex-col sm:flex-row items-center justify-center mb-8 gap-4">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 dark:text-gray-100 leading-tight">
-          Flexible Pricing & Services
-        </h1>
-        <VoiceCommandButton />
-        {/* The "Add All to Cart" button, now more integrated */}
-        <Button
-          onClick={() => setIsAddAllPanelOpen(true)}
-          className={cn(
-            "flex items-center gap-2 py-2 px-4",
-            "bg-blue-600 text-white rounded-lg shadow-md",
-            "hover:bg-blue-700 transition-colors duration-200",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            "relative", // For badge positioning
-          )}
-          aria-label="Open add all to cart panel"
-        >
-          <ShoppingCart className="h-5 w-5" />
-          <span className="font-semibold">Add All to Cart</span>
-          {selectedRoomTypes.length > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-red-500 text-white text-xs font-bold border-2 border-white shadow-lg">
-              {selectedRoomTypes.length}
-            </Badge>
-          )}
-        </Button>
-      </div>
-
-      <PricingContent />
-
-      {/* The CollapsibleAddAllPanel as a controlled modal */}
-      <CollapsibleAddAllPanel isOpen={isAddAllPanelOpen} onOpenChange={setIsAddAllPanelOpen} />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <PricingContent onSelectTier={handleSelectTier} />
+        <TabsContent value="custom">
+          <div className="flex justify-center py-12 px-4 md:px-6">
+            <PriceCalculator initialSelectedRooms={initialSelectedRooms} initialServiceType={initialServiceType} />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

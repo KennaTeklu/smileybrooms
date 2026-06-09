@@ -23,7 +23,6 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false) // New state for submission status
 
   const allowedDomains = [
     "gmail.com",
@@ -47,11 +46,6 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!termsAccepted) {
-      alert("Please accept the Terms of Service and Privacy Policy to join the waitlist.")
-      return
-    }
-
     // Email validation
     const enteredEmail = email.trim().toLowerCase()
     const isValidEmail = allowedDomains.some((domain) => enteredEmail.endsWith(`@${domain}`))
@@ -69,8 +63,6 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
       return
     }
 
-    setIsSubmitting(true) // Set submitting state to true
-
     try {
       // Replace with your actual form submission endpoint
       const scriptURL =
@@ -80,7 +72,6 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
         name,
         email: enteredEmail,
         phone: `${countryCode}${enteredPhone}`,
-        termsAccepted: termsAccepted ? "Yes" : "No", // Log consent status
       }
 
       // Submit form data
@@ -98,8 +89,6 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
     } catch (error) {
       console.error("Error:", error)
       alert("There was an error submitting the form. Please try again.")
-    } finally {
-      setIsSubmitting(false) // Reset submitting state
     }
   }
 
@@ -189,8 +178,8 @@ export default function WaitlistOverlay({ onSubmit }: WaitlistOverlayProps) {
             </Label>
           </div>
 
-          <Button type="submit" className="w-full py-6 text-lg" disabled={!termsAccepted || isSubmitting}>
-            {isSubmitting ? "Joining..." : "Join Waitlist"}
+          <Button type="submit" className="w-full py-6 text-lg">
+            Join Waitlist
           </Button>
         </form>
       </div>

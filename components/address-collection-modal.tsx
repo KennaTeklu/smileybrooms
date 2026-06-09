@@ -18,7 +18,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { MapPin, CreditCard } from "lucide-react"
 import { US_STATES } from "@/lib/location-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-// Removed Checkbox import as it's no longer used for video consent in this modal
 
 export interface AddressData {
   fullName: string
@@ -29,7 +28,6 @@ export interface AddressData {
   state: string
   zipCode: string
   specialInstructions: string
-  // Removed wantsLiveVideo and videoConsentDetails from this interface
 }
 
 interface AddressCollectionModalProps {
@@ -48,7 +46,6 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
     state: "",
     zipCode: "",
     specialInstructions: "",
-    // Removed wantsLiveVideo and videoConsentDetails from initial state
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -66,8 +63,6 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
       })
     }
   }
-
-  // Removed handleVideoConsentChange as it's no longer relevant for this modal
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -102,7 +97,6 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
         state: "",
         zipCode: "",
         specialInstructions: "",
-        // Removed wantsLiveVideo and videoConsentDetails from reset state
       })
 
       onClose()
@@ -258,8 +252,6 @@ export default function AddressCollectionModal({ isOpen, onClose, onSubmit }: Ad
                 className="h-20"
               />
             </div>
-
-            {/* Removed Live Video Option from here */}
           </div>
 
           <DialogFooter className="pt-4">

@@ -1,4 +1,157 @@
-// Define the room tiers, add-ons, and reductions for the room configurator
+# Premium Home Cleaning Service - ROI-Optimized Pricing
+
+## **Full House Cleaning Packages** (10% Discount Applied)
+
+| Package Tier | Original Price | **Discounted Price** | Savings |
+|-------------|---------------|---------------------|---------|
+| **Essential Clean** | ~~$1,620~~ | **$1,458** *(10% OFF!)* | $162 |
+| **Premium Clean** | ~~$2,880~~ | **$2,592** *(10% OFF!)* | $288 |
+| **Luxury Clean** | ~~$4,680~~ | **$4,212** *(10% OFF!)* | $468 |
+
+---
+
+## **Individual Room Pricing by Tier**
+
+### **BEDROOMS**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $120 | Floor vacuuming, bed making, surface organization, basic dusting |
+| **Premium Clean** | $220 | Deep floor care, mattress steaming, complete bed service, full surface dusting, closet organization |
+| **Luxury Clean** | $380 | Comprehensive floor restoration, under-bed detailing, bed frame deep clean, walk-in closet organization, laundry service, electronics cleaning |
+
+### **BATHROOMS**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $140 | Toilet cleaning, shower/tub basic clean, mirror & sink, basic organizing |
+| **Premium Clean** | $250 | Toilet deep clean, shower/tub restoration, vanity detailing, floor scrubbing, towel service |
+| **Luxury Clean** | $420 | Complete toilet restoration, shower/tub deep restoration, vanity organization, floor restoration, ventilation cleaning, luxury amenities |
+
+### **KITCHEN**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $160 | Countertop cleaning, sink & faucet, stovetop cleaning, basic organizing |
+| **Premium Clean** | $280 | Countertop detailing, sink restoration, stovetop & oven, cabinet fronts, appliance exteriors |
+| **Luxury Clean** | $480 | Complete countertop restoration, sink & faucet restoration, oven deep clean, cabinet organization, refrigerator deep clean, all appliances |
+
+### **LIVING ROOM**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $110 | Carpet vacuuming, surface dusting, couch arrangement, basic organizing |
+| **Premium Clean** | $200 | Deep vacuuming, furniture dusting, couch cleaning, electronics cleaning, fireplace cleaning |
+| **Luxury Clean** | $340 | Carpet restoration, furniture restoration, upholstery detailing, entertainment center, complete fireplace restoration |
+
+### **DINING ROOM**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $80 | Table cleaning, floor vacuuming, basic organizing |
+| **Premium Clean** | $140 | Table & chairs detailing, floor deep clean, china cabinet exterior |
+| **Luxury Clean** | $240 | Furniture restoration, floor restoration, china cabinet organization, lighting fixtures |
+
+### **HOME OFFICE**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $130 | Desk cleaning, floor vacuuming, basic organizing, electronics dusting |
+| **Premium Clean** | $240 | Desk organization, electronics cleaning, floor detailing, bookshelf organizing |
+| **Luxury Clean** | $420 | Complete workstation setup, equipment maintenance, floor restoration, storage optimization |
+
+### **LAUNDRY ROOM**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $100 | Appliance exteriors, floor cleaning, basic organizing, utility sink |
+| **Premium Clean** | $190 | Appliance deep clean, floor & walls, storage organization, utility sink detail |
+| **Luxury Clean** | $320 | Appliance restoration, deep sanitization, complete organization, utility optimization |
+
+### **ENTRYWAY**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $60 | Floor cleaning, surface dusting, basic organizing |
+| **Premium Clean** | $100 | Floor detailing, furniture cleaning, closet organization |
+| **Luxury Clean** | $160 | Floor restoration, complete organization, lighting & fixtures |
+
+### **HALLWAY**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $50 | Floor cleaning, wall spot cleaning, basic organizing |
+| **Premium Clean** | $90 | Floor detailing, wall cleaning, lighting fixtures |
+| **Luxury Clean** | $140 | Floor restoration, wall restoration, lighting optimization |
+
+### **STAIRS**
+
+| Tier | Price | What's Included |
+|------|-------|----------------|
+| **Essential Clean** | $70 | Step vacuuming, safety check, basic organizing |
+| **Premium Clean** | $120 | Deep vacuuming, handrail polishing, wall cleaning |
+| **Luxury Clean** | $180 | Carpet restoration, railing restoration, wall restoration |
+
+---
+
+## **Standard House Configuration** (9 Rooms)
+- 3 Bedrooms
+- 2 Bathrooms  
+- 1 Kitchen
+- 1 Living Room
+- 1 Dining Room
+- 1 Entryway
+
+**Total Room Count: 9 Rooms**
+
+---
+
+## **Pricing Summary**
+
+### **Essential Clean Package**
+- **Individual Room Total:** $1,620
+- **Full House Price:** ~~$1,620~~ **$1,458** *(Save $162!)*
+- **Average per Room:** $162
+
+### **Premium Clean Package**
+- **Individual Room Total:** $2,880
+- **Full House Price:** ~~$2,880~~ **$2,592** *(Save $288!)*
+- **Average per Room:** $288
+
+### **Luxury Clean Package**
+- **Individual Room Total:** $4,680
+- **Full House Price:** ~~$4,680~~ **$4,212** *(Save $468!)*
+- **Average per Room:** $468
+
+---
+
+## **ROI Optimization Strategy**
+
+### **Key Improvements:**
+1. **Micro-Service Breakdown**: Each task is now individually priced and profitable
+2. **Premium Positioning**: Higher baseline prices reflect professional service value
+3. **Value Stacking**: Multiple small services combine for significant totals
+4. **Profit Margins**: 70-85% profit margins across all tiers
+5. **Psychological Pricing**: Full house discount creates urgency and value perception
+
+### **Revenue Projections:**
+- **Essential Clients (30%)**: $1,458 × 50 clients = $72,900
+- **Premium Clients (50%)**: $2,592 × 83 clients = $215,136  
+- **Luxury Clients (20%)**: $4,212 × 33 clients = $139,996
+- **Total Annual Revenue**: $428,032 (166 clients)
+
+### **Scaling to $1M+ Revenue:**
+- **Year 1**: 166 clients × $2,578 avg = $428,032
+- **Year 2**: 250 clients × $3,200 avg = $800,000
+- **Year 3**: 300 clients × $3,500 avg = $1,050,000
+\`\`\`
+
+### Round 1: Update `lib/room-tiers.ts` with new individual room prices.
+
+I will update the `price` property for each tier within the `defaultTiers` object in `lib/room-tiers.ts` to reflect the new pricing from the `update-guide.md`.
+
+\`\`\`typescriptreact file="lib/room-tiers.ts"
+[v0-no-op-code-block-prefix]// Define the room tiers, add-ons, and reductions for the room configurator
 
 export interface RoomTier {
   id: string
@@ -33,7 +186,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bedroom-essential",
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for lightly used rooms",
-      price: 30.0,
+      price: 120.0,
       timeEstimate: "20 minutes",
       features: ["Surface dusting (3 key pieces)", "Floor vacuum (main pathways)", "Mirror/glass touch-up"],
       detailedTasks: [
@@ -58,7 +211,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bedroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular maintenance",
-      price: 55.0,
+      price: 220.0,
       timeEstimate: "60 minutes",
       features: [
         "Includes Essential Clean",
@@ -93,7 +246,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for maximum freshness",
-      price: 95.0,
+      price: 380.0,
       timeEstimate: "180 minutes",
       features: [
         "Includes Advanced Clean",
@@ -135,7 +288,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bathroom-essential",
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for guest bathrooms",
-      price: 35.0,
+      price: 140.0,
       timeEstimate: "25 minutes",
       features: [
         "Toilet bowl & exterior cleaning",
@@ -172,7 +325,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bathroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular bathrooms",
-      price: 62.5,
+      price: 250.0,
       timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
@@ -213,7 +366,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "bathroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for master bathrooms",
-      price: 105.0,
+      price: 420.0,
       timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
@@ -248,7 +401,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "kitchen-essential",
       name: "ESSENTIAL CLEAN",
       description: "Surface cleaning for lightly used kitchens",
-      price: 40.0,
+      price: 160.0,
       timeEstimate: "30 minutes",
       features: [
         "Countertop cleaning",
@@ -286,7 +439,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "kitchen-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for regular kitchens",
-      price: 70.0,
+      price: 280.0,
       timeEstimate: "90 minutes",
       features: [
         "Includes Essential Clean",
@@ -329,7 +482,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "kitchen-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for gourmet kitchens",
-      price: 120.0,
+      price: 480.0,
       timeEstimate: "270 minutes",
       features: [
         "Includes Advanced Clean",
@@ -368,7 +521,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "livingroom-essential",
       name: "ESSENTIAL CLEAN",
       description: "Basic cleaning for living spaces",
-      price: 27.5,
+      price: 110.0,
       timeEstimate: "25 minutes",
       features: ["Surface dusting", "Floor vacuum", "Coffee table cleaning"],
       detailedTasks: [
@@ -403,7 +556,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "livingroom-advanced",
       name: "ADVANCED CLEAN",
       description: "Thorough cleaning for family rooms",
-      price: 50.0,
+      price: 200.0,
       timeEstimate: "75 minutes",
       features: [
         "Includes Essential Clean",
@@ -441,7 +594,7 @@ export const defaultTiers: Record<string, RoomTier[]> = {
       id: "livingroom-premium",
       name: "PREMIUM CLEAN",
       description: "Comprehensive cleaning for entertainment areas",
-      price: 85.0,
+      price: 340.0,
       timeEstimate: "225 minutes",
       features: [
         "Includes Advanced Clean",
