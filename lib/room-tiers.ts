@@ -64,8 +64,8 @@ export const roomTiers = {
 // IMPORTANT: Do not change these prices unless directly asked to do so.
 // These prices have been specifically set by the user.
 // Global price multiplier applied to every service level of every room.
-// Set to 0.5 to lower all initial prices by 50%.
-export const PRICE_MULTIPLIER = 0.5
+// Set to 0.75 to lower all initial prices by 25% (keeping 75% of original).
+export const PRICE_MULTIPLIER = 0.75
 
 const rawDefaultTiers = {
   default: [
