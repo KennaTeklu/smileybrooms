@@ -10,8 +10,16 @@ import type { CheckoutData } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { processContactOrder } from "@/lib/actions"
+import { CheckoutButton as StripeCheckoutButton } from "@/components/cart-button"
 
-export default function CheckoutButton() {
+// Named export used by pages that need a Stripe-style checkout button
+// (e.g. app/order-summary/page.tsx). It forwards to the cart-button
+// implementation and tolerates the extra props those pages pass.
+export function CheckoutButton(props: any) {
+  return <StripeCheckoutButton {...props} />
+}
+
+export default function ServiceApplicationButton() {
   const { cart } = useCart()
   const router = useRouter()
   const { toast } = useToast()

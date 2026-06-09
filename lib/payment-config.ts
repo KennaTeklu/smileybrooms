@@ -52,3 +52,41 @@ export function shouldShowSinglePaymentOption(deviceType: string): boolean {
 export function getPreferredPaymentMethod(deviceType: string): PaymentMethod | null {
   return getPrimaryPaymentMethod(deviceType)
 }
+
+export interface PaymentMethodOption {
+  id: PaymentMethod
+  name: string
+  description: string
+}
+
+export function getDeviceOptimizedPaymentMethods(deviceType: string): PaymentMethodOption[] {
+  const methods: PaymentMethodOption[] = []
+
+  if (deviceType === "ios") {
+    methods.push({
+      id: "apple_pay",
+      name: "Apple Pay",
+      description: "Fast, secure checkout with Apple Pay.",
+    })
+  } else if (deviceType === "android") {
+    methods.push({
+      id: "google_pay",
+      name: "Google Pay",
+      description: "Fast, secure checkout with Google Pay.",
+    })
+  } else {
+    methods.push({
+      id: "google_pay",
+      name: "Google Pay",
+      description: "Fast, secure checkout with Google Pay.",
+    })
+  }
+
+  methods.push({
+    id: "contact_for_alternatives",
+    name: "Call for Payment Options",
+    description: "Prefer another method? Contact us to arrange cash, Zelle, or other options.",
+  })
+
+  return methods
+}

@@ -63,7 +63,11 @@ export const roomTiers = {
 
 // IMPORTANT: Do not change these prices unless directly asked to do so.
 // These prices have been specifically set by the user.
-export const defaultTiers = {
+// Global price multiplier applied to every service level of every room.
+// Set to 0.5 to lower all initial prices by 50%.
+export const PRICE_MULTIPLIER = 0.5
+
+const rawDefaultTiers = {
   default: [
     {
       id: "default-essential",
@@ -419,6 +423,17 @@ export const defaultTiers = {
     },
   ],
 }
+
+// Apply the global PRICE_MULTIPLIER to every tier price of every room.
+export const defaultTiers = Object.fromEntries(
+  Object.entries(rawDefaultTiers).map(([roomKey, tiers]) => [
+    roomKey,
+    tiers.map((tier) => ({
+      ...tier,
+      price: Math.round(tier.price * PRICE_MULTIPLIER * 100) / 100,
+    })),
+  ]),
+) as typeof rawDefaultTiers
 
 export const roomImages: { [key: string]: string } = {
   bedroom: "/images/bedroom-professional.png",
