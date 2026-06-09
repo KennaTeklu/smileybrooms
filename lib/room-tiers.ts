@@ -97,7 +97,7 @@ export const defaultTiers = {
     {
       id: "bedroom-essential",
       name: "ESSENTIAL CLEAN",
-      price: 120,
+      price: 30,
       description: "Basic bedroom tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -106,7 +106,7 @@ export const defaultTiers = {
     {
       id: "bedroom-premium",
       name: "PREMIUM CLEAN",
-      price: 220,
+      price: 55,
       description: "Thorough bedroom cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -115,7 +115,7 @@ export const defaultTiers = {
     {
       id: "bedroom-luxury",
       name: "LUXURY CLEAN",
-      price: 380,
+      price: 95,
       description: "Deep and detailed bedroom cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -126,7 +126,7 @@ export const defaultTiers = {
     {
       id: "bathroom-essential",
       name: "ESSENTIAL CLEAN",
-      price: 140,
+      price: 35,
       description: "Basic bathroom refresh.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -135,7 +135,7 @@ export const defaultTiers = {
     {
       id: "bathroom-premium",
       name: "PREMIUM CLEAN",
-      price: 250,
+      price: 62.5,
       description: "Thorough bathroom sanitization.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -144,7 +144,7 @@ export const defaultTiers = {
     {
       id: "bathroom-luxury",
       name: "LUXURY CLEAN",
-      price: 420,
+      price: 105,
       description: "Deep and detailed bathroom cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -155,7 +155,7 @@ export const defaultTiers = {
     {
       id: "kitchen-essential",
       name: "ESSENTIAL CLEAN",
-      price: 160,
+      price: 40,
       description: "Basic kitchen wipe-down.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -164,7 +164,7 @@ export const defaultTiers = {
     {
       id: "kitchen-premium",
       name: "PREMIUM CLEAN",
-      price: 280,
+      price: 70,
       description: "Thorough kitchen degreasing and sanitization.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -173,7 +173,7 @@ export const defaultTiers = {
     {
       id: "kitchen-luxury",
       name: "LUXURY CLEAN",
-      price: 480,
+      price: 120,
       description: "Deep and detailed kitchen cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -184,7 +184,7 @@ export const defaultTiers = {
     {
       id: "livingroom-essential",
       name: "ESSENTIAL CLEAN",
-      price: 110,
+      price: 27.5,
       description: "Basic living room tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -193,7 +193,7 @@ export const defaultTiers = {
     {
       id: "livingroom-premium",
       name: "PREMIUM CLEAN",
-      price: 200,
+      price: 50,
       description: "Thorough living room cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -202,7 +202,7 @@ export const defaultTiers = {
     {
       id: "livingroom-luxury",
       name: "LUXURY CLEAN",
-      price: 340,
+      price: 85,
       description: "Deep and detailed living room cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -213,7 +213,7 @@ export const defaultTiers = {
     {
       id: "diningroom-essential",
       name: "ESSENTIAL CLEAN",
-      price: 80,
+      price: 20,
       description: "Basic dining room tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -222,7 +222,7 @@ export const defaultTiers = {
     {
       id: "diningroom-premium",
       name: "PREMIUM CLEAN",
-      price: 140,
+      price: 35,
       description: "Thorough dining room cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -231,7 +231,7 @@ export const defaultTiers = {
     {
       id: "diningroom-luxury",
       name: "LUXURY CLEAN",
-      price: 240,
+      price: 60,
       description: "Deep and detailed dining room cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -242,7 +242,7 @@ export const defaultTiers = {
     {
       id: "homeoffice-essential",
       name: "ESSENTIAL CLEAN",
-      price: 130,
+      price: 32.5,
       description: "Basic home office tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -251,7 +251,7 @@ export const defaultTiers = {
     {
       id: "homeoffice-premium",
       name: "PREMIUM CLEAN",
-      price: 240,
+      price: 60,
       description: "Thorough home office cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -260,7 +260,7 @@ export const defaultTiers = {
     {
       id: "homeoffice-luxury",
       name: "LUXURY CLEAN",
-      price: 420,
+      price: 105,
       description: "Deep and detailed home office cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -271,7 +271,7 @@ export const defaultTiers = {
     {
       id: "laundryroom-essential",
       name: "ESSENTIAL CLEAN",
-      price: 100,
+      price: 25,
       description: "Basic laundry room tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -280,7 +280,7 @@ export const defaultTiers = {
     {
       id: "laundryroom-premium",
       name: "PREMIUM CLEAN",
-      price: 190,
+      price: 47.5,
       description: "Thorough laundry room cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -289,7 +289,7 @@ export const defaultTiers = {
     {
       id: "laundryroom-luxury",
       name: "LUXURY CLEAN",
-      price: 320,
+      price: 80,
       description: "Deep and detailed laundry room cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -300,7 +300,7 @@ export const defaultTiers = {
     {
       id: "entryway-essential",
       name: "ESSENTIAL CLEAN",
-      price: 60,
+      price: 15,
       description: "Basic entryway tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -309,7 +309,7 @@ export const defaultTiers = {
     {
       id: "entryway-premium",
       name: "PREMIUM CLEAN",
-      price: 100,
+      price: 25,
       description: "Thorough entryway cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -318,7 +318,7 @@ export const defaultTiers = {
     {
       id: "entryway-luxury",
       name: "LUXURY CLEAN",
-      price: 160,
+      price: 40,
       description: "Deep and detailed entryway cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -329,7 +329,7 @@ export const defaultTiers = {
     {
       id: "hallway-essential",
       name: "ESSENTIAL CLEAN",
-      price: 50,
+      price: 12.5,
       description: "Basic hallway tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -338,7 +338,7 @@ export const defaultTiers = {
     {
       id: "hallway-premium",
       name: "PREMIUM CLEAN",
-      price: 90,
+      price: 22.5,
       description: "Thorough hallway cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -347,7 +347,7 @@ export const defaultTiers = {
     {
       id: "hallway-luxury",
       name: "LUXURY CLEAN",
-      price: 140,
+      price: 35,
       description: "Deep and detailed hallway cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
@@ -358,7 +358,7 @@ export const defaultTiers = {
     {
       id: "stairs-essential",
       name: "ESSENTIAL CLEAN",
-      price: 70,
+      price: 17.5,
       description: "Basic stairs tidy-up.",
       detailedTasks: roomTiers["ESSENTIAL CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["ESSENTIAL CLEAN"].notIncludedTasks,
@@ -367,7 +367,7 @@ export const defaultTiers = {
     {
       id: "stairs-premium",
       name: "PREMIUM CLEAN",
-      price: 120,
+      price: 30,
       description: "Thorough stairs cleaning.",
       detailedTasks: roomTiers["PREMIUM CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["PREMIUM CLEAN"].notIncludedTasks,
@@ -376,7 +376,7 @@ export const defaultTiers = {
     {
       id: "stairs-luxury",
       name: "LUXURY CLEAN",
-      price: 180,
+      price: 45,
       description: "Deep and detailed stairs cleaning.",
       detailedTasks: roomTiers["LUXURY CLEAN"].detailedTasks,
       notIncludedTasks: roomTiers["LUXURY CLEAN"].notIncludedTasks,
