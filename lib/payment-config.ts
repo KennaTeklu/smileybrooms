@@ -45,7 +45,6 @@ export function getPaymentMethodDisplayName(method: PaymentMethod): string {
 }
 
 export function shouldShowSinglePaymentOption(deviceType: string): boolean {
-  // Always show simplified options for better UX
   return true
 }
 
@@ -59,7 +58,9 @@ export interface PaymentMethodOption {
   description: string
 }
 
-export function getDeviceOptimizedPaymentMethods(deviceType: string): PaymentMethodOption[] {
+export function getDeviceOptimizedPaymentMethods(
+  deviceType: string
+): PaymentMethodOption[] {
   const methods: PaymentMethodOption[] = []
 
   if (deviceType === "ios") {
@@ -85,7 +86,8 @@ export function getDeviceOptimizedPaymentMethods(deviceType: string): PaymentMet
   methods.push({
     id: "contact_for_alternatives",
     name: "Call for Payment Options",
-    description: "Prefer another method? Contact us to arrange cash, Zelle, or other options.",
+    description:
+      "Prefer another method? Contact us to arrange cash, Zelle, or other options.",
   })
 
   return methods
